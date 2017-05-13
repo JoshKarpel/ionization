@@ -27,92 +27,6 @@ def gaussian_kernel(x, *, tau_alpha):
     return (1 + (1j * x / tau_alpha)) ** (-1.5)
 
 
-class IntegroDifferentialEquationSpecification(si.Specification):
-    integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
-
-    def __init__(self, name,
-                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 a_initial = 1,
-                 prefactor = 1,
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = True,
-                 kernel = return_one, kernel_kwargs = None,
-                 integration_method = 'simpson',
-                 evolution_method = 'FE',
-                 simulation_type = None,
-                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
-                 **kwargs):
-        """
-        Initialize an IntegroDifferentialEquationSpecification from the given parameters.
-
-        The differential equation should be of the form
-        dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]
-
-        :param name:
-        :param time_initial:
-        :param time_final:
-        :param time_step:
-        :param a_initial: initial value of y
-        :param kwargs:
-        """
-        if simulation_type is None:
-            simulation_type = IntegroDifferentialEquationSimulation
-        super().__init__(name, simulation_type = simulation_type, **kwargs)
-
-        self.time_initial = time_initial
-        self.time_final = time_final
-        self.time_step = time_step
-
-        self.a_initial = a_initial
-
-        self.prefactor = prefactor
-
-        self.electric_potential = electric_potential
-        self.electric_potential_dc_correction = electric_potential_dc_correction
-
-        self.kernel = kernel
-        self.kernel_kwargs = dict()
-        if kernel_kwargs is not None:
-            self.kernel_kwargs.update(kernel_kwargs)
-
-        self.integration_method = integration_method
-        self.evolution_method = evolution_method
-
-        self.checkpoints = checkpoints
-        self.checkpoint_every = checkpoint_every
-        self.checkpoint_dir = checkpoint_dir
-
-    def info(self):
-        checkpoint = ['Checkpointing: ']
-        if self.checkpoints:
-            if self.checkpoint_dir is not None:
-                working_in = self.checkpoint_dir
-            else:
-                working_in = 'cwd'
-            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
-        else:
-            checkpoint[0] += 'disabled'
-
-        ide_parameters = [
-            "IDE Parameters: da/dt = prefactor * f(t) * integral[ a(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
-            '   Initial State: a = {}'.format(self.a_initial),
-            '   Prefactor: {}'.format(self.prefactor),
-            '   Electric Potential: {}'.format(self.electric_potential),
-            '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
-        ]
-
-        time_evolution = [
-            'Time Evolution:',
-            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
-            '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Time Step: {} as'.format(uround(self.time_step, asec)),
-            '   Integration Method: {}'.format(self.integration_method),
-            '   Evolution Method: {}'.format(self.evolution_method),
-        ]
-
-        return '\n'.join(checkpoint + ide_parameters + time_evolution)
-
-
 class IntegroDifferentialEquationSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
@@ -325,43 +239,61 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         plt.close()
 
 
-class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquationSpecification):
-    error_on = si.utils.RestrictedValues('erron_on', ('y', 'dydt'))
+class IntegroDifferentialEquationSpecification(si.Specification):
+    simulation_type = IntegroDifferentialEquationSimulation
+
+    integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
 
     def __init__(self, name,
-                 minimum_time_step = None, maximum_time_step = 1 * asec,
-                 epsilon = 1e-3, error_on = 'y', safety_factor = .98,
-                 evolution_method = 'ARK4',
-                 simulation_type = None,
+                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
+                 a_initial = 1,
+                 prefactor = 1,
+                 electric_potential = potentials.NoElectricPotential(),
+                 electric_potential_dc_correction = True,
+                 kernel = return_one, kernel_kwargs = None,
+                 integration_method = 'simpson',
+                 evolution_method = 'FE',
+                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  **kwargs):
         """
-        Initiliaze a AdaptiveIntegroDifferentialEquationSpecification from the given parameters.
+        Initialize an IntegroDifferentialEquationSpecification from the given parameters.
 
-        if error_on == 'y':
-            allowed_error = epsilon * y_current
-        if error_on == 'dydt':
-            allowed_error = epsilon * time_step_current * dy/dt_current
+        The differential equation should be of the form
+        dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]
 
-        :param name: the name of the Specification
-        :param minimum_time_step: the smallest allowable time step
-        :param maximum_time_step: the largest allowable time step
-        :param epsilon: the fractional error tolerance
-        :param error_on: 'y' or 'dydt', see above
-        :param safety_factor: a number slightly less than 1 to ensure safe time step adjustment
-        :param evolution_method:
-        :param kwargs: kwargs are passed to IntegroDifferentialEquationSpecification's __init__ method
+        :param name:
+        :param time_initial:
+        :param time_final:
+        :param time_step:
+        :param a_initial: initial value of y
+        :param kwargs:
         """
         if simulation_type is None:
-            simulation_type = AdaptiveIntegroDifferentialEquationSimulation
-        super().__init__(name, evolution_method = evolution_method, simulation_type = simulation_type, **kwargs)
+            simulation_type = IntegroDifferentialEquationSimulation
+        super().__init__(name, simulation_type = simulation_type, **kwargs)
 
-        self.minimum_time_step = minimum_time_step
-        self.maximum_time_step = maximum_time_step
+        self.time_initial = time_initial
+        self.time_final = time_final
+        self.time_step = time_step
 
-        self.epsilon = epsilon
-        self.error_on = error_on
+        self.a_initial = a_initial
 
-        self.safety_factor = safety_factor
+        self.prefactor = prefactor
+
+        self.electric_potential = electric_potential
+        self.electric_potential_dc_correction = electric_potential_dc_correction
+
+        self.kernel = kernel
+        self.kernel_kwargs = dict()
+        if kernel_kwargs is not None:
+            self.kernel_kwargs.update(kernel_kwargs)
+
+        self.integration_method = integration_method
+        self.evolution_method = evolution_method
+
+        self.checkpoints = checkpoints
+        self.checkpoint_every = checkpoint_every
+        self.checkpoint_dir = checkpoint_dir
 
     def info(self):
         checkpoint = ['Checkpointing: ']
@@ -375,8 +307,8 @@ class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquati
             checkpoint[0] += 'disabled'
 
         ide_parameters = [
-            "IDE Parameters: dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
-            '   Initial State: y = {}'.format(self.a_initial),
+            "IDE Parameters: da/dt = prefactor * f(t) * integral[ a(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
+            '   Initial State: a = {}'.format(self.a_initial),
             '   Prefactor: {}'.format(self.prefactor),
             '   Electric Potential: {}'.format(self.electric_potential),
             '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
@@ -386,12 +318,7 @@ class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquati
             'Time Evolution:',
             '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
             '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Initial Time Step: {} as'.format(uround(self.time_step, asec)),
-            '   Minimum Time Step: {} as'.format(uround(self.minimum_time_step, asec)),
-            '   Maximum Time Step: {} as'.format(uround(self.maximum_time_step, asec)),
-            '   Epsilon: {}'.format(self.epsilon),
-            '   Error On: {}'.format(self.error_on),
-            '   Safety Factor: {}'.format(self.safety_factor),
+            '   Time Step: {} as'.format(uround(self.time_step, asec)),
             '   Integration Method: {}'.format(self.integration_method),
             '   Evolution Method: {}'.format(self.evolution_method),
         ]
@@ -596,64 +523,42 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
 
-class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
-    integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
+class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquationSpecification):
+    simulation_type = AdaptiveIntegroDifferentialEquationSimulation
+
+    error_on = si.utils.RestrictedValues('erron_on', ('y', 'dydt'))
 
     def __init__(self, name,
-                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 test_mass = electron_mass, test_charge = electron_charge,
-                 a_initial = 1,
-                 prefactor = 1,
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = True,
-                 kernel = return_one, kernel_kwargs = None,
-                 integration_method = 'simpson',
-                 evolution_method = 'RK4',
-                 simulation_type = None,
-                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
+                 minimum_time_step = None, maximum_time_step = 1 * asec,
+                 epsilon = 1e-3, error_on = 'y', safety_factor = .98,
+                 evolution_method = 'ARK4',
                  **kwargs):
         """
-        Initialize an IntegroDifferentialEquationSpecification from the given parameters.
+        Initiliaze a AdaptiveIntegroDifferentialEquationSpecification from the given parameters.
 
-        The differential equation should be of the form
-        dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]
+        if error_on == 'y':
+            allowed_error = epsilon * y_current
+        if error_on == 'dydt':
+            allowed_error = epsilon * time_step_current * dy/dt_current
 
-        :param name:
-        :param time_initial:
-        :param time_final:
-        :param time_step:
-        :param a_initial: initial value of y
-        :param kwargs:
+        :param name: the name of the Specification
+        :param minimum_time_step: the smallest allowable time step
+        :param maximum_time_step: the largest allowable time step
+        :param epsilon: the fractional error tolerance
+        :param error_on: 'y' or 'dydt', see above
+        :param safety_factor: a number slightly less than 1 to ensure safe time step adjustment
+        :param evolution_method:
+        :param kwargs: kwargs are passed to IntegroDifferentialEquationSpecification's __init__ method
         """
-        if simulation_type is None:
-            simulation_type = VelocityGaugeIntegroDifferentialEquationSimulation
-        super().__init__(name, simulation_type = simulation_type, **kwargs)
+        super().__init__(name, evolution_method = evolution_method, **kwargs)
 
-        self.time_initial = time_initial
-        self.time_final = time_final
-        self.time_step = time_step
+        self.minimum_time_step = minimum_time_step
+        self.maximum_time_step = maximum_time_step
 
-        self.test_mass = test_mass
-        self.test_charge = test_charge
+        self.epsilon = epsilon
+        self.error_on = error_on
 
-        self.a_initial = a_initial
-
-        self.prefactor = prefactor
-
-        self.electric_potential = electric_potential
-        self.electric_potential_dc_correction = electric_potential_dc_correction
-
-        self.kernel = kernel
-        self.kernel_kwargs = dict()
-        if kernel_kwargs is not None:
-            self.kernel_kwargs.update(kernel_kwargs)
-
-        self.integration_method = integration_method
-        self.evolution_method = evolution_method
-
-        self.checkpoints = checkpoints
-        self.checkpoint_every = checkpoint_every
-        self.checkpoint_dir = checkpoint_dir
+        self.safety_factor = safety_factor
 
     def info(self):
         checkpoint = ['Checkpointing: ']
@@ -667,8 +572,8 @@ class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
             checkpoint[0] += 'disabled'
 
         ide_parameters = [
-            "IDE Parameters: da/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t, t')  ; {t', t_initial, t} ]",
-            '   Initial State: a = {}'.format(self.a_initial),
+            "IDE Parameters: dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
+            '   Initial State: y = {}'.format(self.a_initial),
             '   Prefactor: {}'.format(self.prefactor),
             '   Electric Potential: {}'.format(self.electric_potential),
             '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
@@ -678,23 +583,17 @@ class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
             'Time Evolution:',
             '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
             '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Time Step: {} as'.format(uround(self.time_step, asec)),
+            '   Initial Time Step: {} as'.format(uround(self.time_step, asec)),
+            '   Minimum Time Step: {} as'.format(uround(self.minimum_time_step, asec)),
+            '   Maximum Time Step: {} as'.format(uround(self.maximum_time_step, asec)),
+            '   Epsilon: {}'.format(self.epsilon),
+            '   Error On: {}'.format(self.error_on),
+            '   Safety Factor: {}'.format(self.safety_factor),
             '   Integration Method: {}'.format(self.integration_method),
             '   Evolution Method: {}'.format(self.evolution_method),
         ]
 
         return '\n'.join(checkpoint + ide_parameters + time_evolution)
-
-
-def velocity_guassian_kernel(time_diff, quiver_diff, tau_alpha = 1, width = 1):
-    time_diff_inner = 1 / (1 + (1j * time_diff / tau_alpha))
-    alpha_diff_inner = (quiver_diff / width) ** 2
-
-    exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
-    inv = time_diff_inner ** 1.5
-    diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
-
-    return exp * diff * inv
 
 
 class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
@@ -950,3 +849,103 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
         si.plots.save_current_figure(name = name, **kwargs)
 
         plt.close()
+
+
+class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
+    simulation_type = VelocityGaugeIntegroDifferentialEquationSimulation
+
+    integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
+
+    def __init__(self, name,
+                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
+                 test_mass = electron_mass, test_charge = electron_charge,
+                 a_initial = 1,
+                 prefactor = 1,
+                 electric_potential = potentials.NoElectricPotential(),
+                 electric_potential_dc_correction = True,
+                 kernel = return_one, kernel_kwargs = None,
+                 integration_method = 'simpson',
+                 evolution_method = 'RK4',
+                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
+                 **kwargs):
+        """
+        Initialize an IntegroDifferentialEquationSpecification from the given parameters.
+
+        The differential equation should be of the form
+        dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]
+
+        :param name:
+        :param time_initial:
+        :param time_final:
+        :param time_step:
+        :param a_initial: initial value of y
+        :param kwargs:
+        """
+        super().__init__(name, **kwargs)
+
+        self.time_initial = time_initial
+        self.time_final = time_final
+        self.time_step = time_step
+
+        self.test_mass = test_mass
+        self.test_charge = test_charge
+
+        self.a_initial = a_initial
+
+        self.prefactor = prefactor
+
+        self.electric_potential = electric_potential
+        self.electric_potential_dc_correction = electric_potential_dc_correction
+
+        self.kernel = kernel
+        self.kernel_kwargs = dict()
+        if kernel_kwargs is not None:
+            self.kernel_kwargs.update(kernel_kwargs)
+
+        self.integration_method = integration_method
+        self.evolution_method = evolution_method
+
+        self.checkpoints = checkpoints
+        self.checkpoint_every = checkpoint_every
+        self.checkpoint_dir = checkpoint_dir
+
+    def info(self):
+        checkpoint = ['Checkpointing: ']
+        if self.checkpoints:
+            if self.checkpoint_dir is not None:
+                working_in = self.checkpoint_dir
+            else:
+                working_in = 'cwd'
+            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+        else:
+            checkpoint[0] += 'disabled'
+
+        ide_parameters = [
+            "IDE Parameters: da/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t, t')  ; {t', t_initial, t} ]",
+            '   Initial State: a = {}'.format(self.a_initial),
+            '   Prefactor: {}'.format(self.prefactor),
+            '   Electric Potential: {}'.format(self.electric_potential),
+            '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
+        ]
+
+        time_evolution = [
+            'Time Evolution:',
+            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
+            '   Final Time: {} as'.format(uround(self.time_final, asec)),
+            '   Time Step: {} as'.format(uround(self.time_step, asec)),
+            '   Integration Method: {}'.format(self.integration_method),
+            '   Evolution Method: {}'.format(self.evolution_method),
+        ]
+
+        return '\n'.join(checkpoint + ide_parameters + time_evolution)
+
+
+def velocity_guassian_kernel(time_diff, quiver_diff, tau_alpha = 1, width = 1):
+    time_diff_inner = 1 / (1 + (1j * time_diff / tau_alpha))
+    alpha_diff_inner = (quiver_diff / width) ** 2
+
+    exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
+    inv = time_diff_inner ** 1.5
+    diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
+
+    return exp * diff * inv

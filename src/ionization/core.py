@@ -42,8 +42,804 @@ def three_j_coefficient(l):
     return (l + 1) / np.sqrt(((2 * l) + 1) * ((2 * l) + 3))
 
 
+class ElectricFieldSimulation(si.Simulation):
+    def __init__(self, spec):
+        super(ElectricFieldSimulation, self).__init__(spec)
+
+        self.animators = self.spec.animators
+
+        self.times = self.get_times()
+
+        if self.spec.electric_potential_dc_correction:
+            old_pot = self.spec.electric_potential
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
+
+            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+
+        self.time_index = 0
+        self.data_time_index = 0
+        self.time_steps = len(self.times)
+
+        self.initialize_mesh()
+
+        # simulation data storage
+        time_indices = np.array(range(0, self.time_steps))
+        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
+        if self.spec.store_data_every >= 1:
+            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
+        self.data_times = self.times[self.data_mask]
+        self.data_indices = time_indices[self.data_mask]
+        self.data_time_steps = len(self.data_times)
+
+        # data storage initialization
+        self.norm_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
+        self.inner_products_vs_time = {state: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for state in self.spec.test_states}
+
+        self.electric_field_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
+        self.electric_dipole_moment_vs_time = {gauge: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for gauge in self.spec.dipole_gauges}
+
+        # optional data storage initialization
+        if 'l' in self.mesh.mesh_storage_method and self.spec.store_norm_by_l:
+            self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
+
+        if self.spec.store_norm_diff_mask:
+            self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
+        if self.spec.store_internal_energy_expectation_value:
+            self.internal_energy_expectation_value_vs_time_internal = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
+        # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
+        self.snapshot_times = set()
+
+        for time in self.spec.snapshot_times:
+            time_index, time_target, _ = si.utils.find_nearest_entry(self.times, time)
+            self.snapshot_times.add(time_target)
+
+        for index in self.spec.snapshot_indices:
+            self.snapshot_times.add(self.times[index])
+
+        self.snapshots = dict()
+
+    def info(self):
+        mem_mesh = self.mesh.g_mesh.nbytes if self.mesh is not None else 0
+
+        mem_matrix_operators = 6 * mem_mesh
+        mem_numeric_eigenstates = sum(state.g_mesh.nbytes for state in self.spec.test_states if state.numeric if state.g_mesh is not None)
+        mem_inner_products = sum(overlap.nbytes for overlap in self.inner_products_vs_time.values())
+
+        mem_other_time_data = sum(x.nbytes for x in (
+            self.electric_field_amplitude_vs_time,
+            *self.electric_dipole_moment_vs_time.values(),
+            self.norm_vs_time,
+        ))
+
+        for attr in ('internal_energy_expectation_value_vs_time_internal',
+                     'norm_diff_mask_vs_time'):
+            try:
+                mem_other_time_data += getattr(self, attr).nbytes
+            except AttributeError:
+                pass
+
+        try:
+            mem_other_time_data += sum(h.nbytes for h in self.norm_by_harmonic_vs_time.values())
+        except AttributeError:
+            pass
+
+        mem_misc = sum(x.nbytes for x in (
+            self.times,
+            self.data_times,
+            self.data_mask,
+            self.data_indices,
+        ))
+
+        mem_total = mem_mesh + mem_matrix_operators + mem_numeric_eigenstates + mem_inner_products + mem_other_time_data + mem_misc
+
+        mem = [f'Memory Usage (approx): {si.utils.bytes_to_str(mem_total)}']
+        mem += [f'   g Mesh: {si.utils.bytes_to_str(mem_mesh)}']
+        mem += [f'   Matrix Operators: {si.utils.bytes_to_str(mem_matrix_operators)}']
+        mem += [f'   Numeric Eigenstates: {si.utils.bytes_to_str(mem_numeric_eigenstates)}']
+        mem += [f'   State Inner Products: {si.utils.bytes_to_str(mem_inner_products)}']
+        mem += [f'   Other Time-Indexed Data: {si.utils.bytes_to_str(mem_other_time_data)}']
+        mem += [f'   Miscellaneous: {si.utils.bytes_to_str(mem_misc)}']
+
+        return '\n'.join((super().info(), *mem))
+
+    @property
+    def available_animation_frames(self):
+        return self.time_steps
+
+    @property
+    def time(self):
+        return self.times[self.time_index]
+
+    @property
+    def times_to_current(self):
+        return self.times[:self.time_index + 1]
+
+    @property
+    def state_overlaps_vs_time(self):
+        return {state: np.abs(inner_product) ** 2 for state, inner_product in self.inner_products_vs_time.items()}
+
+    @property
+    def total_overlap_vs_time(self):
+        return np.sum(overlap for overlap in self.state_overlaps_vs_time.values())
+
+    def get_times(self):
+        if not callable(self.spec.time_step):
+            total_time = self.spec.time_final - self.spec.time_initial
+            times = np.linspace(self.spec.time_initial, self.spec.time_final, int(total_time / self.spec.time_step) + 1)
+        else:
+            t = self.spec.time_initial
+            times = [t]
+
+            while t < self.spec.time_final:
+                t += self.spec.time_step(t, self.spec)
+
+                if t > self.spec.time_final:
+                    t = self.spec.time_final
+
+                times.append(t)
+
+            times = np.array(times)
+
+        return times
+
+    def initialize_mesh(self):
+        self.mesh = self.spec.mesh_type(self)
+
+        logger.debug('Initialized mesh for {} {}'.format(self.__class__.__name__, self.name))
+
+    def store_data(self):
+        """Update the time-indexed data arrays with the current values."""
+        norm = self.mesh.norm()
+        self.norm_vs_time[self.data_time_index] = norm
+        if norm > 1.001 * self.norm_vs_time[0]:
+            logger.warning('Wavefunction norm ({}) has exceeded initial norm ({}) by more than .1% for {} {}'.format(norm, self.norm_vs_time[0], self.__class__.__name__, self.name))
+        try:
+            if norm > 1.001 * self.norm_vs_time[self.data_time_index - 1]:
+                logger.warning('Wavefunction norm ({}) at time_index = {} has exceeded norm from previous time step ({}) by more than .1% for {} {}'.format(norm, self.data_time_index, self.norm_vs_time[self.data_time_index - 1], self.__class__.__name__, self.name))
+        except IndexError:
+            pass
+
+        if self.spec.store_internal_energy_expectation_value:
+            self.internal_energy_expectation_value_vs_time_internal[self.data_time_index] = self.mesh.energy_expectation_value
+
+        for gauge in self.spec.dipole_gauges:
+            self.electric_dipole_moment_vs_time[gauge][self.data_time_index] = self.mesh.dipole_moment_expectation_value(gauge = gauge)
+
+        for state in self.spec.test_states:
+            self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(self.mesh.get_g_for_state(state))
+
+        self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
+
+        if 'l' in self.mesh.mesh_storage_method:
+            if self.spec.store_norm_by_l:
+                norm_by_l = self.mesh.norm_by_l
+                for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
+                    self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
+
+                norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
+
+            else:
+                largest_l_mesh = self.mesh.g_mesh[-1]
+                norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
+
+            if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
+                logger.warning(f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.time_index]}), consider increasing l bound')
+
+        logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
+
+    def take_snapshot(self):
+        snapshot = self.spec.snapshot_type(self, self.time_index, **self.spec.snapshot_kwargs)
+
+        snapshot.take_snapshot()
+
+        self.snapshots[self.time_index] = snapshot
+
+        logger.info('Stored {} of {} at time {} as (time index {})'.format(snapshot.__class__.__name__, self.name, uround(self.time, asec, 3), self.time_index))
+
+    def run_simulation(self, progress_bar = False):
+        """
+        Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
+        """
+        logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
+        try:
+            self.status = si.STATUS_RUN
+
+            for animator in self.animators:
+                animator.initialize(self)
+
+            if progress_bar:
+                pbar = tqdm(total = self.time_steps)
+
+            while True:
+                if self.time in self.data_times:
+                    self.store_data()
+
+                if self.time in self.snapshot_times:
+                    self.take_snapshot()
+
+                for animator in self.animators:
+                    if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
+                        animator.send_frame_to_ffmpeg()
+
+                if self.time in self.data_times:  # having to repeat this is clunky, but I need the data for the animators to work and I can't change the data index until the animators are done
+                    self.data_time_index += 1
+
+                if self.time_index == self.time_steps - 1:
+                    break
+
+                self.time_index += 1
+
+                norm_diff_mask = self.mesh.evolve(self.times[self.time_index] - self.times[self.time_index - 1])  # evolve the mesh forward to the next time step
+                if self.spec.store_norm_diff_mask:
+                    self.norm_diff_mask_vs_time[self.data_time_index] = norm_diff_mask  # move to store data so it has the right index?
+
+                logger.debug('{} {} ({}) evolved to time index {} / {} ({}%)'.format(self.__class__.__name__, self.name, self.file_name, self.time_index, self.time_steps - 1,
+                                                                                     np.around(100 * (self.time_index + 1) / self.time_steps, 2)))
+
+                if self.spec.checkpoints:
+                    if (self.time_index + 1) % self.spec.checkpoint_every == 0:
+                        self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
+                        self.status = si.STATUS_RUN
+                        logger.info('Checkpointed {} {} ({}) at time step {} / {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1, self.time_steps))
+
+                try:
+                    pbar.update(1)
+                except NameError:
+                    pass
+
+            try:
+                pbar.close()
+            except NameError:
+                pass
+
+            self.status = si.STATUS_FIN
+
+            logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
+        except Exception as e:
+            raise e
+        finally:
+            # make sure the animators get cleaned up if there's some kind of error during time evolution
+            for animator in self.animators:
+                animator.cleanup()
+
+    @property
+    def bound_states(self):
+        yield from [s for s in self.spec.test_states if s.bound]
+
+    @property
+    def free_states(self):
+        yield from [s for s in self.spec.test_states if not s.bound]
+
+    def group_free_states_by_continuous_attr(self, attr, divisions = 10, cutoff_value = None,
+                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', label_unit = None):
+        spectrum = set(getattr(s, attr) for s in self.free_states)
+        grouped_states = collections.defaultdict(list)
+        group_labels = {}
+
+        attr_min, attr_max = min(spectrum), max(spectrum)
+        if cutoff_value is None:
+            boundaries = np.linspace(attr_min, attr_max, num = divisions + 1)
+        else:
+            boundaries = np.linspace(attr_min, cutoff_value, num = divisions)
+            boundaries = np.concatenate((boundaries, [attr_max]))
+
+        label_unit, label_unit_str = get_unit_value_and_latex_from_unit(label_unit)
+
+        free_states = list(self.free_states)
+
+        for ii, lower_boundary in enumerate(boundaries[:-1]):
+            upper_boundary = boundaries[ii + 1]
+
+            label = label_format_str.format(uround(lower_boundary, label_unit, 2), uround(upper_boundary, label_unit, 2), label_unit_str)
+            group_labels[(lower_boundary, upper_boundary)] = label
+
+            for s in copy(free_states):
+                if lower_boundary <= getattr(s, attr) <= upper_boundary:
+                    grouped_states[(lower_boundary, upper_boundary)].append(s)
+                    free_states.remove(s)
+
+        return grouped_states, group_labels
+
+    def group_free_states_by_discrete_attr(self, attr = 'l', cutoff_value = 9, label_format_str = r'\phi_{{ E, {} }}'):
+        grouped_states = collections.defaultdict(list)
+
+        cutoff = []
+
+        for s in self.free_states:
+            s_attr = getattr(s, attr)
+            if s_attr < cutoff_value:
+                grouped_states[getattr(s, attr)].append(s)
+            else:
+                cutoff.append(s)
+
+        group_labels = {k: label_format_str.format(int(k)) for k in grouped_states}
+
+        try:
+            cutoff_key = max(grouped_states) + 1  # get max key, make sure cutoff key is larger for sorting purposes
+        except ValueError:
+            cutoff_key = ''
+
+        grouped_states[cutoff_key] = cutoff
+        group_labels[cutoff_key] = label_format_str.format(r'\geq {}'.format(cutoff_value))
+
+        return grouped_states, group_labels
+
+    def plot_test_state_overlaps_vs_time(self, log = False, x_unit = 'asec',
+                                         **kwargs):
+        fig = si.plots.get_figure('full')
+
+        x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+
+        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+        ax_overlaps = plt.subplot(grid_spec[0])
+        ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
+
+        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+
+        ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+
+        state_overlaps = self.state_overlaps_vs_time
+
+        overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
+        labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
+
+        ax_overlaps.stackplot(self.data_times / x_scale_unit,
+                              *overlaps,
+                              labels = labels,
+                              # colors = colors,
+                              )
+
+        if log:
+            ax_overlaps.set_yscale('log')
+            min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
+            ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+            ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+        else:
+            ax_overlaps.set_ylim(0.0, 1.0)
+            ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+
+        ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+
+        ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+        ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
+        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+
+        ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+
+        ax_overlaps.tick_params(labelright = True)
+        ax_field.tick_params(labelright = True)
+        ax_overlaps.xaxis.tick_top()
+
+        plt.rcParams['xtick.major.pad'] = 5
+        plt.rcParams['ytick.major.pad'] = 5
+
+        # Find at most n+1 ticks on the y-axis at 'nice' locations
+        max_yticks = 4
+        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+        ax_field.yaxis.set_major_locator(yloc)
+
+        max_xticks = 6
+        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+        ax_field.xaxis.set_major_locator(xloc)
+
+        ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
+        ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+        ax_field.grid(True, **si.plots.GRID_KWARGS)
+
+        postfix = ''
+        if log:
+            postfix += '__log'
+        prefix = self.file_name
+
+        name = prefix + '__wavefunction_vs_time{}'.format(postfix)
+
+        si.plots.save_current_figure(name = name, **kwargs)
+
+        plt.close()
+
+    def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
+                                  bound_state_max_n = 5,
+                                  collapse_bound_state_angular_momentums = True,
+                                  grouped_free_states = None,
+                                  group_labels = None,
+                                  show_title = False,
+                                  plot_name_from = 'file_name',
+                                  **kwargs):
+        with si.plots.FigureManager(getattr(self, plot_name_from) + '__wavefunction_vs_time') as figman:
+            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            ax_overlaps = plt.subplot(grid_spec[0])
+            ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
+
+            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+                ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+
+            ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
+
+            if grouped_free_states is None:
+                try:
+                    grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
+                except AttributeError:
+                    grouped_free_states, group_labels = {}, {}
+            overlaps = []
+            labels = []
+            colors = []
+
+            state_overlaps = self.state_overlaps_vs_time  # it's a property that would otherwise get evaluated every time we asked for it
+
+            extra_bound_overlap = np.zeros(self.data_time_steps)
+            if collapse_bound_state_angular_momentums:
+                overlaps_by_n = {n: np.zeros(self.data_time_steps) for n in range(1, bound_state_max_n + 1)}  # prepare arrays to sum over angular momenta in, one for each n
+                for state in sorted(self.bound_states):
+                    if state.n <= bound_state_max_n:
+                        overlaps_by_n[state.n] += state_overlaps[state]
+                    else:
+                        extra_bound_overlap += state_overlaps[state]
+                overlaps += [overlap for n, overlap in sorted(overlaps_by_n.items())]
+                labels += [r'$\left| \left\langle \Psi | \psi_{{ {}, \ell }} \right\rangle \right|^2$'.format(n) for n in sorted(overlaps_by_n)]
+                colors += [matplotlib.colors.to_rgba('C' + str(n - 1), alpha = 1) for n in sorted(overlaps_by_n)]
+            else:
+                for state in sorted(self.bound_states):
+                    if state.n <= bound_state_max_n:
+                        overlaps.append(state_overlaps[state])
+                        labels.append(r'$\left| \left\langle \Psi | {} \right\rangle \right|^2$'.format(state.latex))
+                        colors.append(matplotlib.colors.to_rgba('C' + str((state.n - 1) % 10), alpha = 1 - state.l / state.n))
+                    else:
+                        extra_bound_overlap += state_overlaps[state]
+
+            overlaps.append(extra_bound_overlap)
+            labels.append(r'$\left| \left\langle \Psi | \psi_{{n \geq {} }}  \right\rangle \right|^2$'.format(bound_state_max_n + 1))
+            colors.append('.4')
+
+            free_state_color_cycle = it.cycle(['#8dd3c7', '#ffffb3', '#bebada', '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'])
+            for group, states in sorted(grouped_free_states.items()):
+                if len(states) != 0:
+                    overlaps.append(np.sum(state_overlaps[s] for s in states))
+                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_labels[group]))
+                    colors.append(free_state_color_cycle.__next__())
+
+            overlaps = [overlap for overlap in overlaps]
+
+            ax_overlaps.stackplot(self.data_times / x_scale_unit,
+                                  *overlaps,
+                                  labels = labels,
+                                  colors = colors,
+                                  )
+
+            if log:
+                ax_overlaps.set_yscale('log')
+                min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
+                ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+            else:
+                ax_overlaps.set_ylim(0.0, 1.0)
+                ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+
+            ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
+            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+
+            ax_overlaps.tick_params(labelleft = True,
+                                    labelright = True,
+                                    labeltop = True,
+                                    labelbottom = False,
+                                    bottom = True,
+                                    top = True,
+                                    left = True,
+                                    right = True)
+            ax_field.tick_params(labelleft = True,
+                                 labelright = True,
+                                 labeltop = False,
+                                 labelbottom = True,
+                                 bottom = True,
+                                 top = True,
+                                 left = True,
+                                 right = True)
+            # ax_overlaps.xaxis.tick_top()
+
+            plt.rcParams['xtick.major.pad'] = 5
+            plt.rcParams['ytick.major.pad'] = 5
+
+            # Find at most n+1 ticks on the y-axis at 'nice' locations
+            max_yticks = 4
+            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+            ax_field.yaxis.set_major_locator(yloc)
+
+            max_xticks = 6
+            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+            ax_field.xaxis.set_major_locator(xloc)
+
+            ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+            ax_field.grid(True, **si.plots.GRID_KWARGS)
+
+            if show_title:
+                title = ax_overlaps.set_title(self.name)
+                title.set_y(1.15)
+
+            postfix = ''
+            if log:
+                postfix += '__log'
+
+            figman.name = '__wavefunction_vs_time{}'.format(postfix)
+
+    def plot_energy_spectrum(self,
+                             states = 'all',
+                             time_index = -1,
+                             energy_scale = 'eV',
+                             time_scale = 'asec',
+                             bins = 100,
+                             log = False,
+                             energy_lower_bound = None, energy_upper_bound = None,
+                             group_angular_momentum = True, angular_momentum_cutoff = None,
+                             **kwargs):
+        energy_unit, energy_unit_str = get_unit_value_and_latex_from_unit(energy_scale)
+        time_unit, time_unit_str = get_unit_value_and_latex_from_unit(time_scale)
+
+        if states == 'all':
+            state_list = self.spec.test_states
+        elif states == 'bound':
+            state_list = self.bound_states
+        elif states == 'free':
+            state_list = self.free_states
+        else:
+            raise ValueError("states must be one of 'all', 'bound', or 'free'")
+
+        state_overlaps = self.state_overlaps_vs_time
+        state_overlaps = {k: state_overlaps[k] for k in state_list}  # filter down to just states in state_list
+
+        if group_angular_momentum:
+            overlap_by_angular_momentum_by_energy = collections.defaultdict(ft.partial(collections.defaultdict, float))
+
+            for state, overlap_vs_time in state_overlaps.items():
+                overlap_by_angular_momentum_by_energy[state.l][state.energy] += overlap_vs_time[time_index]
+
+            energies = []
+            overlaps = []
+            cutoff_energies = np.array([])
+            cutoff_overlaps = np.array([])
+            for l, overlap_by_energy in sorted(overlap_by_angular_momentum_by_energy.items()):
+                if l < angular_momentum_cutoff:
+                    e, o = si.utils.dict_to_arrays(overlap_by_energy)
+                    energies.append(e / energy_unit)
+                    overlaps.append(o)
+                else:
+                    e, o = si.utils.dict_to_arrays(overlap_by_energy)
+                    cutoff_energies = np.append(cutoff_energies, e)
+                    cutoff_overlaps = np.append(cutoff_overlaps, o)
+
+            if len(cutoff_energies) != 0:
+                energies.append(cutoff_energies)
+                overlaps.append(cutoff_overlaps)
+
+            if energy_lower_bound is None:
+                energy_lower_bound = min([np.nanmin(e) for e in energies])
+            if energy_upper_bound is None:
+                energy_upper_bound = max([np.nanmax(e) for e in energies])
+
+            labels = [r'$\ell = {}$'.format(l) for l in range(angular_momentum_cutoff)] + [r'$\ell \geq {}$'.format(angular_momentum_cutoff)]
+        else:
+            overlap_by_energy = collections.defaultdict(float)
+            for state, overlap_vs_time in state_overlaps.items():
+                overlap_by_energy[state.energy] += overlap_vs_time[time_index]
+
+            energies, overlaps = si.utils.dict_to_arrays(overlap_by_energy)
+            energies /= energy_unit
+
+            if energy_lower_bound is None:
+                energy_lower_bound = np.nanmin(energies)
+            if energy_upper_bound is None:
+                energy_upper_bound = np.nanmax(energies)
+
+            labels = None
+
+        with si.plots.FigureManager(self.name + '__energy_spectrum', **kwargs) as figman:
+            fig = figman.fig
+            ax = fig.add_subplot(111)
+
+            hist_n, hist_bins, hist_patches = ax.hist(x = energies, weights = overlaps,
+                                                      bins = bins,
+                                                      stacked = True,
+                                                      log = log,
+                                                      range = (energy_lower_bound, energy_upper_bound),
+                                                      label = labels,
+                                                      )
+
+            ax.grid(True, **si.plots.GRID_KWARGS)
+
+            x_range = energy_upper_bound - energy_lower_bound
+            ax.set_xlim(energy_lower_bound - .05 * x_range, energy_upper_bound + .05 * x_range)
+
+            ax.set_xlabel('Energy $E$ (${}$)'.format(energy_unit_str))
+            ax.set_ylabel('Wavefunction Overlap'.format(energy_unit_str))
+            ax.set_title('Wavefunction Overlap by Energy at $t={} \, {}$'.format(uround(self.times[time_index], time_unit, 3), time_unit_str))
+
+            if group_angular_momentum:
+                ax.legend(loc = 'best', ncol = 1 + len(energies) // 8)
+
+            ax.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+            figman.name += '__{}_states__index={}'.format(states, time_index)
+
+            if log:
+                figman.name += '__log'
+            if group_angular_momentum:
+                figman.name += '__grouped'
+
+    def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
+        fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+
+        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.06)
+        ax_momentums = plt.subplot(grid_spec[0])
+        ax_field = plt.subplot(grid_spec[1], sharex = ax_momentums)
+
+        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+            ax_field.plot(self.times / asec, self.electric_field_amplitude_vs_time / atomic_electric_field, color = 'black', linewidth = 2)
+
+        if renormalize:
+            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+        else:
+            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+        num_colors = len(overlaps)
+        ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
+        ax_momentums.stackplot(self.times / asec, *overlaps, alpha = 1, labels = l_labels)
+
+        if log:
+            ax_momentums.set_yscale('log')
+            ax_momentums.set_ylim(top = 1.0)
+            ax_momentums.grid(True, which = 'both')
+        else:
+            ax_momentums.set_ylim(0, 1.0)
+            ax_momentums.set_yticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+            ax_momentums.grid(True)
+        ax_momentums.set_xlim(self.spec.time_initial / asec, self.spec.time_final / asec)
+
+        ax_field.grid(True)
+
+        ax_field.set_xlabel('Time $t$ (as)', fontsize = 15)
+        y_label = r'$\left| \left\langle \Psi | Y^l_0 \right\rangle \right|^2$'
+        if renormalize:
+            y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
+        ax_momentums.set_ylabel(y_label, fontsize = 15)
+        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 11)
+
+        ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
+
+        ax_momentums.tick_params(labelright = True)
+        ax_field.tick_params(labelright = True)
+        ax_momentums.xaxis.tick_top()
+
+        plt.rcParams['xtick.major.pad'] = 5
+        plt.rcParams['ytick.major.pad'] = 5
+
+        # Find at most n+1 ticks on the y-axis at 'nice' locations
+        max_yticks = 6
+        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+        ax_field.yaxis.set_major_locator(yloc)
+
+        max_xticks = 6
+        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+        ax_field.xaxis.set_major_locator(xloc)
+
+        ax_field.tick_params(axis = 'x', which = 'major', labelsize = 10)
+        ax_field.tick_params(axis = 'y', which = 'major', labelsize = 10)
+        ax_momentums.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+        postfix = ''
+        if renormalize:
+            postfix += '_renorm'
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+        si.plots.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
+
+        plt.close()
+
+    def plot_dipole_moment_vs_time(self, gauge = 'length', use_name = False, **kwargs):
+        if not use_name:
+            prefix = self.file_name
+        else:
+            prefix = self.name
+        si.plots.xy_plot(prefix + '__dipole_moment_vs_time',
+                         self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
+                         x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
+                         x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
+                         **kwargs)
+
+    def dipole_moment_vs_frequency(self, gauge = 'length', first_time = None, last_time = None):
+        logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
+
+        if first_time is None:
+            first_time_index, first_time = 0, self.times[0]
+        else:
+            first_time_index, first_time, _ = si.utils.find_nearest_entry(self.times, first_time)
+        if last_time is None:
+            last_time_index, last_time = self.time_steps - 1, self.times[self.time_steps - 1]
+        else:
+            last_time_index, last_time, _ = si.utils.find_nearest_entry(self.times, last_time)
+        points = last_time_index - first_time_index
+        frequency = nfft.fftshift(nfft.fftfreq(points, self.spec.time_step))
+        dipole_moment = nfft.fftshift(nfft.fft(self.electric_dipole_moment_vs_time[gauge][first_time_index: last_time_index], norm = 'ortho'))
+
+        return frequency, dipole_moment
+
+    def plot_dipole_moment_vs_frequency(self, use_name = False, gauge = 'length', frequency_range = 10000 * THz, first_time = None, last_time = None, **kwargs):
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+
+        frequency, dipole_moment = self.dipole_moment_vs_frequency(gauge = gauge, first_time = first_time, last_time = last_time)
+
+        si.plots.xy_plot(prefix + '__dipole_moment_vs_frequency',
+                         frequency, np.abs(dipole_moment) ** 2,
+                         x_unit_value = 'THz', y_unit_value = atomic_electric_dipole ** 2,
+                         y_log_axis = True,
+                         x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
+                         x_lower_limit = 0, x_upper_limit = frequency_range,
+                         **kwargs)
+
+    def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
+        """
+        Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
+
+        :param target_dir: directory to save the Simulation to
+        :param file_extension: file extension to name the Simulation with
+        :param save_mesh: if True, save the mesh as well as the Simulation. If False, don't.
+        :return: None
+        """
+
+        if not save_mesh:
+            try:
+                for state in self.spec.test_states:  # remove numeric eigenstate information
+                    state.g_mesh = None
+
+                mesh = self.mesh.copy()
+                self.mesh = None
+
+            except AttributeError:  # mesh is already None
+                mesh = None
+
+        if len(self.animators) > 0:
+            raise si.SimulacraException('Cannot pickle Simulation with Animators')
+
+        out = super().save(target_dir = target_dir, file_extension = file_extension, **kwargs)
+
+        if not save_mesh:
+            self.mesh = mesh
+
+        return out
+
+    @staticmethod
+    def load(file_path, initialize_mesh = False):
+        """Return a simulation loaded from the file_path. kwargs are for Beet.load."""
+        sim = si.Simulation.load(file_path, )
+
+        if initialize_mesh:
+            sim.initialize_mesh()
+
+        return sim
+
+
 class ElectricFieldSpecification(si.Specification):
     """A base Specification for a Simulation with an electric field."""
+
+    simulation_type = ElectricFieldSimulation
 
     evolution_equations = si.utils.RestrictedValues('evolution_equations', {'LAG', 'HAM'})
     evolution_method = si.utils.RestrictedValues('evolution_method', {'CN', 'SO', 'S'})
@@ -64,7 +860,6 @@ class ElectricFieldSpecification(si.Specification):
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  animators = tuple(),
                  store_norm_diff_mask = False, store_internal_energy_expectation_value = False,
-                 simulation_type = None,
                  store_data_every = 1,
                  snapshot_times = (), snapshot_indices = (), snapshot_type = None, snapshot_kwargs = None,
                  **kwargs):
@@ -103,10 +898,7 @@ class ElectricFieldSpecification(si.Specification):
         :param snapshot_types:
         :param kwargs:
         """
-        if simulation_type is None:
-            simulation_type = ElectricFieldSimulation
-
-        super(ElectricFieldSpecification, self).__init__(name, simulation_type = simulation_type, **kwargs)
+        super(ElectricFieldSpecification, self).__init__(name, **kwargs)
 
         if mesh_type is None:
             raise ValueError('{} must have a mesh_type'.format(name))
@@ -407,8 +1199,8 @@ class LineSpecification(ElectricFieldSpecification):
                  x_points = 2 ** 9,
                  fft_cutoff_energy = 1000 * eV,
                  analytic_eigenstate_type = None,
-                 use_numeric_eigenstates_as_basis = False,
-                 numeric_eigenstate_energy_max = 100 * eV,
+                 use_numeric_eigenstates = False,
+                 numeric_eigenstate_max_energy = 100 * eV,
                  **kwargs):
         super(LineSpecification, self).__init__(name, mesh_type = LineMesh,
                                                 initial_state = initial_state,
@@ -421,8 +1213,8 @@ class LineSpecification(ElectricFieldSpecification):
         self.fft_cutoff_wavenumber = np.sqrt(2 * self.test_mass * self.fft_cutoff_energy) / hbar
 
         self.analytic_eigenstate_type = analytic_eigenstate_type
-        self.use_numeric_eigenstates_as_basis = use_numeric_eigenstates_as_basis
-        self.numeric_eigenstate_energy_max = numeric_eigenstate_energy_max
+        self.use_numeric_eigenstates = use_numeric_eigenstates
+        self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
 
     def info(self):
         mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
@@ -449,8 +1241,8 @@ class LineMesh(QuantumMesh):
         self.inner_product_multiplier = self.delta_x
         self.g_factor = 1
 
-        if self.spec.use_numeric_eigenstates_as_basis:
-            self.analytic_to_numeric = self._get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_energy_max)
+        if self.spec.use_numeric_eigenstates:
+            self.analytic_to_numeric = self._get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
@@ -567,13 +1359,13 @@ class LineMesh(QuantumMesh):
         self._evolve_free(time_step)  # splitting order chosen for computational efficiency (only one FFT per time step)
         self._evolve_potential(time_step / 2)
 
-    def _get_numeric_eigenstate_basis(self, energy_max):
+    def _get_numeric_eigenstate_basis(self, max_energy):
         analytic_to_numeric = {}
 
         h = self.get_internal_hamiltonian_matrix_operators()
 
         estimated_spacing = twopi / np.max(self.x_mesh)
-        wavenumber_max = np.real(electron_wavenumber_from_energy(energy_max))
+        wavenumber_max = np.real(electron_wavenumber_from_energy(max_energy))
         number_of_eigenvectors = int(wavenumber_max / estimated_spacing)  # generate an initial guess based on roughly linear wavenumber steps between eigenvalues
 
         max_eigenvectors = h.shape[0] - 2  # can't generate more than this many eigenvectors using sparse linear algebra methods
@@ -584,16 +1376,16 @@ class LineMesh(QuantumMesh):
 
             eigenvalues, eigenvectors = sparsealg.eigsh(h, k = number_of_eigenvectors, which = 'SA')
 
-            if np.max(eigenvalues) > energy_max or number_of_eigenvectors == max_eigenvectors:
+            if np.max(eigenvalues) > max_energy or number_of_eigenvectors == max_eigenvectors:
                 break
 
-            number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(energy_max / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
+            number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
 
         for nn, (eigenvalue, eigenvector) in enumerate(zip(eigenvalues, eigenvectors.T)):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
             # eigenvector /= self.g_factor  # go to u from R
 
-            if eigenvalue > energy_max:  # ignore eigenvalues that are too large
+            if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                 continue
             try:
                 bound = True
@@ -609,7 +1401,7 @@ class LineMesh(QuantumMesh):
 
             analytic_to_numeric[analytic_state] = numeric_state
 
-        logger.debug('Generated numerical eigenbasis for energy <= {} eV. Found {} states.'.format(uround(energy_max, 'eV', 3), len(analytic_to_numeric)))
+        logger.debug('Generated numerical eigenbasis for energy <= {} eV. Found {} states.'.format(uround(max_energy, 'eV', 3), len(analytic_to_numeric)))
 
         return analytic_to_numeric
 
@@ -1411,9 +2203,9 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
                  evolution_method = 'SO',
                  evolution_gauge = 'LEN',
                  store_norm_by_l = False,
-                 use_numeric_eigenstates_as_basis = False,
-                 numeric_eigenstate_l_max = 20,
-                 numeric_eigenstate_energy_max = 100 * eV,
+                 use_numeric_eigenstates = False,
+                 numeric_eigenstate_max_angular_momentum = 20,
+                 numeric_eigenstate_max_energy = 100 * eV,
                  **kwargs):
         """
         Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
@@ -1441,9 +2233,9 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
 
         self.store_norm_by_l = store_norm_by_l
 
-        self.use_numeric_eigenstates_as_basis = use_numeric_eigenstates_as_basis
-        self.numeric_eigenstate_l_max = min(self.l_bound - 1, numeric_eigenstate_l_max)
-        self.numeric_eigenstate_energy_max = numeric_eigenstate_energy_max
+        self.use_numeric_eigenstates = use_numeric_eigenstates
+        self.numeric_eigenstate_max_angular_momentum = min(self.l_bound - 1, numeric_eigenstate_max_angular_momentum)
+        self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
 
     def info(self):
         mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
@@ -1475,8 +2267,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.mesh_points = len(self.r) * len(self.l)
         self.mesh_shape = np.shape(self.r_mesh)
 
-        if self.spec.use_numeric_eigenstates_as_basis:
-            self.analytic_to_numeric = self.get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_energy_max, self.spec.numeric_eigenstate_l_max)
+        if self.spec.use_numeric_eigenstates:
+            self.analytic_to_numeric = self.get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy, self.spec.numeric_eigenstate_max_angular_momentum)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
@@ -1822,14 +2614,14 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         raise NotImplementedError
 
-    def get_numeric_eigenstate_basis(self, energy_max, l_max):
+    def get_numeric_eigenstate_basis(self, max_energy, l_max):
         analytic_to_numeric = {}
 
         for l in range(l_max + 1):
             h = self._get_internal_hamiltonian_matrix_operator_single_l(l = l)
 
             estimated_spacing = twopi / self.r_max
-            wavenumber_max = np.real(electron_wavenumber_from_energy(energy_max))
+            wavenumber_max = np.real(electron_wavenumber_from_energy(max_energy))
             number_of_eigenvectors = int(wavenumber_max / estimated_spacing)  # generate an initial guess based on roughly linear wavenumber steps between eigenvalues
 
             max_eigenvectors = h.shape[0] - 2  # can't generate more than this many eigenvectors using sparse linear algebra methods
@@ -1840,16 +2632,16 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 eigenvalues, eigenvectors = sparsealg.eigsh(h, k = number_of_eigenvectors, which = 'SA')
 
-                if np.max(eigenvalues) > energy_max or number_of_eigenvectors == max_eigenvectors:
+                if np.max(eigenvalues) > max_energy or number_of_eigenvectors == max_eigenvectors:
                     break
 
-                number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(energy_max / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
+                number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
                 eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
                 eigenvector /= self.g_factor  # go to u from R
 
-                if eigenvalue > energy_max:  # ignore eigenvalues that are too large
+                if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                     continue
                 elif eigenvalue > 0:
                     analytic_state = states.HydrogenCoulombState(energy = eigenvalue, l = l)
@@ -1865,9 +2657,9 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 analytic_to_numeric[analytic_state] = numeric_state
 
-            logger.debug('Generated numerical eigenbasis for l = {}, energy <= {} eV'.format(l, uround(energy_max, 'eV', 3)))
+            logger.debug('Generated numerical eigenbasis for l = {}, energy <= {} eV'.format(l, uround(max_energy, 'eV', 3)))
 
-        logger.debug('Generated numerical eigenbasis for l <= {}, energy <= {} eV. Found {} states.'.format(l_max, uround(energy_max, 'eV', 3), len(analytic_to_numeric)))
+        logger.debug('Generated numerical eigenbasis for l <= {}, energy <= {} eV. Found {} states.'.format(l_max, uround(max_energy, 'eV', 3), len(analytic_to_numeric)))
 
         return analytic_to_numeric
 
@@ -2318,805 +3110,3 @@ class SphericalHarmonicSnapshot(Snapshot):
             g_mesh = None
 
         self.data[key] = self.sim.mesh.inner_product_with_plane_waves(thetas, wavenumbers, g_mesh = g_mesh)
-
-
-class ElectricFieldSimulation(si.Simulation):
-    def __init__(self, spec):
-        super(ElectricFieldSimulation, self).__init__(spec)
-
-        self.animators = self.spec.animators
-
-        self.times = self.get_times()
-
-        if self.spec.electric_potential_dc_correction:
-            old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
-
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
-
-        self.time_index = 0
-        self.data_time_index = 0
-        self.time_steps = len(self.times)
-
-        self.initialize_mesh()
-
-        # simulation data storage
-        time_indices = np.array(range(0, self.time_steps))
-        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
-        if self.spec.store_data_every >= 1:
-            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
-        self.data_times = self.times[self.data_mask]
-        self.data_indices = time_indices[self.data_mask]
-        self.data_time_steps = len(self.data_times)
-
-        # data storage initialization
-        self.norm_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        self.inner_products_vs_time = {state: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for state in self.spec.test_states}
-
-        self.electric_field_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        self.electric_dipole_moment_vs_time = {gauge: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for gauge in self.spec.dipole_gauges}
-
-        # optional data storage initialization
-        if 'l' in self.mesh.mesh_storage_method and self.spec.store_norm_by_l:
-            self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
-
-        if self.spec.store_norm_diff_mask:
-            self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        if self.spec.store_internal_energy_expectation_value:
-            self.internal_energy_expectation_value_vs_time_internal = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
-        self.snapshot_times = set()
-
-        for time in self.spec.snapshot_times:
-            time_index, time_target, _ = si.utils.find_nearest_entry(self.times, time)
-            self.snapshot_times.add(time_target)
-
-        for index in self.spec.snapshot_indices:
-            self.snapshot_times.add(self.times[index])
-
-        self.snapshots = dict()
-
-    def info(self):
-        mem_mesh = self.mesh.g_mesh.nbytes if self.mesh is not None else 0
-
-        mem_matrix_operators = 6 * mem_mesh
-        mem_numeric_eigenstates = sum(state.g_mesh.nbytes for state in self.spec.test_states if state.numeric if state.g_mesh is not None)
-        mem_inner_products = sum(overlap.nbytes for overlap in self.inner_products_vs_time.values())
-
-        mem_other_time_data = sum(x.nbytes for x in (
-            self.electric_field_amplitude_vs_time,
-            *self.electric_dipole_moment_vs_time.values(),
-            self.norm_vs_time,
-        ))
-
-        for attr in ('internal_energy_expectation_value_vs_time_internal',
-                     'norm_diff_mask_vs_time'):
-            try:
-                mem_other_time_data += getattr(self, attr).nbytes
-            except AttributeError:
-                pass
-
-        try:
-            mem_other_time_data += sum(h.nbytes for h in self.norm_by_harmonic_vs_time.values())
-        except AttributeError:
-            pass
-
-        mem_misc = sum(x.nbytes for x in (
-            self.times,
-            self.data_times,
-            self.data_mask,
-            self.data_indices,
-        ))
-
-        mem_total = mem_mesh + mem_matrix_operators + mem_numeric_eigenstates + mem_inner_products + mem_other_time_data + mem_misc
-
-        mem = [f'Memory Usage (approx): {si.utils.bytes_to_str(mem_total)}']
-        mem += [f'   g Mesh: {si.utils.bytes_to_str(mem_mesh)}']
-        mem += [f'   Matrix Operators: {si.utils.bytes_to_str(mem_matrix_operators)}']
-        mem += [f'   Numeric Eigenstates: {si.utils.bytes_to_str(mem_numeric_eigenstates)}']
-        mem += [f'   State Inner Products: {si.utils.bytes_to_str(mem_inner_products)}']
-        mem += [f'   Other Time-Indexed Data: {si.utils.bytes_to_str(mem_other_time_data)}']
-        mem += [f'   Miscellaneous: {si.utils.bytes_to_str(mem_misc)}']
-
-        return '\n'.join((super().info(), *mem))
-
-    @property
-    def available_animation_frames(self):
-        return self.time_steps
-
-    @property
-    def time(self):
-        return self.times[self.time_index]
-
-    @property
-    def times_to_current(self):
-        return self.times[:self.time_index + 1]
-
-    @property
-    def state_overlaps_vs_time(self):
-        return {state: np.abs(inner_product) ** 2 for state, inner_product in self.inner_products_vs_time.items()}
-
-    @property
-    def total_overlap_vs_time(self):
-        return np.sum(overlap for overlap in self.state_overlaps_vs_time.values())
-
-    def get_times(self):
-        if not callable(self.spec.time_step):
-            total_time = self.spec.time_final - self.spec.time_initial
-            times = np.linspace(self.spec.time_initial, self.spec.time_final, int(total_time / self.spec.time_step) + 1)
-        else:
-            t = self.spec.time_initial
-            times = [t]
-
-            while t < self.spec.time_final:
-                t += self.spec.time_step(t, self.spec)
-
-                if t > self.spec.time_final:
-                    t = self.spec.time_final
-
-                times.append(t)
-
-            times = np.array(times)
-
-        return times
-
-    def initialize_mesh(self):
-        self.mesh = self.spec.mesh_type(self)
-
-        logger.debug('Initialized mesh for {} {}'.format(self.__class__.__name__, self.name))
-
-    def store_data(self):
-        """Update the time-indexed data arrays with the current values."""
-        norm = self.mesh.norm()
-        self.norm_vs_time[self.data_time_index] = norm
-        if norm > 1.001 * self.norm_vs_time[0]:
-            logger.warning('Wavefunction norm ({}) has exceeded initial norm ({}) by more than .1% for {} {}'.format(norm, self.norm_vs_time[0], self.__class__.__name__, self.name))
-        try:
-            if norm > 1.001 * self.norm_vs_time[self.data_time_index - 1]:
-                logger.warning('Wavefunction norm ({}) at time_index = {} has exceeded norm from previous time step ({}) by more than .1% for {} {}'.format(norm, self.data_time_index, self.norm_vs_time[self.data_time_index - 1], self.__class__.__name__, self.name))
-        except IndexError:
-            pass
-
-        if self.spec.store_internal_energy_expectation_value:
-            self.internal_energy_expectation_value_vs_time_internal[self.data_time_index] = self.mesh.energy_expectation_value
-
-        for gauge in self.spec.dipole_gauges:
-            self.electric_dipole_moment_vs_time[gauge][self.data_time_index] = self.mesh.dipole_moment_expectation_value(gauge = gauge)
-
-        for state in self.spec.test_states:
-            self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(self.mesh.get_g_for_state(state))
-
-        self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
-
-        if 'l' in self.mesh.mesh_storage_method:
-            if self.spec.store_norm_by_l:
-                norm_by_l = self.mesh.norm_by_l
-                for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
-                    self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
-
-                norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
-
-            else:
-                largest_l_mesh = self.mesh.g_mesh[-1]
-                norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
-
-            if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
-                logger.warning(f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.time_index]}), consider increasing l bound')
-
-        logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
-
-    def take_snapshot(self):
-        snapshot = self.spec.snapshot_type(self, self.time_index, **self.spec.snapshot_kwargs)
-
-        snapshot.take_snapshot()
-
-        self.snapshots[self.time_index] = snapshot
-
-        logger.info('Stored {} of {} at time {} as (time index {})'.format(snapshot.__class__.__name__, self.name, uround(self.time, asec, 3), self.time_index))
-
-    def run_simulation(self, progress_bar = False):
-        """
-        Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
-        """
-        logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        try:
-            self.status = si.STATUS_RUN
-
-            for animator in self.animators:
-                animator.initialize(self)
-
-            if progress_bar:
-                pbar = tqdm(total = self.time_steps)
-
-            while True:
-                if self.time in self.data_times:
-                    self.store_data()
-
-                if self.time in self.snapshot_times:
-                    self.take_snapshot()
-
-                for animator in self.animators:
-                    if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
-                        animator.send_frame_to_ffmpeg()
-
-                if self.time in self.data_times:  # having to repeat this is clunky, but I need the data for the animators to work and I can't change the data index until the animators are done
-                    self.data_time_index += 1
-
-                if self.time_index == self.time_steps - 1:
-                    break
-
-                self.time_index += 1
-
-                norm_diff_mask = self.mesh.evolve(self.times[self.time_index] - self.times[self.time_index - 1])  # evolve the mesh forward to the next time step
-                if self.spec.store_norm_diff_mask:
-                    self.norm_diff_mask_vs_time[self.data_time_index] = norm_diff_mask  # move to store data so it has the right index?
-
-                logger.debug('{} {} ({}) evolved to time index {} / {} ({}%)'.format(self.__class__.__name__, self.name, self.file_name, self.time_index, self.time_steps - 1,
-                                                                                     np.around(100 * (self.time_index + 1) / self.time_steps, 2)))
-
-                if self.spec.checkpoints:
-                    if (self.time_index + 1) % self.spec.checkpoint_every == 0:
-                        self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
-                        self.status = si.STATUS_RUN
-                        logger.info('Checkpointed {} {} ({}) at time step {} / {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1, self.time_steps))
-
-                try:
-                    pbar.update(1)
-                except NameError:
-                    pass
-
-            try:
-                pbar.close()
-            except NameError:
-                pass
-
-            self.status = si.STATUS_FIN
-
-            logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
-        except Exception as e:
-            raise e
-        finally:
-            # make sure the animators get cleaned up if there's some kind of error during time evolution
-            for animator in self.animators:
-                animator.cleanup()
-
-    @property
-    def bound_states(self):
-        yield from [s for s in self.spec.test_states if s.bound]
-
-    @property
-    def free_states(self):
-        yield from [s for s in self.spec.test_states if not s.bound]
-
-    def group_free_states_by_continuous_attr(self, attr, divisions = 10, cutoff_value = None,
-                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', label_unit = None):
-        spectrum = set(getattr(s, attr) for s in self.free_states)
-        grouped_states = collections.defaultdict(list)
-        group_labels = {}
-
-        attr_min, attr_max = min(spectrum), max(spectrum)
-        if cutoff_value is None:
-            boundaries = np.linspace(attr_min, attr_max, num = divisions + 1)
-        else:
-            boundaries = np.linspace(attr_min, cutoff_value, num = divisions)
-            boundaries = np.concatenate((boundaries, [attr_max]))
-
-        label_unit, label_unit_str = get_unit_value_and_latex_from_unit(label_unit)
-
-        free_states = list(self.free_states)
-
-        for ii, lower_boundary in enumerate(boundaries[:-1]):
-            upper_boundary = boundaries[ii + 1]
-
-            label = label_format_str.format(uround(lower_boundary, label_unit, 2), uround(upper_boundary, label_unit, 2), label_unit_str)
-            group_labels[(lower_boundary, upper_boundary)] = label
-
-            for s in copy(free_states):
-                if lower_boundary <= getattr(s, attr) <= upper_boundary:
-                    grouped_states[(lower_boundary, upper_boundary)].append(s)
-                    free_states.remove(s)
-
-        return grouped_states, group_labels
-
-    def group_free_states_by_discrete_attr(self, attr = 'l', cutoff_value = 9, label_format_str = r'\phi_{{ E, {} }}'):
-        grouped_states = collections.defaultdict(list)
-
-        cutoff = []
-
-        for s in self.free_states:
-            s_attr = getattr(s, attr)
-            if s_attr < cutoff_value:
-                grouped_states[getattr(s, attr)].append(s)
-            else:
-                cutoff.append(s)
-
-        group_labels = {k: label_format_str.format(int(k)) for k in grouped_states}
-
-        try:
-            cutoff_key = max(grouped_states) + 1  # get max key, make sure cutoff key is larger for sorting purposes
-        except ValueError:
-            cutoff_key = ''
-
-        grouped_states[cutoff_key] = cutoff
-        group_labels[cutoff_key] = label_format_str.format(r'\geq {}'.format(cutoff_value))
-
-        return grouped_states, group_labels
-
-    def plot_test_state_overlaps_vs_time(self, log = False, x_unit = 'asec',
-                                         **kwargs):
-        fig = si.plots.get_figure('full')
-
-        x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
-
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-        ax_overlaps = plt.subplot(grid_spec[0])
-        ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
-
-        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
-
-        ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
-
-        state_overlaps = self.state_overlaps_vs_time
-
-        overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
-        labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
-
-        ax_overlaps.stackplot(self.data_times / x_scale_unit,
-                              *overlaps,
-                              labels = labels,
-                              # colors = colors,
-                              )
-
-        if log:
-            ax_overlaps.set_yscale('log')
-            min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
-            ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
-        else:
-            ax_overlaps.set_ylim(0.0, 1.0)
-            ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
-
-        ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
-
-        ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-        ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
-
-        ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
-
-        ax_overlaps.tick_params(labelright = True)
-        ax_field.tick_params(labelright = True)
-        ax_overlaps.xaxis.tick_top()
-
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
-
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 4
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_field.yaxis.set_major_locator(yloc)
-
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_field.xaxis.set_major_locator(xloc)
-
-        ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
-        ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-        ax_field.grid(True, **si.plots.GRID_KWARGS)
-
-        postfix = ''
-        if log:
-            postfix += '__log'
-        prefix = self.file_name
-
-        name = prefix + '__wavefunction_vs_time{}'.format(postfix)
-
-        si.plots.save_current_figure(name = name, **kwargs)
-
-        plt.close()
-
-    def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
-                                  bound_state_max_n = 5,
-                                  collapse_bound_state_angular_momentums = True,
-                                  grouped_free_states = None,
-                                  group_labels = None,
-                                  show_title = False,
-                                  plot_name_from = 'file_name',
-                                  **kwargs):
-        with si.plots.FigureManager(getattr(self, plot_name_from) + '__wavefunction_vs_time') as figman:
-            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
-
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-            ax_overlaps = plt.subplot(grid_spec[0])
-            ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
-
-            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
-
-            ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
-
-            if grouped_free_states is None:
-                try:
-                    grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
-                except AttributeError:
-                    grouped_free_states, group_labels = {}, {}
-            overlaps = []
-            labels = []
-            colors = []
-
-            state_overlaps = self.state_overlaps_vs_time  # it's a property that would otherwise get evaluated every time we asked for it
-
-            extra_bound_overlap = np.zeros(self.data_time_steps)
-            if collapse_bound_state_angular_momentums:
-                overlaps_by_n = {n: np.zeros(self.data_time_steps) for n in range(1, bound_state_max_n + 1)}  # prepare arrays to sum over angular momenta in, one for each n
-                for state in sorted(self.bound_states):
-                    if state.n <= bound_state_max_n:
-                        overlaps_by_n[state.n] += state_overlaps[state]
-                    else:
-                        extra_bound_overlap += state_overlaps[state]
-                overlaps += [overlap for n, overlap in sorted(overlaps_by_n.items())]
-                labels += [r'$\left| \left\langle \Psi | \psi_{{ {}, \ell }} \right\rangle \right|^2$'.format(n) for n in sorted(overlaps_by_n)]
-                colors += [matplotlib.colors.to_rgba('C' + str(n - 1), alpha = 1) for n in sorted(overlaps_by_n)]
-            else:
-                for state in sorted(self.bound_states):
-                    if state.n <= bound_state_max_n:
-                        overlaps.append(state_overlaps[state])
-                        labels.append(r'$\left| \left\langle \Psi | {} \right\rangle \right|^2$'.format(state.latex))
-                        colors.append(matplotlib.colors.to_rgba('C' + str((state.n - 1) % 10), alpha = 1 - state.l / state.n))
-                    else:
-                        extra_bound_overlap += state_overlaps[state]
-
-            overlaps.append(extra_bound_overlap)
-            labels.append(r'$\left| \left\langle \Psi | \psi_{{n \geq {} }}  \right\rangle \right|^2$'.format(bound_state_max_n + 1))
-            colors.append('.4')
-
-            free_state_color_cycle = it.cycle(['#8dd3c7', '#ffffb3', '#bebada', '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'])
-            for group, states in sorted(grouped_free_states.items()):
-                if len(states) != 0:
-                    overlaps.append(np.sum(state_overlaps[s] for s in states))
-                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_labels[group]))
-                    colors.append(free_state_color_cycle.__next__())
-
-            overlaps = [overlap for overlap in overlaps]
-
-            ax_overlaps.stackplot(self.data_times / x_scale_unit,
-                                  *overlaps,
-                                  labels = labels,
-                                  colors = colors,
-                                  )
-
-            if log:
-                ax_overlaps.set_yscale('log')
-                min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
-                ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
-            else:
-                ax_overlaps.set_ylim(0.0, 1.0)
-                ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
-
-            ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
-
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-            ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
-
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
-
-            ax_overlaps.tick_params(labelleft = True,
-                                    labelright = True,
-                                    labeltop = True,
-                                    labelbottom = False,
-                                    bottom = True,
-                                    top = True,
-                                    left = True,
-                                    right = True)
-            ax_field.tick_params(labelleft = True,
-                                 labelright = True,
-                                 labeltop = False,
-                                 labelbottom = True,
-                                 bottom = True,
-                                 top = True,
-                                 left = True,
-                                 right = True)
-            # ax_overlaps.xaxis.tick_top()
-
-            plt.rcParams['xtick.major.pad'] = 5
-            plt.rcParams['ytick.major.pad'] = 5
-
-            # Find at most n+1 ticks on the y-axis at 'nice' locations
-            max_yticks = 4
-            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-            ax_field.yaxis.set_major_locator(yloc)
-
-            max_xticks = 6
-            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-            ax_field.xaxis.set_major_locator(xloc)
-
-            ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
-            ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-            ax_field.grid(True, **si.plots.GRID_KWARGS)
-
-            if show_title:
-                title = ax_overlaps.set_title(self.name)
-                title.set_y(1.15)
-
-            postfix = ''
-            if log:
-                postfix += '__log'
-
-            figman.name = '__wavefunction_vs_time{}'.format(postfix)
-
-    def plot_energy_spectrum(self,
-                             states = 'all',
-                             time_index = -1,
-                             energy_scale = 'eV',
-                             time_scale = 'asec',
-                             bins = 100,
-                             log = False,
-                             energy_lower_bound = None, energy_upper_bound = None,
-                             group_angular_momentum = True, angular_momentum_cutoff = None,
-                             **kwargs):
-        energy_unit, energy_unit_str = get_unit_value_and_latex_from_unit(energy_scale)
-        time_unit, time_unit_str = get_unit_value_and_latex_from_unit(time_scale)
-
-        if states == 'all':
-            state_list = self.spec.test_states
-        elif states == 'bound':
-            state_list = self.bound_states
-        elif states == 'free':
-            state_list = self.free_states
-        else:
-            raise ValueError("states must be one of 'all', 'bound', or 'free'")
-
-        state_overlaps = self.state_overlaps_vs_time
-        state_overlaps = {k: state_overlaps[k] for k in state_list}  # filter down to just states in state_list
-
-        if group_angular_momentum:
-            overlap_by_angular_momentum_by_energy = collections.defaultdict(ft.partial(collections.defaultdict, float))
-
-            for state, overlap_vs_time in state_overlaps.items():
-                overlap_by_angular_momentum_by_energy[state.l][state.energy] += overlap_vs_time[time_index]
-
-            energies = []
-            overlaps = []
-            cutoff_energies = np.array([])
-            cutoff_overlaps = np.array([])
-            for l, overlap_by_energy in sorted(overlap_by_angular_momentum_by_energy.items()):
-                if l < angular_momentum_cutoff:
-                    e, o = si.utils.dict_to_arrays(overlap_by_energy)
-                    energies.append(e / energy_unit)
-                    overlaps.append(o)
-                else:
-                    e, o = si.utils.dict_to_arrays(overlap_by_energy)
-                    cutoff_energies = np.append(cutoff_energies, e)
-                    cutoff_overlaps = np.append(cutoff_overlaps, o)
-
-            if len(cutoff_energies) != 0:
-                energies.append(cutoff_energies)
-                overlaps.append(cutoff_overlaps)
-
-            if energy_lower_bound is None:
-                energy_lower_bound = min([np.nanmin(e) for e in energies])
-            if energy_upper_bound is None:
-                energy_upper_bound = max([np.nanmax(e) for e in energies])
-
-            labels = [r'$\ell = {}$'.format(l) for l in range(angular_momentum_cutoff)] + [r'$\ell \geq {}$'.format(angular_momentum_cutoff)]
-        else:
-            overlap_by_energy = collections.defaultdict(float)
-            for state, overlap_vs_time in state_overlaps.items():
-                overlap_by_energy[state.energy] += overlap_vs_time[time_index]
-
-            energies, overlaps = si.utils.dict_to_arrays(overlap_by_energy)
-            energies /= energy_unit
-
-            if energy_lower_bound is None:
-                energy_lower_bound = np.nanmin(energies)
-            if energy_upper_bound is None:
-                energy_upper_bound = np.nanmax(energies)
-
-            labels = None
-
-        with si.plots.FigureManager(self.name + '__energy_spectrum', **kwargs) as figman:
-            fig = figman.fig
-            ax = fig.add_subplot(111)
-
-            hist_n, hist_bins, hist_patches = ax.hist(x = energies, weights = overlaps,
-                                                      bins = bins,
-                                                      stacked = True,
-                                                      log = log,
-                                                      range = (energy_lower_bound, energy_upper_bound),
-                                                      label = labels,
-                                                      )
-
-            ax.grid(True, **si.plots.GRID_KWARGS)
-
-            x_range = energy_upper_bound - energy_lower_bound
-            ax.set_xlim(energy_lower_bound - .05 * x_range, energy_upper_bound + .05 * x_range)
-
-            ax.set_xlabel('Energy $E$ (${}$)'.format(energy_unit_str))
-            ax.set_ylabel('Wavefunction Overlap'.format(energy_unit_str))
-            ax.set_title('Wavefunction Overlap by Energy at $t={} \, {}$'.format(uround(self.times[time_index], time_unit, 3), time_unit_str))
-
-            if group_angular_momentum:
-                ax.legend(loc = 'best', ncol = 1 + len(energies) // 8)
-
-            ax.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-            figman.name += '__{}_states__index={}'.format(states, time_index)
-
-            if log:
-                figman.name += '__log'
-            if group_angular_momentum:
-                figman.name += '__grouped'
-
-    def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
-        fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
-
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.06)
-        ax_momentums = plt.subplot(grid_spec[0])
-        ax_field = plt.subplot(grid_spec[1], sharex = ax_momentums)
-
-        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.times / asec, self.electric_field_amplitude_vs_time / atomic_electric_field, color = 'black', linewidth = 2)
-
-        if renormalize:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
-        else:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
-        num_colors = len(overlaps)
-        ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
-        ax_momentums.stackplot(self.times / asec, *overlaps, alpha = 1, labels = l_labels)
-
-        if log:
-            ax_momentums.set_yscale('log')
-            ax_momentums.set_ylim(top = 1.0)
-            ax_momentums.grid(True, which = 'both')
-        else:
-            ax_momentums.set_ylim(0, 1.0)
-            ax_momentums.set_yticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-            ax_momentums.grid(True)
-        ax_momentums.set_xlim(self.spec.time_initial / asec, self.spec.time_final / asec)
-
-        ax_field.grid(True)
-
-        ax_field.set_xlabel('Time $t$ (as)', fontsize = 15)
-        y_label = r'$\left| \left\langle \Psi | Y^l_0 \right\rangle \right|^2$'
-        if renormalize:
-            y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
-        ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 11)
-
-        ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
-
-        ax_momentums.tick_params(labelright = True)
-        ax_field.tick_params(labelright = True)
-        ax_momentums.xaxis.tick_top()
-
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
-
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 6
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_field.yaxis.set_major_locator(yloc)
-
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_field.xaxis.set_major_locator(xloc)
-
-        ax_field.tick_params(axis = 'x', which = 'major', labelsize = 10)
-        ax_field.tick_params(axis = 'y', which = 'major', labelsize = 10)
-        ax_momentums.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-        postfix = ''
-        if renormalize:
-            postfix += '_renorm'
-        prefix = self.file_name
-        if use_name:
-            prefix = self.name
-        si.plots.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
-
-        plt.close()
-
-    def plot_dipole_moment_vs_time(self, gauge = 'length', use_name = False, **kwargs):
-        if not use_name:
-            prefix = self.file_name
-        else:
-            prefix = self.name
-        si.plots.xy_plot(prefix + '__dipole_moment_vs_time',
-                         self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
-                         x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
-                         x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
-                         **kwargs)
-
-    def dipole_moment_vs_frequency(self, gauge = 'length', first_time = None, last_time = None):
-        logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
-
-        if first_time is None:
-            first_time_index, first_time = 0, self.times[0]
-        else:
-            first_time_index, first_time, _ = si.utils.find_nearest_entry(self.times, first_time)
-        if last_time is None:
-            last_time_index, last_time = self.time_steps - 1, self.times[self.time_steps - 1]
-        else:
-            last_time_index, last_time, _ = si.utils.find_nearest_entry(self.times, last_time)
-        points = last_time_index - first_time_index
-        frequency = nfft.fftshift(nfft.fftfreq(points, self.spec.time_step))
-        dipole_moment = nfft.fftshift(nfft.fft(self.electric_dipole_moment_vs_time[gauge][first_time_index: last_time_index], norm = 'ortho'))
-
-        return frequency, dipole_moment
-
-    def plot_dipole_moment_vs_frequency(self, use_name = False, gauge = 'length', frequency_range = 10000 * THz, first_time = None, last_time = None, **kwargs):
-        prefix = self.file_name
-        if use_name:
-            prefix = self.name
-
-        frequency, dipole_moment = self.dipole_moment_vs_frequency(gauge = gauge, first_time = first_time, last_time = last_time)
-
-        si.plots.xy_plot(prefix + '__dipole_moment_vs_frequency',
-                         frequency, np.abs(dipole_moment) ** 2,
-                         x_unit_value = 'THz', y_unit_value = atomic_electric_dipole ** 2,
-                         y_log_axis = True,
-                         x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
-                         x_lower_limit = 0, x_upper_limit = frequency_range,
-                         **kwargs)
-
-    def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
-        """
-        Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
-
-        :param target_dir: directory to save the Simulation to
-        :param file_extension: file extension to name the Simulation with
-        :param save_mesh: if True, save the mesh as well as the Simulation. If False, don't.
-        :return: None
-        """
-
-        if not save_mesh:
-            try:
-                for state in self.spec.test_states:  # remove numeric eigenstate information
-                    state.g_mesh = None
-
-                mesh = self.mesh.copy()
-                self.mesh = None
-
-            except AttributeError:  # mesh is already None
-                mesh = None
-
-        if len(self.animators) > 0:
-            raise si.SimulacraException('Cannot pickle Simulation with Animators')
-
-        out = super().save(target_dir = target_dir, file_extension = file_extension, **kwargs)
-
-        if not save_mesh:
-            self.mesh = mesh
-
-        return out
-
-    @staticmethod
-    def load(file_path, initialize_mesh = False, **kwargs):
-        """Return a simulation loaded from the file_path. kwargs are for Beet.load."""
-        sim = si.Simulation.load(file_path, **kwargs)
-
-        if initialize_mesh:
-            sim.initialize_mesh()
-
-        return sim
-
-
-class AdapativeElectricFieldSimulation(ElectricFieldSimulation):
-    pass
-
-    # maybe instead of a class it should just be an option in there? the entire data store is different though... maybe it shouldn't even inherit? may need to use composition instead of inheritance
-    # it's already sort of agnostic about what time each time index represenents. May just need to modify what the time attribute means!
-    # maybe a spec comes with a rule for time steps, which is by default a lambda that returns the time step, or something
