@@ -3,9 +3,9 @@ import os
 import shutil
 
 import numpy as np
+
 import simulacra as si
 import simulacra.cluster as clu
-from simulacra.units import *
 from simulacra.units import *
 
 import src.ionization as ion

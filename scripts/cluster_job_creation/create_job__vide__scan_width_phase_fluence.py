@@ -3,11 +3,13 @@ import os
 import shutil
 
 import numpy as np
+
 import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-from src import ionization as iclu, ionization as ide, ionization as ion
+import ionization as ion
+import ionization.cluster as iclu
 
 
 if __name__ == '__main__':
