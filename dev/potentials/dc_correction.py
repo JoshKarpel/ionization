@@ -49,7 +49,7 @@ if __name__ == '__main__':
         total_t = np.abs(t[-1] - t[0])
 
         uncorrected_pulse_amp = pulse.get_electric_field_amplitude(t)
-        uncorrected_pulse_vpot = proton_charge * (-pulse.get_electric_field_integral_numeric(t))
+        uncorrected_pulse_vpot = proton_charge * (-pulse.get_electric_field_integral_numeric_cumulative(t))
 
         print('uncorrected A final:', uncorrected_pulse_vpot[-1] / atomic_momentum)
 
@@ -70,14 +70,14 @@ if __name__ == '__main__':
 
         ### CORRECTION 1 ###
 
-        correction_field = ion.Rectangle(start_time = t[0], end_time = t[-1], amplitude = -pulse.get_electric_field_integral_numeric(t)[-1] / total_t)
+        correction_field = ion.Rectangle(start_time = t[0], end_time = t[-1], amplitude = -pulse.get_electric_field_integral_numeric_cumulative(t)[-1] / total_t)
         print(correction_field)
 
         corrected_pulse = pulse + correction_field
         print(corrected_pulse)
 
         corrected_pulse_amp = corrected_pulse.get_electric_field_amplitude(t)
-        corrected_pulse_vpot = proton_charge * (-corrected_pulse.get_electric_field_integral_numeric(t))
+        corrected_pulse_vpot = proton_charge * (-corrected_pulse.get_electric_field_integral_numeric_cumulative(t))
 
         print('rect-corrected A final:', corrected_pulse_vpot[-1] / atomic_momentum)
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
             test_correction_field = ion.Rectangle(start_time = t[0], end_time = t[-1], amplitude = amp, window = original_pulse.window)
             test_pulse = original_pulse + test_correction_field
 
-            return np.abs(test_pulse.get_electric_field_integral_numeric(t)[-1])
+            return np.abs(test_pulse.get_electric_field_integral_numeric_cumulative(t)[-1])
 
 
         correction_amp = optimize.minimize_scalar(func_to_minimize, args = (pulse,))
@@ -117,7 +117,7 @@ if __name__ == '__main__':
         print(corrected_pulse)
 
         corrected_pulse_amp = corrected_pulse.get_electric_field_amplitude(t)
-        corrected_pulse_vpot = proton_charge * (-corrected_pulse.get_electric_field_integral_numeric(t))
+        corrected_pulse_vpot = proton_charge * (-corrected_pulse.get_electric_field_integral_numeric_cumulative(t))
 
         print('opt-rect-corrected A final:', corrected_pulse_vpot[-1] / atomic_momentum)
 

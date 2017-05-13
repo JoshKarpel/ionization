@@ -244,7 +244,7 @@ def DC_correct_electric_potential(electric_field, times):
         test_correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = amp, window = electric_field.window)
         test_pulse = original_pulse + test_correction_field
 
-        return np.abs(test_pulse.get_electric_field_integral_numeric(times)[-1])
+        return np.abs(test_pulse.get_electric_field_integral_numeric_cumulative(times)[-1])
 
     correction_amp = opt.minimize_scalar(func_to_minimize, args = (electric_field,)).x
     correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_field.window)
@@ -265,15 +265,40 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
         """Return the electric field amplitude at time t."""
         return self.window(t)
 
+    def get_vector_potential_amplitude(self, t):
+        raise NotImplementedError
+
     def __call__(self, *, t, distance_along_polarization, test_charge, **kwargs):
         return distance_along_polarization * test_charge * self.get_electric_field_amplitude(t)
 
-    def get_electric_field_integral_numeric(self, times):
-        """Return the integral of the electric field amplitude from the start of times for each interval in times."""
-        return np.cumsum(self.get_electric_field_amplitude(times)) * np.abs(times[1] - times[0])
+    def get_electric_field_integral_numeric(self, times, rule = 'simps'):
+        """
+        Return the electric field integral from ``times[0]`` to ``times[-1]``.
 
-    def get_fluence_numeric(self, times):
-        return epsilon_0 * c * np.sum(np.abs(self.get_electric_field_amplitude(times)) ** 2) * np.abs(times[1] - times[0])
+        Parameters
+        ----------
+        times
+        rule : {``'trapz'``, ``'simps'``}
+        Returns
+        -------
+        """
+        return getattr(integ, rule)(y = self.get_electric_field_amplitude(times),
+                                    x = times)
+
+    def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
+        return -self.get_electric_field_integral_numeric(times, rule = rule)
+
+    def get_electric_field_integral_numeric_cumulative(self, times):
+        """Return the integral of the electric field amplitude from the start of times for each interval in times."""
+        return integ.cumtrapz(y = self.get_electric_field_amplitude(times),
+                              x = times,
+                              initial = 0)
+
+    def get_vector_potential_amplitude_numeric_cumulative(self, times):
+        return -self.get_electric_field_integral_numeric_cumulative(times)
+
+    def get_fluence_numeric(self, times, rule = 'simps'):
+        return epsilon_0 * c * self.get_electric_field_integral_numeric(times, rule = rule)
 
 
 class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):

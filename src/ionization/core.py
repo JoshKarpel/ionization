@@ -1593,7 +1593,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return interaction_mesh_r, interaction_mesh_theta
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric(self.sim.times_to_current)
+        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
 
         raise NotImplementedError
 
@@ -2012,7 +2012,7 @@ class SphericalSliceMesh(QuantumMesh):
         return interaction_mesh_r, interaction_mesh_theta
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric(self.sim.times_to_current)
+        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
 
         raise NotImplementedError
 
@@ -2610,7 +2610,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric(self.sim.times_to_current)
+        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
 
         raise NotImplementedError
 
