@@ -7,7 +7,7 @@ import scipy.interpolate as interp
 import simulacra as si
 from simulacra.units import *
 
-from src import ionization as ion
+import ionization as ion
 from src.ionization import integrodiff as ide
 
 

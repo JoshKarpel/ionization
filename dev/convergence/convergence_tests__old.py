@@ -5,7 +5,7 @@ import numpy as np
 import simulacra as si
 from simulacra.units import *
 
-from src import ionization as ion, ionization as test
+import ionization as ion, ionization as test
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]

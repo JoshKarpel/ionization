@@ -7,7 +7,7 @@ import simulacra as si
 from simulacra.units import *
 from tqdm import tqdm
 
-from src import ionization as ion
+import ionization as ion
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]

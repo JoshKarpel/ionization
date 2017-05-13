@@ -12,7 +12,8 @@ from tqdm import tqdm
 matplotlib.use('pgf')
 
 import simulacra as si
-from src import ionization as ion, ionization as ide
+import ionization as ion
+import ionization.integrodiff as ide
 from simulacra.units import *
 
 

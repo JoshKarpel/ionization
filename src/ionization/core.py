@@ -6,19 +6,19 @@ from copy import copy, deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
+from cycler import cycler
 import numpy as np
 import numpy.fft as nfft
 import scipy as sp
 import scipy.sparse as sparse
 import scipy.sparse.linalg as sparsealg
 import scipy.special as special
-
-import simulacra as si
-from cycler import cycler
-from simulacra.units import *
 from tqdm import tqdm
 
+import simulacra as si
+from simulacra.units import *
 from . import potentials, states
+
 from .cy import make_split_operator_evolution_matrices_LEN, tdma
 
 

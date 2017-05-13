@@ -3,7 +3,7 @@ import os
 import numpy as np
 import simulacra as si
 
-from src import ionization as ion
+import ionization as ion
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
