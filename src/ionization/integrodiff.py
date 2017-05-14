@@ -1,14 +1,10 @@
-import collections
-import datetime as dt
-import functools
-import itertools as it
 import logging
-from copy import copy, deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integrate
+
 import simulacra as si
 from simulacra.units import *
 

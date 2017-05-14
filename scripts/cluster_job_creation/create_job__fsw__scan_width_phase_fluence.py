@@ -195,7 +195,7 @@ if __name__ == '__main__':
             )
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
-            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time
+            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time.value
 
             time_bound = spec_kwargs['time_bound_in_pw'] * electric_potential.pulse_width
             spec = spec_type(name,

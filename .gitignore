@@ -89,4 +89,4 @@ ENV/
 .ropeproject
 
 .idea/
-out/*
+.pyxbld

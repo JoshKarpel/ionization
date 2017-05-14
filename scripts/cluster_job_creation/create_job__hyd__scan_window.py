@@ -186,7 +186,7 @@ if __name__ == '__main__':
             )
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
-            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time
+            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time.value
             snapshot_times = np.concatenate((snapshot_times, electric_potential.pulse_width * snapshot_times_in_pw))
 
             spec = spec_type(name,

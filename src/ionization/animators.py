@@ -1,15 +1,11 @@
-import functools
-import itertools as it
 import logging
-import os
-import subprocess
 
-import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 import simulacra as si
-from mpl_toolkits.axes_grid1 import make_axes_locatable
+
 from simulacra.units import *
 
 from . import core

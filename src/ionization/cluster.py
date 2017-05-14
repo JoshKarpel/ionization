@@ -7,11 +7,9 @@ import numpy.ma as ma
 
 import simulacra as si
 import simulacra.cluster as clu
-from ionization import integrodiff
 from simulacra.units import *
 
-from src.ionization import core
-
+from . import core, integrodiff
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

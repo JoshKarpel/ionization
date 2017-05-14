@@ -1,10 +1,6 @@
-import datetime as dt
-import functools
 import functools as ft
 import itertools as it
 import logging
-import os
-import types
 from copy import deepcopy
 
 import mpmath
@@ -12,6 +8,7 @@ import numpy as np
 import scipy as sp
 import scipy.optimize as optimize
 import scipy.special as special
+
 import simulacra as si
 from simulacra.units import *
 
