@@ -252,7 +252,7 @@ class ElectricFieldSimulation(si.Simulation):
                 animator.initialize(self)
 
             if progress_bar:
-                pbar = tqdm(total = self.time_steps)
+                pbar = tqdm(total = self.time_steps - 1)
 
             while True:
                 if self.time in self.data_times:
@@ -995,6 +995,45 @@ class ElectricFieldSpecification(si.Specification):
         return '\n'.join(checkpoint + animation + time_evolution + potentials + analysis)
 
 
+class MeshOperator:
+    def __init__(self, operator, wrapping_direction):
+        self.operator = operator
+        self.wrapping_direction = wrapping_direction
+
+    def apply(self, mesh, g, current_wrapping_direction):
+        if current_wrapping_direction != self.wrapping_direction:
+            g = mesh.flatten_mesh(mesh.wrap_vector(g, current_wrapping_direction), self.wrapping_direction)
+
+        result = self._apply(g)
+
+        return result, self.wrapping_direction
+
+    def _apply(self, g):
+        raise NotImplementedError
+
+
+class DotOperator(MeshOperator):
+    def _apply(self, g):
+        return self.operator.dot(g)
+
+
+class TDMAOperator(MeshOperator):
+    def _apply(self, g):
+        return tdma(self.operator, g)
+
+
+def apply_operators(mesh, g, *operators):
+    """Operators should be entered in written order (as you would write them on the page to apply to something on the far right)"""
+    operators = reversed(operators)
+
+    current_wrapping_direction = None
+
+    for operator in operators:
+        g, current_wrapping_direction = operator.apply(mesh, g, current_wrapping_direction)
+
+    return mesh.wrap_vector(g, current_wrapping_direction)
+
+
 class QuantumMesh:
     def __init__(self, simulation):
         self.sim = simulation
@@ -1517,6 +1556,8 @@ class CylindricalSliceMesh(QuantumMesh):
             flat = 'F'
         elif flatten_along == 'rho':
             flat = 'C'
+        elif flatten_along is None:
+            return mesh
         else:
             raise ValueError("{} is not a valid specifier for flatten_along (valid specifiers: 'z', 'rho')".format(flatten_along))
 
@@ -1527,6 +1568,8 @@ class CylindricalSliceMesh(QuantumMesh):
             wrap = 'F'
         elif wrap_along == 'rho':
             wrap = 'C'
+        elif wrap_along is None:
+            return vector
         else:
             raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'rho')".format(wrap_along))
 
@@ -1903,20 +1946,24 @@ class SphericalSliceMesh(QuantumMesh):
             flat = 'F'
         elif flatten_along == 'theta':
             flat = 'C'
+        elif flatten_along is None:
+            return mesh
         else:
             raise ValueError("{} is not a valid specifier for flatten_mesh (valid specifiers: 'r', 'theta')".format(flatten_along))
 
         return mesh.flatten(flat)
 
-    def wrap_vector(self, mesh, wrap_along):
+    def wrap_vector(self, vector, wrap_along):
         if wrap_along == 'r':
             wrap = 'F'
         elif wrap_along == 'theta':
             wrap = 'C'
+        elif wrap_along is None:
+            return vector
         else:
             raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'r', 'theta')".format(wrap_along))
 
-        return np.reshape(mesh, self.mesh_shape, wrap)
+        return np.reshape(vector, self.mesh_shape, wrap)
 
     def state_overlap(self, state_a = None, state_b = None):
         """State overlap between two states. If either state is None, the state on the g_mesh is used for that state."""
@@ -2297,6 +2344,8 @@ class SphericalHarmonicMesh(QuantumMesh):
                 flat = 'F'
             elif flatten_along == 'r':
                 flat = 'C'
+            elif flatten_along is None:
+                return mesh
             else:
                 raise ValueError("{} is not a valid specifier for flatten_mesh (valid specifiers: 'l', 'r')".format(flatten_along))
 
@@ -2304,21 +2353,17 @@ class SphericalHarmonicMesh(QuantumMesh):
         except AttributeError:  # occurs if the "mesh" is actually an int or float, in which case we should should just return it
             return mesh
 
-    def wrap_vector(self, mesh, wrap_along):
-        """
-
-        :param mesh:
-        :param wrap_along:
-        :return:
-        """
+    def wrap_vector(self, vector, wrap_along):
         if wrap_along == 'l':
             wrap = 'F'
         elif wrap_along == 'r':
             wrap = 'C'
+        elif wrap_along is None:
+            return vector
         else:
             raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'l', 'r')".format(wrap_along))
 
-        return np.reshape(mesh, self.mesh_shape, wrap)
+        return np.reshape(vector, self.mesh_shape, wrap)
 
     @property
     def norm_by_l(self):
@@ -2759,17 +2804,22 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
 
-        even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
-        # split_operators = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
+        # even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
+        split_operators = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
 
         # even, odd = split_operators
 
-        # def sparsedot(a, b):
-        #     return a.dot(b)
+        def sparsedot(acc, next_op):
+            return next_op.dot(acc)
 
         # STEP 1 & 2
-        self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
+        self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # g = self.flatten_mesh(self.g_mesh, 'l')
+        # for operator in reversed(split_operators):
+        #     print(type(operator))
+        #     g = operator.dot(g)
+        # self.g_mesh = self.wrap_vector(g, 'l')
 
         # STEP 3 & 4
         hamiltonian_explicit = -1 * hamiltonian_r
@@ -2779,8 +2829,13 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.g_mesh = self.wrap_vector(tdma(hamiltonian_implicit, hamiltonian_explicit.dot(self.flatten_mesh(self.g_mesh, 'r'))), 'r')
 
         # STEP 5 & 6
-        self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
+        self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # g = self.flatten_mesh(self.g_mesh, 'l')
+        # for operator in split_operators:
+        #     print(type(operator))
+        #     g = operator.dot(g)
+        # self.g_mesh = self.wrap_vector(g, 'l')
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
