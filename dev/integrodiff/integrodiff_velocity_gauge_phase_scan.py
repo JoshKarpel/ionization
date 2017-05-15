@@ -12,7 +12,7 @@ from src.ionization import integrodiff as ide
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-log = si.utils.LogManager('compy', 'ionization', stdout_logs = True, stdout_level = logging.INFO)
+log = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO)
 
 
 def run(spec):

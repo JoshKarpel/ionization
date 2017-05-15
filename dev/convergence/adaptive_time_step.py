@@ -10,7 +10,7 @@ import ionization as ion
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-logman = si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG)
+logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
 
 
 def run_spec(spec):

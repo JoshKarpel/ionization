@@ -11,7 +11,7 @@ FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization') as logger:
+    with si.utils.LogManager('simulacra', 'ionization') as logger:
         # free_state = ion.FreeSphericalWave(energy = 5 * eV, l = 0, m = 0)
         # free_state = ion.Superposition(*(ion.FreeSphericalWave(energy = e * eV, l = 1) for e in np.linspace(1, 20, 100)))
         # free_state = ion.HydrogenCoulombState(energy = 1 * eV, l = 0)

@@ -33,7 +33,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    with si.utils.LogManager('compy', 'ionization', stdout_level = 31 - ((args.verbosity + 1) * 10)) as logger:
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = 31 - ((args.verbosity + 1) * 10)) as logger:
         # job type options
         job_processor = iclu.PulseJobProcessor
 

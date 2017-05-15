@@ -180,7 +180,7 @@ if __name__ == '__main__':
     # method = 'trapezoid'
     method = 'simpson'
 
-    with si.utils.LogManager('compy', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
+    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
                              file_logs = True, file_dir = OUT_DIR, file_name = method, file_mode = 'w', file_level = logging.INFO) as logger:
         for dt in dt_list:
             spec = ide.IntegroDifferentialEquationSpecification('{}__{}__dt={}as'.format(method, electric_field.__class__.__name__, round(dt, 3)),

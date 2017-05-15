@@ -12,7 +12,7 @@ FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG) as logger:
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         times = np.linspace(0, 20, 1000) * s
 
         field_1 = ion.SineWave(1 * Hz, amplitude = 1 * V / m)

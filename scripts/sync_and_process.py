@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 log_file = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
-cp_logger = si.utils.LogManager('__main__', 'compy', 'ionization',
+cp_logger = si.utils.LogManager('__main__', 'simulacra', 'ionization',
                                 stdout_logs = True, stdout_level = logging.INFO,
                                 file_logs = False, file_level = logging.INFO, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a')
 
@@ -47,7 +47,7 @@ def process_job(job_name, jobs_dir = None):
 
         jp.summarize()
 
-        return jp.running_time, jp.sim_count
+        return jp.running_time, jp.sim_count - len(jp.unprocessed_sim_names)
 
 
 def process_jobs(jobs_dir):

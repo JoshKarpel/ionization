@@ -14,7 +14,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 LIB_DIR = os.path.join(OUT_DIR, 'sim_lib')
 
-log = si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG)
+log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
 
 
 def run_spec(spec):

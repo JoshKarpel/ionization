@@ -16,7 +16,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 def run(spec):
     sim = spec.to_simulation()
 
-    with si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG,
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_dir = OUT_DIR, file_name = sim.name, file_level = logging.INFO, file_mode = 'w') as logger:
         logger.info('Predicted initial energy: {} eV'.format(uround(sim.spec.initial_state.energy, eV, 10)))
         logger.info('Measured initial energy: {} eV'.format(uround(sim.spec.initial_state.energy, eV, 10)))
@@ -72,7 +72,7 @@ def run(spec):
 
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG) as logger:
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         prefix = si.utils.get_now_str()
 
         mass = electron_mass

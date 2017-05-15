@@ -20,7 +20,7 @@ from simulacra.units import *
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-log = si.utils.LogManager('compy', 'ionization', stdout_level = logging.INFO)
+log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO)
 
 pgf_with_latex = {  # setup matplotlib to use latex for output
     "pgf.texsystem": "pdflatex",  # change this if using xetex or lautex

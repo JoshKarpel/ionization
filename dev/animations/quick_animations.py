@@ -12,7 +12,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 
 def make_movie(spec):
-    with si.utils.LogManager('compy', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
+    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.DEBUG) as logger:
         sim = spec.to_simulation()
 
@@ -22,7 +22,7 @@ def make_movie(spec):
 
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
+    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
         specs = []
 
         bound = 100

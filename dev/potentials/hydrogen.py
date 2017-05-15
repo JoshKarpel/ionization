@@ -13,7 +13,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 si.utils.ensure_dir_exists(OUT_DIR)
 
-logger = logging.getLogger('compy')
+logger = logging.getLogger('simulacra')
 logger.setLevel(logging.DEBUG)
 
 stdout_handler = logging.StreamHandler(sys.stdout)

@@ -12,7 +12,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 
 def run_sim(spec):
-    with si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG,
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w') as logger:
         sim = spec.to_simulation()
 
@@ -36,7 +36,7 @@ def run_sim(spec):
 
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG) as logger:
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         bound = 50
         # points = 2 ** 8
         points = bound * 4

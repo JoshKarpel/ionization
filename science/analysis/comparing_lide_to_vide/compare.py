@@ -8,7 +8,7 @@ FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
-    with si.utils.LogManager('compy', 'ionization') as logger:
+    with si.utils.LogManager('simulacra', 'ionization') as logger:
         jp_lide = si.cluster.JobProcessor.load('compare_to_velocity.job')
         jp_vide = si.cluster.JobProcessor.load('vide_compare.job')
 

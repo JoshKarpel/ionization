@@ -18,7 +18,7 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    with si.utils.LogManager('__main__', 'compy', 'ionization',
+    with si.utils.LogManager('__main__', 'simulacra', 'ionization',
                              stdout_logs = False,
                              file_logs = True, file_level = logging.INFO, file_name = '{}'.format(args.sim_name), file_mode = 'a') as log:
         try:

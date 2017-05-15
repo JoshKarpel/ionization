@@ -11,7 +11,7 @@ import ionization as ion
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-log = si.utils.LogManager('compy', 'ionization', stdout_level = logging.DEBUG)
+log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
 
 if __name__ == '__main__':
     with log as logger:
