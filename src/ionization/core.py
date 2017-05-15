@@ -1635,7 +1635,7 @@ class LineMesh(QuantumMesh):
 
         for nn, (eigenvalue, eigenvector) in enumerate(zip(eigenvalues, eigenvectors.T)):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-            # eigenvector /= self.g_factor  # go to u_for_each_two_r_blocks from R
+            # eigenvector /= self.g_factor  # go to u from R
 
             if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                 continue
@@ -1715,7 +1715,7 @@ class CylindricalSliceSpecification(ElectricFieldSpecification):
                  z_points = 2 ** 9, rho_points = 2 ** 8,
                  evolution_method = 'CN', evolution_equations = 'HAM', evolution_gauge = 'LEN',
                  **kwargs):
-        super(CylindricalSliceSpecification, self).__init__(name, mesh_type = CylindricalSliceMesh,
+        super().__init__(name, mesh_type = CylindricalSliceMesh,
                                                             evolution_equations = evolution_equations,
                                                             evolution_method = evolution_method,
                                                             evolution_gauge = evolution_gauge,
@@ -2899,6 +2899,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
                 l_offdiagonal[l_index] = three_j_coefficient(l)
+
         l_offdiagonal *= l_prefactor
 
         return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
