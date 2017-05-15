@@ -452,7 +452,7 @@ class ElectricFieldSimulation(si.Simulation):
                                   show_title = False,
                                   plot_name_from = 'file_name',
                                   **kwargs):
-        with si.plots.FigureManager(getattr(self, plot_name_from) + '__wavefunction_vs_time') as figman:
+        with si.plots.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
@@ -575,7 +575,7 @@ class ElectricFieldSimulation(si.Simulation):
             if log:
                 postfix += '__log'
 
-            figman.name = '__wavefunction_vs_time{}'.format(postfix)
+            figman.name += postfix
 
     def plot_energy_spectrum(self,
                              states = 'all',
@@ -2529,7 +2529,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
         effective_potential = ((hbar ** 2) / (2 * electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
 
-        r_beta = beta(np.array(self.spec.r_points, dtype = np.complex128))
+        r_beta = beta(np.array(range(len(self.r)), dtype = np.complex128))
         if l == 0:
             dr = self.delta_r / bohr_radius
             r_beta[0] += dr * (1 + dr) / 8
@@ -2566,7 +2566,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             j = r_index % self.spec.r_points
             r_diagonal[r_index] = beta(j)
         dr = self.delta_r / bohr_radius
-        r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j (see notes)
+        r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
 
         for r_index in range(self.mesh_points - 1):
             if (r_index + 1) % self.spec.r_points != 0:  # TODO: should be possible to clean this if up
@@ -2760,22 +2760,27 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
 
         even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
-        # split_operators = self._make_split_operator_evolution_matrices_LEN(hamiltonian_l.data[0][:-1])
+        # split_operators = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
+
+        # even, odd = split_operators
+
+        # def sparsedot(a, b):
+        #     return a.dot(b)
 
         # STEP 1 & 2
         self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(np.dot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
 
         # STEP 3 & 4
-        hamiltonian_excplicit = -1 * hamiltonian_r
-        hamiltonian_excplicit.data[1] += 1  # add identity to sparse matrix operator
+        hamiltonian_explicit = -1 * hamiltonian_r
+        hamiltonian_explicit.data[1] += 1  # add identity to sparse matrix operator
         hamiltonian_implicit = hamiltonian_r.copy()
         hamiltonian_implicit.data[1] += 1  # add identity to sparse matrix operator
-        self.g_mesh = self.wrap_vector(tdma(hamiltonian_implicit, hamiltonian_excplicit.dot(self.flatten_mesh(self.g_mesh, 'r'))), 'r')
+        self.g_mesh = self.wrap_vector(tdma(hamiltonian_implicit, hamiltonian_explicit.dot(self.flatten_mesh(self.g_mesh, 'r'))), 'r')
 
         # STEP 5 & 6
         self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(np.dot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):

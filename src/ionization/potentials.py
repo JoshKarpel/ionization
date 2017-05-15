@@ -27,6 +27,25 @@ class PotentialEnergySum(si.Sum, PotentialEnergy):
 
     container_name = 'potentials'
 
+    def get_electric_field_amplitude(self, t):
+        return sum(x.get_electric_field_amplitude(t) for x in self._container)
+
+    def get_electric_field_integral_numeric(self, t):
+        return sum(x.get_electric_field_integral_numeric(t) for x in self._container)
+
+    def get_vector_potential_amplitude(self, t):
+        return sum(x.get_vector_potential_amplitude(t) for x in self._container)
+
+    def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
+        return sum(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container)
+
+    def get_electric_field_integral_numeric_cumulative(self, times):
+        """Return the integral of the electric field amplitude from the start of times for each interval in times."""
+        return sum(x.get_electric_field_integral_numeric_cumulative(times) for x in self._container)
+
+    def get_vector_potential_amplitude_numeric_cumulative(self, times):
+        return sum(x.get_vector_potential_amplitude_numeric_cumulative(times) for x in self._container)
+
 
 class NoPotentialEnergy(PotentialEnergy):
     """A class representing no potential energy from any source."""
