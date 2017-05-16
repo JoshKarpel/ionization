@@ -2713,14 +2713,19 @@ class SphericalHarmonicMesh(QuantumMesh):
         tau = time_step / (2 * hbar)
 
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian_l = 1j * tau * self.get_interaction_hamiltonian_matrix_operators()
 
-        # STEP 1
-        hamiltonian = -1 * hamiltonian_l
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'l')
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'l')
+        electric_field_amplitude = self.spec.electric_potential.get_electric_field_amplitude(self.sim.time)
+        do_interaction = electric_field_amplitude != 0
+
+        if do_interaction:
+            hamiltonian_l = 1j * tau * self.get_interaction_hamiltonian_matrix_operators()
+
+            # STEP 1
+            hamiltonian = -1 * hamiltonian_l
+            hamiltonian.data[1] += 1  # add identity to matrix operator
+            g_vector = self.flatten_mesh(self.g_mesh, 'l')
+            g_vector = hamiltonian.dot(g_vector)
+            self.g_mesh = self.wrap_vector(g_vector, 'l')
 
         # STEP 2
         hamiltonian = hamiltonian_r.copy()
@@ -2734,12 +2739,13 @@ class SphericalHarmonicMesh(QuantumMesh):
         g_vector = hamiltonian.dot(g_vector)
         self.g_mesh = self.wrap_vector(g_vector, 'r')
 
-        # STEP 4
-        hamiltonian = hamiltonian_l.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'l')
-        g_vector = tdma(hamiltonian, g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'l')
+        if do_interaction:
+            # STEP 4
+            hamiltonian = hamiltonian_l.copy()
+            hamiltonian.data[1] += 1  # add identity to matrix operator
+            g_vector = self.flatten_mesh(self.g_mesh, 'l')
+            g_vector = tdma(hamiltonian, g_vector)
+            self.g_mesh = self.wrap_vector(g_vector, 'l')
 
     def make_split_operator_evolution_matrices(self, *args):
         return getattr(self, f'_make_split_operator_evolution_matrices_{self.spec.evolution_gauge}')(*args)
@@ -2759,17 +2765,13 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
 
-        even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
-        # split_operators = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
+        electric_field_amplitude = self.spec.electric_potential.get_electric_field_amplitude(self.sim.time)
+        do_interaction = electric_field_amplitude != 0
 
-        # even, odd = split_operators
-
-        # def sparsedot(a, b):
-        #     return a.dot(b)
-
-        # STEP 1 & 2
-        self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        if do_interaction:
+            even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
+            # STEP 1 & 2
+            self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
 
         # STEP 3 & 4
         hamiltonian_explicit = -1 * hamiltonian_r
@@ -2778,9 +2780,9 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_implicit.data[1] += 1  # add identity to sparse matrix operator
         self.g_mesh = self.wrap_vector(tdma(hamiltonian_implicit, hamiltonian_explicit.dot(self.flatten_mesh(self.g_mesh, 'r'))), 'r')
 
-        # STEP 5 & 6
-        self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        # self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
+        if do_interaction:
+            # STEP 5 & 6
+            self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
