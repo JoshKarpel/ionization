@@ -408,7 +408,7 @@ class ElectricFieldSimulation(si.Simulation):
 
         ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+        ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
         ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -528,7 +528,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
             ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -717,7 +717,7 @@ class ElectricFieldSimulation(si.Simulation):
         if renormalize:
             y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
         ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 11)
+        ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 11)
 
         ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
 
@@ -1383,7 +1383,7 @@ class LineMesh(QuantumMesh):
 
         for nn, (eigenvalue, eigenvector) in enumerate(zip(eigenvalues, eigenvectors.T)):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-            # eigenvector /= self.g_factor  # go to u from R
+            # eigenvector /= self.g_factor  # go to u_for_each_two_r_blocks from R
 
             if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                 continue
@@ -2639,7 +2639,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
                 eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-                eigenvector /= self.g_factor  # go to u from R
+                eigenvector /= self.g_factor  # go to u_for_each_two_r_blocks from R
 
                 if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                     continue
