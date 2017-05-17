@@ -107,7 +107,7 @@ class ElectricFieldSimulation(si.Simulation):
         self.snapshots = dict()
 
     def info(self):
-        mem_mesh = self.mesh.g_mesh.nbytes if self.mesh is not None else 0
+        mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
         mem_numeric_eigenstates = sum(state.g_mesh.nbytes for state in self.spec.test_states if state.numeric if state.g_mesh is not None)
@@ -227,7 +227,7 @@ class ElectricFieldSimulation(si.Simulation):
                 norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
 
             else:
-                largest_l_mesh = self.mesh.g_mesh[-1]
+                largest_l_mesh = self.mesh.g[-1]
                 norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
@@ -1102,7 +1102,6 @@ class QuantumMesh:
     def get_internal_hamiltonian_matrix_operators(self):
         raise NotImplementedError
 
-    @si.utils.memoize
     def get_interaction_hamiltonian_matrix_operators(self):
         try:
             return getattr(self, f'_get_interaction_hamiltonian_matrix_operators_{self.spec.evolution_gauge}')()
@@ -2463,7 +2462,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def get_radial_g_for_state(self, state):
         """Return the radial g function evaluated on the radial mesh for a state that has a radial function."""
         # logger.debug('Calculating radial wavefunction for state {}'.format(state))
-        g = state.radial_function(self.r) * self.g_factor[0]
+        g = state.radial_function(self.r) * self.r  # g factor manually
         g /= np.sqrt(self.norm(g))
         g *= state.amplitude
 
@@ -2743,7 +2742,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
                 eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-                eigenvector /= self.g_factor  # go to u_for_each_two_r_blocks from R
+                eigenvector /= self.r  # g factor manually
 
                 if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                     continue
@@ -2876,6 +2875,8 @@ class SphericalHarmonicMesh(QuantumMesh):
             even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
             # STEP 1 & 2
             self.g = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g, 'l'))), 'l')
+
+            print(uround(self.sim.time, 'asec'), uround(electric_field_amplitude, 'aef'), even.data[0][:20])
 
         # STEP 3 & 4
         hamiltonian_explicit = -1 * hamiltonian_r
