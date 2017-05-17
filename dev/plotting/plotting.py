@@ -13,13 +13,17 @@ import matplotlib as mpl
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-units = ('bohr_radius', 'nm')
-bounds = np.array([10, 20, 50]) * bohr_radius
-cmaps = (mpl.cm.get_cmap('inferno'), mpl.cm.get_cmap('viridis'))
+# units = ('bohr_radius', 'nm')
+# bounds = np.array([10, 20, 50]) * bohr_radius
+# cmaps = (mpl.cm.get_cmap('inferno'), mpl.cm.get_cmap('viridis'))
 
 # units = ('bohr_radius',)
 # bounds = np.array([10, 20]) * bohr_radius
 # cmaps = (mpl.cm.get_cmap('inferno'),)
+
+units = ('bohr_radius',)
+bounds = np.array([10, 20, 50, 100]) * bohr_radius
+cmaps = (mpl.cm.get_cmap('inferno'),)
 
 
 def make_plots(spec):
@@ -29,13 +33,13 @@ def make_plots(spec):
         for cmap in cmaps:
             postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}'
             sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
-            sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
+            # sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
         sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound)
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        n = 3
+        n = 5
         angular_points = 200
 
         states = (ion.HydrogenBoundState(n, l) for n in range(n + 1) for l in range(n))
