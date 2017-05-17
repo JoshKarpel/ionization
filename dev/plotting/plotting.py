@@ -1,55 +1,62 @@
 import os
+import itertools
 
-import matplotlib as plt
+import numpy as np
+
 import simulacra as si
 from simulacra.units import *
-
 import ionization as ion
+
+import matplotlib as mpl
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-CMAP = plt.cm.inferno
+units = ('bohr_radius', 'nm')
+bounds = np.array([10, 20, 50]) * bohr_radius
+cmaps = (mpl.cm.get_cmap('inferno'), mpl.cm.get_cmap('viridis'))
+
+# units = ('bohr_radius',)
+# bounds = np.array([10, 20]) * bohr_radius
+# cmaps = (mpl.cm.get_cmap('inferno'),)
 
 
 def make_plots(spec):
     sim = ion.ElectricFieldSimulation(spec)
-    units = ('nm', 'bohr_radius')
-    for unit in units:
-        sim.mesh.plot_g(name_postfix = '__' + unit, target_dir = OUT_DIR, colormap = CMAP, distance_unit = unit)
-        # sim.mesh.plot_psi(name_postfix = '__' + unit, target_dir = OUT_DIR, colormap = CMAP, distance_unit = unit)
-        print(sim.spec.mesh_type.__name__, sim.spec.initial_state, unit)
+
+    for unit, bound, cmap in itertools.product(units, bounds, cmaps):
+        postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}'
+        sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
+        sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        n = 5
-        bounds = [10, 20, 50]
-        angular_points = 100
+        n = 3
+        angular_points = 200
 
         states = (ion.HydrogenBoundState(n, l) for n in range(n + 1) for l in range(n))
 
         specs = []
 
-        line_potential = ion.FiniteSquareWell(potential_depth = 3 * eV, width = 1 * nm)
-        for initial_state in ion.FiniteSquareWellState.all_states_of_well_from_parameters(3 * eV, 1 * nm, electron_mass):
-            specs.append(ion.LineSpecification('line_mesh__{}'.format(initial_state.n),
-                                               initial_state = initial_state,
-                                               x_bound = 30 * nm))
+        # line_potential = ion.FiniteSquareWell(potential_depth = 3 * eV, width = 1 * nm)
+        # for initial_state in ion.FiniteSquareWellState.all_states_of_well_from_parameters(3 * eV, 1 * nm, electron_mass):
+        #     specs.append(ion.LineSpecification('line_mesh__{}'.format(initial_state.n),
+        #                                        initial_state = initial_state,
+        #                                        x_bound = 30 * nm))
 
-        for initial_state in states:
-            for bound in bounds:
-                specs.append(ion.CylindricalSliceSpecification('cyl_slice__{}_{}__{}'.format(initial_state.n, initial_state.l, bound),
-                                                               initial_state = initial_state,
-                                                               z_bound = bound * bohr_radius, rho_bound = bound * bohr_radius))
+        for state in states:
+            specs.append(ion.CylindricalSliceSpecification(f'cyl_slice__{state.n}_{state.l}',
+                                                           initial_state = state,
+                                                           z_bound = np.max(bounds), rho_bound = np.max(bounds)))
 
-                specs.append(ion.SphericalSliceSpecification('sph_slice__{}_{}__{}'.format(initial_state.n, initial_state.l, bound),
-                                                             initial_state = initial_state,
-                                                             r_bound = bound * bohr_radius, theta_points = angular_points))
+            specs.append(ion.SphericalSliceSpecification(f'sph_slice__{state.n}_{state.l}',
+                                                         initial_state = state,
+                                                         r_bound = np.max(bounds), theta_points = angular_points))
 
-                specs.append(ion.SphericalHarmonicSpecification('sph_harms__{}_{}__{}'.format(initial_state.n, initial_state.l, bound),
-                                                                initial_state = initial_state,
-                                                                r_bound = bound * bohr_radius, l_bound = angular_points))
+            specs.append(ion.SphericalHarmonicSpecification(f'sph_harms__{state.n}_{state.l}',
+                                                            initial_state = state,
+                                                            r_bound = np.max(bounds), l_bound = angular_points))
 
-        si.utils.multi_map(make_plots, specs, processes = 2)
+        si.utils.multi_map(make_plots, specs, processes = 5)

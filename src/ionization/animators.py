@@ -298,7 +298,7 @@ class LineAxis(QuantumMeshAxis):
     def initialize(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
-        self.mesh = self.sim.mesh.attach_g_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
+        self.mesh = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
         self.redraw += [self.mesh]
 
         self.axis.grid(True, color = si.plots.COLOR_OPPOSITE_INFERNO, linestyle = ':')  # change grid color to make it show up against the colormesh
@@ -316,7 +316,7 @@ class LineAxis(QuantumMeshAxis):
         super(LineAxis, self).initialize()
 
     def update(self):
-        self.sim.mesh.update_g_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
+        self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
         super(LineAxis, self).update()
 
@@ -344,7 +344,7 @@ class CylindricalSliceAxis(QuantumMeshAxis):
     def initialize(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
-        self.mesh = self.sim.mesh.attach_g_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
+        self.mesh = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
         self.redraw += [self.mesh]
 
         if self.overlay_probability_current:
@@ -370,7 +370,7 @@ class CylindricalSliceAxis(QuantumMeshAxis):
         super(CylindricalSliceAxis, self).initialize()
 
     def update(self):
-        self.sim.mesh.update_g_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
+        self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
         super(CylindricalSliceAxis, self).update()
 
@@ -434,31 +434,31 @@ class PhiSliceAxis(QuantumMeshAxis):
 
 class SphericalSlicePhiSliceAxis(PhiSliceAxis):
     def initialize(self):
-        self.mesh, self.mesh_mirror = self.sim.mesh.attach_g_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit,
-                                                                     distance_unit = self.distance_unit,
-                                                                     animated = True)
+        self.mesh, self.mesh_mirror = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit,
+                                                                      distance_unit = self.distance_unit,
+                                                                      animated = True)
 
         self.redraw += [self.mesh, self.mesh_mirror]
 
         super(SphericalSlicePhiSliceAxis, self).initialize()
 
     def update(self):
-        self.sim.mesh.update_g_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
-        self.sim.mesh.update_g_mesh(self.mesh_mirror, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
+        self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
+        self.sim.mesh.update_g2_mesh(self.mesh_mirror, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
         super(SphericalSlicePhiSliceAxis, self).update()
 
 
 class SphericalHarmonicPhiSliceAxis(PhiSliceAxis):
     def initialize(self):
-        self.mesh = self.sim.mesh.attach_g_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
+        self.mesh = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
 
         self.redraw += [self.mesh]
 
         super(SphericalHarmonicPhiSliceAxis, self).initialize()
 
     def update(self):
-        self.sim.mesh.update_g_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, slicer = 'get_mesh_slicer_spatial')
+        self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, slicer = 'get_mesh_slicer_spatial')
 
         try:
             self.sim.mesh.update_probability_current_quiver(self.quiver)
