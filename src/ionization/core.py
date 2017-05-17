@@ -1146,16 +1146,28 @@ class QuantumMesh:
     def attach_psi2_to_axis(self, axis, **kwargs):
         return self.attach_mesh_to_axis(axis, self.psi2, **kwargs)
 
-    def attach_g_to_axis(self, axis, **kwargs):
+    def attach_g_to_axis(self, axis,
+                         colormap = plt.get_cmap('richardson'),
+                         norm = None,
+                         **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2))
+
         return self.attach_mesh_to_axis(axis, self.g,
-                                        colormap = plt.get_cmap('richardson'),
-                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2)),
+                                        colormap = colormap,
+                                        norm = norm,
                                         **kwargs)
 
-    def attach_psi_to_axis(self, axis, **kwargs):
+    def attach_psi_to_axis(self, axis,
+                           colormap = plt.get_cmap('richardson'),
+                           norm = None,
+                           **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2))
+
         return self.attach_mesh_to_axis(axis, self.psi,
-                                        colormap = plt.get_cmap('richardson'),
-                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2)),
+                                        colormap = colormap,
+                                        norm = norm,
                                         **kwargs)
 
     def update_mesh(self, colormesh, updated_mesh,
@@ -1209,23 +1221,37 @@ class QuantumMesh:
 
         self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
 
-    def plot_g(self, name_postfix = '', **kwargs):
+    def plot_g(self,
+               name_postfix = '',
+               colormap = plt.get_cmap('richardson'),
+               norm = None,
+               **kwargs):
         title = r'$g$'
         name = 'g' + name_postfix
 
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2))
+
         self.plot_mesh(self.g, name = name, title = title,
-                       colormap = plt.get_cmap('richardson'),
-                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2)),
+                       colormap = colormap,
+                       norm = norm,
                        show_colorbar = False,
                        **kwargs)
 
-    def plot_psi(self, name_postfix = '', **kwargs):
+    def plot_psi(self,
+                 name_postfix = '',
+                 colormap = plt.get_cmap('richardson'),
+                 norm = None,
+                 **kwargs):
         title = r'$g$'
         name = 'g' + name_postfix
 
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2))
+
         self.plot_mesh(self.psi, name = name, title = title,
-                       colormap = plt.get_cmap('richardson'),
-                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2)),
+                       colormap = colormap,
+                       norm = norm,
                        show_colorbar = False,
                        **kwargs)
 
@@ -1799,7 +1825,7 @@ class CylindricalSliceMesh(QuantumMesh):
         color_mesh = axis.pcolormesh(self.z_mesh[slice] / unit_value,
                                      self.rho_mesh[slice] / unit_value,
                                      mesh[slice],
-                                     shading = 'gouraud',
+                                     shading = shading,
                                      cmap = colormap,
                                      norm = norm)
 
@@ -3023,35 +3049,59 @@ class SphericalHarmonicMesh(QuantumMesh):
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
 
-    def attach_g_to_axis(self, axis, **kwargs):
+    def attach_g_to_axis(self, axis,
+                         colormap = plt.get_cmap('richardson'),
+                         norm = None,
+                         **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / 2))
+
         return self.attach_mesh_to_axis(axis, self.space_g,
-                                        colormap = plt.get_cmap('richardson'),
-                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g)) / 2),
+                                        colormap = colormap,
+                                        norm = norm,
                                         **kwargs)
 
-    def plot_g(self, name_postfix = '', **kwargs):
+    def plot_g(self, name_postfix = '',
+               colormap = plt.get_cmap('richardson'),
+               norm = None,
+               **kwargs):
         title = r'$g$'
         name = 'g' + name_postfix
 
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / 2))
+
         self.plot_mesh(self.space_g, name = name, title = title,
-                       colormap = plt.get_cmap('richardson'),
-                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g)) / 2),
+                       colormap = colormap,
+                       norm = norm,
                        show_colorbar = False,
                        **kwargs)
 
-    def attach_psi_to_axis(self, axis, **kwargs):
+    def attach_psi_to_axis(self, axis,
+                           colormap = plt.get_cmap('richardson'),
+                           norm = None,
+                           **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / 2))
+
         return self.attach_mesh_to_axis(axis, self.space_psi,
-                                        colormap = plt.get_cmap('richardson'),
-                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi)) / 2),
+                                        colormap = colormap,
+                                        norm = norm,
                                         **kwargs)
 
-    def plot_psi(self, name_postfix = '', **kwargs):
+    def plot_psi(self, name_postfix = '',
+                 colormap = plt.get_cmap('richardson'),
+                 norm = None,
+                 **kwargs):
         title = r'$\Psi$'
         name = 'psi' + name_postfix
 
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / 2))
+
         self.plot_mesh(self.space_psi, name = name, title = title,
-                       colormap = plt.get_cmap('richardson'),
-                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi)) / 2),
+                       colormap = colormap,
+                       norm = norm,
                        show_colorbar = False,
                        **kwargs)
 
