@@ -1079,7 +1079,7 @@ class QuantumMesh:
         return deepcopy(self)
 
     @property
-    def psi_mesh(self):
+    def psi(self):
         return self.g / self.g_factor
 
     @property
@@ -1088,7 +1088,7 @@ class QuantumMesh:
 
     @property
     def psi2(self):
-        return np.abs(self.psi_mesh) ** 2
+        return np.abs(self.psi) ** 2
 
     @si.utils.memoize
     def get_kinetic_energy_matrix_operators(self):
@@ -1146,6 +1146,18 @@ class QuantumMesh:
     def attach_psi2_to_axis(self, axis, **kwargs):
         return self.attach_mesh_to_axis(axis, self.psi2, **kwargs)
 
+    def attach_g_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.g,
+                                        colormap = plt.get_cmap('richardson'),
+                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2)),
+                                        **kwargs)
+
+    def attach_psi_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.psi,
+                                        colormap = plt.get_cmap('richardson'),
+                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2)),
+                                        **kwargs)
+
     def update_mesh(self, colormesh, updated_mesh,
                     plot_limit = None,
                     shading = 'gouraud',
@@ -1166,6 +1178,12 @@ class QuantumMesh:
     def update_psi2_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.psi2, **kwargs)
 
+    def update_g_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.g, **kwargs)
+
+    def update_psi_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.psi, **kwargs)
+
     def plot_mesh(self, mesh,
                   name = '',
                   title = None,
@@ -1181,15 +1199,35 @@ class QuantumMesh:
 
     def plot_g2(self, name_postfix = '', **kwargs):
         title = r'$|g|^2$'
-        name = 'g' + name_postfix
+        name = 'g2' + name_postfix
 
         self.plot_mesh(self.g2, name = name, title = title, **kwargs)
 
     def plot_psi2(self, name_postfix = '', **kwargs):
         title = r'$|\Psi|^2$'
-        name = 'psi' + name_postfix
+        name = 'psi2' + name_postfix
 
         self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
+
+    def plot_g(self, name_postfix = '', **kwargs):
+        title = r'$g$'
+        name = 'g' + name_postfix
+
+        self.plot_mesh(self.g, name = name, title = title,
+                       colormap = plt.get_cmap('richardson'),
+                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2)),
+                       show_colorbar = False,
+                       **kwargs)
+
+    def plot_psi(self, name_postfix = '', **kwargs):
+        title = r'$g$'
+        name = 'g' + name_postfix
+
+        self.plot_mesh(self.psi, name = name, title = title,
+                       colormap = plt.get_cmap('richardson'),
+                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2)),
+                       show_colorbar = False,
+                       **kwargs)
 
 
 class LineSpecification(ElectricFieldSpecification):
@@ -1798,6 +1836,7 @@ class CylindricalSliceMesh(QuantumMesh):
                   shading = 'gouraud',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
+                  show_colorbar = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', **kwargs) as figman:
@@ -1825,8 +1864,9 @@ class CylindricalSliceMesh(QuantumMesh):
                 title.set_y(si.plots.TITLE_OFFSET)  # move title up a bit
 
             # make a colorbar
-            cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = 0.1)
-            cbar.ax.tick_params(labelsize = 10)
+            if show_colorbar:
+                cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = 0.1)
+                cbar.ax.tick_params(labelsize = 10)
 
             axis.axis('tight')  # removes blank space between color mesh and axes
 
@@ -2169,6 +2209,7 @@ class SphericalSliceMesh(QuantumMesh):
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
                   aspect_ratio = 1,
+                  show_colorbar = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -2197,9 +2238,10 @@ class SphericalSliceMesh(QuantumMesh):
                 title.set_y(.97)
 
             # make a colorbar
-            cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
-            cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
-            cbar.ax.tick_params(labelsize = 10)
+            if show_colorbar:
+                cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
+                cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
+                cbar.ax.tick_params(labelsize = 10)
 
             axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[colormap], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
@@ -2920,6 +2962,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   plot_limit = None,
                   slicer = 'get_mesh_slicer_spatial',
                   aspect_ratio = 1,
+                  show_colorbar = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -2949,9 +2992,10 @@ class SphericalHarmonicMesh(QuantumMesh):
                 title.set_y(.97)
 
             # make a colorbar
-            cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
-            cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
-            cbar.ax.tick_params(labelsize = 10)
+            if show_colorbar:
+                cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
+                cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
+                cbar.ax.tick_params(labelsize = 10)
 
             axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[colormap], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
@@ -2978,6 +3022,38 @@ class SphericalHarmonicMesh(QuantumMesh):
                 axis.set_rmax(plot_limit / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+    def attach_g_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.space_g,
+                                        colormap = plt.get_cmap('richardson'),
+                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g)) / 2),
+                                        **kwargs)
+
+    def plot_g(self, name_postfix = '', **kwargs):
+        title = r'$g$'
+        name = 'g' + name_postfix
+
+        self.plot_mesh(self.space_g, name = name, title = title,
+                       colormap = plt.get_cmap('richardson'),
+                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g)) / 2),
+                       show_colorbar = False,
+                       **kwargs)
+
+    def attach_psi_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.space_psi,
+                                        colormap = plt.get_cmap('richardson'),
+                                        norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi)) / 2),
+                                        **kwargs)
+
+    def plot_psi(self, name_postfix = '', **kwargs):
+        title = r'$\Psi$'
+        name = 'psi' + name_postfix
+
+        self.plot_mesh(self.space_psi, name = name, title = title,
+                       colormap = plt.get_cmap('richardson'),
+                       norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi)) / 2),
+                       show_colorbar = False,
+                       **kwargs)
 
     def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,

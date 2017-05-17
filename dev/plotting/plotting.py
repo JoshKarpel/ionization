@@ -25,10 +25,12 @@ cmaps = (mpl.cm.get_cmap('inferno'), mpl.cm.get_cmap('viridis'))
 def make_plots(spec):
     sim = ion.ElectricFieldSimulation(spec)
 
-    for unit, bound, cmap in itertools.product(units, bounds, cmaps):
-        postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}'
-        sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
-        sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
+    for unit, bound in itertools.product(units, bounds):
+        for cmap in cmaps:
+            postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}'
+            sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
+            sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
+        sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound)
 
 
 if __name__ == '__main__':
