@@ -63,8 +63,8 @@ if __name__ == '__main__':
         # path = sim.save(target_dir = OUT_DIR, save_mesh = True)
         # sim = si.Simulation.load(path)
 
-        sim.mesh.plot_g(target_dir = OUT_DIR)
-        sim.mesh.plot_g(target_dir = OUT_DIR, name_postfix = '_25', plot_limit = 50 * bohr_radius)
+        sim.mesh.plot_g2(target_dir = OUT_DIR)
+        sim.mesh.plot_g2(target_dir = OUT_DIR, name_postfix = '_25', plot_limit = 50 * bohr_radius)
 
         plot_kwargs = dict(
                 target_dir = OUT_DIR,

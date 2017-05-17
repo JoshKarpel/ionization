@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         print('init norm', sim.mesh.norm())
 
-        sim.mesh.plot_g(name_postfix = '_init', target_dir = OUT_DIR)
+        sim.mesh.plot_g2(name_postfix = '_init', target_dir = OUT_DIR)
 
         sim.run_simulation()
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
         # print(pot.omega(init.mass), init.omega)
         # print('period: {} fs'.format(uround(init.period, fsec, 3)))
 
-        sim.mesh.plot_g(name_postfix = '_post', target_dir = OUT_DIR)
+        sim.mesh.plot_g2(name_postfix = '_post', target_dir = OUT_DIR)
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, x_unit = 'fsec')
         sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR, x_unit = 'fsec')
 
