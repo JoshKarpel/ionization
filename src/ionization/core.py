@@ -1004,7 +1004,7 @@ class ElectricFieldSpecification(si.Specification):
 
 
 class MeshOperator:
-    def __init__(self, operator, wrapping_direction):
+    def __init__(self, operator, *, wrapping_direction):
         self.operator = operator
         self.wrapping_direction = wrapping_direction
 
@@ -1030,8 +1030,34 @@ class TDMAOperator(MeshOperator):
         return tdma(self.operator, g)
 
 
+class SimilarityOperator(DotOperator):
+    def __init__(self, operator, *, wrapping_direction, parity):
+        super().__init__(operator, wrapping_direction = wrapping_direction)
+
+        self.parity = parity
+        self.transform = getattr(self, f'u_{self.parity}_g')
+
+    def u_even_g(self, g):
+        stack = []
+        for a, b in si.utils.grouper(g, 2, fill_value = 0):
+            stack += (a + b, a - b)
+
+        return np.hstack(stack)
+
+    def u_odd_g(self, g):
+        stack = [g[0]]
+        for a, b in si.utils.grouper(g[1:-1], 2, fill_value = 0):
+            stack += (a + b, a - b)
+        stack.append(g[-1])
+
+        return np.hstack(stack)
+
+    def _apply(self, g):
+        return self.transform(self.operator.dot(self.transform(g)))
+
+
 def apply_operators(mesh, g, *operators):
-    """Operators should be entered in written order (as you would write them on the page to apply to something on the far right)"""
+    """Operators should be entered in operation (the order they would act on something on their right)"""
     operators = reversed(operators)
 
     current_wrapping_direction = None
@@ -2802,7 +2828,6 @@ class SphericalHarmonicMesh(QuantumMesh):
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
         l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
-
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
@@ -2835,8 +2860,27 @@ class SphericalHarmonicMesh(QuantumMesh):
     #
     #     return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
+    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+        """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
+        return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time)
+
+    @si.utils.memoize
+    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
+        raise NotImplementedError
+        # l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
+        #
+        # l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
+        # l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        # for l_index in range(self.mesh_points - 1):
+        #     if (l_index + 1) % self.spec.l_bound != 0:
+        #         l = (l_index % self.spec.l_bound) + 1
+        #         l_offdiagonal[l_index] = three_j_coefficient(l)
+        # l_offdiagonal *= l_prefactor
+        #
+        # return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
+
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
+        vector_potential_amplitude = self.spec.electric_potential.get_vector_potential_numeric(self.sim.times_to_current)
 
         raise NotImplementedError
 
@@ -2973,15 +3017,38 @@ class SphericalHarmonicMesh(QuantumMesh):
             g_vector = tdma(hamiltonian, g_vector)
             self.g = self.wrap_vector(g_vector, 'l')
 
-    def make_split_operator_evolution_matrices(self, *args):
-        return getattr(self, f'_make_split_operator_evolution_matrices_{self.spec.evolution_gauge}')(*args)
+    def make_split_operator_evolution_operators(self, *args):
+        return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(*args)
 
-    def _make_split_operator_evolution_matrices_LEN(self, a):
+    def _make_split_operator_evolution_operators_LEN(self, a):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        return make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
+        # even, odd = make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
         # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
 
-    def _make_split_operator_evolution_matrices_VEL(self, a):
+        a_even, a_odd = a[::2], a[1::2]
+
+        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        even_diag[:] = np.cos(a_even).repeat(2)
+
+        even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        even_offdiag[::2] = -1j * np.sin(a_even)
+
+        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        odd_diag[0] = odd_diag[-1] = 1
+        odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+
+        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+        odd_offdiag[1::2] = -1j * np.sin(a_odd)
+
+        even = sparse.diags([even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
+        odd = sparse.diags([odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+
+        return (
+            DotOperator(even, wrapping_direction = 'l'),
+            DotOperator(odd, wrapping_direction = 'l'),
+        )
+
+    def _make_split_operator_evolution_operators_VEL(self, a):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
         raise NotImplementedError
 
@@ -2991,38 +3058,24 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
 
-        # even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
-        split_operators = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
+        r_matrix_explicit = -1 * hamiltonian_r
+        r_matrix_explicit.data[1] += 1  # add identity to sparse matrix operator
+        r_matrix_implicit = hamiltonian_r.copy()
+        r_matrix_implicit.data[1] += 1  # add identity to sparse matrix operator
 
-        # even, odd = split_operators
+        r_operator_explicit = DotOperator(r_matrix_explicit, wrapping_direction = 'r')
+        r_operator_implicit = TDMAOperator(r_matrix_implicit, wrapping_direction = 'r')
 
-        def sparsedot(acc, next_op):
-            return next_op.dot(acc)
+        split_operators = self._make_split_operator_evolution_operators_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
 
-        # STEP 1 & 2
-        # self.g_mesh = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, reversed(split_operators), self.flatten_mesh(self.g_mesh, 'l')), 'l')
-        # g = self.flatten_mesh(self.g_mesh, 'l')
-        # for operator in reversed(split_operators):
-        #     print(type(operator))
-        #     g = operator.dot(g)
-        # self.g_mesh = self.wrap_vector(g, 'l')
+        operators = [
+            *split_operators,
+            r_operator_explicit,
+            r_operator_implicit,
+            *reversed(split_operators),
+        ]
 
-        # STEP 3 & 4
-        hamiltonian_explicit = -1 * hamiltonian_r
-        hamiltonian_explicit.data[1] += 1  # add identity to sparse matrix operator
-        hamiltonian_implicit = hamiltonian_r.copy()
-        hamiltonian_implicit.data[1] += 1  # add identity to sparse matrix operator
-        self.g = self.wrap_vector(tdma(hamiltonian_implicit, hamiltonian_explicit.dot(self.flatten_mesh(self.g, 'r'))), 'r')
-
-        # STEP 5 & 6
-        # self.g_mesh = self.wrap_vector(even.dot(odd.dot(self.flatten_mesh(self.g_mesh, 'l'))), 'l')
-        self.g_mesh = self.wrap_vector(ft.reduce(sparsedot, split_operators, self.flatten_mesh(self.g_mesh, 'l')), 'l')
-        # g = self.flatten_mesh(self.g_mesh, 'l')
-        # for operator in split_operators:
-        #     print(type(operator))
-        #     g = operator.dot(g)
-        # self.g_mesh = self.wrap_vector(g, 'l')
+        self.g = apply_operators(self, self.g, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
