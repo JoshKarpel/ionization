@@ -29,6 +29,8 @@ COLOR_ELECTRIC_FIELD = si.plots.RED
 
 COLORMAP_WAVEFUNCTION = plt.get_cmap('inferno')
 
+DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR = 3
+
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -1151,7 +1153,7 @@ class QuantumMesh:
                          norm = None,
                          **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.g,
                                         colormap = colormap,
@@ -1163,7 +1165,7 @@ class QuantumMesh:
                            norm = None,
                            **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.psi,
                                         colormap = colormap,
@@ -1230,7 +1232,7 @@ class QuantumMesh:
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.g, name = name, title = title,
                        colormap = colormap,
@@ -1247,7 +1249,7 @@ class QuantumMesh:
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.psi, name = name, title = title,
                        colormap = colormap,
@@ -2291,7 +2293,7 @@ class SphericalSliceMesh(QuantumMesh):
             axis.set_yticklabels(tick_labels)
 
             if plot_limit is not None and plot_limit < self.r_max:
-                axis.set_rmax(plot_limit / unit_value)
+                axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
 
@@ -3045,7 +3047,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             axis.set_yticklabels(tick_labels)
 
             if plot_limit is not None and plot_limit < self.r_max:
-                axis.set_rmax(plot_limit / unit_value)
+                axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
 
@@ -3054,7 +3056,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                          norm = None,
                          **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.space_g,
                                         colormap = colormap,
@@ -3069,7 +3071,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.space_g, name = name, title = title,
                        colormap = colormap,
@@ -3082,7 +3084,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                            norm = None,
                            **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.space_psi,
                                         colormap = colormap,
@@ -3097,7 +3099,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         name = 'psi' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / 2))
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.space_psi, name = name, title = title,
                        colormap = colormap,

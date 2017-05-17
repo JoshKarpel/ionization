@@ -23,7 +23,8 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 units = ('bohr_radius',)
 bounds = np.array([10, 20, 50, 100]) * bohr_radius
-shadings = ('flat', 'gouraud')
+# shadings = ('flat', 'gouraud')
+shadings = ('gouraud',)
 cmaps = (mpl.cm.get_cmap('inferno'),)
 
 
@@ -66,4 +67,4 @@ if __name__ == '__main__':
                                                             initial_state = state,
                                                             r_bound = np.max(bounds), l_bound = angular_points))
 
-        si.utils.multi_map(make_plots, specs, processes = 5)
+        si.utils.multi_map(make_plots, specs)
