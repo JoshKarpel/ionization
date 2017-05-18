@@ -44,7 +44,6 @@ def electron_wavenumber_from_energy(energy):
     return np.sqrt(2 * electron_mass * energy + 0j) / hbar
 
 
-@si.utils.memoize
 def three_j_coefficient(l):
     "3j coefficient"
     return (l + 1) / np.sqrt(((2 * l) + 1) * ((2 * l) + 3))
@@ -114,7 +113,7 @@ class ElectricFieldSimulation(si.Simulation):
         mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
-        mem_numeric_eigenstates = sum(state.g_mesh.nbytes for state in self.spec.test_states if state.numeric if state.g_mesh is not None)
+        mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric if state.g is not None)
         mem_inner_products = sum(overlap.nbytes for overlap in self.inner_products_vs_time.values())
 
         mem_other_time_data = sum(x.nbytes for x in (
@@ -815,7 +814,7 @@ class ElectricFieldSimulation(si.Simulation):
         if not save_mesh:
             try:
                 for state in self.spec.test_states:  # remove numeric eigenstate information
-                    state.g_mesh = None
+                    state.g = None
 
                 mesh = self.mesh.copy()
                 self.mesh = None
@@ -1014,6 +1013,9 @@ class MeshOperator:
         self.operator = operator
         self.wrapping_direction = wrapping_direction
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(operator = {repr(self.operator)}, wrapping_direction = '{self.wrapping_direction}')"
+
     def apply(self, mesh, g, current_wrapping_direction):
         if current_wrapping_direction != self.wrapping_direction:
             g = mesh.flatten_mesh(mesh.wrap_vector(g, current_wrapping_direction), self.wrapping_direction)
@@ -1043,12 +1045,15 @@ class SimilarityOperator(DotOperator):
         self.parity = parity
         self.transform = getattr(self, f'u_{self.parity}_g')
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}(operator = {repr(self.operator)}, wrapping_direction = '{self.wrapping_direction}', parity = '{self.parity}')"
+
     def u_even_g(self, g):
         stack = []
         for a, b in si.utils.grouper(g, 2, fill_value = 0):
             stack += (a + b, a - b)
 
-        return np.hstack(stack)
+        return np.hstack(stack) / np.sqrt(2)
 
     def u_odd_g(self, g):
         stack = [g[0]]
@@ -1056,7 +1061,7 @@ class SimilarityOperator(DotOperator):
             stack += (a + b, a - b)
         stack.append(g[-1])
 
-        return np.hstack(stack)
+        return np.hstack(stack) / np.sqrt(2)
 
     def _apply(self, g):
         return self.transform(self.operator.dot(self.transform(g)))
@@ -1082,12 +1087,12 @@ class QuantumMesh:
 
     def __eq__(self, other):
         """
-        Return whether the provided meshes are equal. QuantumMeshes should evaluate equal if and only if their Simulations are equal and their g_mesh (the only thing which carries state information) are the same.
+        Return whether the provided meshes are equal. QuantumMeshes should evaluate equal if and only if their Simulations are equal and their g (the only thing which carries state information) are the same.
 
         :param other:
         :return:
         """
-        return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g, other.g_mesh)
+        return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g, other.g)
 
     def __hash__(self):
         """Return the hash of the QuantumMesh, which is the same as the hash of the associated Simulation."""
@@ -1111,30 +1116,30 @@ class QuantumMesh:
         else:
             return state_or_mesh
 
-    def get_g_with_states_removed(self, states, g_mesh = None):
+    def get_g_with_states_removed(self, states, g = None):
         """
         Get a g mesh with the contributions from the states removed.
 
-        :param states: a list of states to remove from g_mesh
-        :param g_mesh: a g_mesh to remove the state contributions from. Defaults to self.g_mesh
+        :param states: a list of states to remove from g
+        :param g: a g to remove the state contributions from. Defaults to self.g
         :return:
         """
-        if g_mesh is None:
-            g_mesh = self.g
+        if g is None:
+            g = self.g
 
-        g_mesh = g_mesh.copy()  # always act on a copy of g_mesh, regardless of source
+        g = g.copy()  # always act on a copy of g, regardless of source
 
         for state in states:
-            g_mesh -= self.inner_product(state, g_mesh) * self.get_g_for_state(state)
+            g -= self.inner_product(state, g) * self.get_g_for_state(state)
 
-        return g_mesh
+        return g
 
     def inner_product(self, a = None, b = None):
-        """Inner product between two meshes. If either mesh is None, the state on the g_mesh is used for that state."""
+        """Inner product between two meshes. If either mesh is None, the state on the g is used for that state."""
         return np.sum(np.conj(self.state_to_mesh(a)) * self.state_to_mesh(b)) * self.inner_product_multiplier
 
     def state_overlap(self, a = None, b = None):
-        """State overlap between two states. If either state is None, the state on the g_mesh is used for that state."""
+        """State overlap between two states. If either state is None, the state on the g is used for that state."""
         return np.abs(self.inner_product(a, b)) ** 2
 
     def norm(self, state = None):
@@ -1197,7 +1202,7 @@ class QuantumMesh:
             pre_mask_norm = self.norm()
             self.g *= self.spec.mask(r = self.r_mesh)
             norm_diff_mask = pre_mask_norm - self.norm()
-            logger.debug('Applied mask {} to g_mesh for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_mask))
+            logger.debug('Applied mask {} to g for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_mask))
             return norm_diff_mask
         else:
             method(time_step)
@@ -1779,15 +1784,15 @@ class CylindricalSliceMesh(QuantumMesh):
         hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g_mesh = np.abs(self.g)
+            g = np.abs(self.g)
         else:
-            g_mesh = self.g
+            g = self.g
 
-        g_vector_z = self.flatten_mesh(g_mesh, 'z')
+        g_vector_z = self.flatten_mesh(g, 'z')
         hg_vector_z = hamiltonian_z.dot(g_vector_z)
         hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
 
-        g_vector_rho = self.flatten_mesh(g_mesh, 'rho')
+        g_vector_rho = self.flatten_mesh(g, 'rho')
         hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
         hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
 
@@ -1892,7 +1897,7 @@ class CylindricalSliceMesh(QuantumMesh):
             TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = 'rho'),
         ]
 
-        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
+        self.g = apply_operators(self, self.g, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, plot_limit = None):
@@ -2111,7 +2116,7 @@ class SphericalSliceMesh(QuantumMesh):
         return np.reshape(vector, self.mesh_shape, wrap)
 
     def state_overlap(self, state_a = None, state_b = None):
-        """State overlap between two states. If either state is None, the state on the g_mesh is used for that state."""
+        """State overlap between two states. If either state is None, the state on the g is used for that state."""
         if state_a is None:
             mesh_a = self.g
         else:
@@ -2212,15 +2217,15 @@ class SphericalSliceMesh(QuantumMesh):
         hamiltonian_r, hamiltonian_theta = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g_mesh = np.abs(self.g)
+            g = np.abs(self.g)
         else:
-            g_mesh = self.g
+            g = self.g
 
-        g_vector_r = self.flatten_mesh(g_mesh, 'r')
+        g_vector_r = self.flatten_mesh(g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
         hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
 
-        g_vector_theta = self.flatten_mesh(g_mesh, 'theta')
+        g_vector_theta = self.flatten_mesh(g, 'theta')
         hg_vector_theta = hamiltonian_theta.dot(g_vector_theta)
         hg_mesh_theta = self.wrap_vector(hg_vector_theta, 'theta')
 
@@ -2275,7 +2280,7 @@ class SphericalSliceMesh(QuantumMesh):
             TDMAOperator(hamiltonian_theta_implicit, wrapping_direction = 'theta'),
         ]
 
-        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
+        self.g = apply_operators(self, self.g, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
@@ -2570,8 +2575,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         a and b can be QuantumStates or g_meshes.
 
-        :param a: a QuantumState or g_mesh
-        :param b: a QuantumState or g_mesh
+        :param a: a QuantumState or g
+        :param b: a QuantumState or g
         :return: the inner product between a and b
         """
         if isinstance(a, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in a) and b is None:  # shortcut
@@ -2584,7 +2589,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         else:
             return super().inner_product(a, b)
 
-    def inner_product_with_plane_waves(self, thetas, wavenumbers, g_mesh = None):
+    def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
 
@@ -2592,12 +2597,12 @@ class SphericalHarmonicMesh(QuantumMesh):
         :param thetas:
         :return:
         """
-        if g_mesh is None:
-            g_mesh = self.g
+        if g is None:
+            g = self.g
 
         l_mesh = self.l_mesh
 
-        multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g_mesh
+        multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g
 
         thetas, wavenumbers = np.array(thetas), np.array(wavenumbers)
         theta_mesh, wavenumber_mesh = np.meshgrid(thetas, wavenumbers, indexing = 'ij')
@@ -2621,7 +2626,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return theta_mesh, wavenumber_mesh, inner_product_mesh
 
-    def inner_product_with_plane_waves_at_infinity(self, thetas, wavenumbers, g_mesh = None):
+    def inner_product_with_plane_waves_at_infinity(self, thetas, wavenumbers, g = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
         
@@ -2633,7 +2638,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         """
         l_mesh = self.l_mesh
 
-        # multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g_mesh
+        # multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g
 
         thetas, wavenumbers = np.array(thetas), np.array(wavenumbers)
         theta_mesh, wavenumber_mesh = np.meshgrid(thetas, wavenumbers, indexing = 'ij')
@@ -2664,12 +2669,12 @@ class SphericalHarmonicMesh(QuantumMesh):
         #
         #         total = 0
         #         for l in self.l:
-        #             total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g_mesh)
+        #             total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
         #
         #         inner_product_mesh[ii, jj] = total / np.sqrt(4 * pi * wavenumber)
 
-        if g_mesh is None:
-            g_mesh = self.g
+        if g is None:
+            g = self.g
 
         sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
 
@@ -2687,7 +2692,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 # total = 0
                 # for l in self.l:
-                #     total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g_mesh)
+                #     total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
 
                 state = states.HydrogenCoulombState.from_wavenumber(wavenumber, l = 0)
                 for l in self.l[1:]:
@@ -2695,7 +2700,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 print(state)
                 state_mesh = self.get_g_for_state(state)
-                ip = self.inner_product(poly(theta) * phase(wavenumber) * sqrt_mesh * state_mesh, g_mesh)
+                ip = self.inner_product(poly(theta) * phase(wavenumber) * sqrt_mesh * state_mesh, g)
 
                 inner_product_mesh[ii, jj] = ip / np.sqrt(4 * pi * wavenumber)
 
@@ -2714,26 +2719,24 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_kinetic
 
+    def alpha(self, j):
+        x = (j ** 2) + (2 * j)
+        return (x + 1) / (x + 0.75)
+
+    def beta(self, j):
+        x = 2 * (j ** 2) + (2 * j)
+        return (x + 1) / (x + 0.5)
+
     def _get_kinetic_energy_matrix_operator_single_l(self, l):
-        def alpha(j):
-            x = (j ** 2) + (2 * j)
-            out = (x + 1) / (x + 0.75)
-
-            return out
-
-        def beta(j):
-            x = (2 * (j ** 2)) + (2 * j)
-            return (x + 1) / (x + 0.5)
-
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
         effective_potential = ((hbar ** 2) / (2 * electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
 
-        r_beta = beta(np.array(range(len(self.r)), dtype = np.complex128))
+        r_beta = self.beta(np.array(range(len(self.r)), dtype = np.complex128))
         if l == 0:
             dr = self.delta_r / bohr_radius
             r_beta[0] += dr * (1 + dr) / 8
         r_diagonal = (-2 * r_prefactor * r_beta) + effective_potential
-        r_offdiagonal = r_prefactor * alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
+        r_offdiagonal = r_prefactor * self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
 
         return sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
 
@@ -2749,28 +2752,18 @@ class SphericalHarmonicMesh(QuantumMesh):
         """Get the radial kinetic energy matrix operator."""
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
 
-        @si.utils.memoize
-        def alpha(j):
-            x = (j ** 2) + (2 * j)
-            return (x + 1) / (x + 0.75)
-
-        @si.utils.memoize
-        def beta(j):
-            x = 2 * (j ** 2) + (2 * j)
-            return (x + 1) / (x + 0.5)
-
         r_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
         r_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for r_index in range(self.mesh_points):
             j = r_index % self.spec.r_points
-            r_diagonal[r_index] = beta(j)
+            r_diagonal[r_index] = self.beta(j)
         dr = self.delta_r / bohr_radius
         r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
 
         for r_index in range(self.mesh_points - 1):
             if (r_index + 1) % self.spec.r_points != 0:  # TODO: should be possible to clean this if up
                 j = (r_index % self.spec.r_points)
-                r_offdiagonal[r_index] = alpha(j)
+                r_offdiagonal[r_index] = self.alpha(j)
         r_diagonal *= -2 * r_prefactor
         r_offdiagonal *= r_prefactor
 
@@ -2794,13 +2787,12 @@ class SphericalHarmonicMesh(QuantumMesh):
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
         l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
+
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
                 l_offdiagonal[l_index] = three_j_coefficient(l)
-                # print(l, three_j_coefficient(l))
-
         l_offdiagonal *= l_prefactor
 
         return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
@@ -2824,7 +2816,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     #             l_offdiagonal[l_index] = three_j_coefficient(l)
     #     l_offdiagonal *= l_prefactor
     #
-    #     return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
+    #     return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
 
     def _get_interaction_hamiltonian_matrix_operators_LEN(self):
         """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
@@ -2832,7 +2824,42 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        raise NotImplementedError
+        h1_prefactor = -1j * self.flatten_mesh(self.r_mesh, 'l')[:-1] * (self.spec.test_charge / self.spec.test_mass)
+
+        h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        for l_index in range(self.mesh_points - 1):
+            if (l_index + 1) % self.spec.l_bound != 0:
+                l = (l_index % self.spec.l_bound)
+                h1_offdiagonal[l_index] = three_j_coefficient(l) * (l + 1)
+                print(l, three_j_coefficient(l))
+        # h1_offdiagonal *= h1_prefactor
+
+        print(h1_offdiagonal)
+
+        h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
+
+        print('h1\n', h1.toarray())
+
+        h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
+
+        alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
+        alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
+
+        c_vec = three_j_coefficient(np.array(range(len(self.l) - 1), dtype = np.complex128))
+        c_block = sparse.diags((c_vec, c_vec), offsets = (-1, 1))
+
+        h2 = h2_prefactor * sparse.kron(c_block, alpha_block, format = 'dia')
+
+        print(self.g.shape)
+
+        print('c_alpha\n', h2.toarray())
+        c_alpha_array = h2.toarray()
+        print('# mesh points:', self.mesh_points)
+        print(type(h2))
+        print('c_alpha shape:', h2.shape, h2.offsets)
+        print('c_alpha\n', np.where(np.greater(c_alpha_array, 0) + np.less(c_alpha_array, 0), 1, 0))
+
+        return h1, h2
         # l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
         #
         # l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
@@ -2846,9 +2873,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         # return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = self.spec.electric_potential.get_vector_potential_numeric(self.sim.times_to_current)
-
-        raise NotImplementedError
+        return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
 
     def get_numeric_eigenstate_basis(self, max_energy, l_max):
         analytic_to_numeric = {}
@@ -2903,15 +2928,15 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r, hamiltonian_l = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g_mesh = np.abs(self.g)
+            g = np.abs(self.g)
         else:
-            g_mesh = self.g
+            g = self.g
 
-        g_vector_r = self.flatten_mesh(g_mesh, 'r')
+        g_vector_r = self.flatten_mesh(g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
         hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
 
-        g_vector_l = self.flatten_mesh(g_mesh, 'l')
+        g_vector_l = self.flatten_mesh(g, 'l')
         hg_vector_l = hamiltonian_l.dot(g_vector_l)
         hg_mesh_l = self.wrap_vector(hg_vector_l, 'l')
 
@@ -2924,7 +2949,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
         hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
 
-        # g_vector_l = self.flatten_mesh(self.g_mesh, 'l')
+        # g_vector_l = self.flatten_mesh(self.g, 'l')
         # hg_vector_l = hamiltonian_l.dot(g_vector_l)
         # hg_mesh_l = self.wrap_vector(hg_vector_l, 'l')
 
@@ -2968,17 +2993,17 @@ class SphericalHarmonicMesh(QuantumMesh):
             TDMAOperator(hamiltonian_l_implicit, wrapping_direction = 'l'),
         ]
 
-        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
+        self.g = apply_operators(self, self.g, *operators)
 
     def make_split_operator_evolution_operators(self, *args):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(*args)
 
-    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonian_times_time_step):
+    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
         # even, odd = make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
         # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
 
-        a = interaction_hamiltonian_times_time_step.data[0][:-1]
+        a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
 
         a_even, a_odd = a[::2], a[1::2]
 
@@ -3003,8 +3028,198 @@ class SphericalHarmonicMesh(QuantumMesh):
             DotOperator(odd, wrapping_direction = 'l'),
         )
 
-    def _make_split_operator_evolution_operators_VEL(self, a):
+    def _make_split_operator_VEL_h1(self, h1, tau):
+        a = h1.data[-1][:-1] * tau * (-1j)
+
+        print('h1 a', len(a))
+
+        a_even, a_odd = a[::2], a[1::2]
+
+        print(len(a_even), len(a_odd))
+
+        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        even_diag[:] = np.cos(a_even).repeat(2)
+
+        even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        even_offdiag[::2] = np.sin(a_even)
+
+        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        odd_diag[0] = odd_diag[-1] = 1
+        odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+
+        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+        odd_offdiag[1::2] = np.sin(a_odd)
+
+        print('h1 even diag', len(even_diag))
+
+        even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
+        odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+
+        return (
+            DotOperator(even, wrapping_direction = 'l'),
+            DotOperator(odd, wrapping_direction = 'l'),
+        )
+
+    def _make_split_operator_VEL_h2(self, h2, tau):
+        len_r = len(self.r)
+
+        print(len(h2.data[-1]))
+        print(h2.data[-1])
+        print(h2.data[-1][len_r + 1:])
+
+        a = h2.data[-1][len_r + 1:] * tau * 1j
+        a = np.array(range(1, len(a) + 1))
+
+        # print(h2.toarray())
+
+        print('a', len(a), a)
+
+
+        # even l
+        alpha_slices_even_l = []
+        alpha_slices_odd_l = []
+        print('l', self.l)
+        for l in self.l:  # want last l but not last r, since unwrapped in r
+            slice = a[l * len_r: ((l + 1) * len_r) - 1]
+
+            print(l * len_r, ((l + 1) * len_r) - 1)
+            # if len(slice) > 0:  # non-empty slice
+            if l % 2 == 0:
+                print('even slice', slice)
+
+                alpha_slices_even_l.append(slice)
+            else:
+                print('odd slice', slice)
+                alpha_slices_odd_l.append(slice)
+
+        # alpha_even_l = np.hstack(alpha_slices_even)
+        # print('even', len(alpha_even_l), alpha_even_l)
+        #
+        # alpha_odd_l = np.hstack(alpha_slices_odd)
+        # print('odd', len(alpha_odd_l), alpha_odd_l)
+
+        print(alpha_slices_even_l)
+        print(alpha_slices_odd_l)
+
+        even_even_diag = []
+        even_even_offdiag = []
+        even_odd_diag = []
+        even_odd_offdiag = []
+        print()
+        for alpha_slice in alpha_slices_even_l:  # FOR EACH l
+            print('alpha slice', len(alpha_slice), alpha_slice)
+
+            even_slice = alpha_slice[::2]
+            odd_slice = alpha_slice[1::2]
+
+            print('even slice', even_slice)
+            print('odd slice', odd_slice)
+
+            if len(even_slice) > 0:
+                new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
+                even_even_diag.append(np.tile(np.cos(even_slice).repeat(2), 2))
+
+                print('new ee diag', len(new_even_even_diag), new_even_even_diag)
+
+                even_sines = np.zeros(len_r, dtype = np.complex128)
+                even_sines[::2] = np.sin(even_slice)
+                even_even_offdiag.append(even_sines)
+                even_even_offdiag.append(-even_sines)
+            else:
+                even_even_diag.append(np.ones(len_r))
+                even_even_offdiag.append(np.zeros(len_r))
+
+            if len(odd_slice) > 0:
+                interweaved = np.empty((2 * len(odd_slice)) + 3)
+                interweaved[1:-1:2] = np.cos(odd_slice)
+                interweaved[::2] = 1
+
+                print('inter', interweaved)
+
+                new_even_odd_diag = interweaved.repeat(2)[1:-1]
+                print(new_even_odd_diag)
+
+                even_odd_diag.append(interweaved.repeat(2)[1:-1])
+
+                print('new eo diag', len(new_even_odd_diag), new_even_odd_diag)
+
+                odd_sines = np.zeros(len_r, dtype = np.complex128)
+                odd_sines[1:-1:4] = np.sin(odd_slice)
+                print('odd sines', odd_sines)
+                # print(np.sin(alpha_slice[1::2]))
+                even_odd_offdiag.append(odd_sines)
+                even_odd_offdiag.append(-odd_sines)
+            else:
+                pass
+                # even_odd_diag.append(np.ones(len_r))
+                # even_odd_offdiag.append(np.zeros(len_r))
+
+            print()
+
+        # even_odd_diag = even_odd_diag[:-1]
+        if self.l[-1] % 2 == 0:
+            print('fix')
+            even_odd_diag.append(np.ones(len_r))
+
+        even_even_diag = np.hstack(even_even_diag)
+        even_even_offdiag = np.hstack(even_even_offdiag)[:-1]  # last element is bogus
+        print('even even diag', len(even_even_diag), even_even_diag)
+        print('even even offdiag', len(even_even_offdiag), even_even_offdiag)
+
+        print(even_odd_diag)
+        even_odd_diag = np.hstack(even_odd_diag)
+        even_odd_offdiag = np.hstack(even_odd_offdiag)[:-1]  # last element is bogus
+        # even_odd_offdiag = np.hstack((np.zeros(len_r), even_odd_offdiag, np.zeros(len_r)))
+        print('even odd diag', len(even_odd_diag), even_odd_diag)
+        print('even odd offdiag', len(even_odd_offdiag), even_odd_offdiag)
+
+        even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
+
+        operators = [
+            SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even')
+        ]
+
+        # even_even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        # even_even_diag[:] = np.tile(np.cos(alpha_even_l[::2]).repeat(2), 2)
+        # print('alpha even even', alpha_even_l[::2])
+        # print(np.cos(alpha_even_l[::2]).repeat(2))
+        # print(len(np.tile(np.cos(alpha_even_l[::2]).repeat(2), 2)))
+
+        # even_even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        # even_even_offidag_sines = np.sin(alpha_even_l[::2])
+        # even_even_offdiag[::2] = np.hstack((even_even_offidag_sines, -even_even_offidag_sines))
+        #
+        # print('even even diag', len(even_even_diag), even_even_diag)
+        # print('even even offdiag', len(even_even_offdiag), even_even_offdiag)
+
+        # even_odd_diag = np.zeros(len(a))
+
+        # even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        # even_diag[:] = np.cos(a_even).repeat(2)
+        #
+        # even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        # even_offdiag[::2] = np.sin(a_even)
+        #
+        # odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        # odd_diag[0] = odd_diag[-1] = 1
+        # odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+        #
+        # odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+        # odd_offdiag[1::2] = np.sin(a_odd)
+
+
+
+    def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
+
+        h1, h2 = interaction_hamiltonians_matrix_operators
+
+        h1_operators = self._make_split_operator_VEL_h1(h1, tau)
+        print(h1_operators)
+
+        h2_operators = self._make_split_operator_VEL_h2(h2, tau)
+        print(h2_operators)
+
         raise NotImplementedError
 
     def _evolve_SO(self, time_step):
@@ -3021,7 +3236,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
         ]
 
-        split_operators = self.make_split_operator_evolution_operators(tau * self.get_interaction_hamiltonian_matrix_operators())
+        split_operators = self.make_split_operator_evolution_operators(self.get_interaction_hamiltonian_matrix_operators(), tau)
 
         operators = [
             *split_operators,
@@ -3297,7 +3512,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         if g is None:
             g = self.g
 
-        theta_mesh, wavenumber_mesh, inner_product_mesh = self.inner_product_with_plane_waves(thetas, wavenumbers, g_mesh = g)
+        theta_mesh, wavenumber_mesh, inner_product_mesh = self.inner_product_with_plane_waves(thetas, wavenumbers, g = g)
 
         if r_type == 'wavenumber':
             r_mesh = wavenumber_mesh
@@ -3439,9 +3654,9 @@ class SphericalHarmonicSnapshot(Snapshot):
 
         if free_only:
             key = 'inner_product_with_plane_waves__free_only'
-            g_mesh = self.sim.mesh.get_g_with_states_removed(self.sim.bound_states)
+            g = self.sim.mesh.get_g_with_states_removed(self.sim.bound_states)
         else:
             key = 'inner_product_with_plane_waves'
-            g_mesh = None
+            g = None
 
-        self.data[key] = self.sim.mesh.inner_product_with_plane_waves(thetas, wavenumbers, g_mesh = g_mesh)
+        self.data[key] = self.sim.mesh.inner_product_with_plane_waves(thetas, wavenumbers, g = g)

@@ -479,10 +479,10 @@ class NumericSphericalHarmonicState(QuantumState):
     discrete_eigenvalues = True
     analytic = False
 
-    def __init__(self, g_mesh, l, m, energy, analytic_state, bound = True, amplitude = 1):
+    def __init__(self, g, l, m, energy, analytic_state, bound = True, amplitude = 1):
         super().__init__(amplitude = amplitude)
 
-        self.g_mesh = g_mesh
+        self.g = g
 
         self.l = l
         self.m = m
@@ -529,7 +529,7 @@ class NumericSphericalHarmonicState(QuantumState):
         return si.math.SphericalHarmonic(l = self.l, m = self.m)
 
     def radial_function(self, r):
-        return self.g_mesh
+        return self.g
 
     def __call__(self, r, theta, phi):
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
@@ -539,10 +539,10 @@ class NumericOneDState(QuantumState):
     discrete_eigenvalues = True
     analytic = False
 
-    def __init__(self, g_mesh, energy, analytic_state = None, bound = True, amplitude = 1):
+    def __init__(self, g, energy, analytic_state = None, bound = True, amplitude = 1):
         super().__init__(amplitude = amplitude)
 
-        self.g_mesh = g_mesh
+        self.g = g
 
         self.energy = energy
 
@@ -596,7 +596,7 @@ class NumericOneDState(QuantumState):
         return self.analytic_state.n
 
     def __call__(self, x):
-        return self.g_mesh
+        return self.g
 
 
 class OneDFreeParticle(QuantumState):
