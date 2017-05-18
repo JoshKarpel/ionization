@@ -27,14 +27,6 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLOR_ELECTRIC_FIELD = si.plots.RED
-COLOR_VECTOR_POTENTIAL = si.plots.BLUE
-
-LATEX_EFIELD = r'\mathcal{E}'
-LATEX_AFIELD = r'\mathcal{A}'
-
-COLORMAP_WAVEFUNCTION = plt.get_cmap('inferno')
-
-DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR = 3
 
 
 def electron_energy_from_wavenumber(k):
@@ -112,7 +104,7 @@ class ElectricFieldSimulation(si.Simulation):
         self.snapshots = dict()
 
     def info(self):
-        mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
+        mem_mesh = self.mesh.g_mesh.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
         mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric if state.g is not None)
@@ -234,7 +226,7 @@ class ElectricFieldSimulation(si.Simulation):
                 norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
 
             else:
-                largest_l_mesh = self.mesh.g[-1]
+                largest_l_mesh = self.mesh.g_mesh[-1]
                 norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
@@ -1251,7 +1243,6 @@ class QuantumMesh:
     def get_internal_hamiltonian_matrix_operators(self):
         raise NotImplementedError
 
-    @si.utils.memoize
     def get_interaction_hamiltonian_matrix_operators(self):
         try:
             return getattr(self, f'_get_interaction_hamiltonian_matrix_operators_{self.spec.evolution_gauge}')()
@@ -2735,18 +2726,15 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
         l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
 
+        l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
-                l = (l_index % self.spec.l_bound)
+                l = (l_index % self.spec.l_bound) + 1
                 l_offdiagonal[l_index] = three_j_coefficient(l)
         l_offdiagonal *= l_prefactor
 
-        return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
-
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
-        """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
-        return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time)
+        return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
     # def _get_interaction_hamiltonian_matrix_operators_LEN(self):
     #     """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
@@ -2829,7 +2817,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
                 eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-                eigenvector /= self.r  # g factor manually
+                eigenvector /= self.g_factor  # go to u from R
 
                 if eigenvalue > max_energy:  # ignore eigenvalues that are too large
                     continue
