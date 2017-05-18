@@ -34,7 +34,7 @@ if __name__ == '__main__':
         print(sim.info())
 
         sim.mesh.plot_electron_momentum_spectrum(target_dir = OUT_DIR, name_postfix = '__from_sim_directly')
-        sim.mesh.plot_electron_momentum_spectrum(target_dir = OUT_DIR, name_postfix = '__from_sim_directly_free_only', g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states))
+        sim.mesh.plot_electron_momentum_spectrum(target_dir = OUT_DIR, name_postfix = '__from_sim_directly_free_only', g = sim.mesh.get_g_with_states_removed(sim.bound_states))
 
         loaded_sim = si.Simulation.load(saved_sim_path)
 

@@ -161,18 +161,18 @@ if __name__ == '__main__':
             with si.utils.BlockTimer() as t:
                 sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_scale = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 50 * eV,
                                                          log = log,
-                                                         g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                          name_postfix = '__bound_removed',
                                                          **spectrum_kwargs)
                 sim.mesh.plot_electron_momentum_spectrum(r_type = 'wavenumber',
                                                          r_upper_lim = 40 * per_nm,
                                                          log = log,
-                                                         g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                          name_postfix = '__bound_removed',
                                                          **spectrum_kwargs)
                 sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_scale = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 2.5 * atomic_momentum,
                                                          log = log,
-                                                         g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                          name_postfix = '__bound_removed',
                                                          **spectrum_kwargs)
             print('BOUND REMOVED PLOTS', t)

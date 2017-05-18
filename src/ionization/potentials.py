@@ -331,6 +331,7 @@ class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
         return np.zeros(np.shape(t)) * super(NoElectricPotential, self).get_electric_field_amplitude(t)
 
 
+
 class Rectangle(UniformLinearlyPolarizedElectricPotential):
     """A class representing an electric with a sharp turn-on and turn-off time."""
 
