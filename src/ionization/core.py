@@ -104,7 +104,7 @@ class ElectricFieldSimulation(si.Simulation):
         self.snapshots = dict()
 
     def info(self):
-        mem_mesh = self.mesh.g_mesh.nbytes if self.mesh is not None else 0
+        mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
         mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric if state.g is not None)
@@ -226,7 +226,7 @@ class ElectricFieldSimulation(si.Simulation):
                 norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
 
             else:
-                largest_l_mesh = self.mesh.g_mesh[-1]
+                largest_l_mesh = self.mesh.g[-1]
                 norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
@@ -1153,7 +1153,7 @@ class QuantumMesh:
         self.sim = simulation
         self.spec = simulation.spec
 
-        self.g_mesh = None
+        self.g = None
         self.inner_product_multiplier = None
 
     def __eq__(self, other):
@@ -1163,7 +1163,7 @@ class QuantumMesh:
         :param other:
         :return:
         """
-        return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g_mesh, other.g)
+        return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g, other.g)
 
     def __hash__(self):
         """Return the hash of the QuantumMesh, which is the same as the hash of the associated Simulation."""
@@ -1181,13 +1181,13 @@ class QuantumMesh:
     def state_to_mesh(self, state_or_mesh):
         """Return the mesh associated with the given state, or simply passes the mesh through."""
         if state_or_mesh is None:
-            return self.g_mesh
+            return self.g
         elif isinstance(state_or_mesh, states.QuantumState):
             return self.get_g_for_state(state_or_mesh)
         else:
             return state_or_mesh
 
-    def get_g_with_states_removed(self, states, g_mesh = None):
+    def get_g_with_states_removed(self, states, g = None):
         """
         Get a g mesh with the contributions from the states removed.
 
@@ -1195,15 +1195,15 @@ class QuantumMesh:
         :param g: a g to remove the state contributions from. Defaults to self.g
         :return:
         """
-        if g_mesh is None:
-            g_mesh = self.g_mesh
+        if g is None:
+            g = self.g
 
-        g_mesh = g_mesh.copy()  # always act on a copy of g, regardless of source
+        g = g.copy()  # always act on a copy of g, regardless of source
 
         for state in states:
-            g_mesh -= self.inner_product(state, g_mesh) * self.get_g_for_state(state)
+            g -= self.inner_product(state, g) * self.get_g_for_state(state)
 
-        return g_mesh
+        return g
 
     def inner_product(self, a = None, b = None):
         """Inner product between two meshes. If either mesh is None, the state on the g is used for that state."""
@@ -1231,7 +1231,7 @@ class QuantumMesh:
 
     @property
     def psi_mesh(self):
-        return self.g_mesh / self.g_factor
+        return self.g / self.g_factor
 
     @si.utils.memoize
     def get_kinetic_energy_matrix_operators(self):
@@ -1263,7 +1263,7 @@ class QuantumMesh:
                 logger.warning('Evolution may be dangerously non-unitary, norm decreased by {} ({} %) during evolution step'.format(norm_diff_evolve, norm_diff_evolve / pre_evolve_norm))
 
             pre_mask_norm = self.norm()
-            self.g_mesh *= self.spec.mask(r = self.r_mesh)
+            self.g *= self.spec.mask(r = self.r_mesh)
             norm_diff_mask = pre_mask_norm - self.norm()
             logger.debug('Applied mask {} to g for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_mask))
             return norm_diff_mask
@@ -1280,7 +1280,7 @@ class QuantumMesh:
         raise NotImplementedError
 
     def abs_g_squared(self, normalize = False, log = False):
-        out = np.abs(self.g_mesh) ** 2
+        out = np.abs(self.g) ** 2
         if normalize:
             out /= np.nanmax(out)
         if log:
@@ -1400,7 +1400,7 @@ class LineMesh(QuantumMesh):
 
             logger.warning('Replaced test states for {} with numeric eigenbasis'.format(self))
 
-        self.g_mesh = self.get_g_for_state(self.spec.initial_state)
+        self.g = self.get_g_for_state(self.spec.initial_state)
 
         self.free_evolution_prefactor = -1j * (hbar / (2 * self.spec.test_mass)) * (self.wavenumbers ** 2)  # hbar^2/2m / hbar
         self.wavenumber_mask = np.where(np.abs(self.wavenumbers) < self.spec.fft_cutoff_wavenumber, 1, 0)
@@ -1429,9 +1429,9 @@ class LineMesh(QuantumMesh):
 
     @property
     def energy_expectation_value(self):
-        potential = self.inner_product(b = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g_mesh)
+        potential = self.inner_product(b = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
 
-        power_spectrum = np.abs(self.fft(self.g_mesh)) ** 2
+        power_spectrum = np.abs(self.fft(self.g)) ** 2
         kinetic = np.sum((((hbar * self.wavenumbers) ** 2) / (2 * self.spec.test_mass)) * power_spectrum) / np.sum(power_spectrum)
 
         return np.real(potential + kinetic)
@@ -1439,13 +1439,13 @@ class LineMesh(QuantumMesh):
     def dipole_moment_expectation_value(self, gauge = 'length'):
         """Get the dipole moment in the specified gauge."""
         if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.x_mesh * self.g_mesh)
+            return self.spec.test_charge * self.inner_product(b = self.x_mesh * self.g)
         elif gauge == 'velocity':
             raise NotImplementedError
 
     def fft(self, mesh = None):
         if mesh is None:
-            mesh = self.g_mesh
+            mesh = self.g
 
         return nfft.fft(mesh, norm = 'ortho')
 
@@ -1455,10 +1455,10 @@ class LineMesh(QuantumMesh):
     def _evolve_potential(self, time_step):
         pot = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge)
         pot += self.spec.electric_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
-        self.g_mesh *= np.exp(-1j * time_step * pot / hbar)
+        self.g *= np.exp(-1j * time_step * pot / hbar)
 
     def _evolve_free(self, time_step):
-        self.g_mesh = self.ifft(self.fft(self.g_mesh) * np.exp(self.free_evolution_prefactor * time_step) * self.wavenumber_mask)
+        self.g = self.ifft(self.fft(self.g) * np.exp(self.free_evolution_prefactor * time_step) * self.wavenumber_mask)
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
         prefactor = -(hbar ** 2) / (2 * self.spec.test_mass * (self.delta_x ** 2))
@@ -1519,11 +1519,11 @@ class LineMesh(QuantumMesh):
 
         hamiltonian = -1j * tau * hamiltonian_x
         hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g_mesh = hamiltonian.dot(self.g_mesh)
+        self.g = hamiltonian.dot(self.g)
 
         hamiltonian = 1j * tau * hamiltonian_x
         hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g_mesh = tdma(hamiltonian, self.g_mesh)
+        self.g = tdma(hamiltonian, self.g)
 
         self._evolve_potential(time_step / 2)
 
@@ -1648,7 +1648,7 @@ class CylindricalSliceMesh(QuantumMesh):
         self.rho_max = np.max(self.rho)
 
         # self.z_mesh, self.rho_mesh = np.meshgrid(self.z, self.rho, indexing = 'ij')
-        self.g_mesh = self.get_g_for_state(self.spec.initial_state)
+        self.g = self.get_g_for_state(self.spec.initial_state)
 
         self.mesh_points = len(self.z) * len(self.rho)
         self.matrix_operator_shape = (self.mesh_points, self.mesh_points)
@@ -1721,7 +1721,7 @@ class CylindricalSliceMesh(QuantumMesh):
     def dipole_moment_expectation_value(self, gauge = 'length'):
         """Get the dipole moment in the specified gauge."""
         if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g_mesh)
+            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g)
         elif gauge == 'velocity':
             raise NotImplementedError
 
@@ -1779,9 +1779,9 @@ class CylindricalSliceMesh(QuantumMesh):
         hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g = np.abs(self.g_mesh)
+            g = np.abs(self.g)
         else:
-            g = self.g_mesh
+            g = self.g
 
         g_vector_z = self.flatten_mesh(g, 'z')
         hg_vector_z = hamiltonian_z.dot(g_vector_z)
@@ -1796,11 +1796,11 @@ class CylindricalSliceMesh(QuantumMesh):
     def hg_mesh(self):
         hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
 
-        g_vector_z = self.flatten_mesh(self.g_mesh, 'z')
+        g_vector_z = self.flatten_mesh(self.g, 'z')
         hg_vector_z = hamiltonian_z.dot(g_vector_z)
         hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
 
-        g_vector_rho = self.flatten_mesh(self.g_mesh, 'rho')
+        g_vector_rho = self.flatten_mesh(self.g, 'rho')
         hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
         hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
 
@@ -1848,15 +1848,15 @@ class CylindricalSliceMesh(QuantumMesh):
     def get_probability_current_vector_field(self):
         z_current, rho_current = self._get_probability_current_matrix_operators()
 
-        g_vector_z = self.flatten_mesh(self.g_mesh, 'z')
+        g_vector_z = self.flatten_mesh(self.g, 'z')
         current_vector_z = z_current.dot(g_vector_z)
         gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
-        current_mesh_z = np.imag(np.conj(self.g_mesh) * gradient_mesh_z)
+        current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
 
-        g_vector_rho = self.flatten_mesh(self.g_mesh, 'rho')
+        g_vector_rho = self.flatten_mesh(self.g, 'rho')
         current_vector_rho = rho_current.dot(g_vector_rho)
         gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
-        current_mesh_rho = np.imag(np.conj(self.g_mesh) * gradient_mesh_rho)
+        current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
 
         return current_mesh_z, current_mesh_rho
 
@@ -2032,7 +2032,7 @@ class SphericalSliceMesh(QuantumMesh):
         self.r_max = np.max(self.r)
 
         # self.r_mesh, self.theta_mesh = np.meshgrid(self.r, self.theta, indexing = 'ij')
-        self.g_mesh = self.get_g_for_state(self.spec.initial_state)
+        self.g = self.get_g_for_state(self.spec.initial_state)
 
         self.mesh_points = len(self.r) * len(self.theta)
         self.matrix_operator_shape = (self.mesh_points, self.mesh_points)
@@ -2084,11 +2084,11 @@ class SphericalSliceMesh(QuantumMesh):
     def state_overlap(self, state_a = None, state_b = None):
         """State overlap between two states. If either state is None, the state on the g is used for that state."""
         if state_a is None:
-            mesh_a = self.g_mesh
+            mesh_a = self.g
         else:
             mesh_a = self.get_g_for_state(state_a)
         if state_b is None:
-            b = self.g_mesh
+            b = self.g
         else:
             b = self.get_g_for_state(state_b)
 
@@ -2105,7 +2105,7 @@ class SphericalSliceMesh(QuantumMesh):
     def dipole_moment_expectation_value(self, gauge = 'length'):
         """Get the dipole moment in the specified gauge."""
         if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g_mesh)
+            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g)
         elif gauge == 'velocity':
             raise NotImplementedError
 
@@ -2183,9 +2183,9 @@ class SphericalSliceMesh(QuantumMesh):
         hamiltonian_r, hamiltonian_theta = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g = np.abs(self.g_mesh)
+            g = np.abs(self.g)
         else:
-            g = self.g_mesh
+            g = self.g
 
         g_vector_r = self.flatten_mesh(g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
@@ -2200,11 +2200,11 @@ class SphericalSliceMesh(QuantumMesh):
     def hg_mesh(self):
         hamiltonian_r, hamiltonian_theta = self.get_internal_hamiltonian_matrix_operators()
 
-        g_vector_r = self.flatten_mesh(self.g_mesh, 'r')
+        g_vector_r = self.flatten_mesh(self.g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
         hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
 
-        g_vector_theta = self.flatten_mesh(self.g_mesh, 'theta')
+        g_vector_theta = self.flatten_mesh(self.g, 'theta')
         hg_vector_theta = hamiltonian_theta.dot(g_vector_theta)
         hg_mesh_theta = self.wrap_vector(hg_vector_theta, 'theta')
 
@@ -2418,7 +2418,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             logger.warning('Replaced test states for {} with numeric eigenbasis'.format(self))
 
-        self.g_mesh = self.get_g_for_state(self.spec.initial_state)
+        self.g = self.get_g_for_state(self.spec.initial_state)
 
     @property
     @si.utils.memoize
@@ -2464,14 +2464,14 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @property
     def norm_by_l(self):
-        return np.abs(np.sum(np.conj(self.g_mesh) * self.g_mesh, axis = 1) * self.delta_r)
+        return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
     def dipole_moment_expectation_value(self, mesh_a = None, mesh_b = None, gauge = 'length'):
         """Get the dipole moment in the specified gauge."""
         if mesh_a is None:
-            mesh_a = self.g_mesh
+            mesh_a = self.g
         if mesh_b is None:
-            mesh_b = self.g_mesh
+            mesh_b = self.g
         if gauge == 'length':
             _, operator = self.get_kinetic_energy_matrix_operators()
             g = self.wrap_vector(operator.dot(self.flatten_mesh(mesh_b, 'l')), 'l')
@@ -2521,7 +2521,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             ip = 0
 
             for s in a:
-                ip += np.sum(np.conj(self.get_radial_g_for_state(s)) * self.g_mesh[s.l, :])  # calculate inner product state-by-state to improve runtime
+                ip += np.sum(np.conj(self.get_radial_g_for_state(s)) * self.g[s.l, :])  # calculate inner product state-by-state to improve runtime
 
             return ip * self.inner_product_multiplier
         else:
@@ -2536,7 +2536,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         :return:
         """
         if g is None:
-            g = self.g_mesh
+            g = self.g
 
         l_mesh = self.l_mesh
 
@@ -2612,7 +2612,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         #         inner_product_mesh[ii, jj] = total / np.sqrt(4 * pi * wavenumber)
 
         if g is None:
-            g = self.g_mesh
+            g = self.g
 
         sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
 
@@ -2726,15 +2726,14 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
         l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
 
-        l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
-                l = (l_index % self.spec.l_bound) + 1
+                l = (l_index % self.spec.l_bound)
                 l_offdiagonal[l_index] = three_j_coefficient(l)
         l_offdiagonal *= l_prefactor
 
-        return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
+        return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
 
     # def _get_interaction_hamiltonian_matrix_operators_LEN(self):
     #     """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
@@ -2845,9 +2844,9 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r, hamiltonian_l = self.get_kinetic_energy_matrix_operators()
 
         if use_abs_g:
-            g = np.abs(self.g_mesh)
+            g = np.abs(self.g)
         else:
-            g = self.g_mesh
+            g = self.g
 
         g_vector_r = self.flatten_mesh(g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
@@ -2862,7 +2861,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def hg_mesh(self):
         hamiltonian_r = self.get_internal_hamiltonian_matrix_operators()
 
-        g_vector_r = self.flatten_mesh(self.g_mesh, 'r')
+        g_vector_r = self.flatten_mesh(self.g, 'r')
         hg_vector_r = hamiltonian_r.dot(g_vector_r)
         hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
 
@@ -2905,7 +2904,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             TDMAOperator(hamiltonian_l_implicit, wrapping_direction = 'l'),
         ]
 
-        self.g_mesh = apply_operators(self, self.g, *operators)
+        self.g = apply_operators(self, self.g, *operators)
 
     def make_split_operator_evolution_operators(self, *args):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(*args)
@@ -3282,7 +3281,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     @property
     @si.utils.watcher(lambda s: s.sim.time)
     def space_g(self):
-        return self._reconstruct_spatial_mesh(self.g_mesh)
+        return self._reconstruct_spatial_mesh(self.g)
 
     @property
     def space_psi(self):
@@ -3382,7 +3381,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,
                                         theta_points = 360,
-                                        g_mesh = None,
+                                        g = None,
                                         **kwargs):
         """
 
@@ -3392,7 +3391,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         :param r_upper_lim:
         :param r_points:
         :param theta_points:
-        :param g_mesh:
+        :param g:
         :param kwargs:
         :return:
         """
@@ -3409,8 +3408,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         elif r_type == 'momentum':
             wavenumbers = r / hbar
 
-        if g_mesh is None:
-            g_mesh = self.g_mesh
+        if g is None:
+            g = self.g
 
         theta_mesh, wavenumber_mesh, inner_product_mesh = self.inner_product_with_plane_waves(thetas, wavenumbers, g = g_mesh)
 
