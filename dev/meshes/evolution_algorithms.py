@@ -45,7 +45,7 @@ if __name__ == '__main__':
         hyd_spec_base = dict(
                 r_bound = bound, rho_bound = bound, z_bound = bound,
                 l_bound = 50,
-                r_points = 400, theta_points = 400, rho_points = int(bound / bohr_radius) * 10, z_points = int(bound / bohr_radius) * 20,
+                r_points = 400, theta_points = 200, rho_points = int(bound / bohr_radius) * 10, z_points = int(bound / bohr_radius) * 20,
                 initial_state = ion.HydrogenBoundState(2, 0),
                 test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
                 electric_potential = efield,

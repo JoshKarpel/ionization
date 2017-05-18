@@ -995,6 +995,12 @@ class ElectricFieldSpecification(si.Specification):
         return '\n'.join(checkpoint + animation + time_evolution + potentials + analysis)
 
 
+def add_to_diagonal_sparse_matrix_diagonal(dia_matrix, value = 1):
+    s = dia_matrix.copy()
+    s.setdiag(s.diagonal() + value)
+    return s
+
+
 class MeshOperator:
     def __init__(self, operator, *, wrapping_direction):
         self.operator = operator
@@ -1050,8 +1056,6 @@ class SimilarityOperator(DotOperator):
 
 def apply_operators(mesh, g, *operators):
     """Operators should be entered in operation (the order they would act on something on their right)"""
-    operators = reversed(operators)
-
     current_wrapping_direction = None
 
     for operator in operators:
@@ -1643,22 +1647,22 @@ class CylindricalSliceMesh(QuantumMesh):
     @si.utils.memoize
     def get_internal_hamiltonian_matrix_operators(self):
         """Get the mesh internal Hamiltonian matrix operators for z and rho."""
-        z_kinetic, rho_kinetic = self.get_kinetic_energy_matrix_operators()
+        kinetic_z, kinetic_rho = self.get_kinetic_energy_matrix_operators()
         potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
 
-        z_kinetic.data[1] += 0.5 * self.flatten_mesh(potential_mesh, 'z')
-        rho_kinetic.data[1] += 0.5 * self.flatten_mesh(potential_mesh, 'rho')
+        kinetic_z = add_to_diagonal_sparse_matrix_diagonal(kinetic_z, value = 0.5 * self.flatten_mesh(potential_mesh, 'z'))
+        kinetic_rho = add_to_diagonal_sparse_matrix_diagonal(kinetic_rho, value = 0.5 * self.flatten_mesh(potential_mesh, 'rho'))
 
-        return z_kinetic, rho_kinetic
+        return kinetic_z, kinetic_rho
 
     def _get_interaction_hamiltonian_matrix_operators_LEN(self):
-        """Get the angular momentum interaction term calculated from the Lagrangian evolution equations."""
+        """Get the interaction term calculated from the Lagrangian evolution equations."""
         electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
 
-        interaction_mesh_r = self.flatten_mesh(electric_potential_energy_mesh, 'z')
-        interaction_mesh_theta = self.flatten_mesh(electric_potential_energy_mesh, 'rho')
+        interaction_hamiltonian_z = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'z'))
+        interaction_hamiltonian_rho = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'rho'))
 
-        return interaction_mesh_r, interaction_mesh_theta
+        return interaction_hamiltonian_z, interaction_hamiltonian_rho
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
@@ -1764,44 +1768,25 @@ class CylindricalSliceMesh(QuantumMesh):
         """
         tau = time_step / (2 * hbar)
 
-        # add the external potential to the Hamiltonian matrices and multiply them by i * tau to get them ready for the next steps
         hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian_z, hamiltonian_rho = hamiltonian_z.copy(), hamiltonian_rho.copy()
+        interaction_hamiltonian_z, interaction_hamiltonian_rho = self.get_interaction_hamiltonian_matrix_operators()
 
-        interaction_mesh_z, interaction_mesh_rho = self.get_interaction_hamiltonian_matrix_operators()
-        interaction_mesh_z, interaction_mesh_rho = interaction_mesh_z.copy(), interaction_mesh_rho.copy()
+        hamiltonian_z = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 0.5 * interaction_hamiltonian_z.diagonal())
+        hamiltonian_rho = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 0.5 * interaction_hamiltonian_rho.diagonal())
 
-        hamiltonian_z.data[1] += 0.5 * interaction_mesh_z
-        hamiltonian_z *= 1j * tau
+        hamiltonian_rho_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_rho, value = 1)
+        hamiltonian_z_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 1)
+        hamiltonian_z_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_z, value = 1)
+        hamiltonian_rho_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 1)
 
-        hamiltonian_rho.data[1] += 0.5 * interaction_mesh_rho
-        hamiltonian_rho *= 1j * tau
+        operators = [
+            DotOperator(hamiltonian_rho_explicit, wrapping_direction = 'rho'),
+            TDMAOperator(hamiltonian_z_implicit, wrapping_direction = 'z'),
+            DotOperator(hamiltonian_z_explicit, wrapping_direction = 'z'),
+            TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = 'rho'),
+        ]
 
-        # STEP 1
-        hamiltonian = -1 * hamiltonian_rho
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'rho')
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'rho')
-
-        # STEP 2
-        hamiltonian = hamiltonian_z.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'z')
-        g_vector = tdma(hamiltonian, g_vector)
-
-        # STEP 3
-        hamiltonian = -1 * hamiltonian_z
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'z')
-
-        # STEP 4
-        hamiltonian = hamiltonian_rho.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'rho')
-        g_vector = tdma(hamiltonian, g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'rho')
+        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, plot_limit = None):
@@ -2066,22 +2051,22 @@ class SphericalSliceMesh(QuantumMesh):
 
     @si.utils.memoize
     def get_internal_hamiltonian_matrix_operators(self):
-        r_kinetic, theta_kinetic = self.get_kinetic_energy_matrix_operators()
+        kinetic_r, kinetic_theta = self.get_kinetic_energy_matrix_operators()
         potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
 
-        r_kinetic.data[1] += 0.5 * self.flatten_mesh(potential_mesh, 'r')
-        theta_kinetic.data[1] += 0.5 * self.flatten_mesh(potential_mesh, 'theta')
+        kinetic_r = add_to_diagonal_sparse_matrix_diagonal(kinetic_r, value = 0.5 * self.flatten_mesh(potential_mesh, 'r'))
+        kinetic_theta = add_to_diagonal_sparse_matrix_diagonal(kinetic_theta, value = 0.5 * self.flatten_mesh(potential_mesh, 'theta'))
 
-        return r_kinetic, theta_kinetic
+        return kinetic_r, kinetic_theta
 
     def _get_interaction_hamiltonian_matrix_operators_LEN(self):
         """Get the angular momentum interaction term calculated from the Lagrangian evolution equations."""
         electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
 
-        interaction_mesh_r = self.flatten_mesh(electric_potential_energy_mesh, 'r')
-        interaction_mesh_theta = self.flatten_mesh(electric_potential_energy_mesh, 'theta')
+        interaction_hamiltonian_r = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'r'))
+        interaction_hamiltonian_theta = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'theta'))
 
-        return interaction_mesh_r, interaction_mesh_theta
+        return interaction_hamiltonian_r, interaction_hamiltonian_theta
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
@@ -2137,44 +2122,25 @@ class SphericalSliceMesh(QuantumMesh):
         """Crank-Nicholson evolution in the Length gauge."""
         tau = time_step / (2 * hbar)
 
-        # add the external potential to the Hamiltonian matrices and multiply them by i * tau to get them ready for the next steps
         hamiltonian_r, hamiltonian_theta = self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian_r, hamiltonian_theta = hamiltonian_r.copy(), hamiltonian_theta.copy()
+        interaction_hamiltonian_r, interaction_hamiltonian_theta = self.get_interaction_hamiltonian_matrix_operators()
 
-        interaction_mesh_r, interaction_mesh_theta = self.get_interaction_hamiltonian_matrix_operators()
-        interaction_mesh_r, interaction_mesh_theta = interaction_mesh_r.copy(), interaction_mesh_theta.copy()
+        hamiltonian_r = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 0.5 * interaction_hamiltonian_r.diagonal())
+        hamiltonian_theta = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 0.5 * interaction_hamiltonian_theta.diagonal())
 
-        hamiltonian_r.data[1] += 0.5 * interaction_mesh_r
-        hamiltonian_r *= 1j * tau
+        hamiltonian_theta_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_theta, value = 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 1)
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, value = 1)
+        hamiltonian_theta_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 1)
 
-        hamiltonian_theta.data[1] += 0.5 * interaction_mesh_theta
-        hamiltonian_theta *= 1j * tau
+        operators = [
+            DotOperator(hamiltonian_theta_explicit, wrapping_direction = 'theta'),
+            TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
+            DotOperator(hamiltonian_r_explicit, wrapping_direction = 'r'),
+            TDMAOperator(hamiltonian_theta_implicit, wrapping_direction = 'theta'),
+        ]
 
-        # STEP 1
-        hamiltonian = -1 * hamiltonian_theta
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'theta')
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'theta')
-
-        # STEP 2
-        hamiltonian = hamiltonian_r.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'r')
-        g_vector = tdma(hamiltonian, g_vector)
-
-        # STEP 3
-        hamiltonian = -1 * hamiltonian_r
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'r')
-
-        # STEP 4
-        hamiltonian = hamiltonian_theta.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'theta')
-        g_vector = tdma(hamiltonian, g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'theta')
+        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
@@ -2785,12 +2751,12 @@ class SphericalHarmonicMesh(QuantumMesh):
     def energy_expectation_value(self):
         return np.real(self.inner_product(b = self.hg_mesh()))
 
-    @si.utils.memoize
-    def get_probability_current_matrix_operators(self):
-        raise NotImplementedError
-
-    def get_probability_current_vector_field(self):
-        raise NotImplementedError
+    # @si.utils.memoize
+    # def get_probability_current_matrix_operators(self):
+    #     raise NotImplementedError
+    #
+    # def get_probability_current_vector_field(self):
+    #     raise NotImplementedError
 
     def _evolve_CN(self, time_step):
         if self.spec.evolution_gauge == "VEL":
@@ -2801,39 +2767,29 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
         hamiltonian_l = 1j * tau * self.get_interaction_hamiltonian_matrix_operators()
 
-        # STEP 1
-        hamiltonian = -1 * hamiltonian_l
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'l')
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'l')
+        hamiltonian_l_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_l, 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
+        hamiltonian_l_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_l, 1)
 
-        # STEP 2
-        hamiltonian = hamiltonian_r.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'r')
-        g_vector = tdma(hamiltonian, g_vector)
+        operators = [
+            DotOperator(hamiltonian_l_explicit, wrapping_direction = 'l'),
+            TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
+            DotOperator(hamiltonian_r_explicit, wrapping_direction = 'r'),
+            TDMAOperator(hamiltonian_l_implicit, wrapping_direction = 'l'),
+        ]
 
-        # STEP 3
-        hamiltonian = -1 * hamiltonian_r
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = hamiltonian.dot(g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'r')
-
-        # STEP 4
-        hamiltonian = hamiltonian_l.copy()
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        g_vector = self.flatten_mesh(self.g_mesh, 'l')
-        g_vector = tdma(hamiltonian, g_vector)
-        self.g_mesh = self.wrap_vector(g_vector, 'l')
+        self.g_mesh = apply_operators(self, self.g_mesh, *operators)
 
     def make_split_operator_evolution_operators(self, *args):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(*args)
 
-    def _make_split_operator_evolution_operators_LEN(self, a):
+    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonian_times_time_step):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
         # even, odd = make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
         # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
+
+        a = interaction_hamiltonian_times_time_step.data[0][:-1]
 
         a_even, a_odd = a[::2], a[1::2]
 
@@ -2868,20 +2824,19 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
 
-        r_matrix_explicit = -1 * hamiltonian_r
-        r_matrix_explicit.data[1] += 1  # add identity to sparse matrix operator
-        r_matrix_implicit = hamiltonian_r.copy()
-        r_matrix_implicit.data[1] += 1  # add identity to sparse matrix operator
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
 
-        r_operator_explicit = DotOperator(r_matrix_explicit, wrapping_direction = 'r')
-        r_operator_implicit = TDMAOperator(r_matrix_implicit, wrapping_direction = 'r')
+        operators = [
+            DotOperator(hamiltonian_r_explicit, wrapping_direction = 'r'),
+            TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
+        ]
 
-        split_operators = self._make_split_operator_evolution_operators_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])
+        split_operators = self.make_split_operator_evolution_operators(tau * self.get_interaction_hamiltonian_matrix_operators())
 
         operators = [
             *split_operators,
-            r_operator_explicit,
-            r_operator_implicit,
+            *operators,
             *reversed(split_operators),
         ]
 
