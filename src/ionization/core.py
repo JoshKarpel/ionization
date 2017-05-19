@@ -2886,7 +2886,6 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         print('a', len(a), a)
 
-
         # even l
         alpha_slices_even_l = []
         alpha_slices_odd_l = []
@@ -3023,20 +3022,17 @@ class SphericalHarmonicMesh(QuantumMesh):
         # odd_offdiag = np.zeros(len(a), dtype = np.complex128)
         # odd_offdiag[1::2] = np.sin(a_odd)
 
-
-
     def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
 
         h1, h2 = interaction_hamiltonians_matrix_operators
 
         h1_operators = self._make_split_operator_VEL_h1(h1, tau)
-        print(h1_operators)
-
         h2_operators = self._make_split_operator_VEL_h2(h2, tau)
+        print(h1_operators)
         print(h2_operators)
 
-        raise NotImplementedError
+        return (*h1_operators, *h2_operators)
 
     def _evolve_SO(self, time_step):
         """Evolve the mesh forward in time by using a split-operator algorithm with length-gauge evolution operators."""
