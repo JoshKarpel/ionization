@@ -14,16 +14,18 @@ if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
         sim = ion.SphericalHarmonicSpecification('speed_test',
                                                  r_bound = 100 * bohr_radius,
-                                                 r_points = 800, l_bound = 300,
+                                                 r_points = 400, l_bound = 50,
                                                  test_states = (), use_numeric_eigenstates_as_basis = False,
-                                                 time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
+                                                 time_initial = 0, time_final = 10 * asec, time_step = 1 * asec,
                                                  dipole_gauges = (),
                                                  store_data_every = -1,
+                                                 evolution_gauge = 'VEL',
                                                  ).to_simulation()
 
         logger.info(sim.info())
         with si.utils.BlockTimer() as timer:
-            sim.run_simulation()
+            # sim.run_simulation()
+            sim.run_simulation(progress_bar = True)
         logger.info(sim.info())
 
         mesh_points = sim.mesh.mesh_points

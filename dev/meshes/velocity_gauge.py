@@ -21,18 +21,28 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.DEBUG)
 
-@si.utils.memoize
-def alpha(j):
-    x = (j ** 2) + (2 * j)
-    return (x + 1) / (x + 0.75)
-
 if __name__ == '__main__':
     with logman as logger:
         sim = ion.SphericalHarmonicSpecification('velocity',
-                                                 r_bound = 1 * bohr_radius, r_points = 4, l_bound = 4,
+                                                 r_bound = 50 * bohr_radius,
+                                                 r_points = 200, l_bound = 200,
+                                                 evolution_gauge = 'VEL',
+                                                 time_initial = 0, time_final = 500 * asec,
+                                                 use_numeric_eigenstates = True,
+                                                 numeric_eigenstate_max_angular_momentum = 10,
+                                                 numeric_eigenstate_max_energy = 10 * eV,
+                                                 electric_potential = ion.SineWave(1 / (100 * asec), amplitude = .1 * atomic_electric_field),
                                                  ).to_simulation()
 
-        m = sim.mesh._get_interaction_hamiltonian_matrix_operators_without_field_VEL()
-        print(m)
+        logger.info(sim.info())
+        sim.run_simulation()
+        logger.info(sim.info())
 
-        mm = sim.mesh._make_split_operator_evolution_operators_VEL(m, 1)
+        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
+
+        # m = sim.mesh._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
+        # sim.mesh._make_split_operator_evolution_operators_LEN(m, 1)
+        # m = sim.mesh._get_interaction_hamiltonian_matrix_operators_without_field_VEL()
+        # print(m)
+        #
+        # mm = sim.mesh._make_split_operator_evolution_operators_VEL(m, 1)
