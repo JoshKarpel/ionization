@@ -38,8 +38,11 @@ def run_sim(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        efield = ion.SineWave(1 / (100 * asec), amplitude = .1 * atomic_electric_field,
-                              window = ion.SymmetricExponentialTimeWindow(300 * asec))
+        # efield = ion.SineWave(1 / (100 * asec), amplitude = .1 * atomic_electric_field,
+        #                       window = ion.SymmetricExponentialTimeWindow(300 * asec))
+
+        efield = ion.Rectangle(-100 * asec, -10 * asec, .1 * atomic_electric_field)
+        efield += ion.Rectangle(10 * asec, 100 * asec, -.1 * atomic_electric_field)
 
         spec_kwargs = dict(
             r_bound = 50 * bohr_radius,
@@ -49,6 +52,7 @@ if __name__ == '__main__':
             numeric_eigenstate_max_energy = 10 * eV,
             electric_potential = efield,
             time_initial = -500 * asec, time_final = 500 * asec,
+            electric_potential_dc_correction = False,
         )
 
         specs = []

@@ -19,14 +19,14 @@ import simulacra as si
 from simulacra.units import *
 from . import potentials, states
 
-from .cy import make_split_operator_evolution_matrices_LEN, tdma
+from .cy import tdma
 
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLOR_ELECTRIC_FIELD = si.plots.RED
-
+COLOR_VECTOR_POTENTIAL = r'#bcbd22'
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -76,6 +76,7 @@ class ElectricFieldSimulation(si.Simulation):
         self.inner_products_vs_time = {state: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for state in self.spec.test_states}
 
         self.electric_field_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+        self.vector_potential_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         self.electric_dipole_moment_vs_time = {gauge: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for gauge in self.spec.dipole_gauges}
 
@@ -110,6 +111,7 @@ class ElectricFieldSimulation(si.Simulation):
 
         mem_other_time_data = sum(x.nbytes for x in (
             self.electric_field_amplitude_vs_time,
+            self.vector_potential_amplitude_vs_time,
             *self.electric_dipole_moment_vs_time.values(),
             self.norm_vs_time,
         ))
@@ -212,6 +214,7 @@ class ElectricFieldSimulation(si.Simulation):
             self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(self.mesh.get_g_for_state(state))
 
         self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
+        self.vector_potential_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.times_to_current)
 
         if 'l' in self.mesh.mesh_storage_method:
             if self.spec.store_norm_by_l:
@@ -460,6 +463,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
                 ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum, color = COLOR_VECTOR_POTENTIAL, linewidth = 2)
 
             ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -527,7 +531,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_field.set_ylabel('${}(t) , \, {}(t)$ (a.u.)'.format(str_efield, str_afield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
             ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -1056,7 +1060,6 @@ class SimilarityOperator(DotOperator):
     def u_odd_g(self, g):
         stack = [np.sqrt(2) * g[0]]
         if len(g) % 2 == 0:
-            counter = 0
             for a, b in si.utils.grouper(g[1:-1], 2, fill_value = 0):
                 stack += (a + b, a - b)
             stack.append(np.sqrt(2) * g[-1])
@@ -2697,11 +2700,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                 # print(l, three_j_coefficient(l))
         h1_offdiagonal *= h1_prefactor
 
-        # print(h1_offdiagonal)
-
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
-
-        # print('h1\n', h1.toarray())
 
         h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
 
@@ -2713,27 +2712,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         h2 = h2_prefactor * sparse.kron(c_block, alpha_block, format = 'dia')
 
-        print(self.g.shape)
-
-        # print('c_alpha\n', h2.toarray())
-        # c_alpha_array = h2.toarray()
-        # print('# mesh points:', self.mesh_points)
-        # print(type(h2))
-        # print('c_alpha shape:', h2.shape, h2.offsets)
-        # print('c_alpha\n', np.where(np.greater(c_alpha_array, 0) + np.less(c_alpha_array, 0), 1, 0))
-
         return h1, h2
-        # l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
-        #
-        # l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
-        # l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        # for l_index in range(self.mesh_points - 1):
-        #     if (l_index + 1) % self.spec.l_bound != 0:
-        #         l = (l_index % self.spec.l_bound) + 1
-        #         l_offdiagonal[l_index] = three_j_coefficient(l)
-        # l_offdiagonal *= l_prefactor
-        #
-        # return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         # return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
