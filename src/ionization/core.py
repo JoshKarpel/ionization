@@ -2986,10 +2986,14 @@ class SphericalHarmonicMesh(QuantumMesh):
         print('even odd offdiag', len(even_odd_offdiag), even_odd_offdiag)
 
         even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
+        even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_even_offdiag), offsets = (-1, 0, 1))
 
         operators = [
-            SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even')
+            SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even'),
+            SimilarityOperator(even_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
         ]
+
+        return operators
 
         # even_even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
         # even_even_diag[:] = np.tile(np.cos(alpha_even_l[::2]).repeat(2), 2)
