@@ -41,7 +41,7 @@ if __name__ == '__main__':
                 r_bound = 50 * bohr_radius, r_points = 200,
                 l_bound = 50,
                 time_initial = 0 * asec, time_final = 400 * asec,
-                use_numeric_eigenstates_as_basis = True,
+                use_numeric_eigenstates = True,
                 electric_potential = efield,
                 electric_potential_dc_correction = True,
         )

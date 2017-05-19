@@ -49,8 +49,8 @@ if __name__ == '__main__':
                 time_step = 1 * asec,
                 animators = ani,
                 analytic_eigenstate_type = ion.QHOState,
-                use_numeric_eigenstates_as_basis = True,
-                numeric_eigenstate_energy_max = 100 * eV,
+                use_numeric_eigenstates = True,
+                numeric_eigenstate_max_energy = 100 * eV,
         )
 
         sim = ion.LineSpecification('eig',
