@@ -2997,7 +2997,10 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _make_split_operator_VEL_h2(self, h2, tau):
         len_r = len(self.r)
 
+
+
         a = h2.data[-1][len_r + 1:] * tau * (-1j)
+
 
         # even l
         alpha_slices_even_l = []
@@ -3143,6 +3146,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return operators
 
         return operators
+
 
     def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
