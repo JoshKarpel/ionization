@@ -76,11 +76,11 @@ if __name__ == '__main__':
                                   )
                 )
 
-            specs.append(
-                    ion.LineSpecification(f'Line___method={method}_equations={equations}_gauge={gauge}',
-                                          **line_spec_base,
-                                          evolution_method = method, evolution_equations = equations, evolution_gauge = gauge,
-                                          )
-            )
+            # specs.append(
+            #         ion.LineSpecification(f'Line___method={method}_equations={equations}_gauge={gauge}',
+            #                               **line_spec_base,
+            #                               evolution_method = method, evolution_equations = equations, evolution_gauge = gauge,
+            #                               )
+            # )
 
         results = si.utils.multi_map(run_spec, specs)
