@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLOR_ELECTRIC_FIELD = si.plots.RED
-
+COLOR_VECTOR_POTENTIAL = r'#bcbd22'
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -481,6 +481,7 @@ class ElectricFieldSimulation(si.Simulation):
                               color = COLOR_VECTOR_POTENTIAL,
                               linewidth = 1.5,
                               linestyle = '-')
+                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum, color = COLOR_VECTOR_POTENTIAL, linewidth = 2)
 
             ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
