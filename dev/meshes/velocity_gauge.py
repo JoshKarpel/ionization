@@ -47,7 +47,7 @@ if __name__ == '__main__':
             use_numeric_eigenstates = True,
             numeric_eigenstate_max_angular_momentum = 10,
             numeric_eigenstate_max_energy = 10 * eV,
-            electric_potential = ion.SineWave(1 / (100 * asec), amplitude = .1 * atomic_electric_field),
+            electric_potential = efield,
             time_initial = -500 * asec, time_final = 500 * asec,
         )
 
