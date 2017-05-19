@@ -1137,13 +1137,7 @@ def apply_operators(mesh, g, *operators):
     current_wrapping_direction = None
 
     for operator in operators:
-        # print()
-        # print(np.sum(np.abs(g) ** 2))
         g, current_wrapping_direction = operator.apply(mesh, g, current_wrapping_direction)
-        # print(operator)
-        g_test = mesh.wrap_vector(g, current_wrapping_direction)
-        # print(np.abs(np.sum(np.conj(g_test) * g_test, axis = 1) * mesh.delta_r))
-        # print()
 
     return mesh.wrap_vector(g, current_wrapping_direction)
 
@@ -2758,7 +2752,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        h1_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
+        h1_prefactor = -1j * hbar * self.flatten_mesh(self.r_mesh, 'l')[:-1] * (self.spec.test_charge / self.spec.test_mass)
 
         h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
@@ -2916,6 +2910,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
 
+        # a = np.ones(len(a))  #TESTING ONLY
+
         a_even, a_odd = a[::2], a[1::2]
 
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
@@ -2984,7 +2980,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             odd_diag[1:-1] = np.cos(a_odd).repeat(2)
 
             odd_offdiag = np.zeros(len(a), dtype = np.complex128)
-            odd_offdiag[1::2] = np.sin(a_odd)
+            odd_offdiag[1::2] = -1j * np.sin(a_odd)
 
         even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
         odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
@@ -3141,9 +3137,9 @@ class SphericalHarmonicMesh(QuantumMesh):
             SimilarityOperator(even_odd_matrix, wrapping_direction = 'r', parity = 'even'),  # parity is based off FIRST splitting
             SimilarityOperator(odd_even_matrix, wrapping_direction = 'r', parity = 'odd'),
             SimilarityOperator(odd_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
+            SimilarityOperator(odd_even_matrix, wrapping_direction = 'r', parity = 'even'),
+            SimilarityOperator(odd_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
         ]
-
-        return operators
 
         return operators
 
@@ -3153,12 +3149,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         h1, h2 = interaction_hamiltonians_matrix_operators
 
-        # print('in make split ops vel', h1.data[0])
-
         h1_operators = self._make_split_operator_VEL_h1(h1, tau)
         h2_operators = self._make_split_operator_VEL_h2(h2, tau)
-        # print(h1_operators)
-        # print(h2_operators)
 
         return (*h1_operators, *h2_operators)
 
