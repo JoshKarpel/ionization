@@ -2706,7 +2706,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
-                l = (l_index % self.spec.l_bound) + 1
+                l = (l_index % self.spec.l_bound)
                 l_offdiagonal[l_index] = three_j_coefficient(l)
         l_offdiagonal *= l_prefactor
 
