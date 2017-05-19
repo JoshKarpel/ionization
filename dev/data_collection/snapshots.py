@@ -23,7 +23,7 @@ if __name__ == '__main__':
                                                  time_initial = 0 * asec, time_final = 100 * asec, time_step = 1 * asec,
                                                  store_data_every = 5,
                                                  r_bound = 50 * bohr_radius, r_points = 50 * 4, l_bound = 50,
-                                                 use_numeric_eigenstates_as_basis = True, numeric_eigenstate_energy_max = 50 * eV, numeric_eigenstate_l_max = 10,
+                                                 use_numeric_eigenstates = True, numeric_eigenstate_max_energy = 50 * eV, numeric_eigenstate_max_angular_momentum = 10,
                                                  snapshot_indices = [50, -1], snapshot_times = [10 * asec],
                                                  snapshot_type = ion.SphericalHarmonicSnapshot,
                                                  ).to_simulation()

@@ -15,7 +15,7 @@ if __name__ == '__main__':
         sim = ion.SphericalHarmonicSpecification('speed_test',
                                                  r_bound = 100 * bohr_radius,
                                                  r_points = 800, l_bound = 300,
-                                                 test_states = (), use_numeric_eigenstates_as_basis = False,
+                                                 test_states = (), use_numeric_eigenstates = False,
                                                  time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
                                                  dipole_gauges = (),
                                                  store_data_every = -1,

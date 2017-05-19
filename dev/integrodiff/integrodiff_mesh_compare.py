@@ -26,9 +26,9 @@ if __name__ == '__main__':
                 time_initial = 0 * asec,
                 time_final = 500 * asec,
                 time_step = dt * asec,
-                use_numeric_eigenstates_as_basis = True,
-                numeric_eigenstate_energy_max = 200 * eV,
-                numeric_eigenstate_l_max = 50,
+                use_numeric_eigenstates = True,
+                numeric_eigenstate_max_energy = 200 * eV,
+                numeric_eigenstate_max_angular_momentum = 50,
                 electric_potential = ion.SineWave.from_photon_energy(rydberg + 5 * eV, amplitude = .5 * atomic_electric_field),
                 mask = ion.RadialCosineMask(inner_radius = .8 * bound * bohr_radius, outer_radius = bound * bohr_radius),
         )

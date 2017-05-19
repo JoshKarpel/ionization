@@ -20,9 +20,9 @@ if __name__ == '__main__':
                                                  r_bound = bound * bohr_radius,
                                                  r_points = bound * points_per_bohr_radius,
                                                  l_bound = 50,
-                                                 use_numeric_eigenstates_as_basis = True,
-                                                 numeric_eigenstate_energy_max = 500 * eV,
-                                                 numeric_eigenstate_l_max = l_max,
+                                                 use_numeric_eigenstates = True,
+                                                 numeric_eigenstate_max_energy = 500 * eV,
+                                                 numeric_eigenstate_max_angular_momentum = l_max,
                                                  ).to_simulation()
 
         print('max?:', ((bound * points_per_bohr_radius) - 2) * (l_max + 1))

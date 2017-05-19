@@ -74,9 +74,9 @@ if __name__ == '__main__':
 
         numeric_basis_q = clu.ask_for_bool('Use numeric eigenstate basis?', default = True)
         if numeric_basis_q:
-            parameters.append(clu.Parameter(name = 'use_numeric_eigenstates_as_basis',
+            parameters.append(clu.Parameter(name = 'use_numeric_eigenstates',
                                             value = True))
-            parameters.append(clu.Parameter(name = 'numeric_eigenstate_energy_max',
+            parameters.append(clu.Parameter(name = 'numeric_eigenstate_max_energy',
                                             value = eV * clu.ask_for_input('Numeric Eigenstate Max Energy (in eV)?', default = 50, cast_to = float)))
 
         if not numeric_basis_q:
