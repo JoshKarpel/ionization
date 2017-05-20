@@ -1864,9 +1864,11 @@ class CylindricalSliceMesh(QuantumMesh):
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
                   show_colorbar = True,
+                  aspect_ratio = .75,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
-        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', **kwargs) as figman:
+        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
             fig.set_tight_layout(True)
@@ -1886,12 +1888,12 @@ class CylindricalSliceMesh(QuantumMesh):
 
             axis.set_xlabel(fr'$z$ (${unit_latex}$)', fontsize = 15)
             axis.set_ylabel(fr'$\rho$ (${unit_latex}$)', fontsize = 15)
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 15)
                 title.set_y(si.plots.TITLE_OFFSET)  # move title up a bit
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = 0.1)
                 cbar.ax.tick_params(labelsize = 10)
 
@@ -1909,6 +1911,9 @@ class CylindricalSliceMesh(QuantumMesh):
             y_ticks[0].label2.set_visible(False)
             y_ticks[-1].label1.set_visible(False)
             y_ticks[-1].label2.set_visible(False)
+
+            if not show_axes:
+                axis.axis('off')
 
 
 class SphericalSliceSpecification(ElectricFieldSpecification):
@@ -2237,6 +2242,7 @@ class SphericalSliceMesh(QuantumMesh):
                   slicer = 'get_mesh_slicer',
                   aspect_ratio = 1,
                   show_colorbar = True,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -2259,13 +2265,13 @@ class SphericalSliceMesh(QuantumMesh):
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 20)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
                 cbar.ax.tick_params(labelsize = 10)
@@ -2295,6 +2301,9 @@ class SphericalSliceMesh(QuantumMesh):
                 axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+            if not show_axes:
+                axis.axis('off')
 
 
 class SphericalHarmonicSpecification(ElectricFieldSpecification):
@@ -2992,6 +3001,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   slicer = 'get_mesh_slicer_spatial',
                   aspect_ratio = 1,
                   show_colorbar = True,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -3015,13 +3025,13 @@ class SphericalHarmonicMesh(QuantumMesh):
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 20)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
                 cbar.ax.tick_params(labelsize = 10)
@@ -3051,6 +3061,9 @@ class SphericalHarmonicMesh(QuantumMesh):
                 axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+            if not show_axes:
+                axis.axis('off')
 
     def attach_g_to_axis(self, axis,
                          colormap = plt.get_cmap('richardson'),
