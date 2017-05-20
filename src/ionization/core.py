@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLOR_ELECTRIC_FIELD = si.plots.RED
-COLOR_VECTOR_POTENTIAL = r'#bcbd22'
+COLOR_VECTOR_POTENTIAL = si.plots.BLUE
+
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -453,9 +454,11 @@ class ElectricFieldSimulation(si.Simulation):
 
         name = prefix + '__wavefunction_vs_time{}'.format(postfix)
 
-    si.plots.save_current_figure(name = name, **kwargs)
+        si.plots.save_current_figure(name = name, **kwargs)
 
-        plt.close()def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
+        plt.close()
+
+    def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
                                   bound_state_max_n = 5,
                                   collapse_bound_state_angular_momentums = True,
                                   grouped_free_states = None,
@@ -486,7 +489,8 @@ class ElectricFieldSimulation(si.Simulation):
             ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
             if grouped_free_states is None:
-try:                grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
+                try:
+                    grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
                 except AttributeError:
                     grouped_free_states, group_labels = {}, {}
             overlaps = []
@@ -551,11 +555,7 @@ try:                grouped_free_states, group_labels = self.group_free_states_b
             ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(LATEX_EFIELD, LATEX_AFIELD), fontsize = 13)
             ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1),
-                               loc = 'upper left',
-                               borderaxespad = 0.05,
-                               fontsize = 9,
-                               ncol = 1 + (len(overlaps) // 17),
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17),
                                frameon = False)
 
             ax_overlaps.tick_params(labelleft = True,
@@ -2753,7 +2753,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        h1_prefactor = -1j * hbar * self.flatten_mesh(self.r_mesh, 'l')[:-1] * (self.spec.test_charge / self.spec.test_mass)
+        h1_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
 
         h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
@@ -2766,8 +2766,6 @@ class SphericalHarmonicMesh(QuantumMesh):
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
 
         h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
-
-        # print('prefactor ratio', h2_prefactor / h1_prefactor)
 
         alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
         alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
@@ -2974,6 +2972,8 @@ class SphericalHarmonicMesh(QuantumMesh):
             even_diag[:] = np.cos(a_even).repeat(2)
 
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
+            print(a_even)
+            print(np.sin(a_even))
             even_offdiag[::2] = np.sin(a_even)
 
             odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
@@ -2981,7 +2981,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             odd_diag[1:-1] = np.cos(a_odd).repeat(2)
 
             odd_offdiag = np.zeros(len(a), dtype = np.complex128)
-            odd_offdiag[1::2] = -1j * np.sin(a_odd)
+            odd_offdiag[1::2] = np.sin(a_odd)
 
         even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
         odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
