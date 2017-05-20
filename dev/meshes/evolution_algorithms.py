@@ -29,7 +29,7 @@ def run_spec(spec):
             sim.run_simulation()
             logger.info(sim.info())
 
-            sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)
+            sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR)
 
             return sim
         except NotImplementedError as e:

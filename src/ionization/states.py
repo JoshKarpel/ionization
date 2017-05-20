@@ -76,7 +76,7 @@ class QuantumState(si.Summand):
         raise NotImplementedError
 
     def __hash__(self):
-        return hash((self.__class__.__name__, self.__doc__) + self.tuple)
+        return hash((self.__class__.__name__, ) + self.tuple)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.tuple == other.tuple

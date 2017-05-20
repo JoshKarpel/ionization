@@ -372,81 +372,86 @@ class ElectricFieldSimulation(si.Simulation):
 
         return grouped_states, group_labels
 
-    def plot_test_state_overlaps_vs_time(self, log = False, x_unit = 'asec',
-                                         **kwargs):
-        fig = si.plots.get_figure('full')
+    def plot_state_overlaps_vs_time(self,
+                                    states = None,
+                                    log = False,
+                                    time_unit = 'asec',
+                                    **kwargs):
+        with si.plots.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
+            time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-        x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            ax_overlaps = plt.subplot(grid_spec[0])
+            ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-        ax_overlaps = plt.subplot(grid_spec[0])
-        ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
+            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
 
-        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
-        ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+            state_overlaps = self.state_overlaps_vs_time
+            if states is not None:
+                if callable(states):
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if states(state)}
+                else:
+                    states = set(states)
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
 
-        state_overlaps = self.state_overlaps_vs_time
+            print(state_overlaps)
 
-        overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
-        labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
+            overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
+            labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
 
-        ax_overlaps.stackplot(self.data_times / x_scale_unit,
-                              *overlaps,
-                              labels = labels,
-                              # colors = colors,
-                              )
+            ax_overlaps.stackplot(self.data_times / time_unit_value,
+                                  *overlaps,
+                                  labels = labels,
+                                  # colors = colors,
+                                  )
 
-        if log:
-            ax_overlaps.set_yscale('log')
-            min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
-            ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
-        else:
-            ax_overlaps.set_ylim(0.0, 1.0)
-            ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+            if log:
+                ax_overlaps.set_yscale('log')
+                min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
+                ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+            else:
+                ax_overlaps.set_ylim(0.0, 1.0)
+                ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-        ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-        ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-        ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-        ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
+            ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
+            ax_field.set_ylabel('${}(t)$'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
-        ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
-        ax_overlaps.tick_params(labelright = True)
-        ax_field.tick_params(labelright = True)
-        ax_overlaps.xaxis.tick_top()
+            ax_overlaps.tick_params(labelright = True)
+            ax_field.tick_params(labelright = True)
+            ax_overlaps.xaxis.tick_top()
 
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
+            plt.rcParams['xtick.major.pad'] = 5
+            plt.rcParams['ytick.major.pad'] = 5
 
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 4
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_field.yaxis.set_major_locator(yloc)
+            # Find at most n+1 ticks on the y-axis at 'nice' locations
+            max_yticks = 4
+            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+            ax_field.yaxis.set_major_locator(yloc)
 
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_field.xaxis.set_major_locator(xloc)
+            max_xticks = 6
+            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+            ax_field.xaxis.set_major_locator(xloc)
 
-        ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
-        ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-        ax_field.grid(True, **si.plots.GRID_KWARGS)
+            ax_field.grid(True, **si.plots.GRID_KWARGS)
 
-        postfix = ''
-        if log:
-            postfix += '__log'
-        prefix = self.file_name
+            postfix = ''
+            if log:
+                postfix += '__log'
 
-        name = prefix + '__wavefunction_vs_time{}'.format(postfix)
-
-        si.plots.save_current_figure(name = name, **kwargs)
-
-        plt.close()
+            figman.name += postfix
 
     def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
                                   bound_state_max_n = 5,
@@ -2884,8 +2889,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             even, odd = self._make_split_operator_evolution_matrices_LEN(tau * self.get_interaction_hamiltonian_matrix_operators().data[0][:-1])  # the i is included
             # STEP 1 & 2
             self.g = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g, 'l'))), 'l')
-
-            print(uround(self.sim.time, 'asec'), uround(electric_field_amplitude, 'aef'), even.data[0][:20])
 
         # STEP 3 & 4
         hamiltonian_explicit = -1 * hamiltonian_r
