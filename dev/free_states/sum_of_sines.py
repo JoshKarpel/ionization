@@ -75,7 +75,7 @@ if __name__ == '__main__':
         sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__no_grouping__collapsed_l',
                                       collapse_bound_state_angular_momentums = True)
 
-        grouped_states, group_labels = sim.group_free_states_by_continuous_attr('energy', divisions = 12, cutoff_value = 150 * eV, label_unit = 'eV')
+        grouped_states, group_labels = sim.group_free_states_by_continuous_attr('energy', divisions = 12, cutoff_value = 150 * eV, label_unit_value = 'eV')
         sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__energy',
                                       grouped_free_states = grouped_states, group_labels = group_labels)
         sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__energy__collapsed_l',
@@ -117,30 +117,30 @@ if __name__ == '__main__':
         )
 
         for log in (True, False):
-            sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_scale = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 100 * eV,
+            sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_unit = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 100 * eV,
                                                      log = log,
                                                      **spectrum_kwargs)
             sim.mesh.plot_electron_momentum_spectrum(r_type = 'wavenumber',
                                                      r_upper_lim = 100 * per_nm,
                                                      log = log,
                                                      **spectrum_kwargs)
-            sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_scale = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 5 * atomic_momentum,
+            sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_unit = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 5 * atomic_momentum,
                                                      log = log,
                                                      **spectrum_kwargs)
 
-            sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_scale = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 100 * eV,
+            sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_unit = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 100 * eV,
                                                      log = log,
-                                                     g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                     g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                      name_postfix = '__bound_removed',
                                                      **spectrum_kwargs)
             sim.mesh.plot_electron_momentum_spectrum(r_type = 'wavenumber',
                                                      r_upper_lim = 40 * per_nm,
                                                      log = log,
-                                                     g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                     g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                      name_postfix = '__bound_removed',
                                                      **spectrum_kwargs)
-            sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_scale = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 5 * atomic_momentum,
+            sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_unit = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 5 * atomic_momentum,
                                                      log = log,
-                                                     g_mesh = sim.mesh.get_g_with_states_removed(sim.bound_states),
+                                                     g = sim.mesh.get_g_with_states_removed(sim.bound_states),
                                                      name_postfix = '__bound_removed',
                                                      **spectrum_kwargs)

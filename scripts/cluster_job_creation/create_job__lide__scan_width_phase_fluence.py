@@ -10,6 +10,7 @@ from simulacra.units import *
 
 import ionization as ion
 import ionization.cluster as iclu
+import ionization.integrodiff as ide
 
 
 if __name__ == '__main__':

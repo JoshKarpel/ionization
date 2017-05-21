@@ -14,13 +14,15 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 PLT_KWARGS = dict(
         target_dir = OUT_DIR,
+        img_format = 'png',
+        fig_dpi_scale = 3,
 )
 
 EA_FIELD_PLT_KWARGS = dict(
-        line_labels = (fr'${str_efield}(t)$', fr'${str_afield}(t)$'),
+        line_labels = (fr'${str_efield}(t)$', fr'$q{str_afield}(t)$'),
         x_label = r'$t$',
         x_unit = 'asec',
-        y_label = fr'${str_efield}(t)$, ${str_afield}(t)$',
+        y_label = fr'${str_efield}(t), \, q{str_afield}(t)$',
 )
 
 EA_LOG_PLT_KWARGS = dict(
@@ -33,19 +35,19 @@ if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         pw = 100 * asec
 
-        window = ion.SymmetricExponentialTimeWindow(window_time = 28 * pw, window_width = .2 * pw) + ion.RectangularTimeWindow(on_time = -31 * pw, off_time = 31 * pw)
+        window = ion.SymmetricExponentialTimeWindow(window_time = 25 * pw, window_width = .2 * pw) + ion.RectangularTimeWindow(on_time = -31 * pw, off_time = 31 * pw)
 
         ref_sinc = ion.SincPulse(pulse_width = pw)
         print(ref_sinc)
 
-        pulse = ion.SincPulse(pulse_width = pw, fluence = 1 * Jcm2, phase = pi / 2,
+        pulse = ion.SincPulse(pulse_width = pw, fluence = 1 * Jcm2, phase = 0,
                               # omega_carrier = ref_sinc.omega_carrier,
                               window = window
                               )
 
         print(pulse)
 
-        t = np.linspace(-35 * pw, 35 * pw, 1e6)
+        t = np.linspace(-40 * pw, 40 * pw, 1e5)
         total_t = np.abs(t[-1] - t[0])
 
         uncorrected_pulse_amp = pulse.get_electric_field_amplitude(t)
