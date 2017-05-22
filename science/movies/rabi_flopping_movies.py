@@ -24,7 +24,7 @@ def run(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        return sim
+        # can't returrn sim because its not pickleable
 
 
 if __name__ == '__main__':
@@ -33,15 +33,16 @@ if __name__ == '__main__':
         state_b = ion.HydrogenBoundState(2, 1)
 
         amplitudes = [.001, .005, .01, .1]
-        cycles = [1]
+        cycles = [1, 2, 3]
 
         dt = 1
-        bound = 50
+        bound = 100
         ppbr = 8
 
         animator_kwargs = dict(
                 target_dir = OUT_DIR,
-                length = 30,
+                length = 60,
+                fps = 60,
         )
 
         epot_axman = ion.animators.ElectricPotentialAxis(
@@ -58,16 +59,17 @@ if __name__ == '__main__':
 
         animators = [
             ion.animators.PhiSliceAnimator(
-                    postfix = 'g2_full',
+                    postfix = 'g2_50',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g2',
+                            plot_limit = 50 * bohr_radius
                     ),
                     axman_lower_right = epot_axman,
                     axman_upper_right = test_state_axman,
                     **animator_kwargs,
             ),
             ion.animators.PhiSliceAnimator(
-                    postfix = 'g2_zoom',
+                    postfix = 'g2_20',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g2',
                             plot_limit = 20 * bohr_radius,
@@ -77,18 +79,19 @@ if __name__ == '__main__':
                     **animator_kwargs,
             ),
             ion.animators.PhiSliceAnimator(
-                    postfix = 'g_full',
+                    postfix = 'g_50',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
                             norm = si.plots.RichardsonNormalization(),
+                            plot_limit = 50 * bohr_radius,
                     ),
                     axman_lower_right = epot_axman,
                     axman_upper_right = test_state_axman,
                     **animator_kwargs,
             ),
             ion.animators.PhiSliceAnimator(
-                    postfix = 'g_zoom',
+                    postfix = 'g_20',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
@@ -138,4 +141,4 @@ if __name__ == '__main__':
                         **spec_kwargs
                 ))
 
-        si.utils.multi_map(run, specs, processes = 2)
+        si.utils.multi_map(run, specs)

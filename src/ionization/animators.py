@@ -213,11 +213,9 @@ class ElectricPotentialAxis(si.AxisManager):
         super().__init__()
 
     def initialize_axis(self):
-        t = self.sim.time / self.time_unit_value
-        self.time_line, = self.axis.plot([t, t],
-                                         [0, 2],
-                                         color = 'gray',
-                                         animated = True)
+        self.time_line = self.axis.axvline(x = self.sim.time / self.time_unit_value,
+                                           color = 'gray',
+                                           animated = True)
         self.redraw.append(self.time_line)
 
         if self.show_electric_field:
@@ -278,8 +276,7 @@ class ElectricPotentialAxis(si.AxisManager):
         if self.show_vector_potential:
             self.vector_potential_line.set_ydata(proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value)
 
-        t = self.sim.time / self.time_unit_value
-        self.time_line.set_xdata([t, t])
+        self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
         super().update_axis()
 
@@ -331,11 +328,9 @@ class TestStateStackplot(si.AxisManager):
 
         self._initialize_stackplot()
 
-        t = self.sim.time / self.time_unit_value
-        self.time_line, = self.axis.plot([t, t],
-                                         [0, 2],
-                                         color = 'gray',
-                                         animated = True)
+        self.time_line = self.axis.axvline(x = self.sim.time / self.time_unit_value,
+                                           color = 'gray',
+                                           animated = True)
         self.redraw.append(self.time_line)
 
         self.legend = self.axis.legend(**self.legend_kwargs)
@@ -404,8 +399,7 @@ class TestStateStackplot(si.AxisManager):
 
         self._update_stackplot_lines()
 
-        t = self.sim.time / self.time_unit_value
-        self.time_line.set_xdata([t, t])
+        self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
         super().update_axis()
 
@@ -798,13 +792,13 @@ class PhiSliceAnimator(WavefunctionSimulationAnimator):
 
         # plt.figtext(.8, .6, r'Initial State: ${}$'.format(self.spec.initial_state.tex_str), fontsize = 22)
 
-        self.time_text = plt.figtext(.8, .49, r'$t = {}$ as'.format(uround(self.sim.time, asec, 3)), fontsize = 30, animated = True)
-        self.redraw += [self.time_text]
+        self.time_text = plt.figtext(.8, .49, r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)), fontsize = 30, animated = True)
+        self.redraw.append(self.time_text)
 
         super()._initialize_figure()
 
     def _update_data(self):
-        self.time_text.set_text(r'$t = {}$ as'.format(uround(self.sim.time, asec, 3)))
+        self.time_text.set_text(r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)))
 
         super()._update_data()
 
