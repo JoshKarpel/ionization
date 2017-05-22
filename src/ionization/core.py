@@ -386,7 +386,16 @@ class ElectricFieldSimulation(si.Simulation):
         ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
         if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field,
+                          label = fr'${STR_EFIELD}(t)$',
+                          color = COLOR_ELECTRIC_FIELD,
+                          linewidth = 1.5,
+                          linestyle = '-')
+            ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
+                          label = fr'$q{STR_AFIELD}(t)$',
+                          color = COLOR_VECTOR_POTENTIAL,
+                          linewidth = 1.5,
+                          linestyle = '-')
 
         ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -415,7 +424,8 @@ class ElectricFieldSimulation(si.Simulation):
 
         ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(STR_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+        ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(STR_EFIELD, STR_AFIELD), fontsize = 13)
+        ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
 
         ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -1403,6 +1413,12 @@ class LineMesh(QuantumMesh):
     def energies(self):
         return ((self.wavenumbers * hbar) ** 2) / (2 * self.spec.test_mass)
 
+    def flatten_mesh(self, mesh, flatten_along):
+        return mesh
+
+    def wrap_vector(self, vector, wrap_along):
+        return vector
+
     @si.utils.memoize
     def get_g_for_state(self, state):
         g = state(self.x_mesh)
@@ -1456,27 +1472,43 @@ class LineMesh(QuantumMesh):
     def get_internal_hamiltonian_matrix_operators(self):
         kinetic_x = self.get_kinetic_energy_matrix_operators().copy()
 
-        kinetic_x.data[1] += self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge)
+        kinetic_x = add_to_diagonal_sparse_matrix_diagonal(kinetic_x, self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge))
 
         return kinetic_x
+
+    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+        epot = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
+
+        return sparse.diags([epot], offsets = [0])
+
+    @si.utils.memoize
+    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
+        prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_x)
+        offdiag = prefactor * np.ones(self.spec.x_points - 1, dtype = np.complex128)
+
+        return sparse.diags([-offdiag, offdiag], offsets = [-1, 1])
+
+    def _get_interaction_hamiltonian_matrix_operators_VEL(self):
+        return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
 
     def _evolve_CN(self, time_step):
         """Crank-Nicholson evolution in the Length gauge."""
         tau = time_step / (2 * hbar)
 
-        electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
+        interaction_operator = self.get_interaction_hamiltonian_matrix_operators()
 
-        hamiltonian_x = self.get_internal_hamiltonian_matrix_operators().copy()
+        hamiltonian_x = self.get_internal_hamiltonian_matrix_operators()
+        hamiltonian = sparse.dia_matrix(hamiltonian_x + interaction_operator)
 
-        hamiltonian_x.data[1] += electric_potential_energy_mesh
+        ham_explicit = add_to_diagonal_sparse_matrix_diagonal(-1j * tau * hamiltonian, 1)
+        ham_implicit = add_to_diagonal_sparse_matrix_diagonal(1j * tau * hamiltonian, 1)
 
-        hamiltonian = -1j * tau * hamiltonian_x
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g = hamiltonian.dot(self.g)
+        operators = [
+            DotOperator(ham_explicit, wrapping_direction = None),
+            TDMAOperator(ham_implicit, wrapping_direction = None),
+        ]
 
-        hamiltonian = 1j * tau * hamiltonian_x
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g = tdma(hamiltonian, self.g)
+        self.g = apply_operators(self, self.g, *operators)
 
     def _evolve_SO(self, time_step):
         """Split-Operator evolution in the Length gauge."""
@@ -2725,7 +2757,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
 
-        print('prefactor ratio', h2_prefactor / h1_prefactor)
+        # print('prefactor ratio', h2_prefactor / h1_prefactor)
 
         alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
         alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
