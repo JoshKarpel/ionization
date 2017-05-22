@@ -1,5 +1,6 @@
 import logging
 import os
+from copy import deepcopy
 
 import simulacra as si
 from simulacra.units import *
@@ -29,103 +30,48 @@ if __name__ == '__main__':
                 target_dir = OUT_DIR,
         )
 
+        epot_axman = ion.animators.ElectricPotentialAxis(
+                show_electric_field = True,
+                show_vector_potential = False,
+                show_y_label = False,
+                show_ticks_right = True,
+        )
+
+        test_state_axman = ion.animators.TestStateStackplot(
+                states = None
+        )
+
         animators = [
-            ion.animators.SphericalHarmonicAnimator(
+            ion.animators.PhiSliceAnimator(
                     postfix = 'g2',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             shading = 'flat'
                     ),
-                    axman_metrics = ion.animators.MetricsAndElectricField(),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = deepcopy(test_state_axman),
                     **anim_kwargs,
             ),
-            ion.animators.SphericalHarmonicAnimator(
+            ion.animators.PhiSliceAnimator(
                     postfix = 'g',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
                             norm = si.plots.RichardsonNormalization(),
                             shading = 'flat'),
-                    axman_metrics = ion.animators.MetricsAndElectricField(),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = deepcopy(test_state_axman),
                     **anim_kwargs,
             )
         ]
 
         sim = ion.SphericalHarmonicSpecification('sph_harm',
-                                                 time_initial = 0 * asec, time_final = 300 * asec,
-                                                 r_bound = 50 * bohr_radius, l_bound = 20,
-                                                 r_points = 200,
-                                                 electric_potential = ion.Rectangle(start_time = 150 * asec, end_time = 200 * asec, amplitude = 1 * atomic_electric_field),
+                                                 time_initial = 0 * asec, time_final = 100 * asec,
+                                                 r_bound = 25 * bohr_radius, l_bound = 20,
+                                                 test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
+                                                 r_points = 100,
+                                                 electric_potential = ion.Rectangle(start_time = 25 * asec, end_time = 75 * asec, amplitude = 1 * atomic_electric_field),
                                                  animators = animators).to_simulation()
 
         logger.info(sim.info())
         sim.run_simulation()
         logger.info(sim.info())
-
-        # window = ion.LinearRampTimeWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)
-        # e_field = ion.SineWave.from_frequency(1 / (50 * asec), amplitude = 1 * atomic_electric_field, window = window)
-        # mask = ion.RadialCosineMask(inner_radius = (bound - 25) * bohr_radius, outer_radius = bound * bohr_radius)
-        #
-        # animators = [
-        #     src.ionization.animators.CylindricalSliceAnimator(postfix = '_nm', target_dir = OUT_DIR, distance_unit = 'nm'),
-        #     src.ionization.animators.CylindricalSliceAnimator(postfix = '_br', target_dir = OUT_DIR, distance_unit = 'bohr_radius'),
-        # ]
-        # specs.append(ion.CylindricalSliceSpecification('cyl_slice',
-        #                                                time_initial = t_init * asec, time_final = t_final * asec, time_step = dt * asec,
-        #                                                z_bound = 20 * bohr_radius, z_points = 300,
-        #                                                rho_bound = 20 * bohr_radius, rho_points = 150,
-        #                                                initial_state = ion.HydrogenBoundState(1, 0, 0),
-        #                                                electric_potential = e_field,
-        #                                                mask = ion.RadialCosineMask(inner_radius = 15 * bohr_radius, outer_radius = 20 * bohr_radius),
-        #                                                animators = animators
-        #                                                ))
-        #
-        # animators = [
-        #     src.ionization.animators.SphericalSliceAnimator(postfix = '_nm', target_dir = OUT_DIR, distance_unit = 'nm'),
-        #     src.ionization.animators.SphericalSliceAnimator(postfix = '_br', target_dir = OUT_DIR, distance_unit = 'bohr_radius'),
-        # ]
-        # specs.append(ion.SphericalSliceSpecification('sph_slice',
-        #                                              time_initial = t_init * asec, time_final = t_final * asec, time_step = dt * asec,
-        #                                              r_bound = bound * bohr_radius, r_points = radial_points,
-        #                                              theta_points = angular_points,
-        #                                              initial_state = initial_state,
-        #                                              electric_potential = e_field,
-        #                                              mask = mask,
-        #                                              animators = animators
-        #                                              ))
-        #
-        # animators = [
-        #     src.ionization.animators.SphericalHarmonicAnimator(postfix = '_nm', target_dir = OUT_DIR, distance_unit = 'nm'),
-        #     src.ionization.animators.SphericalHarmonicAnimator(postfix = '_br', target_dir = OUT_DIR, distance_unit = 'bohr_radius'),
-        # ]
-        # specs.append(ion.SphericalHarmonicSpecification('sph_harm', time_initial = t_init * asec, time_final = t_final * asec, time_step = dt * asec,
-        #                                                 r_bound = bound * bohr_radius, r_points = radial_points,
-        #                                                 l_bound = angular_points,
-        #                                                 initial_state = initial_state,
-        #                                                 electric_potential = e_field,
-        #                                                 mask = mask,
-        #                                                 animators = animators,
-        #                                                 ))
-        #
-        # #######
-        #
-        # mass = electron_mass
-        # pot = ion.HarmonicOscillator.from_energy_spacing_and_mass(energy_spacing = 1 * eV, mass = mass)
-        #
-        # init = ion.QHOState.from_potential(pot, mass, n = 1) + ion.QHOState.from_potential(pot, mass, n = 2)
-        #
-        # animators = [
-        #     src.ionization.animators.LineAnimator(postfix = '_nm', target_dir = OUT_DIR, distance_unit = 'nm'),
-        #     src.ionization.animators.LineAnimator(postfix = '_br', target_dir = OUT_DIR, distance_unit = 'bohr_radius'),
-        # ]
-        # specs.append(ion.LineSpecification('line',
-        #                                    x_bound = 50 * nm, x_points = 2 ** 14,
-        #                                    internal_potential = pot,
-        #                                    electric_potential = ion.SineWave.from_photon_energy(1 * eV, amplitude = .05 * atomic_electric_field),
-        #                                    test_states = (ion.QHOState.from_potential(pot, mass, n = n) for n in range(20)),
-        #                                    initial_state = init,
-        #                                    time_initial = t_init * asec, time_final = t_final * 10 * asec, time_step = dt * asec,
-        #                                    mask = ion.RadialCosineMask(inner_radius = 40 * nm, outer_radius = 50 * nm),
-        #                                    animators = animators
-        #                                    ))
-        #
-        # si.utils.multi_map(make_movie, specs, processes = 4)
