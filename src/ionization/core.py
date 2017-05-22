@@ -26,6 +26,9 @@ from .cy import tdma
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+STR_EFIELD = r'\mathcal{E}'
+STR_AFIELD = r'\mathcal{A}'
+
 COLOR_ELECTRIC_FIELD = si.plots.RED
 COLOR_VECTOR_POTENTIAL = si.plots.BLUE
 
@@ -419,10 +422,10 @@ class ElectricFieldSimulation(si.Simulation):
 
         ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-            ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(STR_EFIELD, STR_AFIELD), fontsize = 13)
-            ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
+        ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+        ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
+        ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(STR_EFIELD, STR_AFIELD), fontsize = 13)
+        ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
 
         ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -2972,8 +2975,8 @@ class SphericalHarmonicMesh(QuantumMesh):
             even_diag[:] = np.cos(a_even).repeat(2)
 
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
-            print(a_even)
-            print(np.sin(a_even))
+            # print(a_even)
+            # print(np.sin(a_even))
             even_offdiag[::2] = np.sin(a_even)
 
             odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
