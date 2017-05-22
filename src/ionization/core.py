@@ -387,15 +387,15 @@ class ElectricFieldSimulation(si.Simulation):
 
         if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
             ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field,
-                              label = fr'${STR_EFIELD}(t)$',
-                              color = COLOR_ELECTRIC_FIELD,
-                              linewidth = 1.5,
-                              linestyle = '-')
-                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
-                              label = fr'$q{STR_AFIELD}(t)$',
-                              color = COLOR_VECTOR_POTENTIAL,
-                              linewidth = 1.5,
-                              linestyle = '-')
+                          label = fr'${STR_EFIELD}(t)$',
+                          color = COLOR_ELECTRIC_FIELD,
+                          linewidth = 1.5,
+                          linestyle = '-')
+            ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
+                          label = fr'$q{STR_AFIELD}(t)$',
+                          color = COLOR_VECTOR_POTENTIAL,
+                          linewidth = 1.5,
+                          linestyle = '-')
 
         ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
