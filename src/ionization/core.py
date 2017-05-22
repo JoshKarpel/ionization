@@ -475,12 +475,12 @@ class ElectricFieldSimulation(si.Simulation):
 
             if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
                 ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field,
-                              label = fr'${str_efield}(t)$',
+                              label = fr'${STR_EFIELD}(t)$',
                               color = COLOR_ELECTRIC_FIELD,
                               linewidth = 1.5,
                               linestyle = '-')
                 ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
-                              label = fr'$q{str_afield}(t)$',
+                              label = fr'$q{STR_AFIELD}(t)$',
                               color = COLOR_VECTOR_POTENTIAL,
                               linewidth = 1.5,
                               linestyle = '-')
@@ -548,7 +548,8 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(LATEX_EFIELD, LATEX_AFIELD), fontsize = 13)
+            ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
 
             ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17),
                                frameon = False)
@@ -738,7 +739,7 @@ class ElectricFieldSimulation(si.Simulation):
         if renormalize:
             y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
         ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 11)
+        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(STR_EFIELD), fontsize = 11)
 
         ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
 
@@ -1129,10 +1130,10 @@ def apply_operators(mesh, g, *operators):
         # print()
         # print(np.sum(np.abs(g) ** 2))
         g, current_wrapping_direction = operator.apply(mesh, g, current_wrapping_direction)
-        print(operator)
+        # print(operator)
         g_test = mesh.wrap_vector(g, current_wrapping_direction)
-        print(np.abs(np.sum(np.conj(g_test) * g_test, axis = 1) * mesh.delta_r))
-        print()
+        # print(np.abs(np.sum(np.conj(g_test) * g_test, axis = 1) * mesh.delta_r))
+        # print()
 
     return mesh.wrap_vector(g, current_wrapping_direction)
 
@@ -2913,7 +2914,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         # return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
         vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
-        print('vamp', vector_potential_amp * electron_charge / atomic_momentum)
+        # print('vamp', vector_potential_amp * electron_charge / atomic_momentum)
         # print(self._get_interaction_hamiltonian_matrix_operators_without_field_VEL()[0].data[0])
         return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
 
@@ -3096,8 +3097,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _make_split_operator_VEL_h1(self, h1, tau):
         a = h1.data[-1][1:] * tau * (-1j)
-        print(h1.data[-1])
-        print(a)
+        # print(h1.data[-1])
+        # print(a)
         # print('h1 data', h1.data[-1])
 
         # print('h1 a', a)
@@ -3135,8 +3136,8 @@ class SphericalHarmonicMesh(QuantumMesh):
             # print(even_diag)
 
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
-            print(a_even)
-            print(np.sin(a_even))
+            # print(a_even)
+            # print(np.sin(a_even))
             even_offdiag[::2] = np.sin(a_even)
 
             odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
@@ -3146,10 +3147,10 @@ class SphericalHarmonicMesh(QuantumMesh):
             odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = np.sin(a_odd)
 
-        print('h1 even diag', len(even_diag), even_diag)
-        print('h1 even offdiag', len(even_offdiag), even_offdiag)
-        print('h1 odd diag', len(odd_diag), odd_diag)
-        print('h1 odd offdiag', len(odd_offdiag), odd_offdiag)
+        # print('h1 even diag', len(even_diag), even_diag)
+        # print('h1 even offdiag', len(even_offdiag), even_offdiag)
+        # print('h1 odd diag', len(odd_diag), odd_diag)
+        # print('h1 odd offdiag', len(odd_offdiag), odd_offdiag)
 
         even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
         odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
@@ -3291,15 +3292,15 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         even_even_diag = np.hstack(even_even_diag)
         even_even_offdiag = np.hstack(even_even_offdiag)[:-1]  # last element is bogus
-        print('h2 even even diag', len(even_even_diag), even_even_diag)
-        print('h2 even even offdiag', len(even_even_offdiag), even_even_offdiag)
+        # print('h2 even even diag', len(even_even_diag), even_even_diag)
+        # print('h2 even even offdiag', len(even_even_offdiag), even_even_offdiag)
 
         # print(even_odd_diag)
         even_odd_diag = np.hstack(even_odd_diag)
         even_odd_offdiag = np.hstack(even_odd_offdiag)[:-1]  # last element is bogus
         # even_odd_offdiag = np.hstack((np.zeros(len_r), even_odd_offdiag, np.zeros(len_r)))
-        print('h2 even odd diag', len(even_odd_diag), even_odd_diag)
-        print('h2 even odd offdiag', len(even_odd_offdiag), even_odd_offdiag)
+        # print('h2 even odd diag', len(even_odd_diag), even_odd_diag)
+        # print('h2 even odd offdiag', len(even_odd_offdiag), even_odd_offdiag)
 
         odd_even_diag = [np.ones(len_r)]
         odd_even_offdiag = [np.zeros(len_r)]
@@ -3390,15 +3391,15 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         odd_even_diag = np.hstack(odd_even_diag)
         odd_even_offdiag = np.hstack(odd_even_offdiag)[:-1]  # last element is bogus
-        print('h2 odd even diag', len(odd_even_diag), odd_even_diag)
-        print('h2 odd even offdiag', len(odd_even_offdiag), odd_even_offdiag)
+        # print('h2 odd even diag', len(odd_even_diag), odd_even_diag)
+        # print('h2 odd even offdiag', len(odd_even_offdiag), odd_even_offdiag)
 
         # print(even_odd_diag)
         odd_odd_diag = np.hstack(odd_odd_diag)
         odd_odd_offdiag = np.hstack(odd_odd_offdiag)[:-1]  # last element is bogus
         # even_odd_offdiag = np.hstack((np.zeros(len_r), even_odd_offdiag, np.zeros(len_r)))
-        print('h2 odd odd diag', len(odd_odd_diag), odd_odd_diag)
-        print('h2 odd odd offdiag', len(odd_odd_offdiag), odd_odd_offdiag)
+        # print('h2 odd odd diag', len(odd_odd_diag), odd_odd_diag)
+        # print('h2 odd odd offdiag', len(odd_odd_offdiag), odd_odd_offdiag)
 
         even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
         even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_odd_offdiag), offsets = (-1, 0, 1))
@@ -3480,24 +3481,51 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-        print(self.norm_by_l)
+        # print(self.norm_by_l)
+
+    def _apply_length_gauge_transformation(self, prefactor_mesh, g):
+        # print(np.shape(g))
+        # print(np.shape(np.tile(g, (len(self.l), 1, 1))))
+        # print(np.shape(prefactor_mesh))
+        # print('prefactor', prefactor_mesh)
+        # print('tile', np.tile(g, (len(self.l), 1, 1)))
+        # print('product', np.tile(g, (len(self.l), 1, 1)) * prefactor_mesh)
+        # g = np.sum(np.tile(g, (len(self.l), 1, 1)) * prefactor_mesh, axis = 0)
+        # print(np.shape(g))
+
+        # print('g', g)
+        g_transformed = np.zeros(np.shape(g), dtype = np.complex128)
+        for l, g_l in enumerate(g):
+            for pl in prefactor_mesh:
+                g_transformed[l] += g_l * pl
+
+        return g_transformed
+
+    # np.sum(np.tile(mesh, (self.theta_points, 1, 1)) * self._sph_harm_l_theta_mesh, axis = 1).T
 
     def gauge_transformation(self, g, leaving_gauge):
+
+        # TODO: STILL NOT SURE THIS IS CORRECT
+        # TODO: actually its def wrong because I didn't do Y * Y correctly
+        # todo: but ins't the resulting matrix multiplication going to be very dense?
         vamp = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
-
         dipole_to_velocity = np.exp(-1j * self.spec.test_charge * integral / (2 * self.spec.test_mass * hbar))
-        # dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.z_mesh / self.spec.test_mass)
 
-        # must multiply by z mesh! can do using identity for spherical harmonic thing
+        bessel = special.spherical_jn(self.l_mesh, (self.spec.test_charge / hbar) * vamp[-1] * self.r_mesh)
+        dipole_to_length = ((2 * self.l_mesh) + 1) * (1j ** (self.l_mesh % 4)) * bessel
 
-        # if leaving_gauge == 'LEN':
-        #     return np.conj(dipole_to_length) * dipole_to_velocity * g
-        # elif leaving_gauge == 'VEL':
-        #     return dipole_to_length * np.conj(dipole_to_velocity) * g
+        print('vamp\n', vamp)
+        print('integral\n', integral)
+        print('bessel\n', bessel)
+        print('d to v\n', dipole_to_velocity)
+        print('d to l\n', dipole_to_length)
 
-        raise NotImplementedError
+        if leaving_gauge == 'LEN':
+            return self._apply_length_gauge_transformation(np.conj(dipole_to_length), dipole_to_velocity * g)
+        elif leaving_gauge == 'VEL':
+            return dipole_to_velocity * self._apply_length_gauge_transformation(dipole_to_length, g)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
