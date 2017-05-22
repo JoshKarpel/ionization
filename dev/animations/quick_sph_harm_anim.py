@@ -13,15 +13,6 @@ import matplotlib.pyplot as plt
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-# def make_movie(spec):
-#     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
-#                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.DEBUG) as logger:
-#         sim = spec.to_simulation()
-#
-#         logger.info(sim.info())
-#         sim.run_simulation()
-#         logger.info(sim.info())
-
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG) as logger:
@@ -38,7 +29,7 @@ if __name__ == '__main__':
         )
 
         test_state_axman = ion.animators.TestStateStackplot(
-                states = None
+                states = tuple(ion.HydrogenBoundState(n, l) for n in range(4) for l in range(n))
         )
 
         animators = [
@@ -66,10 +57,12 @@ if __name__ == '__main__':
 
         sim = ion.SphericalHarmonicSpecification('sph_harm',
                                                  time_initial = 0 * asec, time_final = 100 * asec,
-                                                 r_bound = 25 * bohr_radius, l_bound = 20,
-                                                 test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
-                                                 r_points = 100,
+                                                 r_bound = 50 * bohr_radius, l_bound = 20,
+                                                 r_points = 200,
                                                  electric_potential = ion.Rectangle(start_time = 25 * asec, end_time = 75 * asec, amplitude = 1 * atomic_electric_field),
+                                                 use_numeric_eigenstates = True,
+                                                 numeric_eigenstate_max_energy = 10 * eV,
+                                                 numeric_eigenstate_max_angular_momentum = 5,
                                                  animators = animators).to_simulation()
 
         logger.info(sim.info())
