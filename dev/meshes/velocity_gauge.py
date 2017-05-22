@@ -14,6 +14,8 @@ from simulacra.units import *
 
 import ionization as ion
 
+import matplotlib.pyplot as plt
+
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -46,8 +48,9 @@ if __name__ == '__main__':
 
         spec_kwargs = dict(
             r_bound = 50 * bohr_radius,
-            r_points = 200, l_bound = 50,
+            r_points = 200, l_bound = 30,
             # test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
+            initial_state = ion.HydrogenBoundState(1, 0),
             use_numeric_eigenstates = True,
             numeric_eigenstate_max_angular_momentum = 10,
             numeric_eigenstate_max_energy = 10 * eV,
@@ -70,11 +73,34 @@ if __name__ == '__main__':
 
         for r in results:
             # logger.info(r.info())
+            print()
             print(r)
             print(r.norm_vs_time[-1])
             print(r.energy_expectation_value_vs_time_internal[-1] / eV)
-            print(r.mesh.g)
-            print()
-            print(r.mesh.gauge_transformation(r.mesh.g, r.spec.evolution_gauge))
-            print()
-            print()
+            # print(r.mesh.g)
+            # print()
+
+            g_plot_kwargs = dict(
+                colormap = plt.get_cmap('richardson'),
+                richardson_equator_magnitude = np.nanmax(np.abs(r.mesh.g)) / 10,
+                shading = 'flat',
+                y_unit = 'bohr_radius',
+                y_label = '$r$',
+                x_label = '$\ell$',
+                target_dir = OUT_DIR,
+            )
+
+            transformed_g = r.mesh.gauge_transformation(r.mesh.g, r.spec.evolution_gauge)
+            si.plots.xyz_plot(f'{r.name}__g',
+                              r.mesh.l_mesh, r.mesh.r_mesh, r.mesh.g,
+                              **g_plot_kwargs
+                              )
+            si.plots.xyz_plot(f'{r.name}__g_transformed',
+                              r.mesh.l_mesh, r.mesh.r_mesh, transformed_g,
+                              **g_plot_kwargs)
+
+            # r.mesh.plot_mesh(r.mesh.g, name = f'{r.name}__g')
+            # r.mesh.plot_mesh(transformed_g, name = f'{r.name}__g_transformed')
+            # print(transformed_g)
+            # print()
+            # print()
