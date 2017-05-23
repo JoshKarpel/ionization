@@ -33,7 +33,9 @@ def run_sim(spec):
         logger.info(sim.info())
 
         # sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)
-        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
+        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR,
+                                      img_format = 'png',
+                                      fig_dpi_scale = 3,)
 
         return sim
 
@@ -72,11 +74,11 @@ if __name__ == '__main__':
         results = si.utils.multi_map(run_sim, specs)
 
         for r in results:
-            # logger.info(r.info())
+            logger.info(r.info())
             print()
-            print(r)
-            print(r.norm_vs_time[-1])
-            print(r.energy_expectation_value_vs_time_internal[-1] / eV)
+            # print(r)
+            # print(r.norm_vs_time[-1])
+            # print(r.energy_expectation_value_vs_time_internal[-1] / eV)
             # print(r.mesh.g)
             # print()
 
@@ -90,14 +92,14 @@ if __name__ == '__main__':
                 target_dir = OUT_DIR,
             )
 
-            transformed_g = r.mesh.gauge_transformation(r.mesh.g, r.spec.evolution_gauge)
-            si.plots.xyz_plot(f'{r.name}__g',
-                              r.mesh.l_mesh, r.mesh.r_mesh, r.mesh.g,
-                              **g_plot_kwargs
-                              )
-            si.plots.xyz_plot(f'{r.name}__g_transformed',
-                              r.mesh.l_mesh, r.mesh.r_mesh, transformed_g,
-                              **g_plot_kwargs)
+            # transformed_g = r.mesh.gauge_transformation(r.mesh.g, r.spec.evolution_gauge)
+            # si.plots.xyz_plot(f'{r.name}__g',
+            #                   r.mesh.l_mesh, r.mesh.r_mesh, r.mesh.g,
+            #                   **g_plot_kwargs
+            #                   )
+            # si.plots.xyz_plot(f'{r.name}__g_transformed',
+            #                   r.mesh.l_mesh, r.mesh.r_mesh, transformed_g,
+            #                   **g_plot_kwargs)
 
             # r.mesh.plot_mesh(r.mesh.g, name = f'{r.name}__g')
             # r.mesh.plot_mesh(transformed_g, name = f'{r.name}__g_transformed')

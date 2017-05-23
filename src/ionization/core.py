@@ -3088,21 +3088,11 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        # even, odd = make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
         # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
 
         a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
 
-        # a = np.ones(len(a))  #TESTING ONLY
-
         a_even, a_odd = a[::2], a[1::2]
-
-        # print(len(a), len(a_even), len(a_odd))
-        # print(a)
-        # print(a_even)
-        # print(a_odd)
-
-        # print('len r, len l', len(self.r), len(self.l))
 
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
             even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
@@ -3142,28 +3132,12 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _make_split_operator_VEL_h1(self, h1, tau):
         a = h1.data[-1][1:] * tau * (-1j)
-        # print(h1.data[-1])
-        # print(a)
-        # print('h1 data', h1.data[-1])
-
-        # print('h1 a', a)
-
-        # print('h1 a', len(a))
-
         a_even, a_odd = a[::2], a[1::2]
-
-        # print(a)
-        # print(a_even)
-        # print(a_odd)
-
-        # print(len(a_even), len(a_odd))
 
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
             even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:-1] = np.cos(a_even).repeat(2)
             even_diag[-1] = 1
-
-            # print(even_diag)
 
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
             even_offdiag[::2] = np.sin(a_even)
@@ -3178,11 +3152,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:] = np.cos(a_even).repeat(2)
 
-            # print(even_diag)
-
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
-            # print(a_even)
-            # print(np.sin(a_even))
             even_offdiag[::2] = np.sin(a_even)
 
             odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
@@ -3191,11 +3161,6 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = np.sin(a_odd)
-
-        # print('h1 even diag', len(even_diag), even_diag)
-        # print('h1 even offdiag', len(even_offdiag), even_offdiag)
-        # print('h1 odd diag', len(odd_diag), odd_diag)
-        # print('h1 odd offdiag', len(odd_offdiag), odd_offdiag)
 
         even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
         odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
@@ -3208,66 +3173,29 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _make_split_operator_VEL_h2(self, h2, tau):
         len_r = len(self.r)
 
-        # print(len(h2.data[-1]))
-        # print(h2.data[-1])
-        # print(h2.data[-1][len_r + 1:])
-
         a = h2.data[-1][len_r + 1:] * tau * (-1j)
-        # print('h2 a', a)
-        # a = np.array(range(1, len(a) + 1))  # FOR TESTING ONLY
-
-        # print(h2.toarray())
-
-        # print('a', len(a), a)
 
         # even l
         alpha_slices_even_l = []
         alpha_slices_odd_l = []
-        # print('l', self.l)
         for l in self.l:  # want last l but not last r, since unwrapped in r
             slice = a[l * len_r: ((l + 1) * len_r) - 1]
-
-            # print(l * len_r, ((l + 1) * len_r) - 1)
-            # if len(slice) > 0:  # non-empty slice
             if l % 2 == 0:
-                # print('even slice', slice)
-
                 alpha_slices_even_l.append(slice)
             else:
-                # print('odd slice', slice)
                 alpha_slices_odd_l.append(slice)
-
-        # alpha_even_l = np.hstack(alpha_slices_even)
-        # print('even', len(alpha_even_l), alpha_even_l)
-        #
-        # alpha_odd_l = np.hstack(alpha_slices_odd)
-        # print('odd', len(alpha_odd_l), alpha_odd_l)
-
-        # print(alpha_slices_even_l)
-        # print(alpha_slices_odd_l)
 
         even_even_diag = []
         even_even_offdiag = []
         even_odd_diag = []
         even_odd_offdiag = []
-        # print()
-        # print('EVEN L')
         for alpha_slice in alpha_slices_even_l:  # FOR EACH l
-            # print('alpha slice', len(alpha_slice), alpha_slice)
 
             even_slice = alpha_slice[::2]
             odd_slice = alpha_slice[1::2]
 
-            # print('even slice', even_slice)
-            # print('odd slice', odd_slice)
-
             if len(even_slice) > 0:
-                # new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
-                # even_even_diag.append(new_even_even_diag)
-
-                # new_even_even_diag = np.ones(2 * len_r, dtype = np.complex128)
                 even_sines = np.zeros(len_r, dtype = np.complex128)
-                # print(even_sines, even_slice)
                 if len_r % 2 == 0:
                     new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
                     even_sines[::2] = np.sin(even_slice)
@@ -3279,8 +3207,6 @@ class SphericalHarmonicMesh(QuantumMesh):
                     even_sines[:-1:2] = np.sin(even_slice)
                     even_sines[-1] = 0
 
-                # print('new ee diag', len(new_even_even_diag), new_even_even_diag)
-
                 even_even_diag.append(new_even_even_diag)
                 even_even_offdiag.append(even_sines)
                 even_even_offdiag.append(-even_sines)
@@ -3289,14 +3215,6 @@ class SphericalHarmonicMesh(QuantumMesh):
                 even_even_offdiag.append(np.zeros(len_r))
 
             if len(odd_slice) > 0:
-                # interweaved = np.empty((2 * len(odd_slice)) + 3)
-                # interweaved[1:-1:2] = np.cos(odd_slice)
-                # interweaved[::2] = 1
-
-
-                # print('inter', interweaved)
-                #
-                # new_even_odd_diag = interweaved.repeat(2)[1:-1]
                 new_even_odd_diag = np.ones(len_r, dtype = np.complex128)
                 new_even_odd_diag[0] = 1
 
@@ -3310,64 +3228,33 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 even_odd_diag.append(new_even_odd_diag)
 
-                # print('new eo diag', len(new_even_odd_diag), new_even_odd_diag)
-
                 odd_sines = np.zeros(len_r, dtype = np.complex128)
-                # print(np.sin(odd_slice))
-                # if len_r % 2 == 0:
                 odd_sines[1:-1:2] = np.sin(odd_slice)
-                # else:
-                #     odd_sines[1::2] = np.sin(odd_slice)
-                # print('odd sines', odd_sines)
-                # print(np.sin(alpha_slice[1::2]))
                 even_odd_offdiag.append(odd_sines)
                 even_odd_offdiag.append(-odd_sines)
             else:
                 pass
-                # even_odd_diag.append(np.ones(len_r))
-                # even_odd_offdiag.append(np.zeros(len_r))
-
-                # print()
-
-        # even_odd_diag = even_odd_diag[:-1]
         if self.l[-1] % 2 == 0:
-            # print('fix')
             even_odd_diag.append(np.ones(len_r))
             even_odd_offdiag.append(np.zeros(len_r))
 
         even_even_diag = np.hstack(even_even_diag)
         even_even_offdiag = np.hstack(even_even_offdiag)[:-1]  # last element is bogus
-        # print('h2 even even diag', len(even_even_diag), even_even_diag)
-        # print('h2 even even offdiag', len(even_even_offdiag), even_even_offdiag)
 
-        # print(even_odd_diag)
         even_odd_diag = np.hstack(even_odd_diag)
         even_odd_offdiag = np.hstack(even_odd_offdiag)[:-1]  # last element is bogus
-        # even_odd_offdiag = np.hstack((np.zeros(len_r), even_odd_offdiag, np.zeros(len_r)))
-        # print('h2 even odd diag', len(even_odd_diag), even_odd_diag)
-        # print('h2 even odd offdiag', len(even_odd_offdiag), even_odd_offdiag)
 
         odd_even_diag = [np.ones(len_r)]
         odd_even_offdiag = [np.zeros(len_r)]
         odd_odd_diag = [np.ones(len_r)]
         odd_odd_offdiag = [np.zeros(len_r)]
-        # print()
-        # print('ODD L')
-        for alpha_slice in alpha_slices_odd_l:
-            # print('alpha slice', len(alpha_slice), alpha_slice)
 
+        for alpha_slice in alpha_slices_odd_l:
             even_slice = alpha_slice[::2]
             odd_slice = alpha_slice[1::2]
 
-            # print('even slice', even_slice)
-            # print('odd slice', odd_slice)
             if len(even_slice) > 0:
-                # new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
-                # even_even_diag.append(new_even_even_diag)
-
-                # new_even_even_diag = np.ones(2 * len_r, dtype = np.complex128)
                 even_sines = np.zeros(len_r, dtype = np.complex128)
-                # print(even_sines, even_slice)
                 if len_r % 2 == 0:
                     new_odd_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
                     even_sines[::2] = np.sin(even_slice)
@@ -3378,8 +3265,6 @@ class SphericalHarmonicMesh(QuantumMesh):
                     new_odd_even_diag = np.tile(tile, 2)
                     even_sines[:-1:2] = np.sin(even_slice)
                     even_sines[-1] = 0
-
-                # print('new oe diag', len(new_odd_even_diag), new_odd_even_diag)
 
                 odd_even_diag.append(new_odd_even_diag)
                 odd_even_offdiag.append(even_sines)
