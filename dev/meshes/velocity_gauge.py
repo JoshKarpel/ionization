@@ -56,7 +56,7 @@ if __name__ == '__main__':
             numeric_eigenstate_max_energy = 10 * eV,
             electric_potential = efield,
             time_initial = -400 * asec, time_final = 400 * asec,
-            # electric_potential_dc_correction = True,
+            electric_potential_dc_correction = True,
         )
 
         specs = []
