@@ -234,6 +234,8 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
         self.final_bound_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.bound_states))
         self.final_free_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.free_states))
 
+        self.electric_potential = copy(sim.electric_potential)
+
         if len(sim.data_times) > 2:
             self.make_wavefunction_plots(sim)
 
@@ -509,8 +511,6 @@ class PulseSimulationResult(ElectricFieldSimulationResult):
         self.pulse_width = copy(sim.spec.pulse_width)
         self.fluence = copy(sim.spec.fluence)
         self.phase = copy(sim.spec.phase)
-
-        self.pulse_window = copy(sim.spec.electric_potential.window.window_time)
 
 
 class PulseJobProcessor(ElectricFieldJobProcessor):
