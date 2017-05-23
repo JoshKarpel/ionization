@@ -248,7 +248,7 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
 
         # sim.plot_wavefunction_vs_time(**plot_kwargs)
 
-        grouped_states, group_labels = sim.group_free_states_by_continuous_attr('energy', divisions = 12, cutoff_value = 100 * eV, label_unit = 'eV')
+        grouped_states, group_labels = sim.group_free_states_by_continuous_attr('energy', divisions = 12, cutoff_value = 100 * eV, label_unit_value = 'eV')
         sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = f'__energy__{sim.file_name}',
                                       grouped_free_states = grouped_states, group_labels = group_labels)
         # sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__energy__collapsed',

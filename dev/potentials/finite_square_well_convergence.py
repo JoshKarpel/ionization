@@ -46,7 +46,7 @@ def run(spec):
                          x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
                          target_dir = OUT_DIR)
 
-        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, x_unit = 'asec')
+        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, time_unit = 'asec')
 
         si.plots.xy_plot(sim.name + '__energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,

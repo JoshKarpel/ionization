@@ -35,12 +35,8 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.a[0] = self.spec.a_initial
 
         if self.spec.electric_potential_dc_correction:
-            electric_field_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
-            average_electric_field = integrate.simps(electric_field_vs_time, x = self.times) / total_time
-
             old_pot = self.spec.electric_potential
-
-            self.spec.electric_potential += potentials.Rectangle(start_time = self.times[0], end_time = self.times[-1], amplitude = -average_electric_field)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
@@ -264,9 +260,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         :param a_initial: initial value of y
         :param kwargs:
         """
-        if simulation_type is None:
-            simulation_type = IntegroDifferentialEquationSimulation
-        super().__init__(name, simulation_type = simulation_type, **kwargs)
+        super().__init__(name, **kwargs)
 
         self.time_initial = time_initial
         self.time_final = time_final
@@ -335,20 +329,13 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
 
         self.computed_time_steps = 0
 
-        # if self.spec.electric_potential_dc_correction:
-        #     total_time = self.spec.time_final - self.spec.time_initial
-        #     densest_time_step_count = total_time / self.spec.minimum_time_step
-        #
-        #     approx_times = np.linspace(self.spec.time_initial, self.spec.time_final, densest_time_step_count)
-        #
-        #     electric_field_vs_time = self.spec.electric_potential.get_electric_field_amplitude(approx_times)
-        #     average_electric_field = integrate.simps(electric_field_vs_time, x = approx_times) / total_time
-        #
-        #     old_pot = self.spec.electric_potential
-        #
-        #     self.spec.electric_potential += potentials.Rectangle(start_time = self.spec.time_initial, end_time = self.spec.time_initial, amplitude = -average_electric_field)
-        #
-        #     logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+        if self.spec.electric_potential_dc_correction:
+            old_pot = self.spec.electric_potential
+
+            times_guess = np.linspace(self.spec.time_initial, self.spec.time_final, 1e6)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, times_guess)
+
+            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
     def evolve_ARK4(self):
         """
@@ -604,12 +591,8 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
         self.a[0] = self.spec.a_initial
 
         if self.spec.electric_potential_dc_correction:
-            electric_field_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
-            average_electric_field = integrate.simps(electric_field_vs_time, x = self.times) / total_time
-
             old_pot = self.spec.electric_potential
-
-            self.spec.electric_potential += potentials.Rectangle(start_time = self.times[0], end_time = self.times[-1], amplitude = -average_electric_field)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 

@@ -26,17 +26,18 @@ bounds = np.array([10, 20, 50, 100]) * bohr_radius
 # shadings = ('flat', 'gouraud')
 shadings = ('gouraud',)
 cmaps = (mpl.cm.get_cmap('inferno'),)
+axes = (True, False)
 
 
 def make_plots(spec):
     sim = ion.ElectricFieldSimulation(spec)
 
-    for unit, bound, shading in itertools.product(units, bounds, shadings):
+    for unit, bound, shading, show_axes in itertools.product(units, bounds, shadings, axes):
         for cmap in cmaps:
-            postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}__{shading}'
-            sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound, shading = shading)
+            postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}__{shading}__axes={show_axes}'
+            sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes)
             # sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
-        sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson__{shading}', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound, shading = shading)
+        sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson__{shading}__axes={show_axes}', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes)
 
 
 if __name__ == '__main__':

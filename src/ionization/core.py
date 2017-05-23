@@ -256,7 +256,7 @@ class ElectricFieldSimulation(si.Simulation):
                 animator.initialize(self)
 
             if progress_bar:
-                pbar = tqdm(total = self.time_steps)
+                pbar = tqdm(initial = self.time_index, total = self.time_steps)
 
             while True:
                 if self.time in self.data_times:
@@ -312,14 +312,14 @@ class ElectricFieldSimulation(si.Simulation):
 
     @property
     def bound_states(self):
-        yield from [s for s in self.spec.test_states if s.bound]
+        yield from (s for s in self.spec.test_states if s.bound)
 
     @property
     def free_states(self):
-        yield from [s for s in self.spec.test_states if not s.bound]
+        yield from (s for s in self.spec.test_states if not s.bound)
 
-    def group_free_states_by_continuous_attr(self, attr, divisions = 10, cutoff_value = None,
-                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', label_unit = None):
+    def group_free_states_by_continuous_attr(self, attr = 'energy', divisions = 10, cutoff_value = None,
+                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', attr_unit = 'eV'):
         spectrum = set(getattr(s, attr) for s in self.free_states)
         grouped_states = collections.defaultdict(list)
         group_labels = {}
@@ -331,14 +331,14 @@ class ElectricFieldSimulation(si.Simulation):
             boundaries = np.linspace(attr_min, cutoff_value, num = divisions)
             boundaries = np.concatenate((boundaries, [attr_max]))
 
-        label_unit, label_unit_str = get_unit_value_and_latex_from_unit(label_unit)
+        label_unit_value, label_unit_latex = get_unit_value_and_latex_from_unit(attr_unit)
 
         free_states = list(self.free_states)
 
         for ii, lower_boundary in enumerate(boundaries[:-1]):
             upper_boundary = boundaries[ii + 1]
 
-            label = label_format_str.format(uround(lower_boundary, label_unit, 2), uround(upper_boundary, label_unit, 2), label_unit_str)
+            label = label_format_str.format(uround(lower_boundary, label_unit_value, 2), uround(upper_boundary, label_unit_value, 2), label_unit_latex)
             group_labels[(lower_boundary, upper_boundary)] = label
 
             for s in copy(free_states):
@@ -360,7 +360,7 @@ class ElectricFieldSimulation(si.Simulation):
             else:
                 cutoff.append(s)
 
-        group_labels = {k: label_format_str.format(int(k)) for k in grouped_states}
+        group_labels = {k: label_format_str.format(k) for k in grouped_states}
 
         try:
             cutoff_key = max(grouped_states) + 1  # get max key, make sure cutoff key is larger for sorting purposes
@@ -372,83 +372,86 @@ class ElectricFieldSimulation(si.Simulation):
 
         return grouped_states, group_labels
 
-    def plot_test_state_overlaps_vs_time(self, log = False, x_unit = 'asec',
-                                         **kwargs):
-        fig = si.plots.get_figure('full')
+    def plot_state_overlaps_vs_time(self,
+                                    states = None,
+                                    log = False,
+                                    time_unit = 'asec',
+                                    **kwargs):
+        with si.plots.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
+            time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-        x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            ax_overlaps = plt.subplot(grid_spec[0])
+            ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-        ax_overlaps = plt.subplot(grid_spec[0])
-        ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
+            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
 
-        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
-        ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+            state_overlaps = self.state_overlaps_vs_time
+            if states is not None:
+                if callable(states):
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if states(state)}
+                else:
+                    states = set(states)
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
 
-        state_overlaps = self.state_overlaps_vs_time
+            overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
+            labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
 
-        overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
-        labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
+            ax_overlaps.stackplot(self.data_times / time_unit_value,
+                                  *overlaps,
+                                  labels = labels,
+                                  # colors = colors,
+                                  )
 
-        ax_overlaps.stackplot(self.data_times / x_scale_unit,
-                              *overlaps,
-                              labels = labels,
-                              # colors = colors,
-                              )
+            if log:
+                ax_overlaps.set_yscale('log')
+                min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
+                ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+            else:
+                ax_overlaps.set_ylim(0.0, 1.0)
+                ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-        if log:
-            ax_overlaps.set_yscale('log')
-            min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
-            ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
-        else:
-            ax_overlaps.set_ylim(0.0, 1.0)
-            ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-        ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
+            ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
+            ax_field.set_ylabel('${}(t)$'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
-        ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-        ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-        ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
-        ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.tick_params(labelright = True)
+            ax_field.tick_params(labelright = True)
+            ax_overlaps.xaxis.tick_top()
 
-        ax_overlaps.tick_params(labelright = True)
-        ax_field.tick_params(labelright = True)
-        ax_overlaps.xaxis.tick_top()
+            plt.rcParams['xtick.major.pad'] = 5
+            plt.rcParams['ytick.major.pad'] = 5
 
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
+            # Find at most n+1 ticks on the y-axis at 'nice' locations
+            max_yticks = 4
+            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+            ax_field.yaxis.set_major_locator(yloc)
 
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 4
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_field.yaxis.set_major_locator(yloc)
+            max_xticks = 6
+            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+            ax_field.xaxis.set_major_locator(xloc)
 
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_field.xaxis.set_major_locator(xloc)
+            ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-        ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
-        ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_field.grid(True, **si.plots.GRID_KWARGS)
 
-        ax_field.grid(True, **si.plots.GRID_KWARGS)
+            postfix = ''
+            if log:
+                postfix += '__log'
 
-        postfix = ''
-        if log:
-            postfix += '__log'
-        prefix = self.file_name
+            figman.name += postfix
 
-        name = prefix + '__wavefunction_vs_time{}'.format(postfix)
-
-        si.plots.save_current_figure(name = name, **kwargs)
-
-        plt.close()
-
-    def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
+    def plot_wavefunction_vs_time(self, log = False, time_unit = 'asec',
                                   bound_state_max_n = 5,
                                   collapse_bound_state_angular_momentums = True,
                                   grouped_free_states = None,
@@ -457,22 +460,19 @@ class ElectricFieldSimulation(si.Simulation):
                                   plot_name_from = 'file_name',
                                   **kwargs):
         with si.plots.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
-            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+            time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
 
-            ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
             if grouped_free_states is None:
-                try:
-                    grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
-                except AttributeError:
-                    grouped_free_states, group_labels = {}, {}
+                grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy', attr_unit = 'eV')
             overlaps = []
             labels = []
             colors = []
@@ -512,7 +512,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             overlaps = [overlap for overlap in overlaps]
 
-            ax_overlaps.stackplot(self.data_times / x_scale_unit,
+            ax_overlaps.stackplot(self.data_times / time_unit_value,
                                   *overlaps,
                                   labels = labels,
                                   colors = colors,
@@ -528,13 +528,13 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-            ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
             ax_overlaps.tick_params(labelleft = True,
                                     labelright = True,
@@ -721,7 +721,7 @@ class ElectricFieldSimulation(si.Simulation):
         if renormalize:
             y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
         ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u_for_each_two_r_blocks.)'.format(str_efield), fontsize = 11)
+        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(str_efield), fontsize = 11)
 
         ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
 
@@ -1864,9 +1864,11 @@ class CylindricalSliceMesh(QuantumMesh):
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
                   show_colorbar = True,
+                  aspect_ratio = .75,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
-        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', **kwargs) as figman:
+        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
             fig.set_tight_layout(True)
@@ -1886,12 +1888,12 @@ class CylindricalSliceMesh(QuantumMesh):
 
             axis.set_xlabel(fr'$z$ (${unit_latex}$)', fontsize = 15)
             axis.set_ylabel(fr'$\rho$ (${unit_latex}$)', fontsize = 15)
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 15)
                 title.set_y(si.plots.TITLE_OFFSET)  # move title up a bit
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = 0.1)
                 cbar.ax.tick_params(labelsize = 10)
 
@@ -1909,6 +1911,9 @@ class CylindricalSliceMesh(QuantumMesh):
             y_ticks[0].label2.set_visible(False)
             y_ticks[-1].label1.set_visible(False)
             y_ticks[-1].label2.set_visible(False)
+
+            if not show_axes:
+                axis.axis('off')
 
 
 class SphericalSliceSpecification(ElectricFieldSpecification):
@@ -2237,6 +2242,7 @@ class SphericalSliceMesh(QuantumMesh):
                   slicer = 'get_mesh_slicer',
                   aspect_ratio = 1,
                   show_colorbar = True,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -2259,13 +2265,13 @@ class SphericalSliceMesh(QuantumMesh):
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 20)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
                 cbar.ax.tick_params(labelsize = 10)
@@ -2295,6 +2301,9 @@ class SphericalSliceMesh(QuantumMesh):
                 axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+            if not show_axes:
+                axis.axis('off')
 
 
 class SphericalHarmonicSpecification(ElectricFieldSpecification):
@@ -2876,8 +2885,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             # STEP 1 & 2
             self.g = self.wrap_vector(odd.dot(even.dot(self.flatten_mesh(self.g, 'l'))), 'l')
 
-            print(uround(self.sim.time, 'asec'), uround(electric_field_amplitude, 'aef'), even.data[0][:20])
-
         # STEP 3 & 4
         hamiltonian_explicit = -1 * hamiltonian_r
         hamiltonian_explicit.data[1] += 1  # add identity to sparse matrix operator
@@ -2992,6 +2999,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   slicer = 'get_mesh_slicer_spatial',
                   aspect_ratio = 1,
                   show_colorbar = True,
+                  show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -3015,13 +3023,13 @@ class SphericalHarmonicMesh(QuantumMesh):
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None:
+            if title is not None and show_axes:
                 title = axis.set_title(title, fontsize = 20)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
             # make a colorbar
-            if show_colorbar:
+            if show_colorbar and show_axes:
                 cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
                 cbar.ax.tick_params(labelsize = 10)
@@ -3051,6 +3059,9 @@ class SphericalHarmonicMesh(QuantumMesh):
                 axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+            if not show_axes:
+                axis.axis('off')
 
     def attach_g_to_axis(self, axis,
                          colormap = plt.get_cmap('richardson'),
@@ -3108,20 +3119,22 @@ class SphericalHarmonicMesh(QuantumMesh):
                        show_colorbar = False,
                        **kwargs)
 
-    def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
+    def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_unit = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,
                                         theta_points = 360,
-                                        g_mesh = None,
+                                        g = None,
                                         **kwargs):
         """
 
+        NB: lower and upper limits must be entered in the units you want them to be in!
+
         :param r_type:
-        :param r_scale:
+        :param r_unit:
         :param r_lower_lim:
         :param r_upper_lim:
         :param r_points:
         :param theta_points:
-        :param g_mesh:
+        :param g:
         :param kwargs:
         :return:
         """
@@ -3138,10 +3151,10 @@ class SphericalHarmonicMesh(QuantumMesh):
         elif r_type == 'momentum':
             wavenumbers = r / hbar
 
-        if g_mesh is None:
-            g_mesh = self.g
+        if g is None:
+            g = self.g
 
-        theta_mesh, wavenumber_mesh, inner_product_mesh = self.inner_product_with_plane_waves(thetas, wavenumbers, g_mesh = g_mesh)
+        theta_mesh, wavenumber_mesh, inner_product_mesh = self.inner_product_with_plane_waves(thetas, wavenumbers, g_mesh = g)
 
         if r_type == 'wavenumber':
             r_mesh = wavenumber_mesh
@@ -3151,11 +3164,11 @@ class SphericalHarmonicMesh(QuantumMesh):
             r_mesh = wavenumber_mesh * hbar
 
         return self.plot_electron_momentum_spectrum_from_meshes(theta_mesh, r_mesh, inner_product_mesh,
-                                                                r_type, r_scale,
+                                                                r_type, r_unit,
                                                                 **kwargs)
 
     def plot_electron_momentum_spectrum_from_meshes(self, theta_mesh, r_mesh, inner_product_mesh,
-                                                    r_type, r_scale,
+                                                    r_type, r_unit,
                                                     log = False,
                                                     **kwargs):
         """
@@ -3164,7 +3177,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         The radial dimension can be displayed in wavenumbers, energy, or momentum. The angle is the angle of the plane wave in the z-x plane (because m=0, the decomposition is symmetric in the x-y plane).
 
         :param r_type: type of unit for the radial axis ('wavenumber', 'energy', or 'momentum')
-        :param r_scale: unit specification for the radial dimension
+        :param r_unit: unit specification for the radial dimension
         :param r_lower_lim: lower limit for the radial dimension
         :param r_upper_lim: upper limit for the radial dimension
         :param r_points: number of points for the radial dimension
@@ -3176,7 +3189,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         if r_type not in ('wavenumber', 'energy', 'momentum'):
             raise ValueError("Invalid argument to plot_electron_spectrum: r_type must be either 'wavenumber', 'energy', or 'momentum'")
 
-        r_unit_value, r_unit_name = get_unit_value_and_latex_from_unit(r_scale)
+        r_unit_value, r_unit_name = get_unit_value_and_latex_from_unit(r_unit)
 
         plot_kwargs = {**dict(aspect_ratio = 1), **kwargs}
 

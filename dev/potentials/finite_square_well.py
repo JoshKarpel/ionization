@@ -90,7 +90,7 @@ if __name__ == '__main__':
 
         print(sim.info())
 
-        sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)
+        sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR)
 
         si.plots.xy_plot('energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,

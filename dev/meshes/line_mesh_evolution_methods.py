@@ -21,8 +21,8 @@ def run(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR,
-                                             grouped_free_states = {})
+        sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR,
+                                        grouped_free_states = {})
 
         si.plots.xy_plot(f'{sim.name}__energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,

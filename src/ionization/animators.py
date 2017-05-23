@@ -294,7 +294,7 @@ class WavefunctionSimulationAnimator(si.Animator):
         return self.__str__()
 
 
-class LineAxis(QuantumMeshAxis):
+class LineMeshAxis(QuantumMeshAxis):
     def initialize(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
@@ -313,24 +313,24 @@ class LineAxis(QuantumMeshAxis):
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
-        super(LineAxis, self).initialize()
+        super(LineMeshAxis, self).initialize()
 
     def update(self):
         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
-        super(LineAxis, self).update()
+        super(LineMeshAxis, self).update()
 
 
 class LineAnimator(WavefunctionSimulationAnimator):
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (16, 12))
 
-        self.ax_mesh = LineAxis(self.fig.add_axes([.07, .34, .88, .62]), self.sim,
-                                plot_limit = self.plot_limit,
-                                renormalize = self.renormalize,
-                                log_g = self.log_g,
-                                overlay_probability_current = self.overlay_probability_current,
-                                distance_unit = self.distance_unit)
+        self.ax_mesh = LineMeshAxis(self.fig.add_axes([.07, .34, .88, .62]), self.sim,
+                                    plot_limit = self.plot_limit,
+                                    renormalize = self.renormalize,
+                                    log_g = self.log_g,
+                                    overlay_probability_current = self.overlay_probability_current,
+                                    distance_unit = self.distance_unit)
         self.ax_metrics = MetricsAndElectricField(self.fig.add_axes([.065, .065, .85, .2]), self.sim,
                                                   log_metrics = self.log_metrics,
                                                   metrics = self.metrics)
@@ -340,7 +340,7 @@ class LineAnimator(WavefunctionSimulationAnimator):
         super(LineAnimator, self)._initialize_figure()
 
 
-class CylindricalSliceAxis(QuantumMeshAxis):
+class CylindricalSliceMeshAxis(QuantumMeshAxis):
     def initialize(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
@@ -367,24 +367,24 @@ class CylindricalSliceAxis(QuantumMeshAxis):
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
-        super(CylindricalSliceAxis, self).initialize()
+        super(CylindricalSliceMeshAxis, self).initialize()
 
     def update(self):
         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
-        super(CylindricalSliceAxis, self).update()
+        super(CylindricalSliceMeshAxis, self).update()
 
 
 class CylindricalSliceAnimator(WavefunctionSimulationAnimator):
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (16, 12))
 
-        self.ax_mesh = CylindricalSliceAxis(self.fig.add_axes([.07, .34, .88, .62]), self.sim,
-                                            plot_limit = self.plot_limit,
-                                            renormalize = self.renormalize,
-                                            log_g = self.log_g,
-                                            overlay_probability_current = self.overlay_probability_current,
-                                            distance_unit = self.distance_unit)
+        self.ax_mesh = CylindricalSliceMeshAxis(self.fig.add_axes([.07, .34, .88, .62]), self.sim,
+                                                plot_limit = self.plot_limit,
+                                                renormalize = self.renormalize,
+                                                log_g = self.log_g,
+                                                overlay_probability_current = self.overlay_probability_current,
+                                                distance_unit = self.distance_unit)
         self.ax_metrics = MetricsAndElectricField(self.fig.add_axes([.065, .065, .85, .2]), self.sim,
                                                   log_metrics = self.log_metrics,
                                                   metrics = self.metrics)
@@ -394,7 +394,7 @@ class CylindricalSliceAnimator(WavefunctionSimulationAnimator):
         super(CylindricalSliceAnimator, self)._initialize_figure()
 
 
-class PhiSliceAxis(QuantumMeshAxis):
+class PhiSliceMeshAxis(QuantumMeshAxis):
     def initialize(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
@@ -429,10 +429,10 @@ class PhiSliceAxis(QuantumMeshAxis):
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
-        super(PhiSliceAxis, self).initialize()
+        super(PhiSliceMeshAxis, self).initialize()
 
 
-class SphericalSlicePhiSliceAxis(PhiSliceAxis):
+class SphericalSlicePhiSliceMeshAxis(PhiSliceMeshAxis):
     def initialize(self):
         self.mesh, self.mesh_mirror = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit,
                                                                       distance_unit = self.distance_unit,
@@ -440,22 +440,22 @@ class SphericalSlicePhiSliceAxis(PhiSliceAxis):
 
         self.redraw += [self.mesh, self.mesh_mirror]
 
-        super(SphericalSlicePhiSliceAxis, self).initialize()
+        super(SphericalSlicePhiSliceMeshAxis, self).initialize()
 
     def update(self):
         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
         self.sim.mesh.update_g2_mesh(self.mesh_mirror, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
 
-        super(SphericalSlicePhiSliceAxis, self).update()
+        super(SphericalSlicePhiSliceMeshAxis, self).update()
 
 
-class SphericalHarmonicPhiSliceAxis(PhiSliceAxis):
+class SphericalHarmonicPhiSliceMeshAxis(PhiSliceMeshAxis):
     def initialize(self):
         self.mesh = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
 
         self.redraw += [self.mesh]
 
-        super(SphericalHarmonicPhiSliceAxis, self).initialize()
+        super(SphericalHarmonicPhiSliceMeshAxis, self).initialize()
 
     def update(self):
         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit, slicer = 'get_mesh_slicer_spatial')
@@ -465,7 +465,7 @@ class SphericalHarmonicPhiSliceAxis(PhiSliceAxis):
         except AttributeError:
             pass
 
-        super(SphericalHarmonicPhiSliceAxis, self).update()
+        super(SphericalHarmonicPhiSliceMeshAxis, self).update()
 
 
 class AngularMomentumDecompositionAxis(si.AxisManager):
@@ -571,11 +571,11 @@ class PhiSliceAnimator(WavefunctionSimulationAnimator):
 
 
 class SphericalSliceAnimator(PhiSliceAnimator):
-    mesh_axis_type = SphericalSlicePhiSliceAxis
+    mesh_axis_type = SphericalSlicePhiSliceMeshAxis
 
 
 class SphericalHarmonicAnimator(PhiSliceAnimator):
-    mesh_axis_type = SphericalHarmonicPhiSliceAxis
+    mesh_axis_type = SphericalHarmonicPhiSliceMeshAxis
 
     def __init__(self, top_right_axis_manager_type = TestStateStackplot, top_right_axis_kwargs = None, **kwargs):
         self.top_right_axis_manager_type = top_right_axis_manager_type

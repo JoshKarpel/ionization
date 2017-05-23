@@ -57,7 +57,7 @@ if __name__ == '__main__':
 
         sim.mesh.plot_g2(name_postfix = '_post', target_dir = OUT_DIR)
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, x_unit = 'fsec')
-        sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR, x_unit = 'fsec')
+        sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR, time_unit_value = 'fsec')
 
         # print(sim.mesh.wavenumbers)
         # print(sim.mesh.free_evolution_prefactor)
