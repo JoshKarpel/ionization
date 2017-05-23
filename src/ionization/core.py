@@ -2907,12 +2907,9 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        # even, odd = make_split_operator_evolution_matrices_LEN(a)  # cython call, marginally faster than pure python
         # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
 
         a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
-
-        # a = np.ones(len(a))  #TESTING ONLY
 
         a_even, a_odd = a[::2], a[1::2]
 
@@ -2975,8 +2972,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             even_diag[:] = np.cos(a_even).repeat(2)
 
             even_offdiag = np.zeros(len(a), dtype = np.complex128)
-            # print(a_even)
-            # print(np.sin(a_even))
             even_offdiag[::2] = np.sin(a_even)
 
             odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
