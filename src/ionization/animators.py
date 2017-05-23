@@ -293,6 +293,8 @@ class TestStateStackplot(si.AxisManager):
                  show_ticks_left = True,
                  legend_kwargs = None):
         self.states = states
+        if len(self.states) > 8:
+            logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
         self.show_norm = show_norm
 
         self.time_unit = time_unit
@@ -320,7 +322,7 @@ class TestStateStackplot(si.AxisManager):
         if self.show_norm:
             self.norm_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
                                              self.sim.norm_vs_time,
-                                             label = r'$\left\langle \psi|\psi \right\rangle$',
+                                             label = r'$\left\langle \Psi|\psi \right\rangle$',
                                              color = 'black',
                                              linewidth = 2)
 
@@ -355,15 +357,13 @@ class TestStateStackplot(si.AxisManager):
         super().initialize_axis()
 
     def _get_stackplot_data(self):
-        # return [self.sim.state_overlaps_vs_time[state] for state in self.spec.test_states]
-
         state_overlaps = self.sim.state_overlaps_vs_time
         if self.states is not None:
             if callable(self.states):
-                state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if self.states(state)}
+                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
             else:
                 states = set(self.states)
-                state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
+                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
 
         return state_overlaps
 
@@ -372,7 +372,7 @@ class TestStateStackplot(si.AxisManager):
 
         self.overlaps_stackplot = self.axis.stackplot(self.sim.data_times / self.time_unit_value,
                                                       *stackplot_data.values(),
-                                                      labels = [r'$\left| \left\langle \psi| {} \right\rangle \right|^2$'.format(state.latex) for state in stackplot_data.keys()],
+                                                      labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(state.latex) for state in sorted(stackplot_data)],
                                                       animated = True)
 
         self.redraw += [*self.overlaps_stackplot]
@@ -453,6 +453,101 @@ class QuantumMeshAxis(si.AxisManager):
         super().update_axis()
 
 
+class CylindricalSliceMeshAxis(QuantumMeshAxis):
+    def initialize_axis(self):
+        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+
+        if self.which == 'g':
+            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
+
+        self.mesh = self.attach_method(self.axis,
+                                       colormap = self.colormap,
+                                       norm = self.norm,
+                                       shading = self.shading,
+                                       plot_limit = self.plot_limit,
+                                       distance_unit = self.distance_unit,
+                                       slicer = self.slicer,
+                                       animated = True)
+        self.redraw.append(self.mesh)
+
+        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+
+        self.axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
+        self.axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 24)
+
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
+
+        self.axis.axis('tight')
+
+        super().initialize_axis()
+
+        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+
+        if self.which != 'g':
+            divider = make_axes_locatable(self.axis)
+            cax = divider.append_axes("right", size = "2%", pad = 0.05)
+            self.cbar = plt.colorbar(cax = cax, mappable = self.mesh)
+            self.cbar.ax.tick_params(labelsize = 20)
+
+
+class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
+    def __init__(self,
+                 slicer = 'get_mesh_slicer_spatial',
+                 **kwargs):
+        self.tick_labels = None
+
+        super().__init__(slicer = slicer, **kwargs)
+
+    def initialize_axis(self):
+        if self.which == 'g':
+            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
+
+        self.mesh = self.attach_method(self.axis,
+                                       colormap = self.colormap,
+                                       norm = self.norm,
+                                       shading = self.shading,
+                                       plot_limit = self.plot_limit,
+                                       distance_unit = self.distance_unit,
+                                       slicer = self.slicer,
+                                       animated = True)
+        self.redraw += [self.mesh]
+
+        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+
+        self.axis.set_theta_zero_location('N')
+        self.axis.set_theta_direction('clockwise')
+        self.axis.set_rlabel_position(80)
+
+        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
+        self.axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
+
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)  # increase size of tick labels
+        self.axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
+
+        self.axis.set_rlabel_position(80)
+
+        if self.tick_labels is None:
+            max_yticks = 5
+            yloc = plt.MaxNLocator(max_yticks, symmetric = False, prune = 'both')
+            self.axis.yaxis.set_major_locator(yloc)
+
+            plt.gcf().canvas.draw()  # must draw early to modify the axis text
+
+            self.tick_labels = self.axis.get_yticklabels()
+            for t in self.tick_labels:
+                t.set_text(t.get_text() + r'${}$'.format(unit_name))
+            self.axis.set_yticklabels(self.tick_labels)
+
+        self.axis.set_rmax((self.sim.mesh.r_max - (self.sim.mesh.delta_r / 2)) / unit_value)
+
+        self.axis.axis('tight')
+
+        super().initialize_axis()
+
+        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+
+
 class WavefunctionSimulationAnimator(si.Animator):
     def __init__(self,
                  axman_wavefunction = None,
@@ -514,44 +609,10 @@ class WavefunctionSimulationAnimator(si.Animator):
 #         super(LineAnimator, self)._initialize_figure()
 
 
-class CylindricalSliceMeshAxis(QuantumMeshAxis):
-    def initialize_axis(self):
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
-
-        if self.which == 'g':
-            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
-
-        self.mesh = self.attach_method(self.axis,
-                                       colormap = self.colormap,
-                                       norm = self.norm,
-                                       shading = self.shading,
-                                       plot_limit = self.plot_limit,
-                                       distance_unit = self.distance_unit,
-                                       slicer = self.slicer,
-                                       animated = True)
-        self.redraw.append(self.mesh)
-
-        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
-
-        self.axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
-        self.axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 24)
-
-        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
-
-        self.axis.axis('tight')
-
-        super().initialize_axis()
-
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
-
-        if self.which != 'g':
-            divider = make_axes_locatable(self.axis)
-            cax = divider.append_axes("right", size = "2%", pad = 0.05)
-            self.cbar = plt.colorbar(cax = cax, mappable = self.mesh)
-            self.cbar.ax.tick_params(labelsize = 20)
 
 
-class CylindricalSliceAnimator(WavefunctionSimulationAnimator):
+
+class RectangleAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower = ElectricPotentialAxis(),
                  **kwargs):
@@ -571,117 +632,6 @@ class CylindricalSliceAnimator(WavefunctionSimulationAnimator):
         self.axis_managers += [self.axman_wavefunction, self.axman_lower]
 
         super()._initialize_figure()
-
-
-# class PhiSliceMeshAxis(QuantumMeshAxis):
-#     def initialize_axis(self):
-#         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
-#
-#         self.axis.set_theta_zero_location('N')
-#         self.axis.set_theta_direction('clockwise')
-#         self.axis.set_rlabel_position(80)
-#
-#         self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
-#         # self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], linestyle = ':', linewidth = 2, alpha = 0.8)  # change grid color to make it show up against the colormesh
-#         angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
-#         self.axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
-#
-#         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)  # increase size of tick labels
-#         self.axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
-#
-#         self.axis.set_rlabel_position(80)
-#
-#         max_yticks = 5
-#         yloc = plt.MaxNLocator(max_yticks, symmetric = False, prune = 'both')
-#         self.axis.yaxis.set_major_locator(yloc)
-#
-#         plt.gcf().canvas.draw()  # must draw early to modify the axis text
-#
-#         tick_labels = self.axis.get_yticklabels()
-#         for t in tick_labels:
-#             t.set_text(t.get_text() + r'${}$'.format(unit_name))
-#             self.axis.set_yticklabels(tick_labels)
-#
-#         self.axis.set_rmax((self.sim.mesh.r_max - (self.sim.mesh.delta_r / 2)) / unit_value)
-#
-#         self.axis.axis('tight')
-#
-#         super().initialize_axis()
-#
-#         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
-
-
-# class SphericalSlicePhiSliceMeshAxis(PhiSliceMeshAxis):
-#     def initialize(self):
-#         self.mesh, self.mesh_mirror = self.sim.mesh.attach_g2_to_axis(self.axis, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit,
-#                                                                       distance_unit = self.distance_unit,
-#                                                                       animated = True)
-#
-#         self.redraw += [self.mesh, self.mesh_mirror]
-#
-#         super(SphericalSlicePhiSliceMeshAxis, self).initialize()
-#
-#     def update(self):
-#         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
-#         self.sim.mesh.update_g2_mesh(self.mesh_mirror, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
-#
-#         super(SphericalSlicePhiSliceMeshAxis, self).update()
-
-
-# class SphericalHarmonicPhiSliceMeshAxis(PhiSliceMeshAxis):
-class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
-    def __init__(self,
-                 slicer = 'get_mesh_slicer_spatial',
-                 **kwargs):
-        super().__init__(slicer = slicer, **kwargs)
-
-    def initialize_axis(self):
-        if self.which == 'g':
-            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
-
-        self.mesh = self.attach_method(self.axis,
-                                       colormap = self.colormap,
-                                       norm = self.norm,
-                                       shading = self.shading,
-                                       plot_limit = self.plot_limit,
-                                       distance_unit = self.distance_unit,
-                                       slicer = self.slicer,
-                                       animated = True)
-        self.redraw += [self.mesh]
-
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
-
-        self.axis.set_theta_zero_location('N')
-        self.axis.set_theta_direction('clockwise')
-        self.axis.set_rlabel_position(80)
-
-        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
-        angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
-        self.axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
-
-        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)  # increase size of tick labels
-        self.axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
-
-        self.axis.set_rlabel_position(80)
-
-        max_yticks = 5
-        yloc = plt.MaxNLocator(max_yticks, symmetric = False, prune = 'both')
-        self.axis.yaxis.set_major_locator(yloc)
-
-        plt.gcf().canvas.draw()  # must draw early to modify the axis text
-
-        tick_labels = self.axis.get_yticklabels()
-        for t in tick_labels:
-            t.set_text(t.get_text() + r'${}$'.format(unit_name))
-            self.axis.set_yticklabels(tick_labels)
-
-        self.axis.set_rmax((self.sim.mesh.r_max - (self.sim.mesh.delta_r / 2)) / unit_value)
-
-        self.axis.axis('tight')
-
-        super().initialize_axis()
-
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
 
 # class AngularMomentumDecompositionAxis(si.AxisManager):
@@ -729,70 +679,70 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
 #         super(AngularMomentumDecompositionAxis, self).update()
 #
 #
-# class ColorBarAxis(si.AxisManager):
-#     def __init__(self, *args, colorable, **kwargs):
-#         self.colorable = colorable
-#
-#         super(ColorBarAxis, self).__init__(*args, **kwargs)
-#
-#     def initialize(self):
-#         self.cbar = plt.colorbar(mappable = self.colorable, cax = self.axis)
-#         self.cbar.ax.tick_params(labelsize = 14)
-#
-#         super(ColorBarAxis, self).initialize()
+class ColorBarAxis(si.AxisManager):
+    def assign_colorable(self,
+                         colorable,
+                         fontsize = 14):
+        self.colorable = colorable
+        self.fontsize = fontsize
+
+    def initialize_axis(self):
+        self.cbar = plt.colorbar(mappable = self.colorable, cax = self.axis)
+        self.cbar.ax.tick_params(labelsize = self.fontsize)
+
+        super().initialize_axis()
 
 
-class PhiSliceAnimator(WavefunctionSimulationAnimator):
+class PolarAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower_right = ElectricPotentialAxis(),
                  axman_upper_right = None,
+                 axman_colorbar = None,
                  **kwargs):
         self.axman_lower_right = axman_lower_right
         self.axman_upper_right = axman_upper_right
+        self.axman_colorbar = axman_colorbar
 
         super().__init__(**kwargs)
 
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (20, 12))
 
-        self.ax_mesh = self.fig.add_axes([.05, .05, (12 / 20) - 0.05, .9], projection = 'polar')
-        self.axman_wavefunction.assign_axis(self.ax_mesh)
+        self.ax_wavefunction = self.fig.add_axes([.05, .05, (12 / 20) - 0.05, .9], projection = 'polar')
+        self.axman_wavefunction.assign_axis(self.ax_wavefunction)
         self.axis_managers.append(self.axman_wavefunction)
 
         if self.axman_lower_right is not None:
-            lower_legend_kwargs = dict(bbox_to_anchor = (1., 1.25),
+            lower_legend_kwargs = dict(bbox_to_anchor = (1., 1.2),
                                        loc = 'lower right',
-                                       borderaxespad = 0.0,
-                                       fontsize = 20,
-                                       fancybox = True,
-                                       framealpha = .1)
+                                       borderaxespad = 0.0)
             self.axman_lower_right.legend_kwargs.update(lower_legend_kwargs)
             self.ax_lower_right = self.fig.add_axes([.575, .075, .36, .15])
             self.axman_lower_right.assign_axis(self.ax_lower_right)
             self.axis_managers.append(self.axman_lower_right)
 
         if self.axman_upper_right is not None:
-            upper_legend_kwargs = dict(bbox_to_anchor = (1., -.25),
+            upper_legend_kwargs = dict(bbox_to_anchor = (1., -.35),
                                        loc = 'upper right',
-                                       borderaxespad = 0.0,
-                                       fontsize = 20,
-                                       fancybox = True,
-                                       framealpha = .1)
+                                       borderaxespad = 0.0)
             self.axman_upper_right.legend_kwargs.update(upper_legend_kwargs)
             self.ax_upper_right = self.fig.add_axes([.575, .8, .36, .15])
             self.axman_upper_right.assign_axis(self.ax_upper_right)
             self.axis_managers.append(self.axman_upper_right)
 
-        # self.ax_mesh.initialize()  # must pre-initialize so that the colobar can see the colormesh
-        # self.ax_cbar = ColorBarAxis(self.fig.add_axes([.65, .25, .03, .5]), self.sim, colorable = self.ax_mesh.mesh)
-
-        # self.axis_managers += [self.ax_mesh, self.ax_metrics, self.ax_cbar]
+        if self.axman_colorbar is not None:
+            self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colobar can see the colormesh
+            self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
+            self.ax_colobar = self.fig.add_axes([.65, .35, .02, .4])
+            self.axman_colorbar.assign_axis(self.ax_colobar)
+            self.axis_managers.append(self.axman_colorbar)
 
         plt.figtext(.075, .9, r'$|g|^2$', fontsize = 50)
 
-        # plt.figtext(.8, .6, r'Initial State: ${}$'.format(self.spec.initial_state.tex_str), fontsize = 22)
-
-        self.time_text = plt.figtext(.8, .49, r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)), fontsize = 30, animated = True)
+        self.time_text = plt.figtext(.6, .3,
+                                     r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)),
+                                     fontsize = 30,
+                                     animated = True)
         self.redraw.append(self.time_text)
 
         super()._initialize_figure()
@@ -801,24 +751,3 @@ class PhiSliceAnimator(WavefunctionSimulationAnimator):
         self.time_text.set_text(r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)))
 
         super()._update_data()
-
-# # class SphericalSliceAnimator(PhiSliceAnimator):
-# #     mesh_axis_type = SphericalSlicePhiSliceMeshAxis
-#
-#
-# class SphericalHarmonicAnimator(PhiSliceAnimator):
-#     pass
-#     # def __init__(self, top_right_axis_manager_type = TestStateStackplot, top_right_axis_kwargs = None, **kwargs):
-#     #     self.top_right_axis_manager_type = top_right_axis_manager_type
-#     #     if top_right_axis_kwargs is None:
-#     #         top_right_axis_kwargs = {}
-#     #     self.top_right_axis_kwargs = top_right_axis_kwargs
-#     #
-#     #     super(SphericalHarmonicAnimator, self).__init__(**kwargs)
-#
-#     # def _initialize_figure(self):
-#     #     super(SphericalHarmonicAnimator, self)._initialize_figure()
-#
-#     # self.top_right_axis = self.top_right_axis_manager_type(self.fig.add_axes([.56, .84, .39, .11]), self.sim, **self.top_right_axis_kwargs)
-#
-#     # self.axis_managers += [self.top_right_axis]

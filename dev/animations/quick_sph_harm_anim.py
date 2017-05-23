@@ -29,20 +29,21 @@ if __name__ == '__main__':
         )
 
         test_state_axman = ion.animators.TestStateStackplot(
-                states = tuple(ion.HydrogenBoundState(n, l) for n in range(4) for l in range(n))
+                states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n))[:8]
         )
 
         animators = [
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g2',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             shading = 'flat'
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = deepcopy(test_state_axman),
+                    axman_colorbar = ion.animators.ColorBarAxis(),
                     **anim_kwargs,
             ),
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
@@ -51,6 +52,7 @@ if __name__ == '__main__':
                             shading = 'flat'),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = deepcopy(test_state_axman),
+                    axman_colorbar = None,
                     **anim_kwargs,
             )
         ]

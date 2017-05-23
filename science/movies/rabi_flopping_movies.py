@@ -58,7 +58,7 @@ if __name__ == '__main__':
         )
 
         animators = [
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g2_50',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g2',
@@ -68,7 +68,7 @@ if __name__ == '__main__':
                     axman_upper_right = test_state_axman,
                     **animator_kwargs,
             ),
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g2_20',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g2',
@@ -78,7 +78,7 @@ if __name__ == '__main__':
                     axman_upper_right = test_state_axman,
                     **animator_kwargs,
             ),
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g_50',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
@@ -90,7 +90,7 @@ if __name__ == '__main__':
                     axman_upper_right = test_state_axman,
                     **animator_kwargs,
             ),
-            ion.animators.PhiSliceAnimator(
+            ion.animators.PolarAnimator(
                     postfix = 'g_20',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',

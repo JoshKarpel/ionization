@@ -30,13 +30,13 @@ if __name__ == '__main__':
         )
 
         animators = [
-            ion.animators.CylindricalSliceAnimator(
+            ion.animators.RectangleAnimator(
                     postfix = 'g2',
                     axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(shading = 'flat'),
                     axman_metrics = ion.animators.ElectricPotentialAxis(),
                     **anim_kwargs,
             ),
-            ion.animators.CylindricalSliceAnimator(
+            ion.animators.RectangleAnimator(
                     postfix = 'g',
                     axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(
                             which = 'g',
