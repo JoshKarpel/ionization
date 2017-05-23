@@ -24,151 +24,7 @@ COLORMESH_GRID_KWARGS = {
 }
 
 
-# class MetricsAndElectricField(si.AxisManager):
-#     def __init__(self,
-#                  log_metrics = False,
-#                  time_unit = 'asec',
-#                  electric_field_unit = 'AEF',
-#                  metrics = ('norm',),
-#                  label_top = False,
-#                  show_y_label = True,
-#                  ticks_top = False,
-#                  legend_kwargs = None):
-#         self.time_unit_str = ''
-#         if type(time_unit) == str:
-#             self.time_unit_str = UNIT_NAME_TO_LATEX[time_unit]
-#             time_unit = UNIT_NAME_TO_VALUE[time_unit]
-#         self.time_unit = time_unit
-#
-#         if type(electric_field_unit) == str:
-#             self.electric_field_unit_str = UNIT_NAME_TO_LATEX[electric_field_unit]
-#             self.electric_field_unit = UNIT_NAME_TO_VALUE[electric_field_unit]
-#         else:
-#             self.electric_field_unit_str = ''
-#             self.electric_field_unit = electric_field_unit
-#
-#         self.log_metrics = log_metrics
-#
-#         self.label_top = label_top
-#         self.show_y_label = show_y_label
-#         self.ticks_top = ticks_top
-#
-#         if legend_kwargs is None:
-#             legend_kwargs = dict()
-#         legend_defaults = dict(
-#                 loc = 'lower left',
-#                 fontsize = 20,
-#                 fancybox = True,
-#                 framealpha = .1,
-#         )
-#         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
-#
-#         self.metrics = metrics
-#
-#         super(MetricsAndElectricField, self).__init__()
-#
-#     def initialize_axis(self):
-#         self.time_line, = self.axis.plot([self.sim.data_times[self.sim.data_time_index] / self.time_unit,
-#                                           self.sim.data_times[self.sim.data_time_index] / self.time_unit],
-#                                          [0, 2],
-#                                          color = 'gray',
-#                                          animated = True)
-#
-#         self.redraw += [self.time_line]
-#
-#         self._initialize_electric_field()
-#
-#         for metric in self.metrics:
-#             self.__getattribute__('_initialize_metric_' + metric)()
-#
-#         self.legend = self.axis.legend(**self.legend_kwargs)
-#         self.redraw += [self.legend]
-#
-#         self.axis.grid(True, color = 'gray', linestyle = '--')
-#
-#         self.axis.set_xlabel(r'Time $t$ (${}$)'.format(self.time_unit_str), fontsize = 24)
-#
-#         if self.show_y_label:
-#             self.axis.set_ylabel('Wavefunction Metric', fontsize = 24)
-#
-#         if self.label_top:
-#             self.axis.xaxis.set_label_position('top')
-#
-#         self.axis.tick_params(labeltop = self.ticks_top)
-#
-#         self.axis.set_xlim(self.sim.data_times[0] / self.time_unit, self.sim.data_times[-1] / self.time_unit)
-#         if self.log_metrics:
-#             self.axis.set_yscale('log')
-#             self.axis.set_ylim(1e-8, 1)
-#         else:
-#             self.axis.set_ylim(0, 1.025)
-#         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 14)
-#
-#         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]
-#
-#         super().initialize_axis()
-#
-#     def _initialize_electric_field(self):
-#         self.axis_field = self.axis.twinx()
-#
-#         y_limit = 1.05 * np.nanmax(np.abs(self.spec.electric_potential.get_electric_field_amplitude(self.sim.data_times))) / self.electric_field_unit
-#         self.axis_field.set_ylim(-y_limit, y_limit)
-#
-#         self.axis_field.set_ylabel(r'${}(t)$ (${}$)'.format(core.LATEX_EFIELD, self.electric_field_unit_str),
-#                                    fontsize = 24, color = '#d62728')
-#         self.axis_field.yaxis.set_label_position('right')
-#         self.axis_field.tick_params(axis = 'both', which = 'major', labelsize = 14)
-#         self.axis_field.grid(True, color = '#d62728', linestyle = ':')
-#
-#         for tick in self.axis_field.get_yticklabels():
-#             tick.set_color('#d62728')
-#
-#         self.electric_field_line, = self.axis_field.plot(self.sim.data_times / self.time_unit,
-#                                                          self.sim.electric_field_amplitude_vs_time / self.electric_field_unit,
-#                                                          label = r'$E(t)$ ({})'.format(self.electric_field_unit_str),
-#                                                          color = core.COLOR_ELECTRIC_FIELD, linewidth = 3,
-#                                                          animated = True)
-#
-#         self.redraw += [self.electric_field_line, *self.axis_field.xaxis.get_gridlines(), *self.axis_field.yaxis.get_gridlines()]
-#
-#     def _initialize_metric_norm(self):
-#         self.norm_line, = self.axis.plot(self.sim.data_times / self.time_unit,
-#                                          self.sim.norm_vs_time,
-#                                          label = r'$\left\langle \psi|\psi \right\rangle$',
-#                                          color = 'black', linewidth = 3,
-#                                          animated = True)
-#
-#         self.redraw += [self.norm_line]
-#
-#     def _initialize_metric_initial_state_overlap(self):
-#         self.initial_state_overlap_line, = self.axis.plot(self.sim.data_times / self.time_unit,
-#                                                           self.sim.state_overlaps_vs_time[self.sim.spec.initial_state],
-#                                                           label = r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(self.sim.spec.initial_state.latex),
-#                                                           color = 'blue', linewidth = '3',
-#                                                           animated = True)
-#
-#         self.redraw += [self.initial_state_overlap_line]
-#
-#     def update_axis(self):
-#         self._update_electric_field()
-#
-#         for metric in self.metrics:
-#             self.__getattribute__('_update_metric_' + metric)()
-#
-#         self.time_line.set_xdata([self.sim.data_times[self.sim.data_time_index] / self.time_unit, self.sim.data_times[self.sim.data_time_index] / self.time_unit])
-#
-#         super().update_axis()
-#
-#     def _update_electric_field(self):
-#         self.electric_field_line.set_ydata(self.sim.electric_field_amplitude_vs_time / self.electric_field_unit)
-#
-#     def _update_metric_norm(self):
-#         self.norm_line.set_ydata(self.sim.norm_vs_time)
-#
-#     def _update_metric_initial_state_overlap(self):
-#         self.initial_state_overlap_line.set_ydata(self.sim.state_overlaps_vs_time[self.sim.spec.initial_state])
-
-class ElectricPotentialAxis(si.AxisManager):
+class ElectricPotentialPlotAxis(si.AxisManager):
     def __init__(self,
                  time_unit = 'asec',
                  show_electric_field = True,
@@ -281,26 +137,22 @@ class ElectricPotentialAxis(si.AxisManager):
         super().update_axis()
 
 
-class TestStateStackplot(si.AxisManager):
+class StackplotAxis(si.AxisManager):
     def __init__(self,
-                 states = None,
                  show_norm = True,
                  time_unit = 'asec',
-                 show_y_label = False,
+                 y_label = False,
                  show_ticks_bottom = True,
                  show_ticks_top = False,
                  show_ticks_right = True,
                  show_ticks_left = True,
                  legend_kwargs = None):
-        self.states = states
-        if len(self.states) > 8:
-            logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
         self.show_norm = show_norm
 
         self.time_unit = time_unit
         self.time_unit_value, self.time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-        self.show_y_label = show_y_label
+        self.y_label = y_label
         self.show_ticks_bottom = show_ticks_bottom
         self.show_ticks_top = show_ticks_top
         self.show_ticks_right = show_ticks_right
@@ -342,8 +194,8 @@ class TestStateStackplot(si.AxisManager):
 
         self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 24)
 
-        if self.show_y_label:
-            self.axis.set_ylabel('Wavefunction Metric', fontsize = 24)
+        if self.y_label is not None:
+            self.axis.set_ylabel(self.y_label, fontsize = 24)
 
         self.axis.tick_params(labelbottom = self.show_ticks_bottom, labeltop = self.show_ticks_top, labelright = self.show_ticks_right, labelleft = self.show_ticks_left)
 
@@ -357,15 +209,7 @@ class TestStateStackplot(si.AxisManager):
         super().initialize_axis()
 
     def _get_stackplot_data(self):
-        state_overlaps = self.sim.state_overlaps_vs_time
-        if self.states is not None:
-            if callable(self.states):
-                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
-            else:
-                states = set(self.states)
-                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
-
-        return state_overlaps
+        pass
 
     def _initialize_stackplot(self):
         stackplot_data = self._get_stackplot_data()
@@ -382,7 +226,7 @@ class TestStateStackplot(si.AxisManager):
             self.redraw.remove(x)
             x.remove()
 
-        self.axis.set_color_cycle(None)
+        self.axis.set_prop_cycle(None)
 
         stackplot_data = self._get_stackplot_data()
 
@@ -402,6 +246,117 @@ class TestStateStackplot(si.AxisManager):
         self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
         super().update_axis()
+
+
+class TestStateStackplotAxis(StackplotAxis):
+    def __init__(self,
+                 states = None,
+                 **kwargs):
+        self.states = states
+        if len(self.states) > 8:
+            logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
+
+        super().__init__(**kwargs)
+
+    def _get_stackplot_data(self):
+        state_overlaps = self.sim.state_overlaps_vs_time
+        if self.states is not None:
+            if callable(self.states):
+                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
+            else:
+                states = set(self.states)
+                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
+
+        return state_overlaps
+
+
+# class WavefunctionStackplotAxis(StackplotAxis):
+#     def __init__(self,
+#                  bound_state_max_n = 5,
+#                  collapse_bound_state_angular_momentums = True,
+#                  grouped_free_states = None,
+#                  grouped_free_state_labels = None,
+#                  **kwargs):
+#         self.states = states
+#         if len(self.states) > 8:
+#             logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
+#
+#         super().__init__(**kwargs)
+#
+#     def _get_stackplot_data(self):
+#         # state_overlaps = self.sim.state_overlaps_vs_time
+#         # if self.states is not None:
+#         #     if callable(self.states):
+#         #         state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
+#         #     else:
+#         #         states = set(self.states)
+#         #         state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
+#         #
+#         # return state_overlaps
+
+
+class AngularMomentumDecompositionAxis(si.AxisManager):
+    def __init__(self, renormalize_l_decomposition = False, maximum_l = None):
+        self.renormalize_l_decomposition = renormalize_l_decomposition
+        self.maximum_l = maximum_l
+        self.slice = slice(self.maximum_l + 1)
+
+        super().__init__()
+
+    def initialize_axis(self):
+        l_plot = self.sim.mesh.norm_by_l
+        if self.renormalize_l_decomposition:
+            l_plot /= self.sim.mesh.norm()
+        self.ang_mom_bar = self.axis.bar(self.sim.mesh.l[self.slice],
+                                         l_plot[self.slice],
+                                         align = 'center', color = '.5',
+                                         animated = True)
+
+        self.redraw += [*self.ang_mom_bar]
+
+        self.axis.yaxis.grid(True, **si.plots.GRID_KWARGS)
+
+        self.axis.set_xlabel(r'Orbital Angular Momentum $\ell$', fontsize = 22)
+        l_label = r'$\left| \left\langle \Psi | Y^{\ell}_0 \right\rangle \right|^2$'
+        if self.renormalize_l_decomposition:
+            l_label += r'$/\left\langle\Psi|\Psi\right\rangle$'
+        self.axis.set_ylabel(l_label, fontsize = 22)
+        self.axis.yaxis.set_label_position('right')
+
+        self.axis.set_ylim(0, 1)
+        self.axis.set_xlim(np.min(self.sim.mesh.l[self.slice]) - 0.4, np.max(self.sim.mesh.l[self.slice]) + 0.4)
+
+        self.axis.xaxis.set_major_locator(plt.MaxNLocator(integer = True))
+
+        self.axis.tick_params(labelleft = False, labelright = True)
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
+
+        self.redraw += [*self.axis.yaxis.get_gridlines()]
+
+        super().initialize_axis()
+
+    def update_axis(self):
+        l_plot = self.sim.mesh.norm_by_l[self.slice]
+        if self.renormalize_l_decomposition:
+            l_plot /= self.sim.norm_vs_time[self.sim.data_time_index]
+        for bar, height in zip(self.ang_mom_bar, l_plot):
+            bar.set_height(height)
+
+        super().update_axis()
+
+
+class ColorBarAxis(si.AxisManager):
+    def assign_colorable(self,
+                         colorable,
+                         fontsize = 14):
+        self.colorable = colorable
+        self.fontsize = fontsize
+
+    def initialize_axis(self):
+        self.cbar = plt.colorbar(mappable = self.colorable, cax = self.axis)
+        self.cbar.ax.tick_params(labelsize = self.fontsize)
+
+        super().initialize_axis()
 
 
 class QuantumMeshAxis(si.AxisManager):
@@ -428,21 +383,6 @@ class QuantumMeshAxis(si.AxisManager):
         self.update_method = getattr(simulation.mesh, f'update_{self.which}_mesh')
 
         super().initialize(simulation)
-
-    # def initialize_axis(self):
-    #     # self.mesh = self.attach_method(self.axis,
-    #     #                                colormap = self.colormap,
-    #     #                                norm = self.norm,
-    #     #                                shading = self.shading,
-    #     #                                plot_limit = self.plot_limit,
-    #     #                                distance_unit = self.distance_unit,
-    #     #                                slicer = self.slicer,
-    #     #                                animated = True)
-    #     # self.redraw.append(self.mesh)
-    #
-    #     #  doesn't work if its here....
-    #
-    #     super().initialize_axis()
 
     def update_axis(self):
         self.update_method(self.mesh,
@@ -614,7 +554,7 @@ class WavefunctionSimulationAnimator(si.Animator):
 
 class RectangleAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
-                 axman_lower = ElectricPotentialAxis(),
+                 axman_lower = ElectricPotentialPlotAxis(),
                  **kwargs):
         self.axman_lower = axman_lower
 
@@ -634,68 +574,9 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
         super()._initialize_figure()
 
 
-# class AngularMomentumDecompositionAxis(si.AxisManager):
-#     def __init__(self, *args, renormalize_l_decomposition = True, **kwargs):
-#         self.renormalize_l_decomposition = renormalize_l_decomposition
-#
-#         super(AngularMomentumDecompositionAxis, self).__init__(*args, **kwargs)
-#
-#     def initialize(self):
-#         l_plot = self.sim.mesh.norm_by_l
-#         if self.renormalize_l_decomposition:
-#             l_plot /= self.sim.mesh.norm()
-#         self.ang_mom_bar = self.axis.bar(self.sim.mesh.l, l_plot,
-#                                          align = 'center', color = '.5',
-#                                          animated = True)
-#
-#         self.redraw += [*self.ang_mom_bar]
-#
-#         self.axis.yaxis.grid(True, zorder = 10)
-#
-#         self.axis.set_xlabel(r'Orbital Angular Momentum $\ell$', fontsize = 22)
-#         l_label = r'$\left| \left\langle \psi | Y^{\ell}_0 \right\rangle \right|^2$'
-#         if self.renormalize_l_decomposition:
-#             l_label += r'$/\left\langle\psi|\psi\right\rangle$'
-#         self.axis.set_ylabel(l_label, fontsize = 22)
-#         self.axis.yaxis.set_label_position('right')
-#
-#         self.axis.set_ylim(0, 1)
-#         self.axis.set_xlim(np.min(self.sim.mesh.l) - 0.4, np.max(self.sim.mesh.l) + 0.4)
-#
-#         self.axis.tick_params(labelleft = False, labelright = True)
-#         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
-#
-#         self.redraw += [*self.axis.yaxis.get_gridlines()]
-#
-#         super(AngularMomentumDecompositionAxis, self).initialize()
-#
-#     def update(self):
-#         l_plot = self.sim.mesh.norm_by_l
-#         if self.renormalize_l_decomposition:
-#             l_plot /= self.sim.norm_vs_time[self.sim.data_time_index]
-#         for bar, height in zip(self.ang_mom_bar, l_plot):
-#             bar.set_height(height)
-#
-#         super(AngularMomentumDecompositionAxis, self).update()
-#
-#
-class ColorBarAxis(si.AxisManager):
-    def assign_colorable(self,
-                         colorable,
-                         fontsize = 14):
-        self.colorable = colorable
-        self.fontsize = fontsize
-
-    def initialize_axis(self):
-        self.cbar = plt.colorbar(mappable = self.colorable, cax = self.axis)
-        self.cbar.ax.tick_params(labelsize = self.fontsize)
-
-        super().initialize_axis()
-
-
 class PolarAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
-                 axman_lower_right = ElectricPotentialAxis(),
+                 axman_lower_right = ElectricPotentialPlotAxis(),
                  axman_upper_right = None,
                  axman_colorbar = None,
                  **kwargs):
@@ -725,7 +606,10 @@ class PolarAnimator(WavefunctionSimulationAnimator):
             upper_legend_kwargs = dict(bbox_to_anchor = (1., -.35),
                                        loc = 'upper right',
                                        borderaxespad = 0.0)
-            self.axman_upper_right.legend_kwargs.update(upper_legend_kwargs)
+            try:
+                self.axman_upper_right.legend_kwargs.update(upper_legend_kwargs)
+            except AttributeError:
+                pass
             self.ax_upper_right = self.fig.add_axes([.575, .8, .36, .15])
             self.axman_upper_right.assign_axis(self.ax_upper_right)
             self.axis_managers.append(self.axman_upper_right)

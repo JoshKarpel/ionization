@@ -33,7 +33,7 @@ if __name__ == '__main__':
             ion.animators.RectangleAnimator(
                     postfix = 'g2',
                     axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(shading = 'flat'),
-                    axman_metrics = ion.animators.ElectricPotentialAxis(),
+                    axman_metrics = ion.animators.ElectricPotentialPlotAxis(),
                     **anim_kwargs,
             ),
             ion.animators.RectangleAnimator(
@@ -43,7 +43,7 @@ if __name__ == '__main__':
                             colormap = si.plots.RichardsonColormap(),
                             norm = si.plots.RichardsonNormalization(),
                             shading = 'flat'),
-                    axman_metrics = ion.animators.ElectricPotentialAxis(),
+                    axman_metrics = ion.animators.ElectricPotentialPlotAxis(),
                     **anim_kwargs,
             )
         ]

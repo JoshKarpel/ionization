@@ -45,14 +45,14 @@ if __name__ == '__main__':
                 fps = 60,
         )
 
-        epot_axman = ion.animators.ElectricPotentialAxis(
+        epot_axman = ion.animators.ElectricPotentialPlotAxis(
                 show_electric_field = True,
                 show_vector_potential = False,
                 show_y_label = False,
                 show_ticks_right = True,
         )
 
-        test_state_axman = ion.animators.TestStateStackplot(
+        test_state_axman = ion.animators.TestStateStackplotAxis(
                 states = [ion.HydrogenBoundState(1, 0), ion.HydrogenBoundState(2, 1)],
                 show_norm = False,
         )

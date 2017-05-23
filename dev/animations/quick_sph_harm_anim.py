@@ -21,14 +21,14 @@ if __name__ == '__main__':
                 target_dir = OUT_DIR,
         )
 
-        epot_axman = ion.animators.ElectricPotentialAxis(
+        epot_axman = ion.animators.ElectricPotentialPlotAxis(
                 show_electric_field = True,
                 show_vector_potential = False,
                 show_y_label = False,
                 show_ticks_right = True,
         )
 
-        test_state_axman = ion.animators.TestStateStackplot(
+        test_state_axman = ion.animators.TestStateStackplotAxis(
                 states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n))[:8]
         )
 
@@ -54,7 +54,19 @@ if __name__ == '__main__':
                     axman_upper_right = deepcopy(test_state_axman),
                     axman_colorbar = None,
                     **anim_kwargs,
-            )
+            ),
+            ion.animators.PolarAnimator(
+                    postfix = 'g_angmom',
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                            which = 'g',
+                            colormap = plt.get_cmap('richardson'),
+                            norm = si.plots.RichardsonNormalization(),
+                            shading = 'flat'),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
+                    axman_colorbar = None,
+                    **anim_kwargs,
+            ),
         ]
 
         sim = ion.SphericalHarmonicSpecification('sph_harm',

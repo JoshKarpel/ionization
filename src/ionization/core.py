@@ -459,7 +459,7 @@ class ElectricFieldSimulation(si.Simulation):
                                   bound_state_max_n = 5,
                                   collapse_bound_state_angular_momentums = True,
                                   grouped_free_states = None,
-                                  group_labels = None,
+                                  group_free_states_labels = None,
                                   show_title = False,
                                   plot_name_from = 'file_name',
                                   **kwargs):
@@ -476,7 +476,7 @@ class ElectricFieldSimulation(si.Simulation):
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
             if grouped_free_states is None:
-                grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy', attr_unit = 'eV')
+                grouped_free_states, group_free_states_labels = self.group_free_states_by_continuous_attr('energy', attr_unit = 'eV')
             overlaps = []
             labels = []
             colors = []
@@ -511,7 +511,7 @@ class ElectricFieldSimulation(si.Simulation):
             for group, states in sorted(grouped_free_states.items()):
                 if len(states) != 0:
                     overlaps.append(np.sum(state_overlaps[s] for s in states))
-                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_labels[group]))
+                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_free_states_labels[group]))
                     colors.append(free_state_color_cycle.__next__())
 
             overlaps = [overlap for overlap in overlaps]
