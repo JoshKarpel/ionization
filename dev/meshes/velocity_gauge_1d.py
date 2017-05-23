@@ -32,7 +32,11 @@ def run_sim(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)
+        sim.plot_test_state_overlaps_vs_time(
+            target_dir = OUT_DIR,
+            img_format = 'png',
+            fig_dpi_scale = 3,
+        )
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
 
         return sim
@@ -97,11 +101,11 @@ if __name__ == '__main__':
                         ('CN',),
                         ('HAM',),
                         ('LEN', 'VEL')):
-                            specs.append(
-                                ion.LineSpecification(f'{gauge}__t_bound={t_bound}',
-                                                      **line_spec_base,
-                                                      evolution_method = method, evolution_equations = equations, evolution_gauge = gauge,
-                                                      )
-                            )
+                    specs.append(
+                        ion.LineSpecification(f'{gauge}__t_bound={t_bound}',
+                                              **line_spec_base,
+                                              evolution_method = method, evolution_equations = equations, evolution_gauge = gauge,
+                                              )
+                    )
 
                 results = si.utils.multi_map(run_sim, specs)
