@@ -1138,7 +1138,7 @@ class QuantumMesh:
 
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
-                            colormap = plt.get_cmap('viridis'),
+                            colormap = plt.get_cmap('inferno'),
                             norm = si.plots.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
@@ -1179,7 +1179,9 @@ class QuantumMesh:
     def update_mesh(self, colormesh, updated_mesh,
                     plot_limit = None,
                     shading = 'gouraud',
-                    slicer = 'get_mesh_slicer'):
+                    slicer = 'get_mesh_slicer',
+                    norm = si.plots.AbsoluteRenormalize(),  # not actually used by anything but LineMesh
+                    ):
         slice = getattr(self, slicer)(plot_limit)
         updated_mesh = updated_mesh[slice]
 
@@ -1484,12 +1486,40 @@ class LineMesh(QuantumMesh):
 
         return mesh_slicer
 
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, distance_unit = 'nm', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer',
+                            **kwargs
+                            ):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        line, = axis.plot(self.x_mesh[self.get_mesh_slicer(plot_limit)] / unit_value, mesh[self.get_mesh_slicer(plot_limit)], **kwargs)
+        slice = getattr(self, slicer)(plot_limit)
+
+        line, = axis.plot(self.x_mesh[slice] / unit_value, norm(mesh[slice]), **kwargs)
 
         return line
+
+    def update_mesh(self, colormesh, updated_mesh,
+                    plot_limit = None,
+                    shading = 'gouraud',
+                    slicer = 'get_mesh_slicer',
+                    norm = si.plots.AbsoluteRenormalize()):
+        slice = getattr(self, slicer)(plot_limit)
+        updated_mesh = updated_mesh[slice]
+
+        if norm is not None:
+            updated_mesh = norm(updated_mesh)
+
+        try:
+            if shading == 'flat':
+                updated_mesh = updated_mesh[:-1, :-1]
+            colormesh.set_array(updated_mesh.ravel())
+        except AttributeError:  # if the mesh is 1D we can't .ravel() it and instead should just set the y data with the mesh
+            colormesh.set_ydata(updated_mesh)
 
     def plot_mesh(self, mesh, distance_unit = 'nm', **kwargs):
         si.plots.xy_plot(self.sim.name + '_' + kwargs.pop('name'), self.x_mesh, mesh,
@@ -1824,7 +1854,7 @@ class CylindricalSliceMesh(QuantumMesh):
 
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
-                            colormap = plt.get_cmap('viridis'),
+                            colormap = plt.get_cmap('inferno'),
                             norm = si.plots.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
@@ -2221,7 +2251,7 @@ class SphericalSliceMesh(QuantumMesh):
 
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
-                            colormap = plt.get_cmap('viridis'),
+                            colormap = plt.get_cmap('inferno'),
                             norm = si.plots.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
@@ -3006,7 +3036,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
-                            colormap = plt.get_cmap('viridis'),
+                            colormap = plt.get_cmap('inferno'),
                             norm = si.plots.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,

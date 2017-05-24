@@ -17,9 +17,9 @@ logger.setLevel(logging.DEBUG)
 COLORMESH_GRID_KWARGS = {
     **si.plots.COLORMESH_GRID_KWARGS,
     **dict(
-            linestyle = ':',
-            linewidth = 1.5,
-            alpha = 0.6
+        linestyle = ':',
+        linewidth = 1.5,
+        alpha = 0.6
     )
 }
 
@@ -59,10 +59,10 @@ class ElectricPotentialPlotAxis(si.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 20,
-                fancybox = True,
-                framealpha = .1,
+            loc = 'lower left',
+            fontsize = 20,
+            fancybox = True,
+            framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -161,10 +161,10 @@ class StackplotAxis(si.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 20,
-                fancybox = True,
-                framealpha = .1,
+            loc = 'lower left',
+            fontsize = 20,
+            fancybox = True,
+            framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -253,6 +253,8 @@ class TestStateStackplotAxis(StackplotAxis):
                  states = None,
                  **kwargs):
         self.states = states
+        if not callable(self.states):
+            self.states = tuple(sorted(states))
         if len(self.states) > 8:
             logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
 
@@ -288,11 +290,12 @@ class WavefunctionStackplotAxis(StackplotAxis):
         state_overlaps = self.sim.state_overlaps_vs_time
 
         selected_state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in self.states or (state.numeric and state.analytic_state in self.states)}
+        overlap_len = len(list(state_overlaps.values())[0])  # ugly, but I don't see a way around it
 
         data = (
             *(overlap for state, overlap in sorted(selected_state_overlaps.items())),
-            sum(overlap for state, overlap in state_overlaps.items() if state.bound and state not in self.states),
-            sum(overlap for state, overlap in state_overlaps.items() if state.free and state not in self.states),
+            sum((overlap for state, overlap in state_overlaps.items() if state.bound and state not in self.states), np.zeros(overlap_len)),
+            sum((overlap for state, overlap in state_overlaps.items() if state.free and state not in self.states), np.zeros(overlap_len)),
         )
 
         labels = (
@@ -300,7 +303,6 @@ class WavefunctionStackplotAxis(StackplotAxis):
             r'$ \sum_{\mathrm{other \, bound}} \; \left| \left\langle \Psi | \psi_{{n, \, \ell}} \right\rangle \right|^2 $',
             fr'$ \sum_{{ \mathrm{{other \, free}} }} \; \left| \left\langle \Psi | \phi_{{E, \, \ell}} \right\rangle \right|^2 $',
         )
-
 
         return data, labels
 
@@ -398,8 +400,63 @@ class QuantumMeshAxis(si.AxisManager):
         self.update_method(self.mesh,
                            shading = self.shading,
                            plot_limit = self.plot_limit,
-                           slicer = self.slicer)
+                           slicer = self.slicer,
+                           norm = self.norm)
 
+        super().update_axis()
+
+
+class LineMeshAxis(QuantumMeshAxis):
+    def __init__(self,
+                 which = 'psi2',
+                 # show_potential = False,
+                 **kwargs):
+        # self.show_potential = show_potential
+
+        super().__init__(which = which, **kwargs)
+
+    def initialize_axis(self):
+        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+
+        self.mesh = self.attach_method(self.axis,
+                                       colormap = self.colormap,
+                                       norm = self.norm,
+                                       shading = self.shading,
+                                       plot_limit = self.plot_limit,
+                                       distance_unit = self.distance_unit,
+                                       slicer = self.slicer,
+                                       animated = True)
+        self.redraw.append(self.mesh)
+
+        # TODO: code for show_potential
+
+        self.axis.grid(True, **si.plots.GRID_KWARGS)
+
+        self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
+        plot_labels = {
+            'g2': r'$ \left| g \right|^2 $',
+            'psi2': r'$ \left| \Psi \right|^2 $',
+            'g': r'$ g $',
+            'psi': r'$ \Psi $',
+        }
+        self.axis.set_ylabel(plot_labels[self.which], fontsize = 30)
+
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
+        self.axis.tick_params(labelright = True, labeltop = True)
+
+        slice = getattr(self.sim.mesh, self.slicer)(self.plot_limit)
+        x = self.sim.mesh.x_mesh[slice]
+        x_lower_limit, x_upper_limit = x[0], x[-1]
+        self.axis.set_xlim(x_lower_limit / unit_value, x_upper_limit / unit_value)
+
+        self.axis.axis('tight')
+
+        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+
+        super().initialize_axis()
+
+    def update_axis(self):
+        # TODO: code for show_potential
         super().update_axis()
 
 
@@ -513,55 +570,6 @@ class WavefunctionSimulationAnimator(si.Animator):
         return self.__str__()
 
 
-# class LineMeshAxis(QuantumMeshAxis):
-#     def initialize_axis(self):
-#         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
-#
-#         self.mesh = self.sim.mesh.attach_g2_to_axis(self.axis, plot_limit = self.plot_limit, distance_unit = self.distance_unit, animated = True)
-#         self.redraw += [self.mesh]
-#
-#         self.axis.grid(True, color = si.plots.COLOR_OPPOSITE_INFERNO, linestyle = ':')  # change grid color to make it show up against the colormesh
-#
-#         self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
-#         self.axis.set_ylabel(r'$\left|\psi\right|^2$', fontsize = 30)
-#
-#         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)
-#         self.axis.tick_params(labelright = True, labeltop = True)
-#
-#         self.axis.axis('tight')
-#
-#         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
-#
-#         super(LineMeshAxis, self).initialize()
-#
-#     def update_axis(self):
-#         self.sim.mesh.update_g2_mesh(self.mesh, normalize = self.renormalize, log = self.log_g, plot_limit = self.plot_limit)
-#
-#         super().update_axis()
-
-
-# class LineAnimator(WavefunctionSimulationAnimator):
-#     def _initialize_figure(self):
-#         self.fig = plt.figure(figsize = (16, 12))
-#
-#         self.ax_mesh = LineMeshAxis(self.fig.add_axes([.07, .34, .88, .62]), self.sim,
-#                                     plot_limit = self.plot_limit,
-#                                     renormalize = self.renormalize,
-#                                     log_g = self.log_g,
-#                                     overlay_probability_current = self.overlay_probability_current,
-#                                     distance_unit = self.distance_unit)
-#         self.ax_metrics = MetricsAndElectricField(self.fig.add_axes([.065, .065, .85, .2]), self.sim,
-#                                                   log_metrics = self.log_metrics,
-#                                                   metrics = self.metrics)
-#
-#         self.axis_managers += [self.ax_mesh, self.ax_metrics]
-#
-#         super(LineAnimator, self)._initialize_figure()
-
-
-
-
-
 class RectangleAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower = ElectricPotentialPlotAxis(),
@@ -573,7 +581,7 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (16, 12))
 
-        self.ax_mesh = self.fig.add_axes([.1, .34, .86, .62])
+        self.ax_mesh = self.fig.add_axes([.1, .34, .84, .6])
         self.axman_wavefunction.assign_axis(self.ax_mesh)
 
         self.ax_lower = self.fig.add_axes([.065, .065, .87, .2])
@@ -584,11 +592,38 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
         super()._initialize_figure()
 
 
+class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
+    def __init__(self,
+                 axman_lower_left = ElectricPotentialPlotAxis(),
+                 axman_lower_right = WavefunctionStackplotAxis(),
+                 **kwargs):
+        self.axman_lower_left = axman_lower_left
+        self.axman_lower_right = axman_lower_right
+
+        super().__init__(**kwargs)
+
+    def _initialize_figure(self):
+        self.fig = plt.figure(figsize = (16, 12))
+
+        self.ax_mesh = self.fig.add_axes([.1, .34, .84, .6])
+        self.axman_wavefunction.assign_axis(self.ax_mesh)
+
+        self.ax_lower_left = self.fig.add_axes([.06, .06, .4, .2])
+        self.axman_lower_left.assign_axis(self.ax_lower_left)
+
+        self.ax_lower_right = self.fig.add_axes([.54, .06, .4, .2])
+        self.axman_lower_right.assign_axis(self.ax_lower_right)
+
+        self.axis_managers += [self.axman_wavefunction, self.axman_lower_left, self.axman_lower_right]
+
+        super()._initialize_figure()
+
+
 class PolarAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower_right = ElectricPotentialPlotAxis(),
-                 axman_upper_right = None,
-                 axman_colorbar = None,
+                 axman_upper_right = WavefunctionStackplotAxis(),
+                 axman_colorbar = ColorBarAxis(),
                  **kwargs):
         self.axman_lower_right = axman_lower_right
         self.axman_upper_right = axman_upper_right
