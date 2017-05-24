@@ -325,8 +325,8 @@ class ElectricFieldSimulation(si.Simulation):
     def free_states(self):
         yield from [s for s in self.spec.test_states if not s.bound]
 
-    def group_free_states_by_continuous_attr(self, attr, divisions = 10, cutoff_value = None,
-                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', label_unit = None):
+    def group_free_states_by_continuous_attr(self, attr = 'energy', divisions = 10, cutoff_value = None,
+                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', attr_unit = 'eV'):
         spectrum = set(getattr(s, attr) for s in self.free_states)
         grouped_states = collections.defaultdict(list)
         group_labels = {}
@@ -338,14 +338,14 @@ class ElectricFieldSimulation(si.Simulation):
             boundaries = np.linspace(attr_min, cutoff_value, num = divisions)
             boundaries = np.concatenate((boundaries, [attr_max]))
 
-        label_unit, label_unit_str = get_unit_value_and_latex_from_unit(label_unit)
+        label_unit_value, label_unit_latex = get_unit_value_and_latex_from_unit(attr_unit)
 
         free_states = list(self.free_states)
 
         for ii, lower_boundary in enumerate(boundaries[:-1]):
             upper_boundary = boundaries[ii + 1]
 
-            label = label_format_str.format(uround(lower_boundary, label_unit, 2), uround(upper_boundary, label_unit, 2), label_unit_str)
+            label = label_format_str.format(uround(lower_boundary, label_unit_value, 2), uround(upper_boundary, label_unit_value, 2), label_unit_latex)
             group_labels[(lower_boundary, upper_boundary)] = label
 
             for s in copy(free_states):
@@ -367,7 +367,7 @@ class ElectricFieldSimulation(si.Simulation):
             else:
                 cutoff.append(s)
 
-        group_labels = {k: label_format_str.format(int(k)) for k in grouped_states}
+        group_labels = {k: label_format_str.format(k) for k in grouped_states}
 
         try:
             cutoff_key = max(grouped_states) + 1  # get max key, make sure cutoff key is larger for sorting purposes
@@ -379,36 +379,35 @@ class ElectricFieldSimulation(si.Simulation):
 
         return grouped_states, group_labels
 
-    def plot_test_state_overlaps_vs_time(self, log = False, x_unit = 'asec',
-                                         **kwargs):
-        with si.plots.FigureManager(name = self.name + '__state_overlaps_vs_time', **kwargs) as figman:
-            fig = figman.fig
-            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+    def plot_state_overlaps_vs_time(self,
+                                    states = None,
+                                    log = False,
+                                    time_unit = 'asec',
+                                    **kwargs):
+        with si.plots.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
+            time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field,
-                              label = fr'${LATEX_EFIELD}(t)$',
-                              color = COLOR_ELECTRIC_FIELD,
-                              linewidth = 1.5,
-                              linestyle = '-')
-                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
-                              label = fr'$q{LATEX_AFIELD}(t)$',
-                              color = COLOR_VECTOR_POTENTIAL,
-                              linewidth = 1.5,
-                              linestyle = '-')
+                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
 
-            ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
             state_overlaps = self.state_overlaps_vs_time
+            if states is not None:
+                if callable(states):
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if states(state)}
+                else:
+                    states = set(states)
+                    state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
 
             overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
             labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
 
-            ax_overlaps.stackplot(self.data_times / x_scale_unit,
+            ax_overlaps.stackplot(self.data_times / time_unit_value,
                                   *overlaps,
                                   labels = labels,
                                   # colors = colors,
@@ -424,14 +423,13 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-            ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(LATEX_EFIELD, LATEX_AFIELD), fontsize = 13)
-            ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
+            ax_field.set_ylabel('${}(t)$'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.05, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
             ax_overlaps.tick_params(labelright = True)
             ax_field.tick_params(labelright = True)
@@ -460,42 +458,28 @@ class ElectricFieldSimulation(si.Simulation):
 
             figman.name += postfix
 
-    def plot_wavefunction_vs_time(self, log = False, x_unit = 'asec',
+    def plot_wavefunction_vs_time(self, log = False, time_unit = 'asec',
                                   bound_state_max_n = 5,
                                   collapse_bound_state_angular_momentums = True,
                                   grouped_free_states = None,
-                                  group_labels = None,
+                                  group_free_states_labels = None,
                                   show_title = False,
                                   plot_name_from = 'file_name',
                                   **kwargs):
-
         with si.plots.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
-            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(x_unit)
+            time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / x_scale_unit, self.electric_field_amplitude_vs_time / atomic_electric_field,
-                              label = fr'${LATEX_EFIELD}(t)$',
-                              color = COLOR_ELECTRIC_FIELD,
-                              linewidth = 1.5,
-                              linestyle = '-')
-                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
-                              label = fr'$q{LATEX_AFIELD}(t)$',
-                              color = COLOR_VECTOR_POTENTIAL,
-                              linewidth = 1.5,
-                              linestyle = '-')
-                ax_field.plot(self.data_times / x_scale_unit, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum, color = COLOR_VECTOR_POTENTIAL, linewidth = 2)
+                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
 
-            ax_overlaps.plot(self.data_times / x_scale_unit, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
             if grouped_free_states is None:
-                try:
-                    grouped_free_states, group_labels = self.group_free_states_by_continuous_attr('energy')
-                except AttributeError:
-                    grouped_free_states, group_labels = {}, {}
+                grouped_free_states, group_free_states_labels = self.group_free_states_by_continuous_attr('energy', attr_unit = 'eV')
             overlaps = []
             labels = []
             colors = []
@@ -530,12 +514,12 @@ class ElectricFieldSimulation(si.Simulation):
             for group, states in sorted(grouped_free_states.items()):
                 if len(states) != 0:
                     overlaps.append(np.sum(state_overlaps[s] for s in states))
-                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_labels[group]))
+                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_free_states_labels[group]))
                     colors.append(free_state_color_cycle.__next__())
 
             overlaps = [overlap for overlap in overlaps]
 
-            ax_overlaps.stackplot(self.data_times / x_scale_unit,
+            ax_overlaps.stackplot(self.data_times / time_unit_value,
                                   *overlaps,
                                   labels = labels,
                                   colors = colors,
@@ -551,19 +535,13 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-            ax_overlaps.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t) , \, q{}(t)$'.format(LATEX_EFIELD, LATEX_AFIELD), fontsize = 13)
-            ax_field.legend(loc = 'lower left', fontsize = 9, framealpha = 0.5)
+            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1),
-                               loc = 'upper left',
-                               borderaxespad = 0.075,
-                               fontsize = 9,
-                               ncol = 1 + (len(overlaps) // 17),
-                               frameon = False)
+            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
             ax_overlaps.tick_params(labelleft = True,
                                     labelright = True,
@@ -609,7 +587,6 @@ class ElectricFieldSimulation(si.Simulation):
                 postfix += '__log'
 
             figman.name += postfix
-
 
     def plot_energy_spectrum(self,
                              states = 'all',
@@ -714,7 +691,6 @@ class ElectricFieldSimulation(si.Simulation):
             if group_angular_momentum:
                 figman.name += '__grouped'
 
-
     def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
         fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
 
@@ -786,7 +762,6 @@ class ElectricFieldSimulation(si.Simulation):
 
         plt.close()
 
-
     def plot_dipole_moment_vs_time(self, gauge = 'length', use_name = False, **kwargs):
         if not use_name:
             prefix = self.file_name
@@ -797,7 +772,6 @@ class ElectricFieldSimulation(si.Simulation):
                          x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
                          x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
                          **kwargs)
-
 
     def dipole_moment_vs_frequency(self, gauge = 'length', first_time = None, last_time = None):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
@@ -816,7 +790,6 @@ class ElectricFieldSimulation(si.Simulation):
 
         return frequency, dipole_moment
 
-
     def plot_dipole_moment_vs_frequency(self, use_name = False, gauge = 'length', frequency_range = 10000 * THz, first_time = None, last_time = None, **kwargs):
         prefix = self.file_name
         if use_name:
@@ -831,7 +804,6 @@ class ElectricFieldSimulation(si.Simulation):
                          x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
                          x_lower_limit = 0, x_upper_limit = frequency_range,
                          **kwargs)
-
 
     def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
@@ -863,7 +835,6 @@ class ElectricFieldSimulation(si.Simulation):
             self.mesh = mesh
 
         return out
-
 
     @staticmethod
     def load(file_path, initialize_mesh = False):
@@ -1087,6 +1058,10 @@ class SimilarityOperator(DotOperator):
         if len(g) % 2 == 0:
             for a, b in si.utils.grouper(g, 2, fill_value = 0):
                 stack += (a + b, a - b)
+        else:
+            for a, b in si.utils.grouper(g[:-1], 2, fill_value = 0):
+                stack += (a + b, a - b)
+            stack.append(np.sqrt(2) * g[-1])
 
         return np.hstack(stack) / np.sqrt(2)
 
@@ -1096,6 +1071,9 @@ class SimilarityOperator(DotOperator):
             for a, b in si.utils.grouper(g[1:-1], 2, fill_value = 0):
                 stack += (a + b, a - b)
             stack.append(np.sqrt(2) * g[-1])
+        else:
+            for a, b in si.utils.grouper(g[1:], 2, fill_value = 0):
+                stack += (a + b, a - b)
 
         return np.hstack(stack) / np.sqrt(2)
 
