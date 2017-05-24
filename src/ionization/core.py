@@ -1516,10 +1516,10 @@ class LineMesh(QuantumMesh):
         interaction_operator = self.get_interaction_hamiltonian_matrix_operators()
 
         hamiltonian_x = self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian = sparse.dia_matrix(hamiltonian_x + interaction_operator)
+        hamiltonian = 1j * tau * sparse.dia_matrix(hamiltonian_x + interaction_operator)
 
-        ham_explicit = add_to_diagonal_sparse_matrix_diagonal(-1j * tau * hamiltonian, 1)
-        ham_implicit = add_to_diagonal_sparse_matrix_diagonal(1j * tau * hamiltonian, 1)
+        ham_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian, 1)
+        ham_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian, 1)
 
         operators = [
             DotOperator(ham_explicit, wrapping_direction = None),
@@ -1528,22 +1528,69 @@ class LineMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
+    def _make_split_operator_evolution_operators(self, interaction_hamiltonians_matrix_operators, tau):
+        return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonians_matrix_operators, tau)
+
+    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
+        return [DotOperator(sparse.diags([np.exp(-1j * interaction_hamiltonians_matrix_operators.data[0] * tau)], offsets = [0]), wrapping_direction = None)]
+
+    def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
+        a = interaction_hamiltonians_matrix_operators.data[-1][1:] * tau * (-1j)
+
+        a_even, a_odd = a[::2], a[1::2]
+
+        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+
+        if len(self.x_mesh) % 2 != 0:
+            even_diag[:-1] = np.cos(a_even).repeat(2)
+            even_diag[-1] = 1
+
+            even_offdiag[::2] = np.sin(a_even)
+
+            odd_diag[0] = 1
+            odd_diag[1:] = np.cos(a_odd).repeat(2)
+
+            odd_offdiag[1::2] = np.sin(a_odd)
+        else:
+            even_diag[:] = np.cos(a_even).repeat(2)
+
+            even_offdiag[::2] = np.sin(a_even)
+
+            odd_diag[0] = odd_diag[-1] = 1
+            odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+
+            odd_offdiag[1::2] = np.sin(a_odd)
+
+        even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
+        odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+
+        return (
+            DotOperator(even, wrapping_direction = None),
+            DotOperator(odd, wrapping_direction = None),
+        )
+
     def _evolve_SO(self, time_step):
         """Split-Operator evolution in the Length gauge."""
-        self._evolve_potential(time_step / 2)
-
         tau = time_step / (2 * hbar)
-        hamiltonian_x = self.get_kinetic_energy_matrix_operators()
 
-        hamiltonian = -1j * tau * hamiltonian_x
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g = hamiltonian.dot(self.g)
+        hamiltonian_x = self.get_internal_hamiltonian_matrix_operators()
 
-        hamiltonian = 1j * tau * hamiltonian_x
-        hamiltonian.data[1] += 1  # add identity to matrix operator
-        self.g = tdma(hamiltonian, self.g)
+        ham_x_explicit = add_to_diagonal_sparse_matrix_diagonal(-1j * tau * hamiltonian_x, 1)
+        ham_x_implicit = add_to_diagonal_sparse_matrix_diagonal(1j * tau * hamiltonian_x, 1)
 
-        self._evolve_potential(time_step / 2)
+        split_operators = self._make_split_operator_evolution_operators(self.get_interaction_hamiltonian_matrix_operators(), tau)
+
+        operators = [
+            *split_operators,
+            DotOperator(ham_x_explicit, wrapping_direction = None),
+            TDMAOperator(ham_x_implicit, wrapping_direction = None),
+            *reversed(split_operators),
+        ]
+
+        self.g = apply_operators(self, self.g, *operators)
 
     def _evolve_S(self, time_step):
         """Spectral evolution in the Length gauge."""
@@ -2778,16 +2825,15 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
         l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
 
+        l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
                 l_offdiagonal[l_index] = three_j_coefficient(l)
-                # print(l, three_j_coefficient(l))
-
         l_offdiagonal *= l_prefactor
 
-        return sparse.diags([l_offdiagonal, l_offdiagonal], offsets = (-1, 1))
+        return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
     def _get_interaction_hamiltonian_matrix_operators_LEN(self):
         """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
@@ -2802,14 +2848,11 @@ class SphericalHarmonicMesh(QuantumMesh):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
                 h1_offdiagonal[l_index] = three_j_coefficient(l) * (l + 1)
-                # print(l, three_j_coefficient(l))
         h1_offdiagonal *= h1_prefactor
 
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
 
         h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
-
-        # print('prefactor ratio', h2_prefactor / h1_prefactor)
 
         alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
         alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
@@ -2940,43 +2983,38 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-    def make_split_operator_evolution_operators(self, *args):
-        return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(*args)
+    def _make_split_operator_evolution_operators(self, interaction_hamiltonian_matrix_operators, tau):
+        return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonian_matrix_operators, tau)
 
     def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        # TODO: shortcut via tensor/outer products/memoization? most of the runtime is here
-
         a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
 
         a_even, a_odd = a[::2], a[1::2]
 
+        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
-            even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:-1] = np.cos(a_even).repeat(2)
             even_diag[-1] = 1
 
-            even_offdiag = np.zeros(len(a), dtype = np.complex128)
             even_offdiag[::2] = -1j * np.sin(a_even)
 
-            odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             odd_diag[0] = 1
             odd_diag[1:] = np.cos(a_odd).repeat(2)
 
-            odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = -1j * np.sin(a_odd)
         else:
-            even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:] = np.cos(a_even).repeat(2)
 
-            even_offdiag = np.zeros(len(a), dtype = np.complex128)
             even_offdiag[::2] = -1j * np.sin(a_even)
 
-            odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             odd_diag[0] = odd_diag[-1] = 1
             odd_diag[1:-1] = np.cos(a_odd).repeat(2)
 
-            odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = -1j * np.sin(a_odd)
 
         even = sparse.diags([even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
@@ -2987,36 +3025,34 @@ class SphericalHarmonicMesh(QuantumMesh):
             DotOperator(odd, wrapping_direction = 'l'),
         )
 
-    def _make_split_operator_VEL_h1(self, h1, tau):
+    def _make_split_operators_VEL_h1(self, h1, tau):
         a = h1.data[-1][1:] * tau * (-1j)
+
         a_even, a_odd = a[::2], a[1::2]
 
+        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        even_offdiag = np.zeros(len(a), dtype = np.complex128)
+        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
-            even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:-1] = np.cos(a_even).repeat(2)
             even_diag[-1] = 1
 
-            even_offdiag = np.zeros(len(a), dtype = np.complex128)
             even_offdiag[::2] = np.sin(a_even)
 
-            odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             odd_diag[0] = 1
             odd_diag[1:] = np.cos(a_odd).repeat(2)
 
-            odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = np.sin(a_odd)
         else:
-            even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             even_diag[:] = np.cos(a_even).repeat(2)
 
-            even_offdiag = np.zeros(len(a), dtype = np.complex128)
             even_offdiag[::2] = np.sin(a_even)
 
-            odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
             odd_diag[0] = odd_diag[-1] = 1
             odd_diag[1:-1] = np.cos(a_odd).repeat(2)
 
-            odd_offdiag = np.zeros(len(a), dtype = np.complex128)
             odd_offdiag[1::2] = np.sin(a_odd)
 
         even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
@@ -3027,12 +3063,11 @@ class SphericalHarmonicMesh(QuantumMesh):
             DotOperator(odd, wrapping_direction = 'l'),
         )
 
-    def _make_split_operator_VEL_h2(self, h2, tau):
+    def _make_split_operators_VEL_h2(self, h2, tau):
         len_r = len(self.r)
 
         a = h2.data[-1][len_r + 1:] * tau * (-1j)
 
-        # even l
         alpha_slices_even_l = []
         alpha_slices_odd_l = []
         for l in self.l:  # want last l but not last r, since unwrapped in r
@@ -3047,7 +3082,6 @@ class SphericalHarmonicMesh(QuantumMesh):
         even_odd_diag = []
         even_odd_offdiag = []
         for alpha_slice in alpha_slices_even_l:  # FOR EACH l
-
             even_slice = alpha_slice[::2]
             odd_slice = alpha_slice[1::2]
 
@@ -3073,11 +3107,9 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             if len(odd_slice) > 0:
                 new_even_odd_diag = np.ones(len_r, dtype = np.complex128)
-                new_even_odd_diag[0] = 1
 
                 if len_r % 2 == 0:
                     new_even_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
-                    new_even_odd_diag[-1] = 1
                 else:
                     new_even_odd_diag[1::] = np.cos(odd_slice).repeat(2)
 
@@ -3089,8 +3121,6 @@ class SphericalHarmonicMesh(QuantumMesh):
                 odd_sines[1:-1:2] = np.sin(odd_slice)
                 even_odd_offdiag.append(odd_sines)
                 even_odd_offdiag.append(-odd_sines)
-            else:
-                pass
         if self.l[-1] % 2 == 0:
             even_odd_diag.append(np.ones(len_r))
             even_odd_offdiag.append(np.zeros(len_r))
@@ -3118,10 +3148,10 @@ class SphericalHarmonicMesh(QuantumMesh):
                 else:
                     tile = np.ones(len_r, dtype = np.complex128)
                     tile[:-1] = np.cos(even_slice).repeat(2)
-                    tile[-1] = 1
+                    # tile[-1] = 1
                     new_odd_even_diag = np.tile(tile, 2)
                     even_sines[:-1:2] = np.sin(even_slice)
-                    even_sines[-1] = 0
+                    # even_sines[-1] = 0
 
                 odd_even_diag.append(new_odd_even_diag)
                 odd_even_offdiag.append(even_sines)
@@ -3132,11 +3162,9 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             if len(odd_slice) > 0:
                 new_odd_odd_diag = np.ones(len_r, dtype = np.complex128)
-                new_odd_odd_diag[0] = 1
 
                 if len_r % 2 == 0:
                     new_odd_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
-                    new_odd_odd_diag[-1] = 1
                 else:
                     new_odd_odd_diag[1::] = np.cos(odd_slice).repeat(2)
 
@@ -3148,9 +3176,6 @@ class SphericalHarmonicMesh(QuantumMesh):
                 odd_sines[1:-1:2] = np.sin(odd_slice)
                 odd_odd_offdiag.append(odd_sines)
                 odd_odd_offdiag.append(-odd_sines)
-            else:
-                pass
-
         if self.l[-1] % 2 != 0:
             odd_odd_diag.append(np.ones(len_r))
             odd_odd_offdiag.append(np.zeros(len_r))
@@ -3166,22 +3191,21 @@ class SphericalHarmonicMesh(QuantumMesh):
         odd_even_matrix = sparse.diags((-odd_even_offdiag, odd_even_diag, odd_even_offdiag), offsets = (-1, 0, 1))
         odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = (-1, 0, 1))
 
-        operators = [
+        operators = (
             SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even'),
             SimilarityOperator(even_odd_matrix, wrapping_direction = 'r', parity = 'even'),  # parity is based off FIRST splitting
             SimilarityOperator(odd_even_matrix, wrapping_direction = 'r', parity = 'odd'),
             SimilarityOperator(odd_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
-        ]
+        )
 
         return operators
 
     def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
-
         h1, h2 = interaction_hamiltonians_matrix_operators
 
-        h1_operators = self._make_split_operator_VEL_h1(h1, tau)
-        h2_operators = self._make_split_operator_VEL_h2(h2, tau)
+        h1_operators = self._make_split_operators_VEL_h1(h1, tau)
+        h2_operators = self._make_split_operators_VEL_h2(h2, tau)
 
         return (*h1_operators, *h2_operators)
 
@@ -3194,18 +3218,14 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
         hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
 
-        operators = [
+        split_operators = self._make_split_operator_evolution_operators(self.get_interaction_hamiltonian_matrix_operators(), tau)
+
+        operators = (
+            *split_operators,
             DotOperator(hamiltonian_r_explicit, wrapping_direction = 'r'),
             TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
-        ]
-
-        split_operators = self.make_split_operator_evolution_operators(self.get_interaction_hamiltonian_matrix_operators(), tau)
-
-        operators = [
-            *split_operators,
-            *operators,
             *reversed(split_operators),
-        ]
+        )
 
         self.g = apply_operators(self, self.g, *operators)
 
