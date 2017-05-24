@@ -50,14 +50,14 @@ if __name__ == '__main__':
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__collapsed__grouped_by_energy',
                 collapse_bound_state_angular_momentums = True,
-                grouped_free_states = e_states, group_labels = e_labels,
+                grouped_free_states = e_states, group_free_states_labels = e_labels,
                 **plt_kwargs,
         )
 
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__grouped_by_energy',
                 collapse_bound_state_angular_momentums = False,
-                grouped_free_states = e_states, group_labels = e_labels,
+                grouped_free_states = e_states, group_free_states_labels = e_labels,
                 **plt_kwargs,
         )
 
@@ -66,14 +66,14 @@ if __name__ == '__main__':
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__collapsed_grouped_by_L',
                 collapse_bound_state_angular_momentums = True,
-                grouped_free_states = l_states, group_labels = l_labels,
+                grouped_free_states = l_states, group_free_states_labels = l_labels,
                 **plt_kwargs,
         )
 
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__grouped_by_L',
                 collapse_bound_state_angular_momentums = False,
-                grouped_free_states = l_states, group_labels = l_labels,
+                grouped_free_states = l_states, group_free_states_labels = l_labels,
                 **plt_kwargs,
         )
 
