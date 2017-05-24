@@ -490,11 +490,13 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
-        if self.which != 'g':
+        if self.which not in ('g', 'psi'):
             divider = make_axes_locatable(self.axis)
             cax = divider.append_axes("right", size = "2%", pad = 0.05)
             self.cbar = plt.colorbar(cax = cax, mappable = self.mesh)
             self.cbar.ax.tick_params(labelsize = 20)
+        else:
+            logger.warning('show_colorbar cannot be used with nonlinear colormaps')
 
 
 class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
@@ -660,11 +662,14 @@ class PolarAnimator(WavefunctionSimulationAnimator):
             self.axis_managers.append(self.axman_upper_right)
 
         if self.axman_colorbar is not None:
-            self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colobar can see the colormesh
-            self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
-            self.ax_colobar = self.fig.add_axes([.65, .35, .02, .4])
-            self.axman_colorbar.assign_axis(self.ax_colobar)
-            self.axis_managers.append(self.axman_colorbar)
+            if self.axman_wavefunction.which not in ('g', 'psi'):
+                self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colobar can see the colormesh
+                self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
+                self.ax_colobar = self.fig.add_axes([.65, .35, .02, .4])
+                self.axman_colorbar.assign_axis(self.ax_colobar)
+                self.axis_managers.append(self.axman_colorbar)
+            else:
+                logger.warning('ColorbarAxis cannot be used with nonlinear colormaps')
 
         plot_labels = {
             'g2': r'$ \left| g \right|^2 $',

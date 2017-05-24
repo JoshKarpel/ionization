@@ -59,6 +59,28 @@ if __name__ == '__main__':
             electric_potential = efield,
             time_initial = -400 * asec, time_final = 400 * asec,
             electric_potential_dc_correction = True,
+            animators = [
+                ion.animators.PolarAnimator(
+                    postfix = 'g2',
+                    length = 30,
+                    fps = 30,
+                    target_dir = OUT_DIR,
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g2'
+                    )
+                ),
+                ion.animators.PolarAnimator(
+                    postfix = 'g',
+                    length = 30,
+                    fps = 30,
+                    target_dir = OUT_DIR,
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g',
+                        colormap = plt.get_cmap('richardson'),
+                        norm = si.plots.RichardsonNormalization(),
+                    )
+                )
+            ]
         )
 
         specs = []

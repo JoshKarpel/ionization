@@ -92,6 +92,14 @@ if __name__ == '__main__':
                     time_initial = -t_bound * efield.period, time_final = t_bound * efield.period,
                     time_step = 5 * asec,
                     electric_potential_dc_correction = True,
+                    animators = [
+                        ion.animators.RectangleSplitLowerAnimator(
+                            length = 30,
+                            fps = 30,
+                            target_dir = OUT_DIR,
+                            axman_wavefunction = ion.animators.LineMeshAxis(),
+                        )
+                    ]
                 )
 
                 specs = []

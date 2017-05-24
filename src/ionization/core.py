@@ -34,6 +34,8 @@ COLOR_VECTOR_POTENTIAL = si.plots.BLUE
 
 COLORMAP_WAVEFUNCTION = plt.get_cmap('inferno')
 
+DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR = 3
+
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -1200,8 +1202,16 @@ class QuantumMesh:
         return deepcopy(self)
 
     @property
-    def psi_mesh(self):
+    def psi(self):
         return self.g / self.g_factor
+
+    @property
+    def g2(self):
+        return np.abs(self.g) ** 2
+
+    @property
+    def psi2(self):
+        return np.abs(self.psi) ** 2
 
     @si.utils.memoize
     def get_kinetic_energy_matrix_operators(self):
@@ -1243,75 +1253,132 @@ class QuantumMesh:
     def get_mesh_slicer(self, plot_limit):
         raise NotImplementedError
 
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, distance_unit = 'nm', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer',
+                            **kwargs):
         raise NotImplementedError
 
-    def plot_mesh(self, mesh, distance_unit = 'nm', **kwargs):
-        raise NotImplementedError
+    def attach_g2_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.g2, **kwargs)
 
-    def abs_g_squared(self, normalize = False, log = False):
-        out = np.abs(self.g) ** 2
-        if normalize:
-            out /= np.nanmax(out)
-        if log:
-            out = np.log10(out)
+    def attach_psi2_to_axis(self, axis, **kwargs):
+        return self.attach_mesh_to_axis(axis, self.psi2, **kwargs)
 
-        return out
+    def attach_g_to_axis(self, axis,
+                         colormap = plt.get_cmap('richardson'),
+                         norm = None,
+                         **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-    def attach_g_to_axis(self, axis, normalize = False, log = False, plot_limit = None, **kwargs):
-        """Attach a colormesh of |g|^2 to the given axis."""
-        return self.attach_mesh_to_axis(axis, self.abs_g_squared(normalize = normalize, log = log), plot_limit = plot_limit, **kwargs)
+        return self.attach_mesh_to_axis(axis, self.g,
+                                        colormap = colormap,
+                                        norm = norm,
+                                        **kwargs)
 
-    def update_g_mesh(self, mesh, normalize = False, log = False, plot_limit = None, slicer = 'get_mesh_slicer'):
-        """Update a colormesh with with the current value of |g|^2."""
-        new_mesh = self.abs_g_squared(normalize = normalize, log = log)[getattr(self, slicer)(plot_limit)]
+    def attach_psi_to_axis(self, axis,
+                           colormap = plt.get_cmap('richardson'),
+                           norm = None,
+                           **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        return self.attach_mesh_to_axis(axis, self.psi,
+                                        colormap = colormap,
+                                        norm = norm,
+                                        **kwargs)
+
+    def update_mesh(self, colormesh, updated_mesh,
+                    plot_limit = None,
+                    shading = 'gouraud',
+                    slicer = 'get_mesh_slicer',
+                    norm = si.plots.AbsoluteRenormalize(),  # not actually used by anything but LineMesh
+                    ):
+        slice = getattr(self, slicer)(plot_limit)
+        updated_mesh = updated_mesh[slice]
 
         try:
-            mesh.set_array(new_mesh.ravel())
+            if shading == 'flat':
+                updated_mesh = updated_mesh[:-1, :-1]
+            colormesh.set_array(updated_mesh.ravel())
         except AttributeError:  # if the mesh is 1D we can't .ravel() it and instead should just set the y data with the mesh
-            mesh.set_ydata(new_mesh)
+            colormesh.set_ydata(updated_mesh)
 
-    def plot_g(self, normalize = True, name_postfix = '', **kwargs):
-        """Plot |g|^2. kwargs are for plot_mesh."""
-        title = ''
-        if normalize:
-            title = r'Normalized '
-        title += r'$|g|^2$'
+    def update_g2_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.g2, **kwargs)
+
+    def update_psi2_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.psi2, **kwargs)
+
+    def update_g_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.g, **kwargs)
+
+    def update_psi_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.psi, **kwargs)
+
+    def plot_mesh(self, mesh,
+                  name = '',
+                  title = None,
+                  distance_unit = 'bohr_radius',
+                  colormap = COLORMAP_WAVEFUNCTION,
+                  norm = si.plots.AbsoluteRenormalize(),
+                  shading = 'gouraud',
+                  plot_limit = None,
+                  slicer = 'get_mesh_slicer',
+                  **kwargs):
+        """kwargs go to figman"""
+        raise NotImplementedError
+
+    def plot_g2(self, name_postfix = '', **kwargs):
+        title = r'$|g|^2$'
+        name = 'g2' + name_postfix
+
+        self.plot_mesh(self.g2, name = name, title = title, **kwargs)
+
+    def plot_psi2(self, name_postfix = '', **kwargs):
+        title = r'$|\Psi|^2$'
+        name = 'psi2' + name_postfix
+
+        self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
+
+    def plot_g(self,
+               name_postfix = '',
+               colormap = plt.get_cmap('richardson'),
+               norm = None,
+               **kwargs):
+        title = r'$g$'
         name = 'g' + name_postfix
 
-        self.plot_mesh(self.abs_g_squared(normalize = normalize), name = name, title = title, color_map_min = 0, **kwargs)
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-    def abs_psi_squared(self, normalize = False, log = False):
-        out = np.abs(self.psi_mesh) ** 2
-        if normalize:
-            out /= np.nanmax(out)
-        if log:
-            out = np.log10(out)
+        self.plot_mesh(self.g, name = name, title = title,
+                       colormap = colormap,
+                       norm = norm,
+                       show_colorbar = False,
+                       **kwargs)
 
-        return out
+    def plot_psi(self,
+                 name_postfix = '',
+                 colormap = plt.get_cmap('richardson'),
+                 norm = None,
+                 **kwargs):
+        title = r'$g$'
+        name = 'g' + name_postfix
 
-    def attach_psi_to_axis(self, axis, normalize = False, log = False, plot_limit = None, **kwargs):
-        """Attach a colormesh of |psi|^2 to the given axis."""
-        return self.attach_mesh_to_axis(axis, self.abs_psi_squared(normalize = normalize, log = log), plot_limit = plot_limit, **kwargs)
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-    def update_psi_mesh(self, colormesh, normalize = False, log = False, plot_limit = None):
-        """Update a colormesh with with the current value of |psi|^2."""
-        new_mesh = self.abs_psi_squared(normalize = normalize, log = log)[self.get_mesh_slicer(plot_limit)]
-
-        try:
-            colormesh.set_array(new_mesh.ravel())
-        except AttributeError:
-            colormesh.set_ydata(new_mesh)
-
-    def plot_psi(self, normalize = True, name_postfix = '', **kwargs):
-        """Plot |psi|^2. kwargs are for plot_mesh."""
-        title = ''
-        if normalize:
-            title = r'Normalized '
-        title += r'$|\psi|^2$'
-        name = 'psi' + name_postfix
-
-        self.plot_mesh(self.abs_psi_squared(normalize = normalize), name = name, title = title, color_map_min = 0, **kwargs)
+        self.plot_mesh(self.psi, name = name, title = title,
+                       colormap = colormap,
+                       norm = norm,
+                       show_colorbar = False,
+                       **kwargs)
 
 
 class LineSpecification(ElectricFieldSpecification):
@@ -1558,10 +1625,20 @@ class LineMesh(QuantumMesh):
 
         return mesh_slicer
 
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, distance_unit = 'nm', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer',
+                            **kwargs
+                            ):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        line, = axis.plot(self.x_mesh[self.get_mesh_slicer(plot_limit)] / unit_value, mesh[self.get_mesh_slicer(plot_limit)], **kwargs)
+        slice = getattr(self, slicer)(plot_limit)
+
+        line, = axis.plot(self.x_mesh[slice] / unit_value, norm(mesh[slice]), **kwargs)
 
         return line
 
@@ -1876,13 +1953,24 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return mesh_slicer
 
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, distance_unit = 'bohr_radius', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer',
+                            **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        color_mesh = axis.pcolormesh(self.z_mesh[self.get_mesh_slicer(plot_limit)] / unit_value,
-                                     self.rho_mesh[self.get_mesh_slicer(plot_limit)] / unit_value,
-                                     mesh[self.get_mesh_slicer(plot_limit)],
-                                     shading = 'gouraud',
+        slice = getattr(self, slicer)(plot_limit)
+
+        color_mesh = axis.pcolormesh(self.z_mesh[slice] / unit_value,
+                                     self.rho_mesh[slice] / unit_value,
+                                     mesh[slice],
+                                     shading = shading,
+                                     cmap = colormap,
+                                     norm = norm,
                                      **kwargs)
 
         return color_mesh
@@ -2229,18 +2317,31 @@ class SphericalSliceMesh(QuantumMesh):
 
         return mesh_slicer
 
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, distance_unit = 'bohr_radius', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer',
+                            **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        color_mesh = axis.pcolormesh(self.theta_mesh[self.get_mesh_slicer(plot_limit)],
-                                     self.r_mesh[self.get_mesh_slicer(plot_limit)] / unit_value,
-                                     mesh[self.get_mesh_slicer(plot_limit)],
-                                     shading = 'gouraud',
+        slice = getattr(self, slicer)(plot_limit)
+
+        color_mesh = axis.pcolormesh(self.theta_mesh[slice],
+                                     self.r_mesh[slice] / unit_value,
+                                     mesh[slice],
+                                     shading = shading,
+                                     cmap = colormap,
+                                     norm = norm,
                                      **kwargs)
-        color_mesh_mirror = axis.pcolormesh(twopi - self.theta_mesh[self.get_mesh_slicer(plot_limit)],
-                                            self.r_mesh[self.get_mesh_slicer(plot_limit)] / unit_value,
-                                            mesh[self.get_mesh_slicer(plot_limit)],
-                                            shading = 'gouraud',
+        color_mesh_mirror = axis.pcolormesh(twopi - self.theta_mesh[slice],
+                                            self.r_mesh[slice] / unit_value,
+                                            mesh[slice],
+                                            shading = shading,
+                                            cmap = colormap,
+                                            norm = norm,
                                             **kwargs)  # another colormesh, mirroring the first mesh onto pi to 2pi
 
         return color_mesh, color_mesh_mirror
@@ -3127,8 +3228,6 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-        # print(self.norm_by_l)
-
     def _apply_length_gauge_transformation(self, prefactor_mesh, g):
         # print(np.shape(g))
         # print(np.shape(np.tile(g, (len(self.l), 1, 1))))
@@ -3234,48 +3333,58 @@ class SphericalHarmonicMesh(QuantumMesh):
     def space_psi(self):
         return self.space_g / self.g_factor
 
-    def abs_g_squared(self, normalize = False, log = False):
-        out = np.abs(self.space_g) ** 2
-        if normalize:
-            out /= np.nanmax(out)
-        if log:
-            out = np.log10(out)
+    @property
+    def space_psi(self):
+        return self.space_g / self.r_theta_mesh
 
-        return out
+    @property
+    def g2(self):
+        return np.abs(self.space_g) ** 2
 
-    def abs_psi_squared(self, normalize = False, log = False):
-        out = np.abs(self.space_psi) ** 2
-        if normalize:
-            out /= np.nanmax(out)
-        if log:
-            out = np.log10(out)
+    @property
+    def psi2(self):
+        return np.abs(self.space_psi) ** 2
 
-        return out
-
-    def attach_mesh_to_axis(self, axis, mesh, plot_limit = None, color_map_min = 0, distance_unit = 'bohr_radius', **kwargs):
+    def attach_mesh_to_axis(self, axis, mesh,
+                            distance_unit = 'bohr_radius',
+                            colormap = plt.get_cmap('inferno'),
+                            norm = si.plots.AbsoluteRenormalize(),
+                            shading = 'gouraud',
+                            plot_limit = None,
+                            slicer = 'get_mesh_slicer_spatial',
+                            **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        color_mesh = axis.pcolormesh(self.theta_mesh[self.get_mesh_slicer_spatial(plot_limit)],
-                                     self.r_theta_mesh[self.get_mesh_slicer_spatial(plot_limit)] / unit_value,
-                                     mesh[self.get_mesh_slicer_spatial(plot_limit)],
-                                     shading = 'gouraud', vmin = color_map_min,
+        slice = getattr(self, slicer)(plot_limit)
+
+        color_mesh = axis.pcolormesh(self.theta_mesh[slice],
+                                     self.r_theta_mesh[slice] / unit_value,
+                                     mesh[slice],
+                                     shading = shading,
+                                     cmap = colormap,
+                                     norm = norm,
                                      **kwargs)
 
         return color_mesh
 
-    def attach_probability_current_to_axis(self, axis, plot_limit = None, distance_unit = 'bohr_radius'):
-        raise NotImplementedError
+    # def attach_probability_current_to_axis(self, axis, plot_limit = None, distance_unit = 'bohr_radius'):
+    #     raise NotImplementedError
 
     def plot_mesh(self, mesh,
-                  name = '', title = None,
-                  overlay_probability_current = False, probability_current_time_step = 0, plot_limit = None,
-                  color_map_min = 0,
+                  name = '',
+                  title = None,
                   distance_unit = 'bohr_radius',
-                  color_map = plt.get_cmap('inferno'),
+                  colormap = COLORMAP_WAVEFUNCTION,
+                  norm = si.plots.AbsoluteRenormalize(),
+                  shading = 'gouraud',
+                  plot_limit = None,
+                  slicer = 'get_mesh_slicer_spatial',
+                  aspect_ratio = 1,
+                  show_colorbar = True,
+                  show_axes = True,
+                  # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(distance_unit)
-
-        with si.plots.FigureManager(self.sim.name + '__' + name, **kwargs) as figman:
+        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
             fig.set_tight_layout(True)
@@ -3283,28 +3392,36 @@ class SphericalHarmonicMesh(QuantumMesh):
             axis.set_theta_zero_location('N')
             axis.set_theta_direction('clockwise')
 
-            plt.set_cmap(color_map)
+            unit_value, unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
 
-            color_mesh = self.attach_mesh_to_axis(axis, mesh, plot_limit = plot_limit, color_map_min = color_map_min, distance_unit = distance_unit)
-            if overlay_probability_current:
-                quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
+            color_mesh = self.attach_mesh_to_axis(axis, mesh,
+                                                  distance_unit = distance_unit,
+                                                  colormap = colormap,
+                                                  norm = norm,
+                                                  shading = shading,
+                                                  plot_limit = plot_limit,
+                                                  slicer = slicer
+                                                  )
+            # if overlay_probability_current:
+            #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None:
-                title = axis.set_title(title, fontsize = 15)
+            if title is not None and show_axes:
+                title = axis.set_title(title, fontsize = 20)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
             # make a colorbar
-            cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
-            cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
-            cbar.ax.tick_params(labelsize = 8)
+            if show_colorbar and show_axes:
+                cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
+                cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
+                cbar.ax.tick_params(labelsize = 10)
 
-            axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[color_map], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[colormap.name], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
             axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
-            axis.tick_params(axis = 'both', which = 'major', labelsize = 8)  # increase size of tick labels
-            axis.tick_params(axis = 'y', which = 'major', colors = si.plots.COLOR_OPPOSITE_INFERNO, pad = 3)  # make r ticks a color that shows up against the colormesh
+            axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
+            axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
             axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             axis.set_rlabel_position(80)
@@ -3317,13 +3434,78 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             tick_labels = axis.get_yticklabels()
             for t in tick_labels:
-                t.set_text(t.get_text() + r'${}$'.format(unit_name))
+                t.set_text(t.get_text() + fr'${unit_latex}$')
             axis.set_yticklabels(tick_labels)
 
-            if plot_limit is not None:
-                axis.set_rmax(plot_limit / unit_value)
+            if plot_limit is not None and plot_limit < self.r_max:
+                axis.set_rmax((plot_limit - (self.delta_r / 2)) / unit_value)
             else:
                 axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
+
+            if not show_axes:
+                axis.axis('off')
+
+    def attach_g_to_axis(self, axis,
+                         colormap = plt.get_cmap('richardson'),
+                         norm = None,
+                         **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        return self.attach_mesh_to_axis(axis, self.space_g,
+                                        colormap = colormap,
+                                        norm = norm,
+                                        **kwargs)
+
+    def plot_g(self, name_postfix = '',
+               colormap = plt.get_cmap('richardson'),
+               norm = None,
+               **kwargs):
+        title = r'$g$'
+        name = 'g' + name_postfix
+
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        self.plot_mesh(self.space_g, name = name, title = title,
+                       colormap = colormap,
+                       norm = norm,
+                       show_colorbar = False,
+                       **kwargs)
+
+    def attach_psi_to_axis(self, axis,
+                           colormap = plt.get_cmap('richardson'),
+                           norm = None,
+                           **kwargs):
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        return self.attach_mesh_to_axis(axis, self.space_psi,
+                                        colormap = colormap,
+                                        norm = norm,
+                                        **kwargs)
+
+    def plot_psi(self, name_postfix = '',
+                 colormap = plt.get_cmap('richardson'),
+                 norm = None,
+                 **kwargs):
+        title = r'$\Psi$'
+        name = 'psi' + name_postfix
+
+        if norm is None:
+            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        self.plot_mesh(self.space_psi, name = name, title = title,
+                       colormap = colormap,
+                       norm = norm,
+                       show_colorbar = False,
+                       **kwargs)
+
+    def update_g_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.space_g, **kwargs)
+
+    def update_psi_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.space_psi, **kwargs)
 
     def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,
