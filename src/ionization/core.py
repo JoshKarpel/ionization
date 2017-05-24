@@ -32,6 +32,8 @@ STR_AFIELD = r'\mathcal{A}'
 COLOR_ELECTRIC_FIELD = si.plots.RED
 COLOR_VECTOR_POTENTIAL = si.plots.BLUE
 
+COLORMAP_WAVEFUNCTION = plt.get_cmap('inferno')
+
 
 def electron_energy_from_wavenumber(k):
     return (hbar * k) ** 2 / (2 * electron_mass)
@@ -2763,7 +2765,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
                 h1_offdiagonal[l_index] = three_j_coefficient(l) * (l + 1)
-                # print(l, three_j_coefficient(l))
         h1_offdiagonal *= h1_prefactor
 
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
@@ -2781,10 +2782,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return h1, h2
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        # return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
         vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
-        # print('vamp', vector_potential_amp * electron_charge / atomic_momentum)
-        # print(self._get_interaction_hamiltonian_matrix_operators_without_field_VEL()[0].data[0])
         return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
 
     def get_numeric_eigenstate_basis(self, max_energy, l_max):
