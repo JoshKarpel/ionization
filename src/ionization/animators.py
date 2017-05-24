@@ -141,7 +141,7 @@ class StackplotAxis(si.AxisManager):
     def __init__(self,
                  show_norm = True,
                  time_unit = 'asec',
-                 y_label = False,
+                 y_label = None,
                  show_ticks_bottom = True,
                  show_ticks_top = False,
                  show_ticks_right = True,
@@ -208,15 +208,15 @@ class StackplotAxis(si.AxisManager):
 
         super().initialize_axis()
 
-    def _get_stackplot_data(self):
-        pass
+    def _get_stackplot_data_and_labels(self):
+        raise NotImplementedError
 
     def _initialize_stackplot(self):
-        stackplot_data = self._get_stackplot_data()
+        data, labels = self._get_stackplot_data_and_labels()
 
         self.overlaps_stackplot = self.axis.stackplot(self.sim.data_times / self.time_unit_value,
-                                                      *stackplot_data.values(),
-                                                      labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(state.latex) for state in sorted(stackplot_data)],
+                                                      *data,
+                                                      labels = labels,
                                                       animated = True)
 
         self.redraw += [*self.overlaps_stackplot]
@@ -228,11 +228,11 @@ class StackplotAxis(si.AxisManager):
 
         self.axis.set_prop_cycle(None)
 
-        stackplot_data = self._get_stackplot_data()
+        data, labels = self._get_stackplot_data_and_labels()
 
         self.overlaps_stackplot = self.axis.stackplot(self.sim.data_times / self.time_unit_value,
-                                                      *stackplot_data.values(),
-                                                      labels = [r'$\left| \left\langle \psi| {} \right\rangle \right|^2$'.format(state.latex) for state in stackplot_data.keys()],
+                                                      *data,
+                                                      labels = labels,
                                                       animated = True)
 
         self.redraw = [*self.overlaps_stackplot] + self.redraw
@@ -258,41 +258,51 @@ class TestStateStackplotAxis(StackplotAxis):
 
         super().__init__(**kwargs)
 
-    def _get_stackplot_data(self):
+    def _get_stackplot_data_and_labels(self):
         state_overlaps = self.sim.state_overlaps_vs_time
         if self.states is not None:
             if callable(self.states):
-                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
+                data = (overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state))
             else:
                 states = set(self.states)
-                state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
+                data = (overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states))
+        else:
+            data = (overlap for state, overlap in sorted(state_overlaps.items()))
 
-        return state_overlaps
+        labels = (r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(state.latex) for state in sorted(state_overlaps))
+
+        return data, labels
 
 
-# class WavefunctionStackplotAxis(StackplotAxis):
-#     def __init__(self,
-#                  bound_state_max_n = 5,
-#                  collapse_bound_state_angular_momentums = True,
-#                  grouped_free_states = None,
-#                  grouped_free_state_labels = None,
-#                  **kwargs):
-#         self.states = states
-#         if len(self.states) > 8:
-#             logger.warning(f'Using more than 8 states in a {self.__class__.__name__} is ill-advised')
-#
-#         super().__init__(**kwargs)
-#
-#     def _get_stackplot_data(self):
-#         # state_overlaps = self.sim.state_overlaps_vs_time
-#         # if self.states is not None:
-#         #     if callable(self.states):
-#         #         state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if self.states(state)}
-#         #     else:
-#         #         states = set(self.states)
-#         #         state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in states or (state.numeric and state.analytic_state in states)}
-#         #
-#         # return state_overlaps
+class WavefunctionStackplotAxis(StackplotAxis):
+    def __init__(self,
+                 states = None,
+                 **kwargs):
+        if states is None:
+            states = ()
+        self.states = sorted(states)
+
+        super().__init__(**kwargs)
+
+    def _get_stackplot_data_and_labels(self):
+        state_overlaps = self.sim.state_overlaps_vs_time
+
+        selected_state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in self.states or (state.numeric and state.analytic_state in self.states)}
+
+        data = (
+            *(overlap for state, overlap in sorted(selected_state_overlaps.items())),
+            sum(overlap for state, overlap in state_overlaps.items() if state.bound and state not in self.states),
+            sum(overlap for state, overlap in state_overlaps.items() if state.free and state not in self.states),
+        )
+
+        labels = (
+            *(r'$ \left| \left\langle \Psi | {} \right\rangle \right|^2 $'.format(state.latex) for state, overlap in sorted(selected_state_overlaps.items())),
+            r'$ \sum_{\mathrm{other \, bound}} \; \left| \left\langle \Psi | \psi_{{n, \, \ell}} \right\rangle \right|^2 $',
+            fr'$ \sum_{{ \mathrm{{other \, free}} }} \; \left| \left\langle \Psi | \phi_{{E, \, \ell}} \right\rangle \right|^2 $',
+        )
+
+
+        return data, labels
 
 
 class AngularMomentumDecompositionAxis(si.AxisManager):
@@ -621,7 +631,13 @@ class PolarAnimator(WavefunctionSimulationAnimator):
             self.axman_colorbar.assign_axis(self.ax_colobar)
             self.axis_managers.append(self.axman_colorbar)
 
-        plt.figtext(.075, .9, r'$|g|^2$', fontsize = 50)
+        plot_labels = {
+            'g2': r'$ \left| g \right|^2 $',
+            'psi2': r'$ \left| \Psi \right|^2 $',
+            'g': r'$ g $',
+            'psi': r'$ \Psi $',
+        }
+        plt.figtext(.075, .9, plot_labels[self.axman_wavefunction.which], fontsize = 50)
 
         self.time_text = plt.figtext(.6, .3,
                                      r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)),

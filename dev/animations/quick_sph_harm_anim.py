@@ -67,6 +67,20 @@ if __name__ == '__main__':
                     axman_colorbar = None,
                     **anim_kwargs,
             ),
+            ion.animators.PolarAnimator(
+                    postfix = 'g_wavefunction',
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                            which = 'g',
+                            colormap = plt.get_cmap('richardson'),
+                            norm = si.plots.RichardsonNormalization(),
+                            shading = 'flat'),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = (
+                        ion.HydrogenBoundState(1, 0), ion.HydrogenBoundState(2, 0), ion.HydrogenBoundState(3, 1),
+                    )),
+                    axman_colorbar = None,
+                    **anim_kwargs,
+            ),
         ]
 
         sim = ion.SphericalHarmonicSpecification('sph_harm',
@@ -74,6 +88,7 @@ if __name__ == '__main__':
                                                  r_bound = 50 * bohr_radius, l_bound = 20,
                                                  r_points = 200,
                                                  electric_potential = ion.Rectangle(start_time = 25 * asec, end_time = 75 * asec, amplitude = 1 * atomic_electric_field),
+                                                 # test_states = (ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
                                                  use_numeric_eigenstates = True,
                                                  numeric_eigenstate_max_energy = 10 * eV,
                                                  numeric_eigenstate_max_angular_momentum = 5,
