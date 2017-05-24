@@ -613,7 +613,7 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         self.ax_lower_left = self.fig.add_axes([.06, .06, .4, .2])
         self.axman_lower_left.assign_axis(self.ax_lower_left)
 
-        self.ax_lower_right = self.fig.add_axes([.54, .06, .4, .2])
+        self.ax_lower_right = self.fig.add_axes([.56, .06, .4, .2])
         self.axman_lower_right.assign_axis(self.ax_lower_right)
 
         self.axis_managers += [self.axman_wavefunction, self.axman_lower_left, self.axman_lower_right]

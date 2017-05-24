@@ -1302,6 +1302,9 @@ class QuantumMesh:
         slice = getattr(self, slicer)(plot_limit)
         updated_mesh = updated_mesh[slice]
 
+        if norm is not None:
+            updated_mesh = norm(updated_mesh)
+
         try:
             if shading == 'flat':
                 updated_mesh = updated_mesh[:-1, :-1]

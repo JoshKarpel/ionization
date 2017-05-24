@@ -39,8 +39,6 @@ def run_sim(spec):
         )
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
 
-        return sim
-
 
 if __name__ == '__main__':
     with logman as logger:
@@ -77,7 +75,7 @@ if __name__ == '__main__':
                 spacing = 1 * eV
                 amp = .001 * atomic_electric_field
                 t_bound = 5
-                max_n = 10
+                max_n = 20
 
                 potential = ion.HarmonicOscillator.from_energy_spacing_and_mass(spacing, electron_mass)
                 efield = ion.SineWave.from_photon_energy(spacing, amplitude = amp)
@@ -93,11 +91,16 @@ if __name__ == '__main__':
                     time_step = 5 * asec,
                     electric_potential_dc_correction = True,
                     animators = [
-                        ion.animators.RectangleSplitLowerAnimator(
+                        ion.animators.RectangleAnimator(
                             length = 30,
                             fps = 30,
                             target_dir = OUT_DIR,
-                            axman_wavefunction = ion.animators.LineMeshAxis(),
+                            axman_wavefunction = ion.animators.LineMeshAxis(
+                                norm = si.plots.AbsoluteRenormalize(),
+                            ),
+                            axman_lower = ion.animators.ElectricPotentialPlotAxis(
+                                show_vector_potential = True,
+                            )
                         )
                     ]
                 )
