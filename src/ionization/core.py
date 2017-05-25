@@ -379,6 +379,45 @@ class ElectricFieldSimulation(si.Simulation):
 
         return grouped_states, group_labels
 
+    def attach_electric_potential_plot_to_axis(self,
+                                               axis,
+                                               time_unit = 'asec',
+                                               legend_kwargs = None,
+                                               show_y_label = False, ):
+        time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
+
+        if legend_kwargs is None:
+            legend_kwargs = dict()
+        legend_defaults = dict(
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
+        )
+        legend_kwargs = {**legend_defaults, **legend_kwargs}
+
+        axis.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field,
+                  color = COLOR_ELECTRIC_FIELD,
+                  linewidth = 1.5,
+                  label = fr'$ {LATEX_EFIELD}(t) $')
+        axis.plot(self.data_times / time_unit_value, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
+                  color = COLOR_VECTOR_POTENTIAL,
+                  linewidth = 1.5,
+                  label = fr'$ e \, {LATEX_AFIELD}(t) $')
+
+        if show_y_label:
+            axis.set_ylabel('${}(t)$'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
+
+        axis.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
+
+        axis.tick_params(labelright = True)
+
+        axis.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
+
+        axis.legend(**legend_kwargs)
+
+        axis.grid(True, **si.plots.GRID_KWARGS)
+
     def plot_state_overlaps_vs_time(self,
                                     states = None,
                                     log = False,
@@ -387,12 +426,16 @@ class ElectricFieldSimulation(si.Simulation):
         with si.plots.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+            self.attach_electric_potential_plot_to_axis(ax_field,
+                                                        legend_kwargs = dict(bbox_to_anchor = (1.1, .9),
+                                                                             loc = 'upper left',
+                                                                             borderaxespad = 0.1,
+                                                                             fontsize = 10)
+                                                        )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -423,16 +466,14 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
 
-            ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
+            ax_overlaps.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
             ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
             ax_overlaps.tick_params(labelright = True)
-            ax_field.tick_params(labelright = True)
+
             ax_overlaps.xaxis.tick_top()
 
             plt.rcParams['xtick.major.pad'] = 5
@@ -449,8 +490,6 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
             ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-            ax_field.grid(True, **si.plots.GRID_KWARGS)
 
             postfix = ''
             if log:
@@ -469,12 +508,16 @@ class ElectricFieldSimulation(si.Simulation):
         with si.plots.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-            if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-                ax_field.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field, color = COLOR_ELECTRIC_FIELD, linewidth = 2)
+            self.attach_electric_potential_plot_to_axis(ax_field,
+                                                        legend_kwargs = dict(bbox_to_anchor = (1.1, .9),
+                                                                             loc = 'upper left',
+                                                                             borderaxespad = 0.1,
+                                                                             fontsize = 10)
+                                                        )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -537,9 +580,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
-            ax_field.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
-            ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
 
             ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
 
@@ -575,8 +616,6 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_field.tick_params(axis = 'both', which = 'major', labelsize = 10)
             ax_overlaps.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-            ax_field.grid(True, **si.plots.GRID_KWARGS)
 
             if show_title:
                 title = ax_overlaps.set_title(self.name)
