@@ -1,5 +1,7 @@
 import logging
 import os
+import itertools
+from copy import deepcopy
 
 import numpy as np
 import simulacra as si
@@ -24,13 +26,11 @@ def run(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        # can't return sim because its not pickleable
-
 
 if __name__ == '__main__':
     with logman as logger:
         state_a = ion.HydrogenBoundState(1, 0)
-        state_b = ion.HydrogenBoundState(3, 1)
+        state_b = ion.HydrogenBoundState(2, 1)
 
         amplitudes = [.005, .01, .1]
         cycles = [1, 2, 3]
@@ -39,16 +39,16 @@ if __name__ == '__main__':
         bound = 100
         ppbr = 8
 
-        inner = 30
-        outer = 60
+        inner = 20
+        outer = 50
 
         animator_kwargs = dict(
                 target_dir = OUT_DIR,
-                length = 30,
+                length = 60,
                 fps = 30,
         )
 
-        lower_left_axman = ion.animators.ElectricPotentialPlotAxis(
+        lower_right_axman = ion.animators.ElectricPotentialPlotAxis(
                 show_electric_field = True,
                 show_vector_potential = False,
                 show_y_label = False,
@@ -57,6 +57,7 @@ if __name__ == '__main__':
         upper_right_axman = ion.animators.WavefunctionStackplotAxis(
                 states = [state_a, state_b],
                 show_norm = False,
+                legend_kwargs = {'fontsize': 12}
         )
 
         animators = [
@@ -66,8 +67,8 @@ if __name__ == '__main__':
                             which = 'g2',
                             plot_limit = outer * bohr_radius
                     ),
-                    axman_lower_right = lower_left_axman,
-                    axman_upper_right = upper_right_axman,
+                    axman_lower_right = deepcopy(lower_right_axman),
+                    axman_upper_right = deepcopy(upper_right_axman),
                     **animator_kwargs,
             ),
             ion.animators.PolarAnimator(
@@ -76,8 +77,8 @@ if __name__ == '__main__':
                             which = 'g2',
                             plot_limit = inner * bohr_radius,
                     ),
-                    axman_lower_right = lower_left_axman,
-                    axman_upper_right = upper_right_axman,
+                    axman_lower_right = deepcopy(lower_right_axman),
+                    axman_upper_right = deepcopy(upper_right_axman),
                     **animator_kwargs,
             ),
             ion.animators.PolarAnimator(
@@ -88,8 +89,8 @@ if __name__ == '__main__':
                             norm = si.plots.RichardsonNormalization(),
                             plot_limit = outer * bohr_radius,
                     ),
-                    axman_lower_right = lower_left_axman,
-                    axman_upper_right = upper_right_axman,
+                    axman_lower_right = deepcopy(lower_right_axman),
+                    axman_upper_right = deepcopy(upper_right_axman),
                     **animator_kwargs,
             ),
             ion.animators.PolarAnimator(
@@ -100,8 +101,8 @@ if __name__ == '__main__':
                             norm = si.plots.RichardsonNormalization(),
                             plot_limit = inner * bohr_radius,
                     ),
-                    axman_lower_right = lower_left_axman,
-                    axman_upper_right = upper_right_axman,
+                    axman_lower_right = deepcopy(lower_right_axman),
+                    axman_upper_right = deepcopy(upper_right_axman),
                     **animator_kwargs,
             ),
         ]
@@ -109,7 +110,7 @@ if __name__ == '__main__':
         spec_kwargs = dict(
                 r_bound = bound * bohr_radius,
                 r_points = bound * ppbr,
-                l_bound = 20,
+                l_bound = 50,
                 initial_state = state_a,
                 test_states = (state_a, state_b),
                 time_initial = 0 * asec,
@@ -119,6 +120,7 @@ if __name__ == '__main__':
                 numeric_eigenstate_max_energy = 20 * eV,
                 numeric_eigenstate_max_angular_momentum = 10,
                 animators = animators,
+                store_data_every = -1,
                 out_dir = OUT_DIR
         )
 
@@ -127,20 +129,19 @@ if __name__ == '__main__':
 
         specs = []
 
-        for amplitude in amplitudes:
-            for cycle in cycles:
-                electric_field = ion.SineWave.from_photon_energy(np.abs(state_a.energy - state_b.energy), amplitude = amplitude * atomic_electric_field)
+        for amplitude, cycle in itertools.product(amplitudes, cycles):
+            electric_field = ion.SineWave.from_photon_energy(np.abs(state_a.energy - state_b.energy), amplitude = amplitude * atomic_electric_field)
 
-                rabi_frequency = amplitude * atomic_electric_field * matrix_element / hbar / twopi
-                rabi_time = 1 / rabi_frequency
+            rabi_frequency = amplitude * atomic_electric_field * matrix_element / hbar / twopi
+            rabi_time = 1 / rabi_frequency
 
-                specs.append(ion.SphericalHarmonicSpecification(
-                        f'rabi_{state_a.n}_{state_a.l}_to_{state_b.n}_{state_b.l}__amp={amplitude}aef__{cycle}cycles__len={animator_kwargs["length"]}',
-                        time_final = cycle * rabi_time,
-                        electric_potential = electric_field,
-                        rabi_frequency = rabi_frequency,
-                        rabi_time = rabi_time,
-                        **spec_kwargs
-                ))
+            specs.append(ion.SphericalHarmonicSpecification(
+                    f'rabi__{state_a.n}_{state_a.l}_to_{state_b.n}_{state_b.l}__amp={amplitude}aef_{cycle}cycles__len={animator_kwargs["length"]}_fps={animator_kwargs["fps"]}',
+                    time_final = cycle * rabi_time,
+                    electric_potential = electric_field,
+                    rabi_frequency = rabi_frequency,
+                    rabi_time = rabi_time,
+                    **spec_kwargs
+            ))
 
         si.utils.multi_map(run, specs)

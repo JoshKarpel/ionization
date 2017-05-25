@@ -836,10 +836,10 @@ class ElectricFieldSimulation(si.Simulation):
 
         return out
 
-    @staticmethod
-    def load(file_path, initialize_mesh = False):
-        """Return a simulation loaded from the file_path. kwargs are for Beet.load."""
-        sim = si.Simulation.load(file_path, )
+    @classmethod
+    def load(cls, file_path, initialize_mesh = False):
+        """Return a simulation loaded from the file_path."""
+        sim = super().load(file_path)
 
         if initialize_mesh:
             sim.initialize_mesh()
@@ -1277,8 +1277,8 @@ class QuantumMesh:
                     slicer = 'get_mesh_slicer',
                     norm = si.plots.AbsoluteRenormalize(),  # not actually used by anything but LineMesh
                     ):
-        slice = getattr(self, slicer)(plot_limit)
-        updated_mesh = updated_mesh[slice]
+        _slice = getattr(self, slicer)(plot_limit)
+        updated_mesh = updated_mesh[_slice]
 
         if norm is not None:
             updated_mesh = norm(updated_mesh)
@@ -1664,9 +1664,9 @@ class LineMesh(QuantumMesh):
                             ):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self, slicer)(plot_limit)
 
-        line, = axis.plot(self.x_mesh[slice] / unit_value, norm(mesh[slice]), **kwargs)
+        line, = axis.plot(self.x_mesh[_slice] / unit_value, norm(mesh[_slice]), **kwargs)
 
         return line
 
@@ -1846,8 +1846,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return interaction_hamiltonian_z, interaction_hamiltonian_rho
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
-
+        # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
         raise NotImplementedError
 
     def tg_mesh(self, use_abs_g = False):
@@ -1991,11 +1990,11 @@ class CylindricalSliceMesh(QuantumMesh):
                             **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.z_mesh[slice] / unit_value,
-                                     self.rho_mesh[slice] / unit_value,
-                                     mesh[slice],
+        color_mesh = axis.pcolormesh(self.z_mesh[_slice] / unit_value,
+                                     self.rho_mesh[_slice] / unit_value,
+                                     mesh[_slice],
                                      shading = shading,
                                      cmap = colormap,
                                      norm = norm,
@@ -2261,7 +2260,7 @@ class SphericalSliceMesh(QuantumMesh):
         return interaction_hamiltonian_r, interaction_hamiltonian_theta
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
+        # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
 
         raise NotImplementedError
 
@@ -2355,18 +2354,18 @@ class SphericalSliceMesh(QuantumMesh):
                             **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.theta_mesh[slice],
-                                     self.r_mesh[slice] / unit_value,
-                                     mesh[slice],
+        color_mesh = axis.pcolormesh(self.theta_mesh[_slice],
+                                     self.r_mesh[_slice] / unit_value,
+                                     mesh[_slice],
                                      shading = shading,
                                      cmap = colormap,
                                      norm = norm,
                                      **kwargs)
-        color_mesh_mirror = axis.pcolormesh(twopi - self.theta_mesh[slice],
-                                            self.r_mesh[slice] / unit_value,
-                                            mesh[slice],
+        color_mesh_mirror = axis.pcolormesh(twopi - self.theta_mesh[_slice],
+                                            self.r_mesh[_slice] / unit_value,
+                                            mesh[_slice],
                                             shading = shading,
                                             cmap = colormap,
                                             norm = norm,
@@ -2396,8 +2395,8 @@ class SphericalSliceMesh(QuantumMesh):
         axis.set_theta_direction('clockwise')
 
         color_mesh, color_mesh_mirror = self.attach_mesh_to_axis(axis, mesh, plot_limit = plot_limit, distance_unit = distance_unit)
-        if overlay_probability_current:
-            quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
+        # if overlay_probability_current:
+        #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
         if title is not None:
             title = axis.set_title(title, fontsize = 15)
@@ -2629,10 +2628,16 @@ class SphericalHarmonicMesh(QuantumMesh):
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
+        
+        Parameters
+        ----------
+        thetas
+        wavenumbers
+        g
 
-        :param wavenumbers:
-        :param thetas:
-        :return:
+        Returns
+        -------
+
         """
         if g is None:
             g = self.g
@@ -2668,10 +2673,16 @@ class SphericalHarmonicMesh(QuantumMesh):
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
         
         WARNING: NOT WORKING
+        
+        Parameters
+        ----------
+        thetas
+        wavenumbers
+        g
 
-        :param wavenumbers:
-        :param thetas:
-        :return:
+        Returns
+        -------
+
         """
         l_mesh = self.l_mesh
 
@@ -2798,7 +2809,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
 
         for r_index in range(self.mesh_points - 1):
-            if (r_index + 1) % self.spec.r_points != 0:  # TODO: should be possible to clean this if up
+            if (r_index + 1) % self.spec.r_points != 0:
                 j = (r_index % self.spec.r_points)
                 r_offdiagonal[r_index] = self.alpha(j)
         r_diagonal *= -2 * r_prefactor
@@ -3071,11 +3082,11 @@ class SphericalHarmonicMesh(QuantumMesh):
         alpha_slices_even_l = []
         alpha_slices_odd_l = []
         for l in self.l:  # want last l but not last r, since unwrapped in r
-            slice = a[l * len_r: ((l + 1) * len_r) - 1]
+            a_slice = a[l * len_r: ((l + 1) * len_r) - 1]
             if l % 2 == 0:
-                alpha_slices_even_l.append(slice)
+                alpha_slices_even_l.append(a_slice)
             else:
-                alpha_slices_odd_l.append(slice)
+                alpha_slices_odd_l.append(a_slice)
 
         even_even_diag = []
         even_even_offdiag = []
@@ -3207,7 +3218,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         h1_operators = self._make_split_operators_VEL_h1(h1, tau)
         h2_operators = self._make_split_operators_VEL_h2(h2, tau)
 
-        return (*h1_operators, *h2_operators)
+        return [*h1_operators, *h2_operators]
 
     def _evolve_SO(self, time_step):
         """Evolve the mesh forward in time by using a split-operator algorithm with length-gauge evolution operators."""
@@ -3356,11 +3367,11 @@ class SphericalHarmonicMesh(QuantumMesh):
                             **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
-        slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.theta_mesh[slice],
-                                     self.r_theta_mesh[slice] / unit_value,
-                                     mesh[slice],
+        color_mesh = axis.pcolormesh(self.theta_mesh[_slice],
+                                     self.r_theta_mesh[_slice] / unit_value,
+                                     mesh[_slice],
                                      shading = shading,
                                      cmap = colormap,
                                      norm = norm,
