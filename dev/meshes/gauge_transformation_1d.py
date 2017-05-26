@@ -23,20 +23,54 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.DEBUG)
 
+plt_kwargs = dict(
+    target_dir = OUT_DIR,
+    img_format = 'png',
+    fig_dpi_scale = 3,
+)
+
+
+def plot_g_1d(name, g, x, **kwargs):
+    g_real = np.real(g)
+    g_imag = np.imag(g)
+    g_abs = np.abs(g)
+    norm = np.nanmax(g_abs)
+
+    si.vis.xy_plot(name,
+                   x,
+                   g_real / norm, g_imag / norm, g_abs / norm,
+                   line_labels = ('Real g', 'Imag g', 'Abs g'),
+                   x_unit = 'bohr_radius',
+                   y_lower_limit = -1, y_upper_limit = 1,
+                   **kwargs)
+
+
+def wrapped_plot_g_1d(sim):
+    if sim.time_index % 1000 == 0:
+        plot_g_1d(f'{sim.name}_{sim.time_index}_g', sim.mesh.g, sim.mesh.x_mesh, **plt_kwargs)
+        plot_g_1d(f'{sim.name}_{sim.time_index}_g_transformed', sim.mesh.gauge_transformation(sim.mesh.g, leaving_gauge = sim.spec.evolution_gauge), sim.mesh.x_mesh, **plt_kwargs)
+
 
 def run_sim(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
         logger.info(sim.info())
-        sim.run_simulation()
+        sim.run_simulation(callback = wrapped_plot_g_1d)
         logger.info(sim.info())
 
         sim.plot_state_overlaps_vs_time(
-            target_dir = OUT_DIR,
-            img_format = 'png',
-            fig_dpi_scale = 3,
+            **plt_kwargs,
         )
+
+        plot_g_1d(f'{sim.name}__g', sim.mesh.g, sim.mesh.x_mesh,
+                  **plt_kwargs, )
+
+        g_transformed = sim.mesh.gauge_transformation(sim.mesh.g, leaving_gauge = sim.spec.evolution_gauge)
+
+        plot_g_1d(f'{sim.name}__g_transformed', g_transformed, sim.mesh.x_mesh,
+                  **plt_kwargs, )
+
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
 
 
@@ -78,16 +112,12 @@ if __name__ == '__main__':
 
         specs = []
 
-        for method, equations, gauge in it.product(
-                # ('CN', 'SO',),
-                ('CN',),
-                ('HAM',),
-                ('LEN', 'VEL')):
+        for gauge in ('LEN', 'VEL'):
             specs.append(
-                ion.LineSpecification(f'{gauge}__t_bound={t_bound}',
+                ion.LineSpecification(f'{gauge}',
                                       **line_spec_base,
-                                      evolution_method = method, evolution_equations = equations, evolution_gauge = gauge,
+                                      evolution_gauge = gauge,
                                       )
             )
 
-        results = si.utils.multi_map(run_sim, specs)
+    results = si.utils.multi_map(run_sim, specs)

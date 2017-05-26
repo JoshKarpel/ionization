@@ -251,7 +251,7 @@ class ElectricFieldSimulation(si.Simulation):
 
         logger.info('Stored {} of {} at time {} as (time index {})'.format(snapshot.__class__.__name__, self.name, uround(self.time, asec, 3), self.time_index))
 
-    def run_simulation(self, progress_bar = False):
+    def run_simulation(self, progress_bar = False, callback = None):
         """
         Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
         """
@@ -281,6 +281,9 @@ class ElectricFieldSimulation(si.Simulation):
 
                 if self.time_index == self.time_steps - 1:
                     break
+
+                if callback is not None:
+                    callback(self)
 
                 self.time_index += 1
 
@@ -1680,6 +1683,22 @@ class LineMesh(QuantumMesh):
         logger.debug('Generated numerical eigenbasis for energy <= {} eV. Found {} states.'.format(uround(max_energy, 'eV', 3), len(analytic_to_numeric)))
 
         return analytic_to_numeric
+
+    def gauge_transformation(self, g, leaving_gauge):
+        vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
+        integral = integ.simps(y = vamp ** 2,
+                               x = self.sim.times_to_current)
+
+        dipole_to_velocity = np.exp(-1j * self.spec.test_charge * integral / (2 * self.spec.test_mass * hbar))
+        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / hbar)
+
+        print(dipole_to_velocity)
+        print(dipole_to_length)
+
+        if leaving_gauge == 'LEN':
+            return np.conj(dipole_to_length) * dipole_to_velocity * g
+        elif leaving_gauge == 'VEL':
+            return dipole_to_length * np.conj(dipole_to_velocity) * g
 
     def get_mesh_slicer(self, plot_limit):
         if plot_limit is None:
@@ -3316,7 +3335,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         # TODO: STILL NOT SURE THIS IS CORRECT
         # TODO: actually its def wrong because I didn't do Y * Y correctly
         # todo: but ins't the resulting matrix multiplication going to be very dense?
-        vamp = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times_to_current)
+        vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
         dipole_to_velocity = np.exp(-1j * self.spec.test_charge * integral / (2 * self.spec.test_mass * hbar))
