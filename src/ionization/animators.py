@@ -519,7 +519,7 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
                                        distance_unit = self.distance_unit,
                                        slicer = self.slicer,
                                        animated = True)
-        self.redraw += [self.mesh]
+        self.redraw.append(self.mesh)
 
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 

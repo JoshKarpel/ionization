@@ -1314,13 +1314,10 @@ class QuantumMesh:
                     plot_limit = None,
                     shading = 'gouraud',
                     slicer = 'get_mesh_slicer',
-                    norm = si.plots.AbsoluteRenormalize(),  # not actually used by anything but LineMesh
+                    **kwargs
                     ):
         _slice = getattr(self, slicer)(plot_limit)
         updated_mesh = updated_mesh[_slice]
-
-        if norm is not None:
-            updated_mesh = norm(updated_mesh)
 
         try:
             if shading == 'flat':
@@ -1713,6 +1710,12 @@ class LineMesh(QuantumMesh):
         si.plots.xy_plot(self.sim.name + '_' + kwargs.pop('name'), self.x_mesh, mesh,
                          x_label = 'Distance $x$', x_unit_value = distance_unit, **kwargs)
 
+    def update_mesh(self, colormesh, updated_mesh, norm = None, **kwargs):
+        if norm is not None:
+            updated_mesh = norm(updated_mesh)
+
+        super().update_mesh(colormesh, updated_mesh, **kwargs)
+
     def plot_fft(self):
         raise NotImplementedError
 
@@ -1721,8 +1724,16 @@ class CylindricalSliceSpecification(ElectricFieldSpecification):
     def __init__(self, name,
                  z_bound = 20 * bohr_radius, rho_bound = 20 * bohr_radius,
                  z_points = 2 ** 9, rho_points = 2 ** 8,
+                 evolution_equations = 'HAM',
+                 evolution_method = 'CN',
+                 evolution_gauge = 'LEN',
                  **kwargs):
-        super(CylindricalSliceSpecification, self).__init__(name, mesh_type = CylindricalSliceMesh, **kwargs)
+        super(CylindricalSliceSpecification, self).__init__(name,
+                                                            mesh_type = CylindricalSliceMesh,
+                                                            evolution_equations = evolution_equations,
+                                                            evolution_method = evolution_method,
+                                                            evolution_gauge = evolution_gauge,
+                                                            **kwargs)
 
         self.z_bound = z_bound
         self.rho_bound = rho_bound
@@ -2610,9 +2621,9 @@ class SphericalHarmonicMesh(QuantumMesh):
         if mesh_b is None:
             mesh_b = self.g
         if gauge == 'length':
-            _, operator = self.get_kinetic_energy_matrix_operators()
+            operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
             g = self.wrap_vector(operator.dot(self.flatten_mesh(mesh_b, 'l')), 'l')
-            return self.spec.test_charge * self.inner_product(a = mesh_a, b = g)
+            return self.inner_product(a = mesh_a, b = g)
         elif gauge == 'velocity':
             raise NotImplementedError
 
