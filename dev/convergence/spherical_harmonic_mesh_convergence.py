@@ -48,7 +48,7 @@ def plot_final_norm_vs_r_points(name, sims, ref, **kwargs):
         if log:
             plot_name += '__log'
 
-        si.plots.xy_plot(plot_name,
+        si.vis.xy_plot(plot_name,
                          r_points,
                          final_norms,
                          x_label = 'Radial Points per Bohr Radius',
@@ -70,7 +70,7 @@ def plot_final_initial_state_vs_r_points(name, sims, ref, **kwargs):
         if log:
             plot_name += '__log'
 
-        si.plots.xy_plot(plot_name,
+        si.vis.xy_plot(plot_name,
                          r_points,
                          final_initial_overlaps,
                          x_label = 'Radial Points per Bohr Radius',
@@ -95,7 +95,7 @@ def plot_final_norm_vs_time_step(name, sims, ref, **kwargs):
             if log_y:
                 plot_name += '__logY'
 
-            si.plots.xy_plot(plot_name,
+            si.vis.xy_plot(plot_name,
                              time_steps,
                              final_norms,
                              x_label = 'Time Step', x_unit = 'asec',
@@ -120,7 +120,7 @@ def plot_final_initial_state_vs_time_step(name, sims, ref, **kwargs):
             if log_y:
                 plot_name += '__logY'
 
-            si.plots.xy_plot(plot_name,
+            si.vis.xy_plot(plot_name,
                              time_steps,
                              final_norms,
                              x_label = 'Time Step', x_unit = 'asec',

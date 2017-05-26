@@ -77,7 +77,7 @@ if __name__ == '__main__':
             #         axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
             #             which = 'g',
             #             colormap = plt.get_cmap('richardson'),
-            #             norm = si.plots.RichardsonNormalization(),
+            #             norm = si.vis.RichardsonNormalization(),
             #         ),
             #         axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
             #             show_vector_potential = True,

@@ -27,7 +27,7 @@ if __name__ == '__main__':
                 return [r.final_bound_state_overlap for r in results]
 
 
-            si.plots.xyt_plot(f'phase_fluence__pw={uround(pw, "asec", 3)}as',
+            si.vis.xyt_plot(f'phase_fluence__pw={uround(pw, "asec", 3)}as',
                               x, fluences, f,
                               x_unit = 'rad', t_unit = 'Jcm2', t_fmt_string = r'$H = {}$',
                               y_log_axis = False,

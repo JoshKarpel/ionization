@@ -34,7 +34,7 @@ pgf_with_latex = {  # setup matplotlib to use latex for output
     "legend.fontsize": 10,  # Make the legend/label fonts a little smaller
     "xtick.labelsize": 9,
     "ytick.labelsize": 9,
-    "figure.figsize": si.plots._get_fig_dims(0.95),  # default fig size of 0.95 \textwidth
+    "figure.figsize": si.vis._get_fig_dims(0.95),  # default fig size of 0.95 \textwidth
     "pgf.preamble": [
         r"\usepackage[utf8x]{inputenc}",  # use utf8 fonts because your computer can handle it :)
         r"\usepackage[T1]{fontenc}",  # plots will be generated using this preamble
@@ -52,9 +52,9 @@ def run(spec):
 
 
 def save_figure(filename):
-    si.plots.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pdf')
-    si.plots.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pgf')
-    si.plots.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'png', img_scale = 2)
+    si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pgf')
+    si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'png', img_scale = 2)
 
 
 def get_func_name():
@@ -71,7 +71,7 @@ grid_kwargs = {
 
 
 def sinc_pulse_power_spectrum_full():
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     lower = .15
@@ -118,7 +118,7 @@ def sinc_pulse_power_spectrum_full():
 
 
 def sinc_pulse_power_spectrum_half():
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     lower = .15
@@ -155,7 +155,7 @@ def sinc_pulse_power_spectrum_half():
 
 
 def sinc_pulse_electric_field(phase = 0):
-    fig = si.plots.get_figure('half')
+    fig = si.vis.get_figure('half')
     ax = fig.add_subplot(111)
 
     omega_min = twopi
@@ -207,7 +207,7 @@ def sinc_pulse_electric_field(phase = 0):
 
 def gaussian_pulse_power_spectrum_half():
     # TODO: er, be caereful, is delta for the power spectrum or the amplitude spectrum?
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     carrier = .6
@@ -251,7 +251,7 @@ def gaussian_pulse_power_spectrum_half():
 
 
 def finite_square_well():
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     a_over_two = .5
@@ -285,7 +285,7 @@ def finite_square_well():
 
 
 def finite_square_well_energies():
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     z_0 = 6 * pi / 2 + .5 * np.sqrt(1)  # must make it numpy data type so that the optimizer doesn't panic
@@ -340,7 +340,7 @@ def finite_square_well_energies():
 
 
 def a_alpha_v2_kernel_gaussian():
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     dt = np.linspace(-10, 10, 1000)
@@ -383,7 +383,7 @@ def a_alpha_v2_kernel_gaussian():
 
 
 def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
 
     grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [2.5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
     ax_upper = plt.subplot(grid_spec[0])

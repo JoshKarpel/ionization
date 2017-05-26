@@ -71,35 +71,35 @@ if __name__ == '__main__':
             #                  y_log_axis = True, x_log_axis = True,
             #                  target_dir = OUT_DIR)
 
-        si.plots.xy_plot('g_difference_lin_log',
+        si.vis.xy_plot('g_difference_lin_log',
                          sim.mesh.r, *differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{discrete}} - g_{\mathrm{analytic}} \right|$',
                          y_log_axis = False, x_log_axis = True,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('g_difference_log',
+        si.vis.xy_plot('g_difference_log',
                          sim.mesh.r, *differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{discrete}} - g_{\mathrm{analytic}} \right|$',
                          y_log_axis = True, x_log_axis = False,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('g_difference_log_log',
+        si.vis.xy_plot('g_difference_log_log',
                          sim.mesh.r, *differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{discrete}} - g_{\mathrm{analytic}} \right|$',
                          y_log_axis = True, x_log_axis = True,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('g_fractional_difference_log',
+        si.vis.xy_plot('g_fractional_difference_log',
                          sim.mesh.r, *fractional_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| \frac{g_{\mathrm{discrete}} - g_{\mathrm{analytic}}}{g_{\mathrm{analytic}}} \right|$',
                          y_log_axis = True, x_log_axis = False,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('g_fractional_difference_log_log',
+        si.vis.xy_plot('g_fractional_difference_log_log',
                          sim.mesh.r, *fractional_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| \frac{g_{\mathrm{discrete}} - g_{\mathrm{analytic}}}{g_{\mathrm{analytic}}} \right|$',
@@ -107,35 +107,35 @@ if __name__ == '__main__':
                          target_dir = OUT_DIR)
 
         ## COMPARE TO POST-EVOLUTION STATE
-        si.plots.xy_plot('evolved_g_difference_lin_log',
+        si.vis.xy_plot('evolved_g_difference_lin_log',
                          sim.mesh.r, *pre_post_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{pre}} \right|^2  - \left|g_{\mathrm{post}} \right|^2$',
                          y_log_axis = False, x_log_axis = True,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('evolved_g_difference_log',
+        si.vis.xy_plot('evolved_g_difference_log',
                          sim.mesh.r, *pre_post_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{pre}} \right|^2  - \left|g_{\mathrm{post}} \right|^2$',
                          y_log_axis = True, x_log_axis = False,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('evolved_g_difference_log_log',
+        si.vis.xy_plot('evolved_g_difference_log_log',
                          sim.mesh.r, *pre_post_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g_{\mathrm{pre}} \right|^2  - \left|g_{\mathrm{post}} \right|^2$',
                          y_log_axis = True, x_log_axis = True,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('evolved_g_fractional_difference_log',
+        si.vis.xy_plot('evolved_g_fractional_difference_log',
                          sim.mesh.r, *pre_post_fractional_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\frac{ \left| g_{\mathrm{pre}} \right|^2  - \left|g_{\mathrm{post}} \right|^2 }{\left| g_{\mathrm{pre}} \right|^2}$',
                          y_log_axis = True, x_log_axis = False,
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('evolved_g_fractional_difference_log_log',
+        si.vis.xy_plot('evolved_g_fractional_difference_log_log',
                          sim.mesh.r, *pre_post_fractional_differences,
                          line_labels = labels,
                          x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\frac{ \left| g_{\mathrm{pre}} \right|^2  - \left|g_{\mathrm{post}} \right|^2 }{\left| g_{\mathrm{pre}} \right|^2}$',

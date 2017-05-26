@@ -48,4 +48,4 @@ if __name__ == '__main__':
         print(timer)
         print(len(times), times)
 
-        si.plots.xy_plot('')
+        si.vis.xy_plot('')

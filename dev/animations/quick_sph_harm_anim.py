@@ -50,7 +50,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = deepcopy(test_state_axman),
@@ -62,7 +62,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = deepcopy(wavefunction_axman),
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = deepcopy(wavefunction_axman),

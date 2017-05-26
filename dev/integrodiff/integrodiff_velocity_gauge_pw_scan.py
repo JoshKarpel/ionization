@@ -65,7 +65,7 @@ if __name__ == '__main__':
         results = si.utils.multi_map(run, specs, processes = 4)
 
         for log in (True, False):
-            si.plots.xy_plot(f'ionization_vs_pulse_width__flu={uround(flu, Jcm2, 3)}Jcm2_phase={uround(phase)}__log={log}',
+            si.vis.xy_plot(f'ionization_vs_pulse_width__flu={uround(flu, Jcm2, 3)}Jcm2_phase={uround(phase)}__log={log}',
                              [r.spec.pulse_width for r in results],
                              [np.abs(r.a[-1]) ** 2 for r in results],
                              x_label = r'Pulse Width $  \tau  $', x_unit = 'asec',

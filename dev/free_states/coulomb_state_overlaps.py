@@ -132,11 +132,11 @@ if __name__ == '__main__':
         logger.info('norm - bound: {}'.format(sim.norm_vs_time[-1] - bound_norm))
         logger.info('norm: {}'.format(sim.norm_vs_time[-1]))
 
-        si.plots.xy_plot(identifier + '__overlap_by_energy',
+        si.vis.xy_plot(identifier + '__overlap_by_energy',
                          energy, overlap_by_energy,
                          x_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(identifier + '__overlap_by_l',
+        si.vis.xy_plot(identifier + '__overlap_by_l',
                          l, overlap_by_l,
                          target_dir = OUT_DIR)

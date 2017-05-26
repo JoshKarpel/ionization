@@ -28,7 +28,7 @@ def run(spec):
                            field_axis_label = r'${}(t)$'.format(str_efield),
                            field_scale = 'AEF')
 
-        si.plots.xy_plot(sim.name + '_RI',
+        si.vis.xy_plot(sim.name + '_RI',
                          sim.times,
                          np.real(sim.y), np.imag(sim.y), np.abs(sim.y), np.angle(sim.y),
                          line_labels = ('Real', 'Imag', 'Abs', 'Arg'),

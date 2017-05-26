@@ -145,7 +145,7 @@ class PulseParameterScanMixin:
                             else:
                                 log_str = ''
 
-                            si.plots.xy_plot('1d__' + plot_name + log_str,
+                            si.vis.xy_plot('1d__' + plot_name + log_str,
                                              x,
                                              *lines,
                                              line_labels = line_labels,
@@ -209,7 +209,7 @@ class PulseParameterScanMixin:
                             plot_name = '2d__' + plot_name + log_str
 
                             try:
-                                si.plots.xyz_plot(plot_name,
+                                si.vis.xyz_plot(plot_name,
                                                   x_mesh, y_mesh, z_mesh,
                                                   x_unit = x_parameter_unit, y_unit = y_parameter_unit,
                                                   x_label = x_parameter_name, y_label = y_parameter_name,
@@ -338,7 +338,7 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                             y_upper_limit = None
                             y_lower_limit = None
 
-                        si.plots.xy_plot('1d__' + plot_name + log_str,
+                        si.vis.xy_plot('1d__' + plot_name + log_str,
                                          x,
                                          line,
                                          title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
@@ -383,7 +383,7 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                         else:
                             log_str = ''
 
-                        si.plots.xy_plot('1d__' + plot_name + log_str,
+                        si.vis.xy_plot('1d__' + plot_name + log_str,
                                          x,
                                          line,
                                          title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$ (Diff from Best)",
@@ -439,7 +439,7 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                         z_lower_limit = 0
                         z_upper_limit = 1
 
-                    si.plots.xyz_plot('2d__' + plot_name + log_str,
+                    si.vis.xyz_plot('2d__' + plot_name + log_str,
                                       x_mesh, y_mesh, z_mesh,
                                       x_unit = x_parameter_unit, y_unit = y_parameter_unit,
                                       x_label = x_parameter_name, y_label = y_parameter_name,
@@ -493,7 +493,7 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                     else:
                         log_str = ''
 
-                    si.plots.xyz_plot('2d__' + plot_name + log_str,
+                    si.vis.xyz_plot('2d__' + plot_name + log_str,
                                       x_mesh, y_mesh, z_mesh,
                                       x_unit = x_parameter_unit, y_unit = y_parameter_unit,
                                       x_label = x_parameter_name, y_label = y_parameter_name,

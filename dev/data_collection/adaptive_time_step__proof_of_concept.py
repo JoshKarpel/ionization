@@ -59,7 +59,7 @@ if __name__ == '__main__':
         steps = np.diff(times)
         steps = np.append(steps, np.NaN)
 
-        si.plots.xy_plot('test',
+        si.vis.xy_plot('test',
                          times,
                          steps / asec,
                          np.abs(efield.get_electric_field_amplitude(times)) / atomic_electric_field,

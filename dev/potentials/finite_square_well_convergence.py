@@ -21,12 +21,12 @@ def run(spec):
         logger.info('Predicted initial energy: {} eV'.format(uround(sim.spec.initial_state.energy, eV, 10)))
         logger.info('Measured initial energy: {} eV'.format(uround(sim.spec.initial_state.energy, eV, 10)))
 
-        si.plots.xy_plot(sim.name + '__fft_pre_k',
+        si.vis.xy_plot(sim.name + '__fft_pre_k',
                          sim.mesh.wavenumbers / twopi, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
                          x_unit = 'per_nm', x_label = r'Wavenumber $k = \frac{1}{\lambda}$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(sim.name + '__fft_pre_E',
+        si.vis.xy_plot(sim.name + '__fft_pre_E',
                          sim.mesh.energies, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
                          x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
                          target_dir = OUT_DIR)
@@ -36,34 +36,34 @@ def run(spec):
         # sim.save(target_dir = OUT_DIR)
         logger.info(sim.info())
 
-        si.plots.xy_plot(sim.name + '__fft_post_k',
+        si.vis.xy_plot(sim.name + '__fft_post_k',
                          sim.mesh.wavenumbers / twopi, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
                          x_unit = 'per_nm', x_label = r'Wavenumber $k = \frac{1}{\lambda}$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(sim.name + '__fft_post_E',
+        si.vis.xy_plot(sim.name + '__fft_post_E',
                          sim.mesh.energies, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
                          x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
                          target_dir = OUT_DIR)
 
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, time_unit = 'asec')
 
-        si.plots.xy_plot(sim.name + '__energy_vs_time',
+        si.vis.xy_plot(sim.name + '__energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,
                          x_label = '$t$', x_unit = 'asec', y_label = r'$E(t)$', y_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(sim.name + '__energy_vs_time__error',
+        si.vis.xy_plot(sim.name + '__energy_vs_time__error',
                          sim.times, np.abs(sim.spec.initial_state.energy - sim.energy_expectation_value_vs_time_internal),
                          x_label = '$t$', x_unit = 'asec', y_label = r'$E(t) - E_0$', y_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(sim.name + '__energy_vs_time__ratio',
+        si.vis.xy_plot(sim.name + '__energy_vs_time__ratio',
                          sim.times, np.abs(sim.spec.initial_state.energy / sim.energy_expectation_value_vs_time_internal),
                          x_label = '$t$', x_unit = 'asec', y_label = r'$\left| \frac{E(t)}{E_0} \right|$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(sim.name + '__energy_vs_time__ratio_log',
+        si.vis.xy_plot(sim.name + '__energy_vs_time__ratio_log',
                          sim.times, np.abs(sim.spec.initial_state.energy / sim.energy_expectation_value_vs_time_internal),
                          x_label = '$t$', x_unit = 'asec', y_label = r'$\left| \frac{E(t)}{E_0} \right|$', y_log_axis = True,
                          target_dir = OUT_DIR)
@@ -119,25 +119,25 @@ if __name__ == '__main__':
         energy_expectation_value_ratio = [np.abs(sim.energy_expectation_value_vs_time_internal / sim.spec.initial_state.energy) for sim in sims]
         labels = ['bound = {} nm, points = $2^{{{}}}$'.format(uround(sim.spec.x_bound, 'nm'), int(np.log2(sim.spec.x_points))) for sim in sims]
 
-        si.plots.xy_plot(prefix + '__combined__energy_vs_time',
+        si.vis.xy_plot(prefix + '__combined__energy_vs_time',
                          times, *energy_expectation_value,
                          line_labels = labels,
                          x_label = '$t$', x_unit = 'asec', y_label = r'$E(t)$', y_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(prefix + '__combined__energy_vs_time__error',
+        si.vis.xy_plot(prefix + '__combined__energy_vs_time__error',
                          times, *energy_expectation_value_error,
                          line_labels = labels,
                          x_label = '$t$', x_unit = 'asec', y_label = r'$E(t) - E_0$', y_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(prefix + '__combined__energy_vs_time__ratio',
+        si.vis.xy_plot(prefix + '__combined__energy_vs_time__ratio',
                          times, *energy_expectation_value_ratio,
                          line_labels = labels,
                          x_label = '$t$', x_unit = 'asec', y_label = r'$\left| \frac{E(t)}{E_0} \right|$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot(prefix + '__combined__energy_vs_time__ratio_log',
+        si.vis.xy_plot(prefix + '__combined__energy_vs_time__ratio_log',
                          times, *energy_expectation_value_ratio,
                          line_labels = labels,
                          x_label = '$t$', x_unit = 'asec', y_label = r'$\left| \frac{E(t)}{E_0} \right|$', y_log_axis = True,

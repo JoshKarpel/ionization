@@ -29,26 +29,26 @@ if __name__ == '__main__':
         ionization_energy = atomic_energy / 2
         one_to_two = 0.75 * ionization_energy
 
-        si.plots.xy_plot('energy__vs__pulse_width', pulse_widths, largest_photon_energy,
+        si.vis.xy_plot('energy__vs__pulse_width', pulse_widths, largest_photon_energy,
                          target_dir = OUT_DIR,
                          x_unit = 'asec', y_unit = 'eV',
                          x_label = 'Pulse Width', y_label = 'Largest Photon Energy', title = 'Largest Photon Energy for Sinc Pulses',
                          hlines = (ionization_energy, one_to_two), )
 
-        si.plots.xy_plot('energy__vs__pulse_width__log_x', pulse_widths, largest_photon_energy,
+        si.vis.xy_plot('energy__vs__pulse_width__log_x', pulse_widths, largest_photon_energy,
                          target_dir = OUT_DIR,
                          x_unit = 'asec', y_unit = 'eV',
                          x_label = 'Pulse Width', y_label = 'Largest Photon Energy', title = 'Largest Photon Energy for Sinc Pulses',
                          hlines = (ionization_energy, one_to_two),
                          x_log_axis = True)
 
-        si.plots.xy_plot('frequency_cutoff__vs__pulse_width', pulse_widths, frequency_cutoff,
+        si.vis.xy_plot('frequency_cutoff__vs__pulse_width', pulse_widths, frequency_cutoff,
                          target_dir = OUT_DIR,
                          x_unit = 'asec', y_unit = 'THz',
                          x_label = 'Pulse Width', y_label = 'Frequency Cutoff', title = 'Frequency Cutoff for Sinc Pulses',
                          )
 
-        si.plots.xy_plot('frequency_cutoff__vs__pulse_width__log_x', pulse_widths, frequency_cutoff,
+        si.vis.xy_plot('frequency_cutoff__vs__pulse_width__log_x', pulse_widths, frequency_cutoff,
                          target_dir = OUT_DIR,
                          x_unit = 'asec', y_unit = 'THz',
                          x_label = 'Pulse Width', y_label = 'Frequency Cutoff', title = 'Frequency Cutoff for Sinc Pulses',

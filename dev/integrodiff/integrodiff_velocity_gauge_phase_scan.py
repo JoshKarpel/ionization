@@ -73,14 +73,14 @@ if __name__ == '__main__':
             else:
                 y_lower_limit = None
 
-            si.plots.xy_plot(f'ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}',
+            si.vis.xy_plot(f'ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}',
                              [r.spec.phase for r in results],
                              [np.abs(r.a[-1]) ** 2 for r in results],
                              x_label = r'CEP $\varphi$ ($\pi$)', x_unit = 'rad',
                              y_label = r'$  \left| a_{\mathrm{final}} \right|^2  $', y_log_axis = log, y_upper_limit = 1, y_lower_limit = y_lower_limit,
                              **plt_kwargs)
 
-            si.plots.xy_plot(f'ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}__rel',
+            si.vis.xy_plot(f'ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}__rel',
                              [r.spec.phase for r in results],
                              [(np.abs(r.a[-1]) ** 2) / (np.abs(results[0].a[-1]) ** 2) for r in results],
                              x_label = r'CEP $\varphi$ ($\pi$)', x_unit = 'rad',

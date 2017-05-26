@@ -40,8 +40,8 @@ if __name__ == '__main__':
         # gauges = ['LEN']
 
         dt = 1
-        bound = 50
-        ppbr = 4
+        bound = 100
+        ppbr = 8
 
         inner = 20
         outer = 50
@@ -90,7 +90,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             plot_limit = outer * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(axman_lower_right),
@@ -102,7 +102,7 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g',
                             colormap = plt.get_cmap('richardson'),
-                            norm = si.plots.RichardsonNormalization(),
+                            norm = si.vis.RichardsonNormalization(),
                             plot_limit = inner * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(axman_lower_right),

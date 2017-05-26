@@ -199,7 +199,7 @@ def cylindrical_slice_norm_energy(z_points, states, bound = 30 * bohr_radius):
 
     axis.legend(loc = 'best', fontsize = 12)
 
-    si.plots.save_current_figure(name = 'cyl_norm_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'cyl_norm_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     ###############
 
@@ -213,7 +213,7 @@ def cylindrical_slice_norm_energy(z_points, states, bound = 30 * bohr_radius):
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.plots.save_current_figure(name = 'cyl_energy_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'cyl_energy_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 
@@ -275,7 +275,7 @@ def spherical_slice_norm_energy(r_points, states, theta_points = 128, bound = 30
 
     axis.legend(loc = 'best', fontsize = 12)
 
-    si.plots.save_current_figure(name = 'sph_norm_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sph_norm_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     ###############
 
@@ -289,7 +289,7 @@ def spherical_slice_norm_energy(r_points, states, theta_points = 128, bound = 30
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.plots.save_current_figure(name = 'sph_energy_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sph_energy_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 
@@ -351,7 +351,7 @@ def spherical_harmonic_norm_energy(r_points, states, spherical_harmonics = 128, 
 
     axis.legend(loc = 'best', fontsize = 12)
 
-    si.plots.save_current_figure(name = 'sphharm__norm_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     ###############
 
@@ -365,7 +365,7 @@ def spherical_harmonic_norm_energy(r_points, states, spherical_harmonics = 128, 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.plots.save_current_figure(name = 'sphharm_energy_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm_energy_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 
@@ -431,7 +431,7 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
 
     axis.legend(loc = 'best', fontsize = 12)
 
-    si.plots.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     ###############
 
@@ -445,7 +445,7 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.plots.save_current_figure(name = 'sphharm_energy_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm_energy_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 
@@ -461,7 +461,7 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
     for line, state in zip(lines, states):
         line.set_ydata(scaled_overlap[state])
 
-    si.plots.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 
@@ -525,7 +525,7 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
 
     axis.legend(loc = 'best', fontsize = 12)
 
-    si.plots.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     ###############
 
@@ -555,7 +555,7 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
     for line, state in zip(lines, states):
         line.set_ydata(scaled_overlap[state])
 
-    si.plots.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
 
     #################
 

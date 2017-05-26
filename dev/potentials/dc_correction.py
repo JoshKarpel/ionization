@@ -55,14 +55,14 @@ if __name__ == '__main__':
 
         print('uncorrected A final:', uncorrected_pulse_vpot[-1] / atomic_momentum)
 
-        si.plots.xy_plot(f'uncorrected_pulse',
+        si.vis.xy_plot(f'uncorrected_pulse',
                          t,
                          uncorrected_pulse_amp / atomic_electric_field,
                          uncorrected_pulse_vpot / atomic_momentum,
                          **EA_FIELD_PLT_KWARGS,
                          **PLT_KWARGS)
 
-        si.plots.xy_plot(f'uncorrected_pulse__log',
+        si.vis.xy_plot(f'uncorrected_pulse__log',
                          t,
                          np.abs(uncorrected_pulse_amp / atomic_electric_field),
                          np.abs(uncorrected_pulse_vpot / atomic_momentum),
@@ -83,14 +83,14 @@ if __name__ == '__main__':
 
         print('rect-corrected A final:', corrected_pulse_vpot[-1] / atomic_momentum)
 
-        si.plots.xy_plot(f'rect-corrected_pulse',
+        si.vis.xy_plot(f'rect-corrected_pulse',
                          t,
                          corrected_pulse_amp / atomic_electric_field,
                          corrected_pulse_vpot / atomic_momentum,
                          **EA_FIELD_PLT_KWARGS,
                          **PLT_KWARGS)
 
-        si.plots.xy_plot(f'rect-corrected_pulse__log',
+        si.vis.xy_plot(f'rect-corrected_pulse__log',
                          t,
                          np.abs(corrected_pulse_amp / atomic_electric_field),
                          np.abs(corrected_pulse_vpot / atomic_momentum),
@@ -123,14 +123,14 @@ if __name__ == '__main__':
 
         print('opt-rect-corrected A final:', corrected_pulse_vpot[-1] / atomic_momentum)
 
-        si.plots.xy_plot(f'opt-rect-corrected_pulse',
+        si.vis.xy_plot(f'opt-rect-corrected_pulse',
                          t,
                          corrected_pulse_amp / atomic_electric_field,
                          corrected_pulse_vpot / atomic_momentum,
                          **EA_FIELD_PLT_KWARGS,
                          **PLT_KWARGS)
 
-        si.plots.xy_plot(f'opt-rect-corrected_pulse__log',
+        si.vis.xy_plot(f'opt-rect-corrected_pulse__log',
                          t,
                          np.abs(corrected_pulse_amp / atomic_electric_field),
                          np.abs(corrected_pulse_vpot / atomic_momentum),

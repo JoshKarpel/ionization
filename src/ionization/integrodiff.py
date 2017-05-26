@@ -150,7 +150,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                        show_title = False,
                        plot_name = 'file_name',
                        **kwargs):
-        fig = si.plots.get_figure('full')
+        fig = si.vis.get_figure('full')
 
         x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(time_scale)
         f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
@@ -159,7 +159,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         ax_a = plt.subplot(grid_spec[0])
         ax_f = plt.subplot(grid_spec[1], sharex = ax_a)
 
-        ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.plots.RED, linewidth = 2)
+        ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
 
         overlap = np.abs(self.a) ** 2
         ax_a.plot(self.times / x_scale_unit, overlap, color = 'black', linewidth = 2)
@@ -168,17 +168,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             ax_a.set_yscale('log')
             min_overlap = np.min(overlap)
             ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_a.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+            ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
         else:
             ax_a.set_ylim(0.0, 1.0)
             ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_a.grid(True, **si.plots.GRID_KWARGS)
+            ax_a.grid(True, **si.vis.GRID_KWARGS)
 
         ax_a.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
 
         ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
-        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.plots.RED)
+        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.vis.RED)
 
         plt.rcParams['xtick.major.pad'] = 5
         plt.rcParams['ytick.major.pad'] = 5
@@ -213,7 +213,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                          left = True,
                          right = True)
 
-        ax_f.grid(True, **si.plots.GRID_KWARGS)
+        ax_f.grid(True, **si.vis.GRID_KWARGS)
 
         if show_title:
             title = ax_a.set_title(self.name)
@@ -226,7 +226,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         name = prefix + '__solution_vs_time{}'.format(postfix)
 
-        si.plots.save_current_figure(name = name, **kwargs)
+        si.vis.save_current_figure(name = name, **kwargs)
 
         plt.close()
 
@@ -725,7 +725,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
     def plot_fields_vs_time(self, time_scale = 'asec', field_scale = 'AEF', vector_scale = 'atomic_momentum', quiver_scale = 'bohr_radius',
                             **kwargs):
-        with si.plots.FigureManager(f'{self.name}__fields_vs_time', **kwargs) as figman:
+        with si.vis.FigureManager(f'{self.name}__fields_vs_time', **kwargs) as figman:
             fig = figman.fig
             ax = fig.add_subplot(111)
 
@@ -742,14 +742,14 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
             ax.set_xlabel(fr'Time $t$ (${t_scale_name}$)')
 
-            ax.grid(True, **si.plots.GRID_KWARGS)
+            ax.grid(True, **si.vis.GRID_KWARGS)
             ax.legend(loc = 'best')
 
     def plot_a_vs_time(self, log = False, time_scale = 'asec', field_scale = 'AEF',
                        show_title = False,
                        plot_name = 'file_name',
                        **kwargs):
-        fig = si.plots.get_figure('full')
+        fig = si.vis.get_figure('full')
 
         x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(time_scale)
         f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
@@ -758,7 +758,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
         ax_a = plt.subplot(grid_spec[0])
         ax_f = plt.subplot(grid_spec[1], sharex = ax_a)
 
-        ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.plots.RED, linewidth = 2)
+        ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
 
         overlap = np.abs(self.a) ** 2
         ax_a.plot(self.times / x_scale_unit, overlap, color = 'black', linewidth = 2)
@@ -767,17 +767,17 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
             ax_a.set_yscale('log')
             min_overlap = np.min(overlap)
             ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_a.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+            ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
         else:
             ax_a.set_ylim(0.0, 1.0)
             ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_a.grid(True, **si.plots.GRID_KWARGS)
+            ax_a.grid(True, **si.vis.GRID_KWARGS)
 
         ax_a.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
 
         ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
-        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.plots.RED)
+        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.vis.RED)
 
         plt.rcParams['xtick.major.pad'] = 5
         plt.rcParams['ytick.major.pad'] = 5
@@ -812,7 +812,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
                          left = True,
                          right = True)
 
-        ax_f.grid(True, **si.plots.GRID_KWARGS)
+        ax_f.grid(True, **si.vis.GRID_KWARGS)
 
         if show_title:
             title = ax_a.set_title(self.name)
@@ -825,7 +825,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
         name = prefix + '__solution_vs_time{}'.format(postfix)
 
-        si.plots.save_current_figure(name = name, **kwargs)
+        si.vis.save_current_figure(name = name, **kwargs)
 
         plt.close()
 

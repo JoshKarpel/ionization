@@ -48,7 +48,7 @@ if __name__ == '__main__':
                            field_axis_label = r'${}(t)$'.format(str_efield),
                            field_scale = 'AEF')
 
-        si.plots.xy_plot('time_step',
+        si.vis.xy_plot('time_step',
                          sim.times,
                          sim.time_steps_by_times,
                          x_axis_label = r'Time $t$', x_unit = 'asec',

@@ -25,7 +25,7 @@ if __name__ == '__main__':
             if log:
                 postfix += '__log'
 
-            si.plots.xy_plot(
+            si.vis.xy_plot(
                     f'ionization_vs_phase__length' + postfix,
                     [r.phase for r in results_lide],
                     [r.final_bound_state_overlap for r in results_lide],
@@ -33,7 +33,7 @@ if __name__ == '__main__':
                     **plt_kwargs,
             )
 
-            si.plots.xy_plot(
+            si.vis.xy_plot(
                     f'ionization_vs_phase__velocity' + postfix,
                     [r.phase for r in results_vide],
                     [r.final_bound_state_overlap for r in results_vide],
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                     **plt_kwargs,
             )
 
-            si.plots.xy_plot(
+            si.vis.xy_plot(
                     f'ionization_vs_phase__compare' + postfix,
                     [r.phase for r in results_vide],
                     [r.final_bound_state_overlap for r in results_lide],
@@ -54,7 +54,7 @@ if __name__ == '__main__':
             rel_lide = results_lide[0].final_bound_state_overlap
             rel_vide = results_vide[0].final_bound_state_overlap
 
-            si.plots.xy_plot(
+            si.vis.xy_plot(
                     f'ionization_vs_phase__compare_rel' + postfix,
                     [r.phase for r in results_vide],
                     [r.final_bound_state_overlap / rel_lide for r in results_lide],

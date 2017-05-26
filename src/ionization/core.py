@@ -29,8 +29,8 @@ logger.setLevel(logging.DEBUG)
 LATEX_EFIELD = r'\mathcal{E}'
 LATEX_AFIELD = r'\mathcal{A}'
 
-COLOR_ELECTRIC_FIELD = si.plots.RED
-COLOR_VECTOR_POTENTIAL = si.plots.BLUE
+COLOR_ELECTRIC_FIELD = si.vis.RED
+COLOR_VECTOR_POTENTIAL = si.vis.BLUE
 
 COLORMAP_WAVEFUNCTION = plt.get_cmap('inferno')
 
@@ -389,10 +389,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 10,
-            fancybox = True,
-            framealpha = .3,
+                loc = 'lower left',
+                fontsize = 10,
+                fancybox = True,
+                framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -416,14 +416,14 @@ class ElectricFieldSimulation(si.Simulation):
 
         axis.legend(**legend_kwargs)
 
-        axis.grid(True, **si.plots.GRID_KWARGS)
+        axis.grid(True, **si.vis.GRID_KWARGS)
 
     def plot_state_overlaps_vs_time(self,
                                     states = None,
                                     log = False,
                                     time_unit = 'asec',
                                     **kwargs):
-        with si.plots.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
+        with si.vis.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
@@ -431,10 +431,11 @@ class ElectricFieldSimulation(si.Simulation):
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             self.attach_electric_potential_plot_to_axis(ax_field,
-                                                        legend_kwargs = dict(bbox_to_anchor = (1.1, .9),
-                                                                             loc = 'upper left',
-                                                                             borderaxespad = 0.1,
-                                                                             fontsize = 10)
+                                                        legend_kwargs = dict(
+                                                                bbox_to_anchor = (1.1, .9),
+                                                                loc = 'upper left',
+                                                                borderaxespad = 0.1,
+                                                                fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
@@ -460,11 +461,11 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yscale('log')
                 min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
                 ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+                ax_overlaps.grid(True, which = 'both', **si.vis.GRID_KWARGS)
             else:
                 ax_overlaps.set_ylim(0.0, 1.0)
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+                ax_overlaps.grid(True, **si.vis.GRID_KWARGS)
 
             ax_overlaps.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
 
@@ -505,7 +506,7 @@ class ElectricFieldSimulation(si.Simulation):
                                   show_title = False,
                                   plot_name_from = 'file_name',
                                   **kwargs):
-        with si.plots.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
+        with si.vis.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)
@@ -572,11 +573,11 @@ class ElectricFieldSimulation(si.Simulation):
                 ax_overlaps.set_yscale('log')
                 min_overlap = min([np.min(overlap) for overlap in state_overlaps.values()])
                 ax_overlaps.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-                ax_overlaps.grid(True, which = 'both', **si.plots.GRID_KWARGS)
+                ax_overlaps.grid(True, which = 'both', **si.vis.GRID_KWARGS)
             else:
                 ax_overlaps.set_ylim(0.0, 1.0)
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_overlaps.grid(True, **si.plots.GRID_KWARGS)
+                ax_overlaps.grid(True, **si.vis.GRID_KWARGS)
 
             ax_overlaps.set_xlim(self.spec.time_initial / time_unit_value, self.spec.time_final / time_unit_value)
 
@@ -697,7 +698,7 @@ class ElectricFieldSimulation(si.Simulation):
 
             labels = None
 
-        with si.plots.FigureManager(self.name + '__energy_spectrum', **kwargs) as figman:
+        with si.vis.FigureManager(self.name + '__energy_spectrum', **kwargs) as figman:
             fig = figman.fig
             ax = fig.add_subplot(111)
 
@@ -709,7 +710,7 @@ class ElectricFieldSimulation(si.Simulation):
                                                       label = labels,
                                                       )
 
-            ax.grid(True, **si.plots.GRID_KWARGS)
+            ax.grid(True, **si.vis.GRID_KWARGS)
 
             x_range = energy_upper_bound - energy_lower_bound
             ax.set_xlim(energy_lower_bound - .05 * x_range, energy_upper_bound + .05 * x_range)
@@ -797,7 +798,7 @@ class ElectricFieldSimulation(si.Simulation):
         prefix = self.file_name
         if use_name:
             prefix = self.name
-        si.plots.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
+        si.vis.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
 
         plt.close()
 
@@ -806,11 +807,11 @@ class ElectricFieldSimulation(si.Simulation):
             prefix = self.file_name
         else:
             prefix = self.name
-        si.plots.xy_plot(prefix + '__dipole_moment_vs_time',
-                         self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
-                         x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
-                         x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
-                         **kwargs)
+        si.vis.xy_plot(prefix + '__dipole_moment_vs_time',
+                       self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
+                       x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
+                       x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
+                       **kwargs)
 
     def dipole_moment_vs_frequency(self, gauge = 'length', first_time = None, last_time = None):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
@@ -836,13 +837,13 @@ class ElectricFieldSimulation(si.Simulation):
 
         frequency, dipole_moment = self.dipole_moment_vs_frequency(gauge = gauge, first_time = first_time, last_time = last_time)
 
-        si.plots.xy_plot(prefix + '__dipole_moment_vs_frequency',
-                         frequency, np.abs(dipole_moment) ** 2,
-                         x_unit_value = 'THz', y_unit_value = atomic_electric_dipole ** 2,
-                         y_log_axis = True,
-                         x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
-                         x_lower_limit = 0, x_upper_limit = frequency_range,
-                         **kwargs)
+        si.vis.xy_plot(prefix + '__dipole_moment_vs_frequency',
+                       frequency, np.abs(dipole_moment) ** 2,
+                       x_unit_value = 'THz', y_unit_value = atomic_electric_dipole ** 2,
+                       y_log_axis = True,
+                       x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
+                       x_lower_limit = 0, x_upper_limit = frequency_range,
+                       **kwargs)
 
     def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
@@ -1273,7 +1274,7 @@ class QuantumMesh:
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
-                            norm = si.plots.AbsoluteRenormalize(),
+                            norm = si.vis.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
@@ -1291,7 +1292,7 @@ class QuantumMesh:
                          norm = None,
                          **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.g,
                                         colormap = colormap,
@@ -1303,7 +1304,7 @@ class QuantumMesh:
                            norm = None,
                            **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.psi,
                                         colormap = colormap,
@@ -1343,7 +1344,7 @@ class QuantumMesh:
                   title = None,
                   distance_unit = 'bohr_radius',
                   colormap = COLORMAP_WAVEFUNCTION,
-                  norm = si.plots.AbsoluteRenormalize(),
+                  norm = si.vis.AbsoluteRenormalize(),
                   shading = 'gouraud',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
@@ -1372,7 +1373,7 @@ class QuantumMesh:
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.g, name = name, title = title,
                        colormap = colormap,
@@ -1389,7 +1390,7 @@ class QuantumMesh:
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.psi, name = name, title = title,
                        colormap = colormap,
@@ -1692,7 +1693,7 @@ class LineMesh(QuantumMesh):
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
-                            norm = si.plots.AbsoluteRenormalize(),
+                            norm = si.vis.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
@@ -1707,8 +1708,8 @@ class LineMesh(QuantumMesh):
         return line
 
     def plot_mesh(self, mesh, distance_unit = 'nm', **kwargs):
-        si.plots.xy_plot(self.sim.name + '_' + kwargs.pop('name'), self.x_mesh, mesh,
-                         x_label = 'Distance $x$', x_unit_value = distance_unit, **kwargs)
+        si.vis.xy_plot(self.sim.name + '_' + kwargs.pop('name'), self.x_mesh, mesh,
+                       x_label = 'Distance $x$', x_unit_value = distance_unit, **kwargs)
 
     def update_mesh(self, colormesh, updated_mesh, norm = None, **kwargs):
         if norm is not None:
@@ -2033,7 +2034,7 @@ class CylindricalSliceMesh(QuantumMesh):
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
-                            norm = si.plots.AbsoluteRenormalize(),
+                            norm = si.vis.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
@@ -2105,7 +2106,7 @@ class CylindricalSliceMesh(QuantumMesh):
 
         axis.axis('tight')  # removes blank space between color mesh and axes
 
-        axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[color_map], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[color_map], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
 
         axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
         axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
@@ -2118,7 +2119,7 @@ class CylindricalSliceMesh(QuantumMesh):
         y_ticks[-1].label1.set_visible(False)
         y_ticks[-1].label2.set_visible(False)
 
-        si.plots.save_current_figure(name = '{}_{}'.format(self.spec.name, name), target_dir = target_dir, **kwargs)
+        si.vis.save_current_figure(name = '{}_{}'.format(self.spec.name, name), target_dir = target_dir, **kwargs)
 
         plt.close()
 
@@ -2397,7 +2398,7 @@ class SphericalSliceMesh(QuantumMesh):
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
-                            norm = si.plots.AbsoluteRenormalize(),
+                            norm = si.vis.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
@@ -2438,7 +2439,7 @@ class SphericalSliceMesh(QuantumMesh):
 
         unit_value, unit_name = get_unit_value_and_latex_from_unit(distance_unit)
 
-        fig = si.plots.get_figure('full')
+        fig = si.vis.get_figure('full')
         fig.set_tight_layout(True)
         axis = plt.subplot(111, projection = 'polar')
         axis.set_theta_zero_location('N')
@@ -2458,12 +2459,12 @@ class SphericalSliceMesh(QuantumMesh):
         cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
         cbar.ax.tick_params(labelsize = 10)
 
-        axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[color_map], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[color_map], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
         angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
         axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
         axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
-        axis.tick_params(axis = 'y', which = 'major', colors = si.plots.COLOR_OPPOSITE_INFERNO, pad = 3)  # make r ticks a color that shows up against the colormesh
+        axis.tick_params(axis = 'y', which = 'major', colors = si.vis.COLOR_OPPOSITE_INFERNO, pad = 3)  # make r ticks a color that shows up against the colormesh
         axis.tick_params(axis = 'both', which = 'both', length = 0)
 
         axis.set_rlabel_position(80)
@@ -2481,7 +2482,7 @@ class SphericalSliceMesh(QuantumMesh):
 
         axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
 
-        si.plots.save_current_figure(name = '{}_{}'.format(self.spec.name, name), **kwargs)
+        si.vis.save_current_figure(name = '{}_{}'.format(self.spec.name, name), **kwargs)
 
         plt.close()
 
@@ -3410,7 +3411,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def attach_mesh_to_axis(self, axis, mesh,
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
-                            norm = si.plots.AbsoluteRenormalize(),
+                            norm = si.vis.AbsoluteRenormalize(),
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer_spatial',
@@ -3437,7 +3438,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   title = None,
                   distance_unit = 'bohr_radius',
                   colormap = COLORMAP_WAVEFUNCTION,
-                  norm = si.plots.AbsoluteRenormalize(),
+                  norm = si.vis.AbsoluteRenormalize(),
                   shading = 'gouraud',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer_spatial',
@@ -3446,7 +3447,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   show_axes = True,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
-        with si.plots.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
+        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
             fig.set_tight_layout(True)
@@ -3478,12 +3479,12 @@ class SphericalHarmonicMesh(QuantumMesh):
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
                 cbar.ax.tick_params(labelsize = 10)
 
-            axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[colormap.name], **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
             axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
             axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
-            axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
+            axis.tick_params(axis = 'y', which = 'major', colors = si.vis.CMAP_TO_OPPOSITE[colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
             axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             axis.set_rlabel_position(80)
@@ -3512,7 +3513,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                          norm = None,
                          **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.space_g,
                                         colormap = colormap,
@@ -3527,7 +3528,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         name = 'g' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.space_g, name = name, title = title,
                        colormap = colormap,
@@ -3540,7 +3541,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                            norm = None,
                            **kwargs):
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         return self.attach_mesh_to_axis(axis, self.space_psi,
                                         colormap = colormap,
@@ -3555,7 +3556,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         name = 'psi' + name_postfix
 
         if norm is None:
-            norm = si.plots.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_psi) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(self.space_psi, name = name, title = title,
                        colormap = colormap,
@@ -3644,7 +3645,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         r_mesh = np.real(r_mesh)
         overlap_mesh = np.abs(inner_product_mesh) ** 2
 
-        with si.plots.FigureManager(self.sim.name + '__electron_spectrum', **plot_kwargs) as figman:
+        with si.vis.FigureManager(self.sim.name + '__electron_spectrum', **plot_kwargs) as figman:
             fig = figman.fig
 
             fig.set_tight_layout(True)
@@ -3672,12 +3673,12 @@ class SphericalHarmonicMesh(QuantumMesh):
             cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
             cbar.ax.tick_params(labelsize = 10)
 
-            axis.grid(True, color = si.plots.COLOR_OPPOSITE_VIRIDIS, **si.plots.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.grid(True, color = si.vis.COLOR_OPPOSITE_VIRIDIS, **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
             axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
             axis.tick_params(axis = 'both', which = 'major', labelsize = 8)  # increase size of tick labels
-            axis.tick_params(axis = 'y', which = 'major', colors = si.plots.COLOR_OPPOSITE_VIRIDIS, pad = 3)  # make r ticks a color that shows up against the colormesh
+            axis.tick_params(axis = 'y', which = 'major', colors = si.vis.COLOR_OPPOSITE_VIRIDIS, pad = 3)  # make r ticks a color that shows up against the colormesh
             axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             axis.set_rlabel_position(80)

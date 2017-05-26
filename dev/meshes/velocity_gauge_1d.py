@@ -96,7 +96,7 @@ if __name__ == '__main__':
                             fps = 30,
                             target_dir = OUT_DIR,
                             axman_wavefunction = ion.animators.LineMeshAxis(
-                                norm = si.plots.AbsoluteRenormalize(),
+                                norm = si.vis.AbsoluteRenormalize(),
                             ),
                             axman_lower = ion.animators.ElectricPotentialPlotAxis(
                                 show_vector_potential = True,

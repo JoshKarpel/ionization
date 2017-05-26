@@ -59,7 +59,7 @@ if __name__ == '__main__':
 
             field_prefactor = electron_charge  # convert to momentum
 
-            si.plots.xy_plot('pw={}as_flu={}Jcm2_field'.format(pulse_width, fluence),
+            si.vis.xy_plot('pw={}as_flu={}Jcm2_field'.format(pulse_width, fluence),
                              times,
                              sinc_cos.get_electric_field_amplitude(times),
                              sinc_sin.get_electric_field_amplitude(times),
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                              x_label = r'Time $t$', y_label = r'Electric Field $E(t)$',
                              target_dir = OUT_DIR)
 
-            si.plots.xy_plot('pw={}as_flu={}Jcm2_integrated'.format(pulse_width, fluence),
+            si.vis.xy_plot('pw={}as_flu={}Jcm2_integrated'.format(pulse_width, fluence),
                              times,
                              sinc_cos.get_electric_field_integral_numeric_cumulative(times) * field_prefactor,
                              sinc_sin.get_electric_field_integral_numeric_cumulative(times) * field_prefactor,

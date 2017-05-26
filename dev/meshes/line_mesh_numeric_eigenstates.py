@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
             name = f'{uround(numeric_eigenstate.energy, "eV", 3)}eV'
 
-            si.plots.xy_plot(name,
+            si.vis.xy_plot(name,
                              sim.mesh.x_mesh,
                              np.abs(numeric_eigenstate(sim.mesh.x_mesh)) ** 2, np.abs(numeric_eigenstate.analytic_state(sim.mesh.x_mesh)) ** 2,
                              line_labels = ('numeric ', 'analytic'),

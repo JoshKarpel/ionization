@@ -55,7 +55,7 @@ if __name__ == '__main__':
             'y_unit': 'AEF',
             'target_dir': OUT_DIR}
 
-        si.plots.xy_plot(prefix + '__pulse_comparison',
+        si.vis.xy_plot(prefix + '__pulse_comparison',
                          times,
                          sinc.get_electric_field_amplitude(times),
                          gaus.get_electric_field_amplitude(times),

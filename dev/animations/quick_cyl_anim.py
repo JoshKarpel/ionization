@@ -40,8 +40,8 @@ if __name__ == '__main__':
                     postfix = 'g',
                     axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(
                             which = 'g',
-                            colormap = si.plots.RichardsonColormap(),
-                            norm = si.plots.RichardsonNormalization(),
+                            colormap = si.vis.RichardsonColormap(),
+                            norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
                     axman_lower = ion.animators.ElectricPotentialPlotAxis(),
                     **anim_kwargs,

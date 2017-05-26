@@ -67,7 +67,7 @@ if __name__ == '__main__':
                                                                     ).to_simulation()
         ark4.run_simulation()
 
-        si.plots.xy_plot('time_step',
+        si.vis.xy_plot('time_step',
                          ark4.times,
                          ark4.time_steps_list,
                          x_axis_label = r'Time $t$', x_unit = 'asec',
@@ -106,14 +106,14 @@ if __name__ == '__main__':
                     target_dir = OUT_DIR,
             )
 
-            si.plots.xy_plot('dt={}as__compare'.format(dt),
+            si.vis.xy_plot('dt={}as__compare'.format(dt),
                              t,
                              *y,
                              x_label = r'Time $t$', x_unit = 'asec', y_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
                              **plt_kwargs, y_upper_limit = 1, y_lower_limit = 0,
                              )
 
-            si.plots.xy_plot('dt={}as__compare_log'.format(dt),
+            si.vis.xy_plot('dt={}as__compare_log'.format(dt),
                              t,
                              *y,
                              x_label = r'Time $t$', x_unit = 'asec', y_label = r'$   \left| a_{\alpha}(t) \right|^2  $',

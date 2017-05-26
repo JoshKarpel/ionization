@@ -36,7 +36,7 @@ if __name__ == '__main__':
 
         print(free_state.epsilon)
 
-        si.plots.xy_plot('r_times_radial_function_squared',
+        si.vis.xy_plot('r_times_radial_function_squared',
                          r,
                          np.abs(r * radial_function) ** 2,  # np.abs(r * radial_function_asymptotic) ** 2,
                          # line_labels = ('exact', 'asymp'),
@@ -44,7 +44,7 @@ if __name__ == '__main__':
                          y_label = r'$\left|r \, R(r) \right|^2$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('r_times_radial_function',
+        si.vis.xy_plot('r_times_radial_function',
                          r,
                          np.real(r * radial_function), np.real(r * radial_function),  # np.abs(r * radial_function_asymptotic) ** 2,
                          line_labels = ('real', 'imag'),
@@ -52,7 +52,7 @@ if __name__ == '__main__':
                          y_label = r'$r \, R(r)$',
                          target_dir = OUT_DIR)
         #
-        si.plots.xy_plot('radial_function_squared',
+        si.vis.xy_plot('radial_function_squared',
                          r,
                          np.abs(radial_function) ** 2,  # np.abs(radial_function_asymptotic) ** 2,
                          # line_labels = ('exact', 'asymp'),
@@ -60,7 +60,7 @@ if __name__ == '__main__':
                          y_label = r'$\left|R(r) \right|^2$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('radial_function',
+        si.vis.xy_plot('radial_function',
                          r,
                          np.real(radial_function), np.imag(radial_function),  # np.abs(radial_function_asymptotic) ** 2,
                          line_labels = ('real', 'imag'),

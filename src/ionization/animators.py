@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLORMESH_GRID_KWARGS = {
-    **si.plots.COLORMESH_GRID_KWARGS,
+    **si.vis.COLORMESH_GRID_KWARGS,
     **dict(
         linestyle = ':',
         linewidth = 1.5,
@@ -24,7 +24,7 @@ COLORMESH_GRID_KWARGS = {
 }
 
 
-class ElectricPotentialPlotAxis(si.AxisManager):
+class ElectricPotentialPlotAxis(si.vis.AxisManager):
     def __init__(self,
                  time_unit = 'asec',
                  show_electric_field = True,
@@ -97,7 +97,7 @@ class ElectricPotentialPlotAxis(si.AxisManager):
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **si.plots.GRID_KWARGS)
+        self.axis.grid(True, **si.vis.GRID_KWARGS)
 
         self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 24)
 
@@ -114,7 +114,7 @@ class ElectricPotentialPlotAxis(si.AxisManager):
         if self.show_vector_potential:
             data.append(proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times) / self.vector_potential_unit_value)
 
-        y_lower_limit, y_upper_limit = si.plots.set_axis_limits(self.axis,
+        y_lower_limit, y_upper_limit = si.vis.set_axis_limits(self.axis,
                                                                 *data,
                                                                 pad = 0.05,
                                                                 direction = 'y',
@@ -137,7 +137,7 @@ class ElectricPotentialPlotAxis(si.AxisManager):
         super().update_axis()
 
 
-class StackplotAxis(si.AxisManager):
+class StackplotAxis(si.vis.AxisManager):
     def __init__(self,
                  show_norm = True,
                  time_unit = 'asec',
@@ -190,7 +190,7 @@ class StackplotAxis(si.AxisManager):
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **si.plots.GRID_KWARGS)
+        self.axis.grid(True, **si.vis.GRID_KWARGS)
 
         self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 24)
 
@@ -307,7 +307,7 @@ class WavefunctionStackplotAxis(StackplotAxis):
         return data, labels
 
 
-class AngularMomentumDecompositionAxis(si.AxisManager):
+class AngularMomentumDecompositionAxis(si.vis.AxisManager):
     def __init__(self, renormalize_l_decomposition = False, maximum_l = None):
         self.renormalize_l_decomposition = renormalize_l_decomposition
         self.maximum_l = maximum_l
@@ -326,7 +326,7 @@ class AngularMomentumDecompositionAxis(si.AxisManager):
 
         self.redraw += [*self.ang_mom_bar]
 
-        self.axis.yaxis.grid(True, **si.plots.GRID_KWARGS)
+        self.axis.yaxis.grid(True, **si.vis.GRID_KWARGS)
 
         self.axis.set_xlabel(r'Orbital Angular Momentum $\ell$', fontsize = 22)
         l_label = r'$\left| \left\langle \Psi | Y^{\ell}_0 \right\rangle \right|^2$'
@@ -357,7 +357,7 @@ class AngularMomentumDecompositionAxis(si.AxisManager):
         super().update_axis()
 
 
-class ColorBarAxis(si.AxisManager):
+class ColorBarAxis(si.vis.AxisManager):
     def assign_colorable(self,
                          colorable,
                          fontsize = 14):
@@ -371,11 +371,11 @@ class ColorBarAxis(si.AxisManager):
         super().initialize_axis()
 
 
-class QuantumMeshAxis(si.AxisManager):
+class QuantumMeshAxis(si.vis.AxisManager):
     def __init__(self,
                  which = 'g2',
                  colormap = core.COLORMAP_WAVEFUNCTION,
-                 norm = si.plots.AbsoluteRenormalize(),
+                 norm = si.vis.AbsoluteRenormalize(),
                  plot_limit = None,
                  distance_unit = 'bohr_radius',
                  shading = 'gouraud',
@@ -430,7 +430,7 @@ class LineMeshAxis(QuantumMeshAxis):
 
         # TODO: code for show_potential
 
-        self.axis.grid(True, **si.plots.GRID_KWARGS)
+        self.axis.grid(True, **si.vis.GRID_KWARGS)
 
         self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
         plot_labels = {
@@ -477,7 +477,7 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
                                        animated = True)
         self.redraw.append(self.mesh)
 
-        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        self.axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
 
         self.axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
         self.axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 24)
@@ -527,12 +527,12 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
         self.axis.set_theta_direction('clockwise')
         self.axis.set_rlabel_position(80)
 
-        self.axis.grid(True, color = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        self.axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
         angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
         self.axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 20)  # increase size of tick labels
-        self.axis.tick_params(axis = 'y', which = 'major', colors = si.plots.CMAP_TO_OPPOSITE[self.colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
+        self.axis.tick_params(axis = 'y', which = 'major', colors = si.vis.CMAP_TO_OPPOSITE[self.colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
 
         self.axis.set_rlabel_position(80)
 
@@ -557,7 +557,7 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
 
-class WavefunctionSimulationAnimator(si.Animator):
+class WavefunctionSimulationAnimator(si.vis.Animator):
     def __init__(self,
                  axman_wavefunction = None,
                  **kwargs):

@@ -20,7 +20,7 @@ if __name__ == '__main__':
 
         field_sum = field_1 + field_2
 
-        si.plots.xy_plot(
+        si.vis.xy_plot(
                 'sum_plot',
                 times,
                 field_1.get_electric_field_amplitude(times),

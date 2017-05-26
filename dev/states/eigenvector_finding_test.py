@@ -64,7 +64,7 @@ if __name__ == '__main__':
                 y = [np.abs(eigenvector) ** 2, np.abs(g_analytic) ** 2]
                 labels = ['Numeric, $E = {}$ eV, $\ell = {}$'.format(energy, l), r'${}$, $E = {}$ eV'.format(state.tex_str, uround(state.energy, eV, 5))]
 
-                si.plots.xy_plot(name,
+                si.vis.xy_plot(name,
                                  sim.mesh.r, *y,
                                  line_labels = labels,
                                  x_unit = 'bohr_radius', x_label = r'$r$', y_label = r'$\left| g \right|^2$', title = 'Energy = {} eV, $\ell$ = {}'.format(energy, l),

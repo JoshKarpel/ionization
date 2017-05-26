@@ -77,7 +77,7 @@ if __name__ == '__main__':
                 y = [np.abs(r.a) ** 2 for r in results]
                 y_lab = r'$ \left| a(t) \right|^2 $'
 
-            si.plots.xy_plot(plot_name,
+            si.vis.xy_plot(plot_name,
                              results[0].times,
                              *y,
                              line_labels = [r.name for r in results],

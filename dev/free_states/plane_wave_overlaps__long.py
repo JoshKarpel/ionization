@@ -73,7 +73,7 @@ if __name__ == '__main__':
         # sim.mesh.plot_g(target_dir = OUT_DIR, name_postfix = '_25', plot_limit = 25 * bohr_radius)
 
         for log in (True, False):
-            si.plots.xy_plot(f'norm_vs_time__log={log}',
+            si.vis.xy_plot(f'norm_vs_time__log={log}',
                              sim.data_times,
                              sim.norm_vs_time,
                              y_log_axis = log,
@@ -116,7 +116,7 @@ if __name__ == '__main__':
                                                                      name_postfix = f'_t={uround(snapshot.time, asec, 3)}',
                                                                      **snapshot_spectrum_kwargs)
 
-                si.plots.xy_plot(f'snapshot_t={uround(snapshot.time, asec, 3)}__free_only__theta=0__log={log}',
+                si.vis.xy_plot(f'snapshot_t={uround(snapshot.time, asec, 3)}__free_only__theta=0__log={log}',
                                  wavenumber[0, :], np.abs(ip[0, :]) ** 2,
                                  x_unit = 'per_nm', x_label = r'Wavenumber $k$',
                                  y_log_axis = log,

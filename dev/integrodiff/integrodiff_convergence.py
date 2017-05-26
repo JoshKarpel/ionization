@@ -16,7 +16,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 
 def comparison_plot(dt_list, t_by_dt, y_by_dt, title):
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     for dt, t, y in zip(dt_list, t_by_dt, y_by_dt):
@@ -30,7 +30,7 @@ def comparison_plot(dt_list, t_by_dt, y_by_dt, title):
     ax.set_ylabel(r'$   \left| a_{\alpha}(t) \right|^2   $')
     ax.grid(True, **ion.GRID_KWARGS)
 
-    si.plots.save_current_figure('{}__comparison'.format(title), target_dir = OUT_DIR)
+    si.vis.save_current_figure('{}__comparison'.format(title), target_dir = OUT_DIR)
 
     plt.close()
 
@@ -40,7 +40,7 @@ def error_plot(dt_list, t_by_dt, y_by_dt, title):
     longest_t = t_by_dt[dt_min_index]
     best_y = y_by_dt[dt_min_index]
 
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     for dt, t, y in zip(dt_list, t_by_dt, y_by_dt):
@@ -59,7 +59,7 @@ def error_plot(dt_list, t_by_dt, y_by_dt, title):
     ax.set_ylabel(r'$   \left| a_{\alpha}(t) \right|^2 - \left| a_{\alpha}^{\mathrm{best}}(t) \right|^2  $')
     ax.grid(True, **ion.GRID_KWARGS)
 
-    si.plots.save_current_figure('{}__error'.format(title), target_dir = OUT_DIR)
+    si.vis.save_current_figure('{}__error'.format(title), target_dir = OUT_DIR)
 
     plt.close()
 
@@ -69,7 +69,7 @@ def error_log_plot(dt_list, t_by_dt, y_by_dt, title):
     longest_t = t_by_dt[dt_min_index]
     best_y = y_by_dt[dt_min_index]
 
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     for dt, t, y in zip(dt_list, t_by_dt, y_by_dt):
@@ -93,7 +93,7 @@ def error_log_plot(dt_list, t_by_dt, y_by_dt, title):
     ax.set_yscale('log')
     # ax.set_ylim(bottom = 1e-10, top = 1)
 
-    si.plots.save_current_figure('{}__error_log'.format(title), target_dir = OUT_DIR)
+    si.vis.save_current_figure('{}__error_log'.format(title), target_dir = OUT_DIR)
 
     plt.close()
 
@@ -103,7 +103,7 @@ def convergence_plot(dt_list, t_by_dt, y_by_dt, title):
     longest_t = t_by_dt[dt_min_index]
     best_y = y_by_dt[dt_min_index]
 
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     final = [np.abs(np.abs(y[-1]) - np.abs(best_y[-1])) for y in y_by_dt]
@@ -120,7 +120,7 @@ def convergence_plot(dt_list, t_by_dt, y_by_dt, title):
     ax.set_yscale('log')
     # ax.set_ylim(bottom = .01 * np.nanmin(final), top = 1)
 
-    si.plots.save_current_figure('{}__convergence'.format(title), target_dir = OUT_DIR)
+    si.vis.save_current_figure('{}__convergence'.format(title), target_dir = OUT_DIR)
 
     plt.close()
 
@@ -130,7 +130,7 @@ def convergence_plot_squared(dt_list, t_by_dt, y_by_dt, title):
     longest_t = t_by_dt[dt_min_index]
     best_y = y_by_dt[dt_min_index]
 
-    fig = si.plots.get_figure('full')
+    fig = si.vis.get_figure('full')
     ax = fig.add_subplot(111)
 
     final = [np.abs(np.abs(y[-1]) ** 2 - np.abs(best_y[-1]) ** 2) for y in y_by_dt]
@@ -146,7 +146,7 @@ def convergence_plot_squared(dt_list, t_by_dt, y_by_dt, title):
     ax.set_yscale('log')
     # ax.set_ylim(bottom = .01 * np.nanmin(final), top = 1)
 
-    si.plots.save_current_figure('{}__convergence_squared'.format(title), target_dir = OUT_DIR)
+    si.vis.save_current_figure('{}__convergence_squared'.format(title), target_dir = OUT_DIR)
 
     plt.close()
 

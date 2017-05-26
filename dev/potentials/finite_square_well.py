@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
         print(sim.info())
 
-        si.plots.xy_plot('fsw_potential', sim.mesh.x_mesh, pot(distance = sim.mesh.x_mesh),
+        si.vis.xy_plot('fsw_potential', sim.mesh.x_mesh, pot(distance = sim.mesh.x_mesh),
                          x_unit = 'bohr_radius', y_unit = 'eV', x_lower_limit = -3 * width, x_upper_limit = 3 * width,
                          target_dir = OUT_DIR)
 
@@ -92,17 +92,17 @@ if __name__ == '__main__':
 
         sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR)
 
-        si.plots.xy_plot('energy_vs_time',
+        si.vis.xy_plot('energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,
                          x_label = '$t$', x_unit = 'asec', y_label = 'Energy', y_unit = 'eV',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('energy_vs_time__ratio',
+        si.vis.xy_plot('energy_vs_time__ratio',
                          sim.times, sim.energy_expectation_value_vs_time_internal / sim.energy_expectation_value_vs_time_internal[0],
                          x_label = '$t$', x_unit = 'asec', y_label = '$E(t) / E(t=0)$',
                          target_dir = OUT_DIR)
 
-        si.plots.xy_plot('energy_vs_time__ratio_log',
+        si.vis.xy_plot('energy_vs_time__ratio_log',
                          sim.times, sim.energy_expectation_value_vs_time_internal / sim.energy_expectation_value_vs_time_internal[0],
                          x_label = '$t$', x_unit = 'asec', y_label = '$E(t) / E(t=0)$', y_log_axis = True,
                          target_dir = OUT_DIR)

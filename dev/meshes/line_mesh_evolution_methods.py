@@ -24,7 +24,7 @@ def run(spec):
         sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR,
                                         grouped_free_states = {})
 
-        si.plots.xy_plot(f'{sim.name}__energy_vs_time',
+        si.vis.xy_plot(f'{sim.name}__energy_vs_time',
                          sim.times, sim.energy_expectation_value_vs_time_internal,
                          x_label = '$t$', x_unit = 'asec', y_label = 'Energy', y_unit = 'eV',
                          target_dir = OUT_DIR)

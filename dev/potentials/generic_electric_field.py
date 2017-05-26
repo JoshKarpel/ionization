@@ -44,7 +44,7 @@ if __name__ == '__main__':
                                                    frequency_points = 2 ** 15
                                                    )
 
-            si.plots.xy_plot('generic_electric_field_vs_time__zoom__{}__phase={}'.format(ii, phase / pi),
+            si.vis.xy_plot('generic_electric_field_vs_time__zoom__{}__phase={}'.format(ii, phase / pi),
                              generic.times, np.real(generic.complex_electric_field_vs_time),
                              x_unit = 'asec', x_label = r'Time $t$',
                              x_lower_limit = times[0], x_upper_limit = times[-1],
