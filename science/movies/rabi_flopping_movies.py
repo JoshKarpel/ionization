@@ -30,21 +30,18 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         state_a = ion.HydrogenBoundState(1, 0)
-        state_b = ion.HydrogenBoundState(2, 1)
+        state_b = ion.HydrogenBoundState(3, 1)
 
         amplitudes = [.005, .01, .1]
-        cycles = [1, 2, 3]
+        cycles = [1, 3]
         gauges = ['LEN', 'VEL']
-        # amplitudes = [.1]
-        # cycles = [1]
-        # gauges = ['LEN']
 
         dt = 1
         bound = 100
         ppbr = 8
 
-        inner = 20
-        outer = 50
+        inner = 30
+        outer = 60
 
         animator_kwargs = dict(
                 target_dir = OUT_DIR,
@@ -57,6 +54,7 @@ if __name__ == '__main__':
                 show_vector_potential = True,
                 show_y_label = False,
                 show_ticks_right = True,
+                legend_kwargs = {'fontsize': 20}
         )
         axman_upper_right = ion.animators.WavefunctionStackplotAxis(
                 states = [state_a, state_b],
@@ -128,9 +126,6 @@ if __name__ == '__main__':
 
         dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_simulation()
         dipole_moment = np.abs(dummy.mesh.dipole_moment_expectation_value(mesh_a = dummy.mesh.get_g_for_state(state_b)))
-
-        print('matrix element?', np.abs(dipole_moment / bohr_radius / dummy.spec.test_charge))
-        print('should be', np.sqrt(2) * (2 ** 7) / (3 ** 5))
 
         specs = []
 

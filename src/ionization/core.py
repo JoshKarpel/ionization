@@ -851,7 +851,7 @@ class ElectricFieldSimulation(si.Simulation):
     def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
-        
+
         :param target_dir: directory to save the Simulation to
         :param file_extension: file extension to name the Simulation with
         :param save_mesh: if True, save the mesh as well as the Simulation. If False, don't.
@@ -1039,7 +1039,7 @@ class ElectricFieldSpecification(si.Specification):
             'Analysis:',
             '   Test Charge: {} e'.format(uround(self.test_charge, proton_charge)),
             '   Test Mass: {} m_e'.format(uround(self.test_mass, electron_mass)),
-            '   Test States (first 10): {}'.format(', '.join(str(s) for s in sorted(self.test_states[:10]))),
+            '   Test States (first 10 of {}): {}'.format(', '.join(str(s) for s in sorted(self.test_states[:10])), len(self.test_states)),
             '   Dipole Gauges: {}'.format(', '.join(self.dipole_gauges)),
             '   Storing Data Every {} Time Steps'.format(self.store_data_every),
             '   Snapshot Indices: {}'.format(', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'None'),
@@ -1176,6 +1176,10 @@ class QuantumMesh:
         if state_or_mesh is None:
             return self.g
         elif isinstance(state_or_mesh, states.QuantumState):
+            try:
+                state_or_mesh = self.analytic_to_numeric[state_or_mesh]
+            except (AttributeError, KeyError):
+                pass
             return self.get_g_for_state(state_or_mesh)
         else:
             return state_or_mesh
@@ -1479,6 +1483,12 @@ class LineMesh(QuantumMesh):
 
     @si.utils.memoize
     def get_g_for_state(self, state):
+        if state.analytic and self.spec.use_numeric_eigenstates:
+            try:
+                state = self.analytic_to_numeric[state]
+            except (AttributeError, KeyError):
+                logger.debug(f'Analytic to numeric eigenstate lookup failed for state {state}')
+
         g = state(self.x_mesh)
         g /= np.sqrt(self.norm(g))
         g *= state.amplitude
@@ -2010,7 +2020,7 @@ class CylindricalSliceMesh(QuantumMesh):
     def _evolve_CN(self, time_step):
         """
         Evolve the mesh forward in time by time_step.
-        
+
         Crank-Nicholson evolution in the Length gauge.
 
         :param time_step:
@@ -2656,6 +2666,11 @@ class SphericalHarmonicMesh(QuantumMesh):
         # don't memoize this, instead rely on the memoization in get_radial_function_for_state, more compact in memory (at the cost of some runtime in having to reassemble g occasionally)
 
         if isinstance(state, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in state):
+            if state.analytic and self.spec.use_numeric_eigenstates:
+                try:
+                    state = self.analytic_to_numeric[state]
+                except (AttributeError, KeyError):
+                    logger.debug(f'Analytic to numeric eigenstate lookup failed for state {state}')
             g = np.zeros(self.mesh_shape, dtype = np.complex128)
 
             for s in state:
@@ -2698,7 +2713,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
-        
+
         Parameters
         ----------
         thetas
@@ -2741,9 +2756,9 @@ class SphericalHarmonicMesh(QuantumMesh):
     def inner_product_with_plane_waves_at_infinity(self, thetas, wavenumbers, g = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
-        
+
         WARNING: NOT WORKING
-        
+
         Parameters
         ----------
         thetas

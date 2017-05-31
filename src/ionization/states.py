@@ -493,10 +493,10 @@ class NumericSphericalHarmonicState(QuantumState):
         self.bound = bound
 
     def __str__(self):
-        return str(self.analytic_state)
+        return str(self.analytic_state) + '_n'
 
     def __repr__(self):
-        return repr(self.analytic_state)
+        return repr(self.analytic_state) + '_n'
 
     @property
     def n(self):
@@ -572,14 +572,14 @@ class NumericOneDState(QuantumState):
     @property
     def ket(self):
         if self.analytic_state is None:
-            return f'|E={uround(self.energy, "eV", 3)} eV>'
+            return f'|E={uround(self.energy, "eV", 3)} eV>_n'
         else:
             return self.analytic_state.ket
 
     @property
     def bra(self):
         if self.analytic_state is None:
-            return f'<E={uround(self.energy, "eV", 3)} eV|'
+            return f'<E={uround(self.energy, "eV", 3)} eV|_n'
         else:
             return self.analytic_state.bra
 
