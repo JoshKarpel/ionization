@@ -288,7 +288,7 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
         raise NotImplementedError
 
     def __call__(self, *, t, distance_along_polarization, test_charge, **kwargs):
-        return distance_along_polarization * test_charge * self.get_electric_field_amplitude(t)
+        return -distance_along_polarization * test_charge * self.get_electric_field_amplitude(t)
 
     def get_electric_field_integral_numeric(self, times, rule = 'simps'):
         """
@@ -588,7 +588,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def __init__(self, pulse_width = 200 * asec, omega_min = twopi * 500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
                  **kwargs):
         """
-        
+
         Parameters
         ----------
         pulse_width
@@ -694,7 +694,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def __init__(self, pulse_width = 200 * asec, omega_carrier = twopi * 3500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
                  **kwargs):
         """
-        
+
         Parameters
         ----------
         pulse_width
@@ -761,7 +761,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def __init__(self, pulse_width = 200 * asec, omega_carrier = twopi * 3500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
                  **kwargs):
         """
-        
+
         Parameters
         ----------
         pulse_width
@@ -834,7 +834,7 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
                  extra_information = None,
                  **kwargs):
         """
-        
+
         Parameters
         ----------
         amplitude_function

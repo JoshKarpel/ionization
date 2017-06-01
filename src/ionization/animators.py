@@ -446,10 +446,10 @@ class LineMeshAxis(QuantumMeshAxis):
 
         slice = getattr(self.sim.mesh, self.slicer)(self.plot_limit)
         x = self.sim.mesh.x_mesh[slice]
-        x_lower_limit, x_upper_limit = x[0], x[-1]
+        x_lower_limit, x_upper_limit = np.nanmin(x), np.nanmax(x)
         self.axis.set_xlim(x_lower_limit / unit_value, x_upper_limit / unit_value)
 
-        self.axis.axis('tight')
+        # self.axis.axis('tight')
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 

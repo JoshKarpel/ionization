@@ -279,11 +279,11 @@ class ElectricFieldSimulation(si.Simulation):
                 if self.time in self.data_times:  # having to repeat this is clunky, but I need the data for the animators to work and I can't change the data index until the animators are done
                     self.data_time_index += 1
 
-                if self.time_index == self.time_steps - 1:
-                    break
-
                 if callback is not None:
                     callback(self)
+
+                if self.time_index == self.time_steps - 1:
+                    break
 
                 self.time_index += 1
 
@@ -392,10 +392,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 10,
-                fancybox = True,
-                framealpha = .3,
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -435,10 +435,10 @@ class ElectricFieldSimulation(si.Simulation):
 
             self.attach_electric_potential_plot_to_axis(ax_field,
                                                         legend_kwargs = dict(
-                                                                bbox_to_anchor = (1.1, .9),
-                                                                loc = 'upper left',
-                                                                borderaxespad = 0.1,
-                                                                fontsize = 10)
+                                                            bbox_to_anchor = (1.1, .9),
+                                                            loc = 'upper left',
+                                                            borderaxespad = 0.1,
+                                                            fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
@@ -480,8 +480,8 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_overlaps.xaxis.tick_top()
 
-            plt.rcParams['xtick.major.pad'] = 5
-            plt.rcParams['ytick.major.pad'] = 5
+            # plt.rcParams['xtick.major.pad'] = 5
+            # plt.rcParams['ytick.major.pad'] = 5
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -606,8 +606,8 @@ class ElectricFieldSimulation(si.Simulation):
                                  right = True)
             # ax_overlaps.xaxis.tick_top()
 
-            plt.rcParams['xtick.major.pad'] = 5
-            plt.rcParams['ytick.major.pad'] = 5
+            # plt.rcParams['xtick.major.pad'] = 5
+            # plt.rcParams['ytick.major.pad'] = 5
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -1551,7 +1551,7 @@ class LineMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_x)
+        prefactor = 1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_x)
         offdiag = prefactor * np.ones(self.spec.x_points - 1, dtype = np.complex128)
 
         return sparse.diags([-offdiag, offdiag], offsets = [-1, 1])
@@ -1694,13 +1694,25 @@ class LineMesh(QuantumMesh):
 
         return analytic_to_numeric
 
-    def gauge_transformation(self, g, leaving_gauge):
+    def gauge_transformation(self, *, g = None, leaving_gauge = None):
+        if g is None:
+            g = self.g
+        if leaving_gauge is None:
+            leaving_gauge = self.spec.evolution_gauge
+
         vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
 
-        dipole_to_velocity = np.exp(-1j * self.spec.test_charge * integral / (2 * self.spec.test_mass * hbar))
-        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / hbar)
+        print(integral)
+        print(np.sum((vamp ** 2)) * (self.spec.time_step))
+
+        print('vamp[-1]', vamp[-1])
+        print('direct', self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current))
+
+        dipole_to_velocity = np.exp(1j * integral * (self.spec.test_charge ** 2) / (2 * self.spec.test_mass * hbar))
+        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / hbar)  # wtf
+        print('q A a_0 / hbar', self.spec.test_charge * vamp[-1] * bohr_radius / hbar)
 
         print(dipole_to_velocity)
         print(dipole_to_length)
@@ -2541,12 +2553,12 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         :param evolution_gauge: 'V' (recommended) or 'L'
         :param kwargs: passed to ElectricFieldSpecification
         """
-        super(SphericalHarmonicSpecification, self).__init__(name,
-                                                             mesh_type = SphericalHarmonicMesh,
-                                                             evolution_equations = evolution_equations,
-                                                             evolution_method = evolution_method,
-                                                             evolution_gauge = evolution_gauge,
-                                                             **kwargs)
+        super().__init__(name,
+                         mesh_type = SphericalHarmonicMesh,
+                         evolution_equations = evolution_equations,
+                         evolution_method = evolution_method,
+                         evolution_gauge = evolution_gauge,
+                         **kwargs)
 
         self.r_bound = r_bound
         self.r_points = int(r_points)
@@ -2574,7 +2586,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     mesh_storage_method = ('l', 'r')
 
     def __init__(self, simulation):
-        super(SphericalHarmonicMesh, self).__init__(simulation)
+        super().__init__(simulation)
 
         self.r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
         self.delta_r = self.r[1] - self.r[0]
@@ -2919,7 +2931,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self):
-        l_prefactor = self.flatten_mesh(self.r_mesh, 'l')[:-1] * self.spec.test_charge
+        l_prefactor = -self.spec.test_charge * self.flatten_mesh(self.r_mesh, 'l')[:-1]
 
         l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
         l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
@@ -2937,7 +2949,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        h1_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
+        h1_prefactor = 1j * hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
 
         h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
         for l_index in range(self.mesh_points - 1):
@@ -2948,7 +2960,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
 
-        h2_prefactor = -1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
+        h2_prefactor = 1j * hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
 
         alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
         alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))

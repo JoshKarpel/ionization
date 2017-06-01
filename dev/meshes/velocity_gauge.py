@@ -36,11 +36,13 @@ def run_sim(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        efield = ion.SineWave(twopi / (300 * asec), amplitude = .1 * atomic_electric_field,
-                              window = ion.RectangularTimeWindow(on_time = -300 * asec, off_time = 300 * asec))
+        # efield = ion.SineWave(twopi / (300 * asec), amplitude = .1 * atomic_electric_field,
+        #                       window = ion.RectangularTimeWindow(on_time = -300 * asec, off_time = 300 * asec))
 
         # efield = ion.Rectangle(-100 * asec, -10 * asec, .1 * atomic_electric_field)
         # efield += ion.Rectangle(10 * asec, 100 * asec, -.1 * atomic_electric_field)
+
+        efield = ion.Rectangle(-100 * asec, 100 * asec, 1 * atomic_electric_field)
 
         r_points = (200, 201)
         l_points = (30, 31)
@@ -54,36 +56,40 @@ if __name__ == '__main__':
             numeric_eigenstate_max_angular_momentum = 10,
             numeric_eigenstate_max_energy = 10 * eV,
             electric_potential = efield,
-            time_initial = -400 * asec, time_final = 400 * asec,
+            time_initial = -150 * asec, time_final = 150 * asec,
             electric_potential_dc_correction = True,
-            # animators = [
-            #     ion.animators.PolarAnimator(
-            #         postfix = 'g2',
-            #         length = 30,
-            #         fps = 30,
-            #         target_dir = OUT_DIR,
-            #         axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-            #             which = 'g2'
-            #         ),
-            #         axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
-            #             show_vector_potential = True,
-            #         )
-            #     ),
-            #     ion.animators.PolarAnimator(
-            #         postfix = 'g',
-            #         length = 30,
-            #         fps = 30,
-            #         target_dir = OUT_DIR,
-            #         axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-            #             which = 'g',
-            #             colormap = plt.get_cmap('richardson'),
-            #             norm = si.vis.RichardsonNormalization(),
-            #         ),
-            #         axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
-            #             show_vector_potential = True,
-            #         )
-            #     )
-            # ]
+            animators = [
+                ion.animators.PolarAnimator(
+                    postfix = 'g2',
+                    length = 10,
+                    fps = 30,
+                    target_dir = OUT_DIR,
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g2'
+                    ),
+                    axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
+                        show_vector_potential = True
+                    ),
+                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(
+                    ),
+                ),
+                ion.animators.PolarAnimator(
+                    postfix = 'g',
+                    length = 10,
+                    fps = 30,
+                    target_dir = OUT_DIR,
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g',
+                        colormap = plt.get_cmap('richardson'),
+                        norm = si.vis.RichardsonNormalization(),
+                    ),
+                    axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
+                        show_vector_potential = True,
+                    ),
+                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(
+                    ),
+                )
+            ]
         )
 
         specs = []
