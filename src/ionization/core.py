@@ -1115,7 +1115,7 @@ class ElectricFieldSpecification(si.Specification):
             'Analysis:',
             '   Test Charge: {} e'.format(uround(self.test_charge, proton_charge)),
             '   Test Mass: {} m_e'.format(uround(self.test_mass, electron_mass)),
-            '   Test States (first 10 of {}): {}'.format(', '.join(str(s) for s in sorted(self.test_states[:10])), len(self.test_states)),
+            '   Test States (first 10 of {}): {}'.format(len(self.test_states), ', '.join(str(s) for s in sorted(self.test_states[:10]))),
             '   Dipole Gauges: {}'.format(', '.join(self.dipole_gauges)),
             '   Storing Data Every {} Time Steps'.format(self.store_data_every),
             '   Snapshot Indices: {}'.format(', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'None'),
@@ -2722,17 +2722,18 @@ class SphericalHarmonicMesh(QuantumMesh):
     def norm_by_l(self):
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
-    def dipole_moment_expectation_value(self, mesh_a = None, mesh_b = None, gauge = 'length'):
+    def dipole_moment_expectation_value(self, mesh_a = None, mesh_b = None, gauge = 'LEN'):
         """Get the dipole moment in the specified gauge."""
         if mesh_a is None:
             mesh_a = self.g
         if mesh_b is None:
             mesh_b = self.g
-        if gauge == 'length':
+
+        if gauge == 'LEN':
             operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
             g = self.wrap_vector(operator.dot(self.flatten_mesh(mesh_b, 'l')), 'l')
             return self.inner_product(a = mesh_a, b = g)
-        elif gauge == 'velocity':
+        elif gauge == 'VEL':
             raise NotImplementedError
 
     def get_g_for_state(self, state):

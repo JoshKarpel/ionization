@@ -178,7 +178,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
-        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.vis.RED)
+        ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
 
         plt.rcParams['xtick.major.pad'] = 5
         plt.rcParams['ytick.major.pad'] = 5
@@ -726,8 +726,8 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
             a_scale_unit, a_scale_name = get_unit_value_and_latex_from_unit(vector_scale)
             q_scale_unit, q_scale_name = get_unit_value_and_latex_from_unit(quiver_scale)
 
-            ax.plot(self.times / t_scale_unit, self.electric_field_vs_time / f_scale_unit, label = fr'${str_efield}(t)$ (${f_scale_name}$)')
-            ax.plot(self.times / t_scale_unit, np.abs(self.spec.test_charge) * self.vector_potential_vs_time / a_scale_unit, label = fr'$e \, {str_afield}(t)$ (${a_scale_name}$)')
+            ax.plot(self.times / t_scale_unit, self.electric_field_vs_time / f_scale_unit, label = fr'${core.LATEX_EFIELD}(t)$ (${f_scale_name}$)')
+            ax.plot(self.times / t_scale_unit, np.abs(self.spec.test_charge) * self.vector_potential_vs_time / a_scale_unit, label = fr'$e \, {core.LATEX_AFIELD}(t)$ (${a_scale_name}$)')
             ax.plot(self.times / t_scale_unit, self.quiver_motion_vs_time / q_scale_unit, label = fr'$\alpha(t)$ (${q_scale_name}$)')
 
             ax.set_xlim(self.times[0] / t_scale_unit, self.times[-1] / t_scale_unit)
@@ -769,7 +769,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
         ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
         ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
-        ax_f.set_ylabel(r'${}$ (${}$)'.format(str_efield, f_scale_name), fontsize = 13, color = si.vis.RED)
+        ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
 
         plt.rcParams['xtick.major.pad'] = 5
         plt.rcParams['ytick.major.pad'] = 5

@@ -35,7 +35,7 @@ if __name__ == '__main__':
 
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = 31 - ((args.verbosity + 1) * 10)) as logger:
         # job type options
-        job_processor = iclu.PulseJobProcessor
+        job_processor = iclu.ConvergenceJobProcessor
 
         job_dir = os.path.join(args.dir, args.job_name)
 
@@ -48,7 +48,32 @@ if __name__ == '__main__':
         parameters = []
 
         # get input from the user to define the job
-        spec_type, mesh_kwargs = iclu.ask_mesh_type()
+        spec_type = ion.SphericalHarmonicSpecification
+
+        r_bound = clu.Parameter(name = 'r_bound',
+                                value = bohr_radius * si.cluster.ask_for_input('R Bound (Bohr radii)?', default = 50, cast_to = float))
+        parameters.append(r_bound)
+
+        parameters.append(clu.Parameter(name = 'delta_r',
+                                        value = bohr_radius * clu.ask_for_eval('Radial Mesh Spacings (in Bohr radii)?',
+                                                                               default = 'np.logspace(0, -2, 50)'),
+                                        expandable = True))
+
+        parameters.append(clu.Parameter(name = 'l_bound',
+                                        value = clu.ask_for_eval('L Bound?',
+                                                                 default = range(20, 50)),
+                                        expandable = True))
+
+        parameters.append(clu.Parameter(name = 'time_step',
+                                        value = asec * clu.ask_for_eval('Time Steps (in asec)?', default = 'np.logspace(0, -2, 50)'),
+                                        expandable = True))
+
+        time_initial_in_pw = clu.Parameter(name = 'initial_time_in_pw',
+                                           value = clu.ask_for_input('Initial Time (in pulse widths)?', default = -35, cast_to = float))
+        parameters.append(time_initial_in_pw)
+
+        parameters.append(clu.Parameter(name = 'final_time_in_pw',
+                                        value = clu.ask_for_input('Final Time (in pulse widths)?', default = 40, cast_to = float)))
 
         initial_state = clu.Parameter(name = 'initial_state',
                                       value = ion.HydrogenBoundState(clu.ask_for_input('Initial State n?', default = 1, cast_to = int),
@@ -75,28 +100,7 @@ if __name__ == '__main__':
                 parameters.append(clu.Parameter(name = 'test_states',
                                                 value = tuple(ion.HydrogenBoundState(n, l) for n in range(largest_n + 1) for l in range(n))))
 
-        parameters.append(clu.Parameter(name = 'time_step',
-                                        value = asec * clu.ask_for_input('Time Step (in as)?', default = 1, cast_to = float)))
-
-        time_initial_in_pw = clu.Parameter(name = 'initial_time_in_pw',
-                                           value = clu.ask_for_input('Initial Time (in pulse widths)?', default = -35, cast_to = float))
-        parameters.append(time_initial_in_pw)
-
-        parameters.append(clu.Parameter(name = 'final_time_in_pw',
-                                        value = clu.ask_for_input('Final Time (in pulse widths)?', default = 40, cast_to = float)))
-
-        extra_time = clu.Parameter(name = 'extra_time',
-                                   value = asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float))
-        parameters.append(extra_time)
-
-        checkpoints = clu.ask_for_bool('Checkpoints?', default = True)
-        parameters.append(clu.Parameter(name = 'checkpoints',
-                                        value = checkpoints))
-        if checkpoints:
-            parameters.append(clu.Parameter(name = 'checkpoint_every',
-                                            value = clu.ask_for_input('How many time steps per checkpoint?', default = 50, cast_to = int)))
-
-        outer_radius_default = mesh_kwargs['outer_radius'] / bohr_radius
+        outer_radius_default = uround(r_bound.value, bohr_radius, 2)
         parameters.append(clu.Parameter(name = 'mask',
                                         value = ion.RadialCosineMask(inner_radius = bohr_radius * clu.ask_for_input('Mask Inner Radius (in Bohr radii)?', default = outer_radius_default * .8, cast_to = float),
                                                                      outer_radius = bohr_radius * clu.ask_for_input('Mask Outer Radius (in Bohr radii)?', default = outer_radius_default, cast_to = float),
@@ -105,7 +109,6 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'evolution_guage',
                                         value = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN')))
 
-        # pulse parameters
         pulse_parameters = []
 
         pulse_type_q = clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')
@@ -159,17 +162,15 @@ if __name__ == '__main__':
                                         value = pulses,
                                         expandable = True))
 
-        parameters.append(clu.Parameter(name = 'store_norm_by_l',
-                                        value = clu.ask_for_bool('Store Norm-by-L?', default = False)))
+        checkpoints = clu.ask_for_bool('Checkpoints?', default = True)
+        parameters.append(clu.Parameter(name = 'checkpoints',
+                                        value = checkpoints))
+        if checkpoints:
+            parameters.append(clu.Parameter(name = 'checkpoint_every',
+                                            value = clu.ask_for_input('How many time steps per checkpoint?', default = 50, cast_to = int)))
 
         parameters.append(clu.Parameter(name = 'store_data_every',
                                         value = clu.ask_for_input('Store Data Every?', default = 1, cast_to = int)))
-
-        parameters.append(clu.Parameter(name = 'snapshot_indices',
-                                        value = clu.ask_for_eval('Snapshot Indices?', default = '[]')))
-
-        snapshot_times = asec * np.array(clu.ask_for_eval('Snapshot Times (in asec)?', default = '[]'))
-        snapshot_times_in_pw = np.array(clu.ask_for_eval('Snapshot Times (in pulse widths)?', default = '[]'))
 
         print('Generating parameters...')
 
@@ -179,27 +180,23 @@ if __name__ == '__main__':
         print('Generating specifications...')
 
         for ii, spec_kwargs in enumerate(spec_kwargs_list):
+            delta_r = spec_kwargs['delta_r']
+            r_points = int(r_bound.value / delta_r)
+
+            time_step = spec_kwargs['time_step']
             electric_potential = spec_kwargs['electric_potential']
-            name = '{}_pw={}asec_flu={}Jcm2_phase={}pi'.format(
-                    pulse_type_q,
-                    uround(electric_potential.pulse_width, asec),
-                    uround(electric_potential.fluence, Jcm2),
-                    uround(electric_potential.phase, pi)
-            )
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
-            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time.value
-            snapshot_times = np.concatenate((snapshot_times, electric_potential.pulse_width * snapshot_times_in_pw))
+            time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width
+
+            name = f'pw={uround(electric_potential.pulse_width, "asec", 3)}as_flu={uround(electric_potential.fluence, "Jcm2", 3)}jcm2_RB={uround(r_bound.value, bohr_radius, 3)}br_RP={r_points}_L={spec_kwargs["l_bound"]}_dt={uround(time_step, asec, 5)}as'
 
             spec = spec_type(name,
                              file_name = str(ii),
                              time_initial = time_initial, time_final = time_final,
-                             **mesh_kwargs, **spec_kwargs)
-
-            spec.pulse_type = pulse_type
-            spec.pulse_width = electric_potential.pulse_width
-            spec.fluence = electric_potential.fluence
-            spec.phase = electric_potential.phase
+                             electric_field_dc_correction = False,
+                             r_points = r_points,
+                             **spec_kwargs)
 
             specs.append(spec)
 
@@ -214,7 +211,7 @@ if __name__ == '__main__':
         clu.create_job_subdirs(job_dir)
         clu.save_specifications(specs, job_dir)
         clu.write_specifications_info_to_file(specs, job_dir)
-        clu.write_parameters_info_to_file(parameters + pulse_parameters, job_dir)
+        clu.write_parameters_info_to_file(parameters, job_dir)
 
         job_info = {'name': args.job_name,
                     'job_processor_type': job_processor,  # set at top of if-name-main
