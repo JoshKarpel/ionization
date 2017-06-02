@@ -14,6 +14,7 @@ import scipy.sparse as sparse
 import scipy.sparse.linalg as sparsealg
 import scipy.special as special
 import scipy.integrate as integ
+from scipy.misc import factorial
 from tqdm import tqdm
 
 import simulacra as si
@@ -45,9 +46,84 @@ def electron_wavenumber_from_energy(energy):
     return np.sqrt(2 * electron_mass * energy + 0j) / hbar
 
 
-def three_j_coefficient(l):
-    "3j coefficient"
+def c_l(l):
+    "a particular set of 3j coefficients for SphericalHarmonicMesh"
     return (l + 1) / np.sqrt(((2 * l) + 1) * ((2 * l) + 3))
+
+
+def triangle_coef(a, b, c):
+    return factorial(a + b - c) * factorial(a - b + c) * factorial(-a + b + c) / factorial(a + b + c + 1)
+
+
+@si.utils.memoize
+def cg_coef(j1, m1, j2, m2, j, m):
+    """
+    Return the Clebsch-Gordan coefficient <j1, j2; m1, m2 | j1, j2; j, m> using the Racah formula.
+
+    See:
+    Rudnicki-Bujnowski, G. Explicit formulas for Clebsch-Gordan coefficients. Comput. Phys. Commun. 10, 245–250 (1975)
+
+
+    Parameters
+    ----------
+    j1
+    m1
+    j2
+    m2
+    j
+    m
+
+    Returns
+    -------
+    float
+        A Clebsch-Gordan coefficient.
+    """
+    if m1 + m2 != m or not abs(j1 - j2) <= j <= j1 + j2:
+        return 0
+
+    cg = np.sqrt(((2 * j) + 1) * triangle_coef(j1, j2, j) * factorial(j1 + m1) * factorial(j1 - m1) * factorial(j2 + m2) * factorial(j2 - m2) * factorial(j + m) * factorial(j - m))
+
+    t_min = int(max(-j + j2 - m, -j + j1 + m2, 0))
+    t_max = int(min(j1 + j2 - j, j1 - m1, j2 + m2))
+
+    s = 0
+    for t in range(t_min, t_max + 1):
+        s += ((-1) ** t) / (factorial(t) * factorial(j - j2 + t + m1) * factorial(j - j1 + t - m2) * factorial(j1 + j2 - j - t) * factorial(j1 - t - m1) * factorial(j2 - t + m2))
+
+    return cg * s
+
+@si.utils.memoize
+def triple_y_integral(j1, m1, j2, m2, j, m):
+    """
+    j, m is whichever angular momentum is complex-conjugated in the integrand
+
+    Parameters
+    ----------
+    j1
+    m1
+    j2
+    m2
+    j
+    m
+
+    Returns
+    -------
+
+    """
+    if m1 + m2 != m or not abs(j1 - j2) <= j <= j1 + j2:
+        return 0
+
+    y1 = si.math.SphericalHarmonic(j1, m1)
+    y2 = si.math.SphericalHarmonic(j2, m2)
+    y3 = si.math.SphericalHarmonic(j, m)
+
+    def integrand(theta, phi):
+        return y1(theta, phi) * y2(theta, phi) * np.conj(y3(theta, phi)) * np.sin(theta)
+
+    result = si.math.complex_nquad(integrand, [(0, pi), (0, twopi)], opts = {'limit': 1000})
+    logger.debug(result)
+
+    return np.real(result[0])
 
 
 class ElectricFieldSimulation(si.Simulation):
@@ -1704,18 +1780,8 @@ class LineMesh(QuantumMesh):
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
 
-        print(integral)
-        print(np.sum((vamp ** 2)) * (self.spec.time_step))
-
-        print('vamp[-1]', vamp[-1])
-        print('direct', self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current))
-
         dipole_to_velocity = np.exp(1j * integral * (self.spec.test_charge ** 2) / (2 * self.spec.test_mass * hbar))
-        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / hbar)  # wtf
-        print('q A a_0 / hbar', self.spec.test_charge * vamp[-1] * bohr_radius / hbar)
-
-        print(dipole_to_velocity)
-        print(dipole_to_length)
+        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / hbar)
 
         if leaving_gauge == 'LEN':
             return np.conj(dipole_to_length) * dipole_to_velocity * g
@@ -2938,7 +3004,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
-                l_offdiagonal[l_index] = three_j_coefficient(l)
+                l_offdiagonal[l_index] = c_l(l)
         l_offdiagonal *= l_prefactor
 
         return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
@@ -2955,7 +3021,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         for l_index in range(self.mesh_points - 1):
             if (l_index + 1) % self.spec.l_bound != 0:
                 l = (l_index % self.spec.l_bound)
-                h1_offdiagonal[l_index] = three_j_coefficient(l) * (l + 1)
+                h1_offdiagonal[l_index] = c_l(l) * (l + 1)
         h1_offdiagonal *= h1_prefactor
 
         h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
@@ -2965,7 +3031,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
         alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
 
-        c_vec = three_j_coefficient(np.array(range(len(self.l) - 1), dtype = np.complex128))
+        c_vec = c_l(np.array(range(len(self.l) - 1), dtype = np.complex128))
         c_block = sparse.diags((c_vec, c_vec), offsets = (-1, 1))
 
         h2 = h2_prefactor * sparse.kron(c_block, alpha_block, format = 'dia')
@@ -3337,49 +3403,36 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-    def _apply_length_gauge_transformation(self, prefactor_mesh, g):
-        # print(np.shape(g))
-        # print(np.shape(np.tile(g, (len(self.l), 1, 1))))
-        # print(np.shape(prefactor_mesh))
-        # print('prefactor', prefactor_mesh)
-        # print('tile', np.tile(g, (len(self.l), 1, 1)))
-        # print('product', np.tile(g, (len(self.l), 1, 1)) * prefactor_mesh)
-        # g = np.sum(np.tile(g, (len(self.l), 1, 1)) * prefactor_mesh, axis = 0)
-        # print(np.shape(g))
+    def _apply_length_gauge_transformation(self, vamp, g):
+        bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vamp * self.r_mesh / hbar)
 
-        # print('g', g)
         g_transformed = np.zeros(np.shape(g), dtype = np.complex128)
-        for l, g_l in enumerate(g):
-            for pl in prefactor_mesh:
-                g_transformed[l] += g_l * pl
+        for l_result in self.l:
+            for l_outer in self.l:  # l'
+                prefactor = np.sqrt(4 * pi * ((2 * l_outer) + 1)) * ((1j) ** (l_outer % 4)) * bessel_mesh[l_outer, :]
+                for l_inner in self.l:  # l
+                    print(l_result, l_outer, l_inner)
+                    g_transformed[l_result, :] += g[l_inner, :] * triple_y_integral(l_outer, 0, l_result, 0, l_inner, 0)
 
         return g_transformed
 
-    # np.sum(np.tile(mesh, (self.theta_points, 1, 1)) * self._sph_harm_l_theta_mesh, axis = 1).T
+    @si.utils.timed
+    def gauge_transformation(self, *, g = None, leaving_gauge = None):
+        if g is None:
+            g = self.g
+        if leaving_gauge is None:
+            leaving_gauge = self.spec.evolution_gauge
 
-    def gauge_transformation(self, g, leaving_gauge):
-
-        # TODO: STILL NOT SURE THIS IS CORRECT
-        # TODO: actually its def wrong because I didn't do Y * Y correctly
-        # todo: but ins't the resulting matrix multiplication going to be very dense?
         vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
-        dipole_to_velocity = np.exp(-1j * self.spec.test_charge * integral / (2 * self.spec.test_mass * hbar))
 
-        bessel = special.spherical_jn(self.l_mesh, (self.spec.test_charge / hbar) * vamp[-1] * self.r_mesh)
-        dipole_to_length = ((2 * self.l_mesh) + 1) * (1j ** (self.l_mesh % 4)) * bessel
-
-        print('vamp\n', vamp)
-        print('integral\n', integral)
-        print('bessel\n', bessel)
-        print('d to v\n', dipole_to_velocity)
-        print('d to l\n', dipole_to_length)
+        dipole_to_velocity = np.exp(1j * integral * (self.spec.test_charge ** 2) / (2 * self.spec.test_mass * hbar))
 
         if leaving_gauge == 'LEN':
-            return self._apply_length_gauge_transformation(np.conj(dipole_to_length), dipole_to_velocity * g)
+            return self._apply_length_gauge_transformation(-vamp[-1], dipole_to_velocity * g)
         elif leaving_gauge == 'VEL':
-            return dipole_to_velocity * self._apply_length_gauge_transformation(dipole_to_length, g)
+            return dipole_to_velocity * self._apply_length_gauge_transformation(vamp[-1], g)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
