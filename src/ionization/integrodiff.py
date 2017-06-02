@@ -329,14 +329,6 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
 
         self.computed_time_steps = 0
 
-        if self.spec.electric_potential_dc_correction:
-            old_pot = self.spec.electric_potential
-
-            times_guess = np.linspace(self.spec.time_initial, self.spec.time_final, 1e6)
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, times_guess)
-
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
-
     def evolve_ARK4(self):
         """
         Evolve y forward in time by the time step, controlling for the local truncation error.
