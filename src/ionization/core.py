@@ -92,6 +92,7 @@ def cg_coef(j1, m1, j2, m2, j, m):
 
     return cg * s
 
+
 @si.utils.memoize
 def triple_y_integral(j1, m1, j2, m2, j, m):
     """
@@ -188,6 +189,8 @@ class ElectricFieldSimulation(si.Simulation):
         self.snapshots = dict()
 
     def info(self):
+        info = super().info()
+
         mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
@@ -222,15 +225,17 @@ class ElectricFieldSimulation(si.Simulation):
 
         mem_total = mem_mesh + mem_matrix_operators + mem_numeric_eigenstates + mem_inner_products + mem_other_time_data + mem_misc
 
-        mem = [f'Memory Usage (approx): {si.utils.bytes_to_str(mem_total)}']
-        mem += [f'   g Mesh: {si.utils.bytes_to_str(mem_mesh)}']
-        mem += [f'   Matrix Operators: {si.utils.bytes_to_str(mem_matrix_operators)}']
-        mem += [f'   Numeric Eigenstates: {si.utils.bytes_to_str(mem_numeric_eigenstates)}']
-        mem += [f'   State Inner Products: {si.utils.bytes_to_str(mem_inner_products)}']
-        mem += [f'   Other Time-Indexed Data: {si.utils.bytes_to_str(mem_other_time_data)}']
-        mem += [f'   Miscellaneous: {si.utils.bytes_to_str(mem_misc)}']
+        info_mem = si.Info(header = f'Memory Usage (approx.): {si.utils.bytes_to_str(mem_total)}')
+        info_mem.add_field('g', si.utils.bytes_to_str(mem_mesh))
+        info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
+        info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
+        info_mem.add_field('State Inner Products', si.utils.bytes_to_str(mem_inner_products))
+        info_mem.add_field('Other Time-Indexed Data', si.utils.bytes_to_str(mem_other_time_data))
+        info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
 
-        return '\n'.join((super().info(), *mem))
+        info.add_info(info_mem)
+
+        return info
 
     @property
     def available_animation_frames(self):
@@ -468,10 +473,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 10,
-            fancybox = True,
-            framealpha = .3,
+                loc = 'lower left',
+                fontsize = 10,
+                fancybox = True,
+                framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -511,10 +516,10 @@ class ElectricFieldSimulation(si.Simulation):
 
             self.attach_electric_potential_plot_to_axis(ax_field,
                                                         legend_kwargs = dict(
-                                                            bbox_to_anchor = (1.1, .9),
-                                                            loc = 'upper left',
-                                                            borderaxespad = 0.1,
-                                                            fontsize = 10)
+                                                                bbox_to_anchor = (1.1, .9),
+                                                                loc = 'upper left',
+                                                                borderaxespad = 0.1,
+                                                                fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
@@ -1076,53 +1081,67 @@ class ElectricFieldSpecification(si.Specification):
         self.snapshot_kwargs = snapshot_kwargs
 
     def info(self):
-        checkpoint = ['Checkpointing: ']
+        info = super().info()
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
         if self.checkpoints:
             if self.checkpoint_dir is not None:
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
         else:
-            checkpoint[0] += 'disabled'
+            info_checkpoint.header += ': disabled'
 
-        animation = ['Animation: ']
+        info.add_info(info_checkpoint)
+
+        info_animation = si.Info(header = 'Animation')
         if len(self.animators) > 0:
-            animation += ['   ' + str(animator) for animator in self.animators]
+            for animator in self.animators:
+                info_animation.add_info(animator.info())
         else:
-            animation[0] += 'None'
+            info_animation.header += ': none'
 
-        time_evolution = [
-            'Time Evolution:',
-            '   Initial State: {}'.format(self.initial_state),
-            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
-            '   Final Time: {} as'.format(uround(self.time_final, asec))
-        ]
+        info.add_info(info_animation)
+
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial State', self.initial_state)
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
         if not callable(self.time_step):
-            time_evolution.append(f'   Time Step: {uround(self.time_step, asec)} as')
+            info_evolution.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as')
         else:
-            time_evolution.append(f'   Time Steps determined by {self.time_step}')
-        time_evolution += [
-            '   Evolution Equations: {}'.format(self.evolution_equations),
-            '   Evolution Method: {}'.format(self.evolution_method),
-            '   Evolution Gauge: {}'.format(self.evolution_gauge),
-        ]
+            info_evolution.add_field('Time Step', f'determined by {self.time_step}')
 
-        potentials = ['Potentials and Masks:']
-        potentials += ['   {}'.format(x) for x in it.chain(self.internal_potential, self.electric_potential, self.mask)]
+        info.add_info(info_evolution)
 
-        analysis = [
-            'Analysis:',
-            '   Test Charge: {} e'.format(uround(self.test_charge, proton_charge)),
-            '   Test Mass: {} m_e'.format(uround(self.test_mass, electron_mass)),
-            '   Test States (first 10 of {}): {}'.format(len(self.test_states), ', '.join(str(s) for s in sorted(self.test_states[:10]))),
-            '   Dipole Gauges: {}'.format(', '.join(self.dipole_gauges)),
-            '   Storing Data Every {} Time Steps'.format(self.store_data_every),
-            '   Snapshot Indices: {}'.format(', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'None'),
-            '   Snapshot Times: {}'.format(' as, '.join([uround(st, asec, 3) for st in self.snapshot_times]) if len(self.snapshot_times) > 0 else 'None'),
-        ]
+        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm.add_field('Evolution Equations', self.evolution_equations)
+        info_algorithm.add_field('Evolution Method', self.evolution_method)
+        info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
 
-        return '\n'.join(checkpoint + animation + time_evolution + potentials + analysis)
+        info.add_info(info_algorithm)
+
+        info_potentials = si.Info(header = 'Potentials and Masks')
+        for x in it.chain(self.internal_potential, self.electric_potential, self.mask):
+            info_potentials.add_info(x.info())
+
+        info.add_info(info_potentials)
+
+        info_analysis = si.Info(header = 'Analysis')
+        info_analysis.add_field('Test Charge', f'{uround(self.test_charge, proton_charge, 3)} e')
+        info_analysis.add_field('Test Mass', f'{uround(self.test_mass, electron_mass, 3)} m_e | {uround(self.test_mass, electron_mass_reduced, 3)} mu_e')
+        if len(self.test_states) > 10:
+            info_analysis.add_field(f'Test States (first 5 of {len(self.test_states)})', ', '.join(str(s) for s in sorted(self.test_states)[:5]))
+        else:
+            info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
+        info_analysis.add_field('Data Storage Decimation', self.store_data_every)
+        info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
+        info_analysis.add_field('Snapshot Times', ' as, '.join([uround(st, asec, 3) for st in self.snapshot_times]) if len(self.snapshot_times) > 0 else 'none')
+
+        info.add_info(info_analysis)
+
+        return info
 
 
 def add_to_diagonal_sparse_matrix_diagonal(dia_matrix, value = 1):
@@ -2638,14 +2657,25 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
 
     def info(self):
-        mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
-                '   R Boundary: {} Bohr radii'.format(uround(self.r_bound, bohr_radius, 3)),
-                '   R Points: {}'.format(self.r_points),
-                '   R Mesh Spacing: ~{} Bohr radii'.format(uround(self.r_bound / self.r_points, bohr_radius, 3)),
-                '   Spherical Harmonics: {}'.format(self.l_bound),
-                '   Total Mesh Points: {}'.format(self.r_points * self.l_bound)]
+        info = super().info()
 
-        return '\n'.join((super(SphericalHarmonicSpecification, self).info(), *mesh))
+        info_mesh = si.Info(header = 'Mesh:')
+        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('R Points', self.r_points)
+        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.r_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Spherical Harmonics', self.l_bound)
+        info_mesh.add_field('Total Mesh Points', self.r_points * self.l_bound)
+
+        info.add_info(info_mesh)
+
+        # mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
+        #         '   R Boundary: {} Bohr radii'.format(uround(self.r_bound, bohr_radius, 3)),
+        #         '   R Points: {}'.format(self.r_points),
+        #         '   R Mesh Spacing: ~{} Bohr radii'.format(uround(self.r_bound / self.r_points, bohr_radius, 3)),
+        #         '   Spherical Harmonics: {}'.format(self.l_bound),
+        #         '   Total Mesh Points: {}'.format(self.r_points * self.l_bound)]
+
+        return info
 
 
 class SphericalHarmonicMesh(QuantumMesh):
