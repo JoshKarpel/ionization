@@ -17,9 +17,9 @@ logger.setLevel(logging.DEBUG)
 COLORMESH_GRID_KWARGS = {
     **si.vis.COLORMESH_GRID_KWARGS,
     **dict(
-        linestyle = ':',
-        linewidth = 1.5,
-        alpha = 0.6
+            linestyle = ':',
+            linewidth = 1.5,
+            alpha = 0.6
     )
 }
 
@@ -59,10 +59,10 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 20,
-            fancybox = True,
-            framealpha = .1,
+                loc = 'lower left',
+                fontsize = 20,
+                fancybox = True,
+                framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -115,10 +115,10 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             data.append(proton_charge * self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times) / self.vector_potential_unit_value)
 
         y_lower_limit, y_upper_limit = si.vis.set_axis_limits(self.axis,
-                                                                *data,
-                                                                pad = 0.05,
-                                                                direction = 'y',
-                                                                )
+                                                              *data,
+                                                              pad = 0.05,
+                                                              direction = 'y',
+                                                              )
 
         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 14)
 
@@ -135,6 +135,19 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
         super().update_axis()
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Show Electric Field', self.show_electric_field)
+        if self.show_electric_field:
+            info.add_field('Electric Field Unit', self.electric_field_unit)
+        info.add_field('Show Vector Potential', self.show_vector_potential)
+        if self.show_vector_potential:
+            info.add_field('Vector Potential Unit', self.vector_potential_unit)
+        info.add_field('Time Unit', self.time_unit)
+
+        return info
 
 
 class StackplotAxis(si.vis.AxisManager):
@@ -161,10 +174,10 @@ class StackplotAxis(si.vis.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 20,
-            fancybox = True,
-            framealpha = .1,
+                loc = 'lower left',
+                fontsize = 20,
+                fancybox = True,
+                framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -247,6 +260,13 @@ class StackplotAxis(si.vis.AxisManager):
 
         super().update_axis()
 
+    def info(self):
+        info = super().info()
+
+        info.add_field('Show Norm', self.show_norm)
+        info.add_field('Time Unit', self.time_unit)
+
+        return info
 
 class TestStateStackplotAxis(StackplotAxis):
     def __init__(self,
@@ -405,6 +425,18 @@ class QuantumMeshAxis(si.vis.AxisManager):
 
         super().update_axis()
 
+    def info(self):
+        info = super().info()
+
+        info.add_field('Plotting', self.which)
+        info.add_field('Colormap', self.colormap.name)
+        info.add_field('Normalization', self.norm.__class__.__name__)
+        info.add_field('Plot Limit', f'{uround(self.plot_limit, bohr_radius)} Bohr radii | {uround(self.plot_limit, nm)} nm' if self.plot_limit is not None else 'none')
+        info.add_field('Distance Unit', self.distance_unit)
+        info.add_field('Shading', self.shading)
+
+        return info
+
 
 class LineMeshAxis(QuantumMeshAxis):
     def __init__(self,
@@ -558,12 +590,13 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
 
 
 class WavefunctionSimulationAnimator(si.vis.Animator):
-    def __init__(self,
-                 axman_wavefunction = None,
+    def __init__(self, *,
+                 axman_wavefunction,
                  **kwargs):
-        super(WavefunctionSimulationAnimator, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.axman_wavefunction = axman_wavefunction
+        self.axis_managers.append(self.axman_wavefunction)
 
     def __str__(self):
         return si.utils.field_str(self, 'postfix', 'axis_managers')
@@ -576,9 +609,10 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower = ElectricPotentialPlotAxis(),
                  **kwargs):
-        self.axman_lower = axman_lower
-
         super().__init__(**kwargs)
+
+        self.axman_lower = axman_lower
+        self.axis_managers.append(self.axman_lower)
 
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (16, 12))
@@ -588,8 +622,6 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
 
         self.ax_lower = self.fig.add_axes([.065, .065, .87, .2])
         self.axman_lower.assign_axis(self.ax_lower)
-
-        self.axis_managers += [self.axman_wavefunction, self.axman_lower]
 
         super()._initialize_figure()
 
@@ -601,6 +633,8 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
                  **kwargs):
         self.axman_lower_left = axman_lower_left
         self.axman_lower_right = axman_lower_right
+
+        self.axis_managers += [self.axman_lower_left, self.axman_lower_right]
 
         super().__init__(**kwargs)
 
@@ -616,8 +650,6 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         self.ax_lower_right = self.fig.add_axes([.56, .06, .4, .2])
         self.axman_lower_right.assign_axis(self.ax_lower_right)
 
-        self.axis_managers += [self.axman_wavefunction, self.axman_lower_left, self.axman_lower_right]
-
         super()._initialize_figure()
 
 
@@ -627,11 +659,13 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                  axman_upper_right = WavefunctionStackplotAxis(),
                  axman_colorbar = ColorBarAxis(),
                  **kwargs):
+        super().__init__(**kwargs)
+
         self.axman_lower_right = axman_lower_right
         self.axman_upper_right = axman_upper_right
         self.axman_colorbar = axman_colorbar
 
-        super().__init__(**kwargs)
+        self.axis_managers += [self.axman_lower_right, self.axman_upper_right, self.axman_colorbar]
 
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (20, 12))
@@ -647,7 +681,6 @@ class PolarAnimator(WavefunctionSimulationAnimator):
             self.axman_lower_right.legend_kwargs.update(lower_legend_kwargs)
             self.ax_lower_right = self.fig.add_axes([.575, .075, .36, .15])
             self.axman_lower_right.assign_axis(self.ax_lower_right)
-            self.axis_managers.append(self.axman_lower_right)
 
         if self.axman_upper_right is not None:
             upper_legend_kwargs = dict(bbox_to_anchor = (1., -.35),
@@ -659,7 +692,6 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                 pass
             self.ax_upper_right = self.fig.add_axes([.575, .8, .36, .15])
             self.axman_upper_right.assign_axis(self.ax_upper_right)
-            self.axis_managers.append(self.axman_upper_right)
 
         if self.axman_colorbar is not None:
             if self.axman_wavefunction.which not in ('g', 'psi'):
@@ -667,7 +699,6 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                 self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
                 self.ax_colobar = self.fig.add_axes([.65, .35, .02, .4])
                 self.axman_colorbar.assign_axis(self.ax_colobar)
-                self.axis_managers.append(self.axman_colorbar)
             else:
                 logger.warning('ColorbarAxis cannot be used with nonlinear colormaps')
 
