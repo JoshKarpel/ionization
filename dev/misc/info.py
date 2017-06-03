@@ -19,9 +19,15 @@ if __name__ == '__main__':
         pot += ion.SineWave.from_photon_energy(1 * eV, window = ion.SymmetricExponentialTimeWindow())
         pot += ion.SincPulse(window = ion.RectangularTimeWindow())
 
+        animators = [
+            ion.animators.PolarAnimator(postfix = 'hi',
+                                        axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis())
+        ]
+
         spec = ion.SphericalHarmonicSpecification('test',
                                                   electric_potential = pot,
                                                   mask = ion.RadialCosineMask(),
+                                                  animators = animators,
                                                   use_numeric_eigenstates = True,
                                                   numeric_eigenstate_max_energy = 10 * eV,
                                                   numeric_eigenstate_max_angular_momentum = 5)
