@@ -4,6 +4,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integrate
+from tqdm import tqdm
 
 import simulacra as si
 from simulacra.units import *
@@ -125,12 +126,18 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         self.a[self.time_index + 1] = self.a[self.time_index] + (dt * (k1 + (2 * k2) + (2 * k3) + k4) / 6)  # estimate next point
 
-    def run_simulation(self):
+    def run_simulation(self, progress_bar = False, callback = None):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        self.status = 'running'
+        self.status = si.STATUS_RUN
+
+        if progress_bar:
+            pbar = tqdm(total = self.time_steps - 1)
 
         while self.time < self.spec.time_final:
             getattr(self, 'evolve_' + self.spec.evolution_method)()
+
+            if callback is not None:
+                callback(self)
 
             self.time_index += 1
 
@@ -143,92 +150,107 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                     self.status = si.STATUS_RUN
                     logger.info('Checkpointed {} {} ({}) at time step {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1))
 
-        self.status = 'finished'
+            try:
+                pbar.update(1)
+            except NameError:
+                pass
+
+        try:
+            pbar.close()
+        except NameError:
+            pass
+
+        time_indices = np.array(range(0, len(self.times)))
+        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
+        if self.spec.store_data_every >= 1:
+            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
+
+        self.times = self.times[self.data_mask]
+        self.a = self.a[self.data_mask]
+        self.electric_field_vs_time = self.electric_field_vs_time[self.data_mask]
+
+        self.status = si.STATUS_FIN
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
-    def plot_a_vs_time(self, log = False, time_scale = 'asec', field_scale = 'AEF',
-                       show_title = False,
-                       plot_name = 'file_name',
-                       **kwargs):
-        fig = si.vis.get_figure('full')
+    def plot_a2_vs_time(self, log = False, time_scale = 'asec', field_scale = 'AEF',
+                        show_title = False,
+                        **kwargs):
+        # fig = si.vis.get_figure('full')
+        with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
+            fig = figman.fig
 
-        x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(time_scale)
-        f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
+            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(time_scale)
+            f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
 
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-        ax_a = plt.subplot(grid_spec[0])
-        ax_f = plt.subplot(grid_spec[1], sharex = ax_a)
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            ax_a = plt.subplot(grid_spec[0])
+            ax_f = plt.subplot(grid_spec[1], sharex = ax_a)
 
-        ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
+            ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
 
-        overlap = np.abs(self.a) ** 2
-        ax_a.plot(self.times / x_scale_unit, overlap, color = 'black', linewidth = 2)
+            overlap = np.abs(self.a) ** 2
+            ax_a.plot(self.times / x_scale_unit, overlap, color = 'black', linewidth = 2)
 
-        if log:
-            ax_a.set_yscale('log')
-            min_overlap = np.min(overlap)
-            ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-            ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
-        else:
-            ax_a.set_ylim(0.0, 1.0)
-            ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-            ax_a.grid(True, **si.vis.GRID_KWARGS)
+            if log:
+                ax_a.set_yscale('log')
+                min_overlap = np.min(overlap)
+                ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
+            else:
+                ax_a.set_ylim(0.0, 1.0)
+                ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_a.grid(True, **si.vis.GRID_KWARGS)
 
-        ax_a.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_a.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
 
-        ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
-        ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
-        ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
+            ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
+            ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
 
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
+            plt.rcParams['xtick.major.pad'] = 5
+            plt.rcParams['ytick.major.pad'] = 5
 
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 4
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_f.yaxis.set_major_locator(yloc)
+            # Find at most n+1 ticks on the y-axis at 'nice' locations
+            max_yticks = 4
+            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+            ax_f.yaxis.set_major_locator(yloc)
 
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_f.xaxis.set_major_locator(xloc)
+            max_xticks = 6
+            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+            ax_f.xaxis.set_major_locator(xloc)
 
-        ax_f.tick_params(axis = 'x', which = 'major', labelsize = 10)
-        ax_f.tick_params(axis = 'y', which = 'major', labelsize = 10)
-        ax_a.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_f.tick_params(axis = 'x', which = 'major', labelsize = 10)
+            ax_f.tick_params(axis = 'y', which = 'major', labelsize = 10)
+            ax_a.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-        ax_a.tick_params(labelleft = True,
-                         labelright = True,
-                         labeltop = True,
-                         labelbottom = False,
-                         bottom = True,
-                         top = True,
-                         left = True,
-                         right = True)
-        ax_f.tick_params(labelleft = True,
-                         labelright = True,
-                         labeltop = False,
-                         labelbottom = True,
-                         bottom = True,
-                         top = True,
-                         left = True,
-                         right = True)
+            ax_a.tick_params(labelleft = True,
+                             labelright = True,
+                             labeltop = True,
+                             labelbottom = False,
+                             bottom = True,
+                             top = True,
+                             left = True,
+                             right = True)
+            ax_f.tick_params(labelleft = True,
+                             labelright = True,
+                             labeltop = False,
+                             labelbottom = True,
+                             bottom = True,
+                             top = True,
+                             left = True,
+                             right = True)
 
-        ax_f.grid(True, **si.vis.GRID_KWARGS)
+            ax_f.grid(True, **si.vis.GRID_KWARGS)
 
-        if show_title:
-            title = ax_a.set_title(self.name)
-            title.set_y(1.15)
+            if show_title:
+                title = ax_a.set_title(self.name)
+                title.set_y(1.15)
 
-        postfix = ''
-        if log:
-            postfix += '__log'
-        prefix = getattr(self, plot_name)
+            postfix = ''
+            if log:
+                postfix += '__log'
 
-        name = prefix + '__solution_vs_time{}'.format(postfix)
-
-        si.vis.save_current_figure(name = name, **kwargs)
-
-        plt.close()
+            figman.name += postfix
 
 
 class IntegroDifferentialEquationSpecification(si.Specification):
@@ -246,6 +268,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  integration_method = 'simpson',
                  evolution_method = 'FE',
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
+                 store_data_every = 1,
                  **kwargs):
         """
         Initialize an IntegroDifferentialEquationSpecification from the given parameters.
@@ -285,36 +308,44 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         self.checkpoint_every = checkpoint_every
         self.checkpoint_dir = checkpoint_dir
 
+        self.store_data_every = store_data_every
+
     def info(self):
-        checkpoint = ['Checkpointing: ']
+        info = super().info()
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
         if self.checkpoints:
             if self.checkpoint_dir is not None:
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
         else:
-            checkpoint[0] += 'disabled'
+            info_checkpoint.header += ': disabled'
 
-        ide_parameters = [
-            "IDE Parameters: da/dt = prefactor * f(t) * integral[ a(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
-            '   Initial State: a = {}'.format(self.a_initial),
-            '   Prefactor: {}'.format(self.prefactor),
-            '   Electric Potential: {}'.format(self.electric_potential),
-            '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
-        ]
+        info.add_info(info_checkpoint)
 
-        time_evolution = [
-            'Time Evolution:',
-            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
-            '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Time Step: {} as'.format(uround(self.time_step, asec)),
-            '   Integration Method: {}'.format(self.integration_method),
-            '   Evolution Method: {}'.format(self.evolution_method),
-        ]
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
 
-        return '\n'.join(checkpoint + ide_parameters + time_evolution)
+        info.add_info(info_evolution)
 
+        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm.add_field('Integration Method', self.integration_method)
+        info_algorithm.add_field('Evolution Method', self.evolution_method)
+
+        info.add_info(info_algorithm)
+
+        info_ide = si.Info(header = 'IDE Parameters')
+        info_ide.add_field('Initial State', f'a = {self.a_initial}')
+        info_ide.add_field('Prefactor', self.prefactor)
+        info_ide.add_info(self.electric_potential.info())
+        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+
+        info.add_info(info_ide)
+
+        return info
 
 class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationSimulation):
     def __init__(self, spec):
@@ -477,12 +508,18 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
             logger.debug('Rejected RK4 step. Decreased time step to {} as from {} as'.format(uround(self.time_step, 'asec', 6), uround(old_step, 'asec', 6)))
             self.evolve_ARK4()  # retry with new time step
 
-    def run_simulation(self):
+    def run_simulation(self, progress_bar = False, callback = None):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
         self.status = si.STATUS_RUN
 
+        if progress_bar:
+            pbar = tqdm(total = self.time_steps - 1)
+
         while self.time < self.spec.time_final:
             getattr(self, 'evolve_' + self.spec.evolution_method)()
+
+            if callback is not None:
+                callback(self)
 
             self.time_index += 1
 
@@ -494,6 +531,25 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
                     self.status = si.STATUS_RUN
                     logger.info('Checkpointed {} {} ({}) at time step {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1))
 
+            try:
+                pbar.update(1)
+            except NameError:
+                pass
+
+        try:
+            pbar.close()
+        except NameError:
+            pass
+
+        time_indices = np.array(range(0, len(self.times)))
+        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
+        if self.spec.store_data_every >= 1:
+            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
+
+        self.times = self.times[self.data_mask]
+        self.a = self.a[self.data_mask]
+        self.electric_field_vs_time = self.electric_field_vs_time[self.data_mask]
+
         self.status = si.STATUS_FIN
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
@@ -504,7 +560,7 @@ class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquati
     error_on = si.utils.RestrictedValues('erron_on', ('y', 'dydt'))
 
     def __init__(self, name,
-                 minimum_time_step = None, maximum_time_step = 1 * asec,
+                 minimum_time_step = .01 * asec, maximum_time_step = 10 * asec,
                  epsilon = 1e-3, error_on = 'y', safety_factor = .98,
                  evolution_method = 'ARK4',
                  **kwargs):
@@ -536,39 +592,39 @@ class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquati
         self.safety_factor = safety_factor
 
     def info(self):
-        checkpoint = ['Checkpointing: ']
+        info = super().info()
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
         if self.checkpoints:
             if self.checkpoint_dir is not None:
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
         else:
-            checkpoint[0] += 'disabled'
+            info_checkpoint.header += ': disabled'
 
-        ide_parameters = [
-            "IDE Parameters: dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]",
-            '   Initial State: y = {}'.format(self.a_initial),
-            '   Prefactor: {}'.format(self.prefactor),
-            '   Electric Potential: {}'.format(self.electric_potential),
-            '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
-        ]
+        info.add_info(info_checkpoint)
 
-        time_evolution = [
-            'Time Evolution:',
-            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
-            '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Initial Time Step: {} as'.format(uround(self.time_step, asec)),
-            '   Minimum Time Step: {} as'.format(uround(self.minimum_time_step, asec)),
-            '   Maximum Time Step: {} as'.format(uround(self.maximum_time_step, asec)),
-            '   Epsilon: {}'.format(self.epsilon),
-            '   Error On: {}'.format(self.error_on),
-            '   Safety Factor: {}'.format(self.safety_factor),
-            '   Integration Method: {}'.format(self.integration_method),
-            '   Evolution Method: {}'.format(self.evolution_method),
-        ]
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
 
-        return '\n'.join(checkpoint + ide_parameters + time_evolution)
+        info.add_info(info_evolution)
+
+        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm.add_field('Integration Method', self.integration_method)
+        info_algorithm.add_field('Evolution Method', self.evolution_method)
+        info_algorithm.add_field('Error Control On', self.error_on)
+        info_algorithm.add_field('Epsilon', self.epsilon)
+        info_algorithm.add_field('Safety Factor', self.safety_factor)
+        info_algorithm.add_field('Current Time Step', f'{uround(self.time_step, asec, 3)} as')
+        info_algorithm.add_field('Minimum Time Step', f'{uround(self.minimum_time_step, asec, 3)} as')
+        info_algorithm.add_field('Maximum Time Step', f'{uround(self.maximum_time_step, asec, 3)} as')
+
+        info.add_info(info_algorithm)
+
+        return info
 
 
 class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
@@ -696,7 +752,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
     def run_simulation(self):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        self.status = 'running'
+        self.status = si.STATUS_RUN
 
         while self.time < self.spec.time_final:
             getattr(self, 'evolve_' + self.spec.evolution_method)()
@@ -712,7 +768,16 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
                     self.status = si.STATUS_RUN
                     logger.info('Checkpointed {} {} ({}) at time step {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1))
 
-        self.status = 'finished'
+        time_indices = np.array(range(0, len(self.times)))
+        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
+        if self.spec.store_data_every >= 1:
+            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
+
+        self.times = self.times[self.data_mask]
+        self.a = self.a[self.data_mask]
+        self.electric_field_vs_time = self.electric_field_vs_time[self.data_mask]
+
+        self.status = si.STATUS_FIN
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
     def plot_fields_vs_time(self, time_scale = 'asec', field_scale = 'AEF', vector_scale = 'atomic_momentum', quiver_scale = 'bohr_radius',
@@ -881,35 +946,41 @@ class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
         self.checkpoint_dir = checkpoint_dir
 
     def info(self):
-        checkpoint = ['Checkpointing: ']
+        info = super().info()
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
         if self.checkpoints:
             if self.checkpoint_dir is not None:
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            checkpoint[0] += 'every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
         else:
-            checkpoint[0] += 'disabled'
+            info_checkpoint.header += ': disabled'
 
-        ide_parameters = [
-            "IDE Parameters: da/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t, t')  ; {t', t_initial, t} ]",
-            '   Initial State: a = {}'.format(self.a_initial),
-            '   Prefactor: {}'.format(self.prefactor),
-            '   Electric Potential: {}'.format(self.electric_potential),
-            '   Kernel: {} with kwargs {}'.format(self.kernel.__name__, self.kernel_kwargs),
-        ]
+        info.add_info(info_checkpoint)
 
-        time_evolution = [
-            'Time Evolution:',
-            '   Initial Time: {} as'.format(uround(self.time_initial, asec)),
-            '   Final Time: {} as'.format(uround(self.time_final, asec)),
-            '   Time Step: {} as'.format(uround(self.time_step, asec)),
-            '   Integration Method: {}'.format(self.integration_method),
-            '   Evolution Method: {}'.format(self.evolution_method),
-        ]
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
 
-        return '\n'.join(checkpoint + ide_parameters + time_evolution)
+        info.add_info(info_evolution)
 
+        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm.add_field('Integration Method', self.integration_method)
+        info_algorithm.add_field('Evolution Method', self.evolution_method)
+
+        info.add_info(info_algorithm)
+
+        info_ide = si.Info(header = 'IDE Parameters')
+        info_ide.add_field('Initial State', f'a = {self.a_initial}')
+        info_ide.add_field('Prefactor', self.prefactor)
+        info_ide.add_info(self.electric_potential.info())
+        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+
+        info.add_info(info_ide)
+
+        return info
 
 def velocity_guassian_kernel(time_diff, quiver_diff, tau_alpha = 1, width = 1):
     time_diff_inner = 1 / (1 + (1j * time_diff / tau_alpha))

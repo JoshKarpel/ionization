@@ -540,8 +540,8 @@ class IDESimulationResult(clu.SimulationResult):
                 name_postfix = f'__{sim.file_name}',
         )
 
-        sim.plot_a_vs_time(**plot_kwargs)
-        sim.plot_a_vs_time(**plot_kwargs, log = True)
+        sim.plot_a2_vs_time(**plot_kwargs)
+        sim.plot_a2_vs_time(**plot_kwargs, log = True)
 
 
 class IDEJobProcessor(PulseParameterScanMixin, clu.JobProcessor):

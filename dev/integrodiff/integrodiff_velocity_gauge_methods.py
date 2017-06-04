@@ -62,7 +62,7 @@ if __name__ == '__main__':
         for r in results:
             print(r.info())
             r.plot_fields_vs_time(**plt_kwargs)
-            r.plot_a_vs_time(**plt_kwargs)
+            r.plot_a2_vs_time(**plt_kwargs)
 
         for log, rel in it.product((True, False), repeat = 2):
             plot_name = 'comparison'

@@ -23,10 +23,10 @@ def run(spec):
 
         logger.info('{} took {} seconds for {} steps, {} computations'.format(sim.name, sim.elapsed_time.total_seconds(), sim.time_steps, sim.computed_time_steps))
 
-        sim.plot_a_vs_time(target_dir = spec.out_dir,
-                           y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
-                           field_axis_label = r'${}(t)$'.format(str_efield),
-                           field_scale = 'AEF')
+        sim.plot_a2_vs_time(target_dir = spec.out_dir,
+                            y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
+                            field_axis_label = r'${}(t)$'.format(str_efield),
+                            field_scale = 'AEF')
 
         si.vis.xy_plot(sim.name + '_RI',
                          sim.times,

@@ -21,7 +21,7 @@ def run(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        sim.plot_a_vs_time(target_dir = OUT_DIR)
+        sim.plot_a2_vs_time(target_dir = OUT_DIR)
 
     return sim
 
