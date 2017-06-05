@@ -30,7 +30,7 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         state_a = ion.HydrogenBoundState(1, 0)
-        state_b = ion.HydrogenBoundState(3, 1)
+        state_b = ion.HydrogenBoundState(2, 1)
 
         amplitudes = [.005, .01, .1]
         cycles = [1, 3]
@@ -40,8 +40,8 @@ if __name__ == '__main__':
         bound = 100
         ppbr = 8
 
-        inner = 30
-        outer = 60
+        inner = 20
+        outer = 50
 
         animator_kwargs = dict(
                 target_dir = OUT_DIR,
@@ -114,17 +114,19 @@ if __name__ == '__main__':
                 r_points = bound * ppbr,
                 l_bound = 50,
                 initial_state = state_a,
-                # test_states = (state_a, state_b),
                 time_initial = 0 * asec,
                 time_step = dt * asec,
                 mask = ion.RadialCosineMask(inner_radius = .8 * bound * bohr_radius, outer_radius = bound * bohr_radius),
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 20 * eV,
                 numeric_eigenstate_max_angular_momentum = 10,
-                out_dir = OUT_DIR
         )
 
         dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_simulation()
+
+        state_a = dummy.mesh.analytic_to_numeric[state_a]
+        state_b = dummy.mesh.analytic_to_numeric[state_b]
+
         dipole_moment = np.abs(dummy.mesh.dipole_moment_expectation_value(mesh_a = dummy.mesh.get_g_for_state(state_b)))
 
         specs = []
@@ -139,10 +141,11 @@ if __name__ == '__main__':
                     f'rabi__{state_a.n}_{state_a.l}_to_{state_b.n}_{state_b.l}__gauge={gauge}__amp={amplitude}aef_{cycle}cycles__len={animator_kwargs["length"]}_fps={animator_kwargs["fps"]}',
                     time_final = cycle * rabi_time,
                     electric_potential = electric_field,
-                    rabi_frequency = rabi_frequency,
-                    rabi_time = rabi_time,
                     evolution_gauge = gauge,
                     animators = deepcopy(animators),
+                    dipole_moment = dipole_moment,
+                    rabi_frequency = rabi_frequency,
+                    rabi_time = rabi_time,
                     **spec_kwargs
             ))
 

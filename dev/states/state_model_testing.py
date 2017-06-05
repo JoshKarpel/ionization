@@ -30,6 +30,10 @@ if __name__ == '__main__':
         print(x, type(x))
         print()
 
+        y = ion.HydrogenBoundState(1, 0) + ion.HydrogenBoundState(2, 1) + ion.HydrogenBoundState(4, 3)
+        print(y)
+        print()
+
         s = 1j * np.sqrt(1 / 3) * ion.HydrogenBoundState(1) + np.sqrt(2 / 3) * ion.HydrogenBoundState(2)
         print(s, type(s))
         s += ion.HydrogenBoundState(3)
