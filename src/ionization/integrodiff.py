@@ -347,6 +347,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         return info
 
+
 class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationSimulation):
     def __init__(self, spec):
         super().__init__(spec)
@@ -646,9 +647,9 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
         self.time_step = np.abs(self.times[1] - self.times[0])
 
-        self.electric_field_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
-        self.vector_potential_vs_time = -np.cumsum(self.electric_field_vs_time) * self.time_step
-        self.quiver_motion_vs_time = -np.cumsum(self.vector_potential_vs_time) * self.time_step * (self.spec.test_charge / self.spec.test_mass)
+        self.electric_field_amplitude_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
+        self.vector_potential_amplitude_vs_time = self.spec.electric_potential.get_vector_potential_amplitudes(self.times)
+        self.quiver_motion_vs_time = -np.cumsum(self.vector_potential_amplitude_vs_time) * self.time_step * (self.spec.test_charge / self.spec.test_mass)
 
         if self.spec.integration_method == 'simpson':
             self.integrate = integrate.simps
@@ -663,40 +664,44 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
     def time(self):
         return self.times[self.time_index]
 
+    @property
+    def times_to_current(self):
+        return self.times[:self.time_index + 1]
+
     def evolve_FE(self):
         time_diff = self.times[self.time_index] - self.times[:self.time_index + 1]
         quiver_diff = self.quiver_motion_vs_time[self.time_index] - self.quiver_motion_vs_time[:self.time_index + 1]
-        integral = self.integrate(y = self.vector_potential_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff, quiver_diff, **self.spec.kernel_kwargs),
+        integral = self.integrate(y = self.vector_potential_amplitude_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff, quiver_diff, **self.spec.kernel_kwargs),
                                   x = self.times[:self.time_index + 1])
 
-        k = self.spec.prefactor * self.vector_potential_vs_time[self.time_index] * integral
+        k = self.spec.prefactor * self.vector_potential_amplitude_vs_time[self.time_index] * integral
 
         self.a[self.time_index + 1] = self.a[self.time_index] + (self.time_step * k)  # estimate next point
 
     def evolve_BE(self):
         time_diff = self.times[self.time_index + 1] - self.times[:self.time_index + 1]
         quiver_diff = self.quiver_motion_vs_time[self.time_index + 1] - self.quiver_motion_vs_time[:self.time_index + 1]
-        integral = self.integrate(y = self.vector_potential_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff, quiver_diff, **self.spec.kernel_kwargs),
+        integral = self.integrate(y = self.vector_potential_amplitude_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff, quiver_diff, **self.spec.kernel_kwargs),
                                   x = self.times[:self.time_index + 1])
 
-        k = self.spec.prefactor * self.vector_potential_vs_time[self.time_index + 1] * integral
+        k = self.spec.prefactor * self.vector_potential_amplitude_vs_time[self.time_index + 1] * integral
 
-        self.a[self.time_index + 1] = (self.a[self.time_index] + (self.time_step * k)) / (1 - self.spec.prefactor * ((self.time_step * self.vector_potential_vs_time[self.time_index + 1]) ** 2))  # estimate next point
+        self.a[self.time_index + 1] = (self.a[self.time_index] + (self.time_step * k)) / (1 - self.spec.prefactor * ((self.time_step * self.vector_potential_amplitude_vs_time[self.time_index + 1]) ** 2))  # estimate next point
 
     def evolve_TRAP(self):
         time_diff_1 = self.times[self.time_index] - self.times[:self.time_index + 1]
         quiver_diff_1 = self.quiver_motion_vs_time[self.time_index] - self.quiver_motion_vs_time[:self.time_index + 1]
-        integral_1 = self.integrate(y = self.vector_potential_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff_1, quiver_diff_1, **self.spec.kernel_kwargs),
+        integral_1 = self.integrate(y = self.vector_potential_amplitude_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff_1, quiver_diff_1, **self.spec.kernel_kwargs),
                                     x = self.times[:self.time_index + 1])
-        k_1 = self.spec.prefactor * self.vector_potential_vs_time[self.time_index] * integral_1
+        k_1 = self.spec.prefactor * self.vector_potential_amplitude_vs_time[self.time_index] * integral_1
 
         time_diff_2 = self.times[self.time_index + 1] - self.times[:self.time_index + 1]
         quiver_diff_2 = self.quiver_motion_vs_time[self.time_index + 1] - self.quiver_motion_vs_time[:self.time_index + 1]
-        integral_2 = self.integrate(y = self.vector_potential_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff_2, quiver_diff_2, **self.spec.kernel_kwargs),
+        integral_2 = self.integrate(y = self.vector_potential_amplitude_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(time_diff_2, quiver_diff_2, **self.spec.kernel_kwargs),
                                     x = self.times[:self.time_index + 1])
-        k_2 = self.spec.prefactor * self.vector_potential_vs_time[self.time_index + 1] * integral_2
+        k_2 = self.spec.prefactor * self.vector_potential_amplitude_vs_time[self.time_index + 1] * integral_2
 
-        self.a[self.time_index + 1] = (self.a[self.time_index] + (self.time_step * (k_1 + k_2) / 2)) / (1 - .5 * self.spec.prefactor * ((self.time_step * self.vector_potential_vs_time[self.time_index + 1]) ** 2))
+        self.a[self.time_index + 1] = (self.a[self.time_index] + (self.time_step * (k_1 + k_2) / 2)) / (1 - .5 * self.spec.prefactor * ((self.time_step * self.vector_potential_amplitude_vs_time[self.time_index + 1]) ** 2))
 
     def evolve_RK4(self):
         times_curr = self.times[:self.time_index + 1]
@@ -708,9 +713,9 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
         time_difference_half = time_at_half - times_half
         time_difference_next = self.times[self.time_index + 1] - times_next
 
-        vector_potential_curr = self.vector_potential_vs_time[self.time_index]
-        vector_potential_half = (self.vector_potential_vs_time[self.time_index] + self.vector_potential_vs_time[self.time_index + 1]) / 2
-        vector_potential_next = self.vector_potential_vs_time[self.time_index + 1]
+        vector_potential_curr = self.vector_potential_amplitude_vs_time[self.time_index]
+        vector_potential_half = (self.vector_potential_amplitude_vs_time[self.time_index] + self.vector_potential_amplitude_vs_time[self.time_index + 1]) / 2
+        vector_potential_next = self.vector_potential_amplitude_vs_time[self.time_index + 1]
 
         quiver_at_half = (self.quiver_motion_vs_time[self.time_index] + self.quiver_motion_vs_time[self.time_index + 1]) / 2
         quiver_half = np.append(self.quiver_motion_vs_time[:self.time_index + 1], quiver_at_half)
@@ -723,7 +728,7 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
         kernel_half = self.spec.kernel(time_difference_half, quiver_diff_half, **self.spec.kernel_kwargs)
         kernel_next = self.spec.kernel(time_difference_next, quiver_diff_next, **self.spec.kernel_kwargs)
 
-        A_times_a_curr = self.vector_potential_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1]
+        A_times_a_curr = self.vector_potential_amplitude_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1]
 
         integrand_for_k1 = A_times_a_curr * kernel_curr
         integral_for_k1 = self.integrate(y = integrand_for_k1,
@@ -775,32 +780,49 @@ class VelocityGaugeIntegroDifferentialEquationSimulation(si.Simulation):
 
         self.times = self.times[self.data_mask]
         self.a = self.a[self.data_mask]
-        self.electric_field_vs_time = self.electric_field_vs_time[self.data_mask]
+        self.electric_field_amplitude_vs_time = self.electric_field_amplitude_vs_time[self.data_mask]
 
         self.status = si.STATUS_FIN
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
-    def plot_fields_vs_time(self, time_scale = 'asec', field_scale = 'AEF', vector_scale = 'atomic_momentum', quiver_scale = 'bohr_radius',
-                            **kwargs):
-        with si.vis.FigureManager(f'{self.name}__fields_vs_time', **kwargs) as figman:
-            fig = figman.fig
-            ax = fig.add_subplot(111)
+    def attach_electric_potential_plot_to_axis(self,
+                                               axis,
+                                               time_unit = 'asec',
+                                               legend_kwargs = None,
+                                               show_y_label = False, ):
+        time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
 
-            t_scale_unit, t_scale_name = get_unit_value_and_latex_from_unit(time_scale)
-            f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
-            a_scale_unit, a_scale_name = get_unit_value_and_latex_from_unit(vector_scale)
-            q_scale_unit, q_scale_name = get_unit_value_and_latex_from_unit(quiver_scale)
+        if legend_kwargs is None:
+            legend_kwargs = dict()
+        legend_defaults = dict(
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
+        )
+        legend_kwargs = {**legend_defaults, **legend_kwargs}
 
-            ax.plot(self.times / t_scale_unit, self.electric_field_vs_time / f_scale_unit, label = fr'${core.LATEX_EFIELD}(t)$ (${f_scale_name}$)')
-            ax.plot(self.times / t_scale_unit, np.abs(self.spec.test_charge) * self.vector_potential_vs_time / a_scale_unit, label = fr'$e \, {core.LATEX_AFIELD}(t)$ (${a_scale_name}$)')
-            ax.plot(self.times / t_scale_unit, self.quiver_motion_vs_time / q_scale_unit, label = fr'$\alpha(t)$ (${q_scale_name}$)')
+        axis.plot(self.times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field,
+                  color = core.COLOR_ELECTRIC_FIELD,
+                  linewidth = 1.5,
+                  label = fr'$ {core.LATEX_EFIELD}(t) $')
+        axis.plot(self.times / time_unit_value, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
+                  color = core.COLOR_VECTOR_POTENTIAL,
+                  linewidth = 1.5,
+                  label = fr'$ e \, {core.LATEX_AFIELD}(t) $')
 
-            ax.set_xlim(self.times[0] / t_scale_unit, self.times[-1] / t_scale_unit)
+        if show_y_label:
+            axis.set_ylabel('${}(t)$'.format(core.LATEX_EFIELD), fontsize = 13)
 
-            ax.set_xlabel(fr'Time $t$ (${t_scale_name}$)')
+        axis.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
 
-            ax.grid(True, **si.vis.GRID_KWARGS)
-            ax.legend(loc = 'best')
+        axis.tick_params(labelright = True)
+
+        axis.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
+
+        axis.legend(**legend_kwargs)
+
+        axis.grid(True, **si.vis.GRID_KWARGS)
 
     def plot_a_vs_time(self, log = False, time_scale = 'asec', field_scale = 'AEF',
                        show_title = False,
@@ -981,6 +1003,7 @@ class VelocityGaugeIntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_ide)
 
         return info
+
 
 def velocity_guassian_kernel(time_diff, quiver_diff, tau_alpha = 1, width = 1):
     time_diff_inner = 1 / (1 + (1j * time_diff / tau_alpha))
