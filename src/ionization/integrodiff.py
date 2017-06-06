@@ -56,12 +56,16 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     def time(self):
         return self.times[self.time_index]
 
+    @property
+    def a2(self):
+        return np.abs(self.a) ** 2
+
     def evolve_FE(self):
         dt = self.times[self.time_index + 1] - self.time
 
         k = self.spec.prefactor * self.electric_field_vs_time[self.time_index] * self.integrate(y = self.electric_field_vs_time[:self.time_index + 1] * self.a[:self.time_index + 1] * self.spec.kernel(self.time - self.times[:self.time_index + 1], **self.spec.kernel_kwargs),
                                                                                                 x = self.times[:self.time_index + 1])
-        self.a[self.time_index + 1] = self.a[self.time_index] + (dt * k)  # estimate next point
+        self.a[self.time_index + 1] = self.a[self.time_index] + (dt * k)
 
     def evolve_BE(self):
         dt = self.times[self.time_index + 1] - self.time
@@ -84,7 +88,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def evolve_RK4(self):
         dt = self.times[self.time_index + 1] - self.time
-        # print('dt (as)', dt / asec)
 
         times_curr = self.times[:self.time_index + 1]
         times_half = np.append(self.times[:self.time_index + 1], self.time + dt / 2)
@@ -175,21 +178,18 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     def plot_a2_vs_time(self, log = False, time_scale = 'asec', field_scale = 'AEF',
                         show_title = False,
                         **kwargs):
-        # fig = si.vis.get_figure('full')
         with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
-            x_scale_unit, x_scale_name = get_unit_value_and_latex_from_unit(time_scale)
+            t_scale_unit, t_scale_name = get_unit_value_and_latex_from_unit(time_scale)
             f_scale_unit, f_scale_name = get_unit_value_and_latex_from_unit(field_scale)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [5, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
             ax_a = plt.subplot(grid_spec[0])
             ax_f = plt.subplot(grid_spec[1], sharex = ax_a)
 
-            ax_f.plot(self.times / x_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
-
-            overlap = np.abs(self.a) ** 2
-            ax_a.plot(self.times / x_scale_unit, overlap, color = 'black', linewidth = 2)
+            ax_f.plot(self.times / t_scale_unit, self.spec.electric_potential.get_electric_field_amplitude(self.times) / f_scale_unit, color = si.vis.RED, linewidth = 2)
+            ax_a.plot(self.times / t_scale_unit, self.a2, color = 'black', linewidth = 2)
 
             if log:
                 ax_a.set_yscale('log')
@@ -201,9 +201,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_a.grid(True, **si.vis.GRID_KWARGS)
 
-            ax_a.set_xlim(self.spec.time_initial / x_scale_unit, self.spec.time_final / x_scale_unit)
+            ax_a.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
 
-            ax_f.set_xlabel(r'Time $t$ (${}$)'.format(x_scale_name), fontsize = 13)
+            ax_f.set_xlabel(r'Time $t$ (${}$)'.format(t_scale_name), fontsize = 13)
             ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
             ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
 
@@ -340,8 +340,11 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info_ide = si.Info(header = 'IDE Parameters')
         info_ide.add_field('Initial State', f'a = {self.a_initial}')
         info_ide.add_field('Prefactor', self.prefactor)
-        info_ide.add_info(self.electric_potential.info())
         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+
+        info_potential = self.electric_potential.info()
+        info_potential.header = 'Electric Potential: ' + info_potential.header
+        info_ide.add_info(info_potential)
 
         info.add_info(info_ide)
 
@@ -356,7 +359,7 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
 
         self.time_step = self.spec.time_step
 
-        self.a = np.array([self.spec.a_initial])
+        self.a = np.array([self.spec.a_initial], dtype = np.complex128)
         self.time_steps_by_times = np.array([np.NaN])
 
         self.computed_time_steps = 0
@@ -364,8 +367,6 @@ class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationS
     def evolve_ARK4(self):
         """
         Evolve y forward in time by the time step, controlling for the local truncation error.
-
-        :return: None
         """
         times_curr = self.times
         times_half = np.append(self.times[:self.time_index + 1], self.time + self.time_step / 2)
