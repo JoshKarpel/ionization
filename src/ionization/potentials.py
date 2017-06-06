@@ -726,12 +726,12 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
                                   )
 
     def get_electric_field_envelope(self, t):
-        tau = t - self.pulse_center
+        tau = np.array(t) - self.pulse_center
         return si.math.sinc(self.delta_omega * tau / 2)
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        tau = t - self.pulse_center
+        tau = np.array(t) - self.pulse_center
         amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
@@ -808,7 +808,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                                   )
 
     def get_electric_field_envelope(self, t):
-        tau = t - self.pulse_center
+        tau = np.array(t) - self.pulse_center
         return np.exp(-0.5 * ((tau / self.pulse_width) ** 2))
 
     def get_electric_field_amplitude(self, t):
@@ -1143,7 +1143,7 @@ class SymmetricExponentialTimeWindow(TimeWindow):
                                                                                     self.window_center)
 
     def __call__(self, t):
-        tau = t - self.window_center
+        tau = np.array(t) - self.window_center
         return np.abs(1 / (1 + np.exp(-(tau + self.window_time) / self.window_width)) - 1 / (1 + np.exp(-(tau - self.window_time) / self.window_width)))
 
     def info(self):
