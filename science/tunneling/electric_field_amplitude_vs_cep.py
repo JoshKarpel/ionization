@@ -22,31 +22,44 @@ if __name__ == '__main__':
         pw = 200 * asec
         flu = 1 * Jcm2
 
-        ceps = np.linspace(0, twopi, 1e4)
-
         bound = 30
         times = np.linspace(-bound * pw, bound * pw, 1e6)
         len_times = len(times)
 
-        amplitude_fraction_vs_cep = np.zeros(len(ceps))
+        ceps = np.linspace(0, twopi, 1e4)
 
-        field_zero = ion.SincPulse(pulse_width = pw, fluence = flu, phase = 0).get_electric_field_amplitude(times)
-        field_cut = np.nanmax(np.abs(field_zero)) / np.sqrt(2)
+        power_fractions_by_pulse_type = dict()
 
-        for ii, cep in enumerate(tqdm(ceps)):
-            field = ion.SincPulse(pulse_width = pw, fluence = flu, phase = cep).get_electric_field_amplitude(times)
+        for pulse_type in (ion.SincPulse, ion.GaussianPulse, ion.SechPulse):
+            power_fraction_vs_cep = np.zeros(len(ceps))
 
-            amplitude_fraction_vs_cep[ii] = len(field[np.abs(field) > field_cut]) / len_times
+            pot_zero = ion.SincPulse(pulse_width = pw, fluence = flu, phase = 0)
+            if pulse_type != ion.SincPulse:
+                pot_zero = pulse_type(pulse_width = pw, fluence = flu, phase = 0, omega_carrier = pot_zero.omega_carrier)
 
-        print(amplitude_fraction_vs_cep)
-        amplitude_fraction_vs_cep = amplitude_fraction_vs_cep / amplitude_fraction_vs_cep[0]  # normalize to cep = 0
-        print(amplitude_fraction_vs_cep)
+            field_zero = pot_zero.get_electric_field_amplitude(times)
+            power_cut = np.nanmax(np.abs(field_zero)) / np.sqrt(2)
+
+            for ii, cep in enumerate(tqdm(ceps)):
+                pot = ion.DC_correct_electric_potential(pulse_type(pulse_width = pw, fluence = flu, phase = cep), times)
+
+                field = pot.get_electric_field_amplitude(times)
+
+                power_fraction_vs_cep[ii] = (np.abs(field) > power_cut).sum() / len_times
+
+            power_fractions_by_pulse_type[pulse_type] = power_fraction_vs_cep / power_fraction_vs_cep[0]  # normalize to cep = 0
 
         plt_kwargs = dict(
-                target_dir = OUT_DIR,
+            target_dir = OUT_DIR,
+            img_format = 'png',
+            fig_dpi_scale = 3,
         )
 
-        si.vis.xy_plot('amp_fraction_vs_cep',
-                       ceps, amplitude_fraction_vs_cep,
-                       x_unit = 'rad',
+        si.vis.xy_plot(f'power_fractions_vs_cep__dc_corrected',
+                       ceps,
+                       *(v for k, v in power_fractions_by_pulse_type.items()),
+                       line_labels = (k.__name__ for k in power_fractions_by_pulse_type),
+                       x_label = r'Carrier-Envelope Phase $\varphi$', x_unit = 'rad',
+                       y_label = r'Rel. Fraction of Time at $>\frac{1}{2}$ Power',
+                       title = fr'Rel. Time-Power Fraction for T = ${bound}\tau$',
                        **plt_kwargs)
