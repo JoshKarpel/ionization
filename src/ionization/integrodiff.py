@@ -59,48 +59,57 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def evolve_FE(self, a, times, time_step):
         times = np.array(times)
+        time_curr = times[-1]
+
         f = self.spec.electric_potential.get_electric_field_amplitude(times)
 
-        k = self.spec.prefactor * f[-1] * self.integrate(y = f * a * self.spec.kernel(self.time - times, **self.spec.kernel_kwargs),
+        k = self.spec.prefactor * f[-1] * self.integrate(y = f * a * self.spec.kernel(times[-1] - times, **self.spec.kernel_kwargs),
                                                          x = times)
 
-        return a[-1] + (time_step * k)
+        return a[-1] + (time_step * k), time_curr + time_step
 
     def evolve_BE(self, a, times, time_step):
         times = np.array(times)
-        f = self.spec.electric_potential.get_electric_field_amplitude(times)
-        f_next = self.spec.electric_potential.get_electric_field_amplitude(times[-1] + time_step)
+        time_curr = times[-1]
 
-        k = self.spec.prefactor * f_next * self.integrate(y = f * a * self.spec.kernel(self.time + time_step - times, **self.spec.kernel_kwargs),
+        f = self.spec.electric_potential.get_electric_field_amplitude(times)
+        f_next = self.spec.electric_potential.get_electric_field_amplitude(time_curr + time_step)
+
+        k = self.spec.prefactor * f_next * self.integrate(y = f * a * self.spec.kernel(time_curr + time_step - times, **self.spec.kernel_kwargs),
                                                           x = times)
 
-        return (a[-1] + (time_step * k)) / (1 - self.spec.prefactor * ((time_step * f_next) ** 2))  # estimate next point
+        return (a[-1] + (time_step * k)) / (1 - self.spec.prefactor * ((time_step * f_next) ** 2)), time_curr + time_step  # estimate next point
 
     def evolve_TRAP(self, a, times, time_step):
         times = np.array(times)
+        time_curr = times[-1]
+
         f = self.spec.electric_potential.get_electric_field_amplitude(times)
         f_curr = f[-1]
-        f_next = self.spec.electric_potential.get_electric_field_amplitude(times[-1] + time_step)
+        f_next = self.spec.electric_potential.get_electric_field_amplitude(time_curr + time_step)
 
-        k_1 = self.spec.prefactor * f_next * self.integrate(y = f * a * self.spec.kernel(self.time + time_step - times, **self.spec.kernel_kwargs),
+        f_times_a = f * a
+
+        k_1 = self.spec.prefactor * f_next * self.integrate(y = f_times_a * self.spec.kernel(time_curr + time_step - times, **self.spec.kernel_kwargs),
                                                             x = times)
 
-        k_2 = self.spec.prefactor * f_curr * self.integrate(y = f * a * self.spec.kernel(self.time - times, **self.spec.kernel_kwargs),
+        k_2 = self.spec.prefactor * f_curr * self.integrate(y = f_times_a * self.spec.kernel(time_curr - times, **self.spec.kernel_kwargs),
                                                             x = times)
 
-        return (a[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - .5 * self.spec.prefactor * ((time_step * f_next) ** 2))  # estimate next point
+        return (a[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - (.5 * self.spec.prefactor * ((time_step * f_next) ** 2))), time_curr + time_step  # estimate next point
 
     def evolve_RK4(self, a, times, time_step):
         a_curr = a[-1]
 
-        time_half = times[-1] + (time_step / 2)
-        time_next = times[-1] + time_step
+        time_curr = times[-1]
+        time_half = time_curr + (time_step / 2)
+        time_next = time_curr + time_step
 
         times_half = np.array(times + [time_half])
         times_next = np.array(times + [time_next])
         times = np.array(times)
 
-        time_difference_curr = self.time - times
+        time_difference_curr = time_curr - times
         time_difference_half = time_half - times_half
         time_difference_next = time_next - times_next
 
@@ -135,7 +144,50 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
         k4 = self.spec.prefactor * f_next * integral_for_k4
 
-        return a_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)  # estimate next point
+        return a_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6), time_next  # estimate next point
+
+    def evolve_ARK4(self, a, times, time_step):
+        """
+        Evolve y forward in time by the time step, controlling for the local truncation error.
+        """
+        a_full_step_estimate, _ = self.evolve_RK4(a, times, time_step)
+
+        time_curr = times[-1]
+        time_half = time_curr + (time_step / 2)
+
+        a_half_step_estimate, _ = self.evolve_RK4(a, times, time_step / 2)
+        a_double_step_estimate, _ = self.evolve_RK4(a + [a_half_step_estimate], times + [time_half], time_step / 2)
+
+        delta_1 = a_double_step_estimate - a_full_step_estimate  # estimate truncation error from difference in estimates of a
+
+        if self.spec.error_on == 'y':
+            delta_0 = self.spec.epsilon * a[-1]
+        elif self.spec.error_on == 'dydt':
+            delta_0 = self.spec.epsilon * (a[-1] - a_double_step_estimate)
+
+        ratio = np.abs(delta_0 / delta_1)
+
+        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or time_step == self.spec.minimum_time_step:  # step was ok
+            old_step = self.time_step  # for log message
+            if delta_1 != 0:  # don't adjust time step if truncation error is zero
+                self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 5))
+
+            # ensure new time step is inside min and max allowable time steps
+            self.time_step = min(self.spec.maximum_time_step, self.time_step)
+            self.time_step = max(self.spec.minimum_time_step, self.time_step)
+
+            logger.debug(f'Accepted ARK4 step to {uround(times[-1] + time_step, asec, 6)} as. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
+
+            return a_double_step_estimate + (delta_1 / 15), time_curr + time_step
+        else:  # reject step
+            old_step = self.time_step  # for log message
+
+            self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 4))  # set new time step
+            self.time_step = min(self.spec.maximum_time_step, self.time_step)
+            self.time_step = max(self.spec.minimum_time_step, self.time_step)
+
+            logger.debug(f'Rejected ARK4 step. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
+            return self.evolve_ARK4(a, times, self.time_step)  # retry with new time step
 
     def run_simulation(self, progress_bar = False, callback = None):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
@@ -145,8 +197,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             pbar = tqdm(total = self.time_steps - 1)
 
         while self.time < self.spec.time_final:
-            self.a.append(getattr(self, f'evolve_{self.spec.evolution_method}')(self.a, self.times, self.time_step))
-            self.times.append(self.time + self.time_step)
+            new_a, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.a, self.times, self.time_step)
+            self.a.append(new_a)
+            self.times.append(new_t)
             self.time_index += 1
 
             if callback is not None:
@@ -216,9 +269,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
             ax_f.set_ylabel(r'${}$ (${}$)'.format(core.LATEX_EFIELD, f_scale_name), fontsize = 13, color = si.vis.RED)
 
-            plt.rcParams['xtick.major.pad'] = 5
-            plt.rcParams['ytick.major.pad'] = 5
-
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
             yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
@@ -278,6 +328,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  evolution_method = 'FE',
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  store_data_every = 1,
+                 minimum_time_step = .01 * asec, maximum_time_step = 10 * asec,
+                 epsilon = 1e-3, error_on = 'y', safety_factor = .98,
                  **kwargs):
         """
         Initialize an IntegroDifferentialEquationSpecification from the given parameters.
@@ -319,281 +371,6 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.store_data_every = store_data_every
 
-    def info(self):
-        info = super().info()
-
-        info_checkpoint = si.Info(header = 'Checkpointing')
-        if self.checkpoints:
-            if self.checkpoint_dir is not None:
-                working_in = self.checkpoint_dir
-            else:
-                working_in = 'cwd'
-            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
-        else:
-            info_checkpoint.header += ': disabled'
-
-        info.add_info(info_checkpoint)
-
-        info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
-
-        info.add_info(info_evolution)
-
-        info_algorithm = si.Info(header = 'Evolution Algorithm')
-        info_algorithm.add_field('Integration Method', self.integration_method)
-        info_algorithm.add_field('Evolution Method', self.evolution_method)
-
-        info.add_info(info_algorithm)
-
-        info_ide = si.Info(header = 'IDE Parameters')
-        info_ide.add_field('Initial State', f'a = {self.a_initial}')
-        info_ide.add_field('Prefactor', self.prefactor)
-        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
-
-        info_potential = self.electric_potential.info()
-        info_potential.header = 'Electric Potential: ' + info_potential.header
-        info_ide.add_info(info_potential)
-
-        info.add_info(info_ide)
-
-        return info
-
-
-class AdaptiveIntegroDifferentialEquationSimulation(IntegroDifferentialEquationSimulation):
-    def __init__(self, spec):
-        super().__init__(spec)
-
-        self.times = np.array([self.spec.time_initial])
-
-        self.time_step = self.spec.time_step
-
-        self.a = np.array([self.spec.a_initial], dtype = np.complex128)
-        self.time_steps_by_times = np.array([np.NaN])
-
-        self.computed_time_steps = 0
-
-    def evolve_ARK4(self):
-        """
-        Evolve y forward in time by the time step, controlling for the local truncation error.
-        """
-        times = self.times
-        times_half = np.append(self.times[:self.time_index + 1], self.time + self.time_step / 2)
-        times_next = np.append(self.times[:self.time_index + 1], self.time + self.time_step)
-
-        time_difference_curr = self.time - times  # slice up to current time index
-        time_difference_half = (self.time + self.time_step / 2) - times_half
-        time_difference_next = self.time + self.time_step - times_next
-
-        kernel_curr = self.spec.kernel(time_difference_curr, **self.spec.kernel_kwargs)
-        kernel_half = self.spec.kernel(time_difference_half, **self.spec.kernel_kwargs)
-        kernel_next = self.spec.kernel(time_difference_next, **self.spec.kernel_kwargs)
-
-        f_curr = self.spec.electric_potential.get_electric_field_amplitude(self.time)
-        f_quarter = self.spec.electric_potential.get_electric_field_amplitude(self.time + (self.time_step / 4))
-        efield_half = self.spec.electric_potential.get_electric_field_amplitude(self.time + (self.time_step / 2))
-        f_three_quarter = self.spec.electric_potential.get_electric_field_amplitude(self.time + (3 * self.time_step / 4))
-        efield_next = self.spec.electric_potential.get_electric_field_amplitude(self.time + self.time_step)
-
-        f_times_y_curr = self.spec.electric_potential.get_electric_field_amplitude(self.times) * self.a
-
-        # CALCULATE FULL STEP ESTIMATE
-        integrand_for_k1 = f_times_y_curr * kernel_curr
-        integral_for_k1 = self.integrate(y = integrand_for_k1, x = times)
-        k1 = self.spec.prefactor * f_curr * integral_for_k1
-        y_midpoint_for_k2 = self.a[self.time_index] + (self.time_step * k1 / 2)  # self.time_step / 2 here because we moved forward to midpoint
-
-        integrand_for_k2 = np.append(f_times_y_curr, efield_half * y_midpoint_for_k2) * kernel_half
-        integral_for_k2 = self.integrate(y = integrand_for_k2, x = times_half)
-        k2 = self.spec.prefactor * efield_half * integral_for_k2  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_midpoint_for_k3 = self.a[self.time_index] + (self.time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k3 = np.append(f_times_y_curr, efield_half * y_midpoint_for_k3) * kernel_half
-        integral_for_k3 = self.integrate(y = integrand_for_k3, x = times_half)
-        k3 = self.spec.prefactor * efield_half * integral_for_k3  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_end_for_k4 = self.a[self.time_index] + (self.time_step * k3)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k4 = np.append(f_times_y_curr, efield_next * y_end_for_k4) * kernel_next
-        integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
-        k4 = self.spec.prefactor * efield_next * integral_for_k4
-
-        full_step_estimate = self.a[self.time_index] + (self.time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
-
-        # CALCULATE DOUBLE HALF STEP ESTIMATE
-
-        times_quarter = np.append(self.times[:self.time_index + 1], self.time + self.time_step / 4)
-        times_three_quarter = np.append(np.append(self.times[:self.time_index + 1], self.time + self.time_step / 2), self.time + 3 * self.time_step / 4)
-        times_next = np.append(np.append(self.times[:self.time_index + 1], self.time + self.time_step / 2), self.time + self.time_step)
-
-        time_difference_quarter = (self.time + self.time_step / 4) - times_quarter
-        time_difference_three_quarter = (self.time + 3 * self.time_step / 4) - times_three_quarter
-        time_difference_next = self.time + self.time_step - times_next
-
-        kernel_quarter = self.spec.kernel(time_difference_quarter, **self.spec.kernel_kwargs)
-        kernel_three_quarter = self.spec.kernel(time_difference_three_quarter, **self.spec.kernel_kwargs)
-        kernel_next = self.spec.kernel(time_difference_next, **self.spec.kernel_kwargs)
-
-        # k1 is identical from above
-        # integrand_for_k1 = f_times_y_curr * kernel_curr
-        # integral_for_k1 = self.integrate(y = integrand_for_k1, x = times)
-        # k1 = self.spec.prefactor * f_curr * integral_for_k1
-        y_midpoint_for_k2 = self.a[self.time_index] + (self.time_step * k1 / 4)  # self.time_step / 4 here because we moved forward to midpoint of midpoint
-
-        integrand_for_k2 = np.append(f_times_y_curr, f_quarter * y_midpoint_for_k2) * kernel_quarter
-        integral_for_k2 = self.integrate(y = integrand_for_k2, x = times_quarter)
-        k2 = self.spec.prefactor * f_quarter * integral_for_k2  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_midpoint_for_k3 = self.a[self.time_index] + (self.time_step * k2 / 4)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k3 = np.append(f_times_y_curr, f_quarter * y_midpoint_for_k3) * kernel_quarter
-        integral_for_k3 = self.integrate(y = integrand_for_k3, x = times_quarter)
-        k3 = self.spec.prefactor * f_quarter * integral_for_k3  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_end_for_k4 = self.a[self.time_index] + (self.time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k4 = np.append(f_times_y_curr, efield_half * y_end_for_k4) * kernel_half
-        integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_half)
-        k4 = self.spec.prefactor * efield_half * integral_for_k4
-
-        y_half = self.a[self.time_index] + ((self.time_step / 2) * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
-        f_times_y_half = np.append(f_times_y_curr, efield_half * y_half)
-
-        integrand_for_k1 = f_times_y_half * kernel_half
-        integral_for_k1 = self.integrate(y = integrand_for_k1, x = times_half)
-        k1 = self.spec.prefactor * efield_half * integral_for_k1
-        y_midpoint_for_k2 = y_half + (self.time_step * k1 / 4)  # self.time_step / 4 here because we moved forward to midpoint of midpoint
-
-        integrand_for_k2 = np.append(f_times_y_half, f_three_quarter * y_midpoint_for_k2) * kernel_three_quarter
-        integral_for_k2 = self.integrate(y = integrand_for_k2, x = times_three_quarter)
-        k2 = self.spec.prefactor * f_three_quarter * integral_for_k2  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_midpoint_for_k3 = self.a[self.time_index] + (self.time_step * k2 / 4)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k3 = np.append(f_times_y_half, f_three_quarter * y_midpoint_for_k3) * kernel_three_quarter
-        integral_for_k3 = self.integrate(y = integrand_for_k3, x = times_three_quarter)
-        k3 = self.spec.prefactor * f_three_quarter * integral_for_k3  # self.time_step / 2 because it's half of an interval that we're integrating over
-        y_end_for_k4 = self.a[self.time_index] + (self.time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k4 = np.append(f_times_y_half, efield_next * y_end_for_k4) * kernel_next
-        integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
-        k4 = self.spec.prefactor * efield_next * integral_for_k4
-
-        deriv_estimate = (k1 + (2 * k2) + (2 * k3) + k4) / 6
-        double_half_step_estimate = y_half + ((self.time_step / 2) * deriv_estimate)
-
-        ##########################
-
-        self.computed_time_steps += 1
-
-        delta_1 = double_half_step_estimate - full_step_estimate  # estimate truncation error from difference in estimates of y
-
-        if self.spec.error_on == 'y':
-            delta_0 = self.spec.epsilon * self.a[self.time_index]
-        elif self.spec.error_on == 'dydt':
-            delta_0 = self.spec.epsilon * self.time_step * deriv_estimate
-
-        ratio = np.abs(delta_0 / delta_1)
-
-        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or self.time_step == self.spec.minimum_time_step:  # step was ok
-            self.times = np.append(self.times, self.time + self.time_step)
-            self.time_steps_by_times = np.append(self.time_steps_by_times, self.time_step)
-            self.a = np.append(self.a, double_half_step_estimate + (delta_1 / 15))
-
-            old_step = self.time_step  # for log message
-            if delta_1 != 0:  # don't adjust time step if truncation error is zero
-                self.time_step = self.spec.safety_factor * self.time_step * (ratio ** (1 / 5))
-
-            # ensure new time step is inside min and max allowable time steps
-            if self.spec.maximum_time_step is not None:
-                self.time_step = min(self.spec.maximum_time_step, self.time_step)
-            if self.spec.minimum_time_step is not None:
-                self.time_step = max(self.spec.minimum_time_step, self.time_step)
-
-            logger.debug('Accepted RK4 step to {} as. Increased time step to {} as from {} as'.format(uround(self.times[-1], 'asec', 6), uround(self.time_step, 'asec', 6), uround(old_step, 'asec', 5)))
-        else:  # reject step
-            old_step = self.time_step  # for log message
-            self.time_step = self.spec.safety_factor * self.time_step * (ratio ** (1 / 4))  # set new time step
-
-            if self.spec.maximum_time_step is not None:
-                self.time_step = min(self.spec.maximum_time_step, self.time_step)
-            if self.spec.minimum_time_step is not None:
-                self.time_step = max(self.spec.minimum_time_step, self.time_step)
-
-            logger.debug('Rejected RK4 step. Decreased time step to {} as from {} as'.format(uround(self.time_step, 'asec', 6), uround(old_step, 'asec', 6)))
-            self.evolve_ARK4()  # retry with new time step
-
-    def run_simulation(self, progress_bar = False, callback = None):
-        logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        self.status = si.STATUS_RUN
-
-        if progress_bar:
-            pbar = tqdm(total = self.time_steps - 1)
-
-        while self.time < self.spec.time_final:
-            getattr(self, 'evolve_' + self.spec.evolution_method)()
-
-            if callback is not None:
-                callback(self)
-
-            self.time_index += 1
-
-            logger.debug('{} {} ({}) evolved to time index {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index))
-
-            if self.spec.checkpoints:
-                if (self.time_index + 1) % self.spec.checkpoint_every == 0:
-                    self.save(target_dir = self.spec.checkpoint_dir)
-                    self.status = si.STATUS_RUN
-                    logger.info('Checkpointed {} {} ({}) at time step {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1))
-
-            try:
-                pbar.update(1)
-            except NameError:
-                pass
-
-        try:
-            pbar.close()
-        except NameError:
-            pass
-
-        time_indices = np.array(range(0, len(self.times)))
-        self.data_mask = np.equal(time_indices, 0) + np.equal(time_indices, self.time_steps - 1)
-        if self.spec.store_data_every >= 1:
-            self.data_mask += np.equal(time_indices % self.spec.store_data_every, 0)
-
-        self.times = self.times[self.data_mask]
-        self.a = self.a[self.data_mask]
-        self.electric_field_vs_time = self.electric_field_vs_time[self.data_mask]
-
-        self.status = si.STATUS_FIN
-        logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
-
-
-class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquationSpecification):
-    simulation_type = AdaptiveIntegroDifferentialEquationSimulation
-
-    error_on = si.utils.RestrictedValues('erron_on', ('y', 'dydt'))
-
-    def __init__(self, name,
-                 minimum_time_step = .01 * asec, maximum_time_step = 10 * asec,
-                 epsilon = 1e-3, error_on = 'y', safety_factor = .98,
-                 evolution_method = 'ARK4',
-                 **kwargs):
-        """
-        Initiliaze a AdaptiveIntegroDifferentialEquationSpecification from the given parameters.
-
-        if error_on == 'y':
-            allowed_error = epsilon * y_current
-        if error_on == 'dydt':
-            allowed_error = epsilon * time_step_current * dy/dt_current
-
-        :param name: the name of the Specification
-        :param minimum_time_step: the smallest allowable time step
-        :param maximum_time_step: the largest allowable time step
-        :param epsilon: the fractional error tolerance
-        :param error_on: 'y' or 'dydt', see above
-        :param safety_factor: a number slightly less than 1 to ensure safe time step adjustment
-        :param evolution_method:
-        :param kwargs: kwargs are passed to IntegroDifferentialEquationSpecification's __init__ method
-        """
-        super().__init__(name, evolution_method = evolution_method, **kwargs)
-
         self.minimum_time_step = minimum_time_step
         self.maximum_time_step = maximum_time_step
 
@@ -626,14 +403,26 @@ class AdaptiveIntegroDifferentialEquationSpecification(IntegroDifferentialEquati
         info_algorithm = si.Info(header = 'Evolution Algorithm')
         info_algorithm.add_field('Integration Method', self.integration_method)
         info_algorithm.add_field('Evolution Method', self.evolution_method)
-        info_algorithm.add_field('Error Control On', self.error_on)
-        info_algorithm.add_field('Epsilon', self.epsilon)
-        info_algorithm.add_field('Safety Factor', self.safety_factor)
-        info_algorithm.add_field('Current Time Step', f'{uround(self.time_step, asec, 3)} as')
-        info_algorithm.add_field('Minimum Time Step', f'{uround(self.minimum_time_step, asec, 3)} as')
-        info_algorithm.add_field('Maximum Time Step', f'{uround(self.maximum_time_step, asec, 3)} as')
+        if self.evolution_method == 'ARK4':
+            info_algorithm.add_field('Error Control On', self.error_on)
+            info_algorithm.add_field('Epsilon', self.epsilon)
+            info_algorithm.add_field('Safety Factor', self.safety_factor)
+            info_algorithm.add_field('Current Time Step', f'{uround(self.time_step, asec, 3)} as')
+            info_algorithm.add_field('Minimum Time Step', f'{uround(self.minimum_time_step, asec, 3)} as')
+            info_algorithm.add_field('Maximum Time Step', f'{uround(self.maximum_time_step, asec, 3)} as')
 
         info.add_info(info_algorithm)
+
+        info_ide = si.Info(header = 'IDE Parameters')
+        info_ide.add_field('Initial State', f'a = {self.a_initial}')
+        info_ide.add_field('Prefactor', self.prefactor)
+        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+
+        info_potential = self.electric_potential.info()
+        info_potential.header = 'Electric Potential: ' + info_potential.header
+        info_ide.add_info(info_potential)
+
+        info.add_info(info_ide)
 
         return info
 

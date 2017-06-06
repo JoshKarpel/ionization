@@ -43,18 +43,18 @@ def run(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        dt = 2 * asec
+        dt = .1 * asec
 
         pw = 100 * asec
         flu = .1 * Jcm2
 
-        # t_bound = 30
-        # electric_pot = ion.SincPulse(pulse_width = pw, fluence = flu,
-        #                              window = ion.SymmetricExponentialTimeWindow((t_bound - 2) * pw, .2 * pw))
+        t_bound = 30
+        electric_pot = ion.SincPulse(pulse_width = pw, fluence = flu,
+                                     window = ion.SymmetricExponentialTimeWindow((t_bound - 2) * pw, .2 * pw))
 
-        t_bound = 3
-        electric_pot = ion.Rectangle(start_time = -5 * pw, end_time = 5 * pw, amplitude = 1 * atomic_electric_field,
-                                     window = ion.SymmetricExponentialTimeWindow(pw, .1 * pw))
+        # t_bound = 3
+        # electric_pot = ion.Rectangle(start_time = -5 * pw, end_time = 5 * pw, amplitude = 1 * atomic_electric_field,
+        #                              window = ion.SymmetricExponentialTimeWindow(pw, .1 * pw))
 
         q = electron_charge
         m = electron_mass_reduced
@@ -65,27 +65,17 @@ if __name__ == '__main__':
 
         int_methods = ['simpson']
         # int_methods = ['trapezoid', 'simpson']
-        evol_methods = ['FE', 'BE', 'RK4', 'TRAP']
+        # evol_methods = ['ARK4', ]
+        evol_methods = ['FE', 'BE', 'TRAP', 'RK4', 'ARK4']
         # evol_methods = ['FE', 'BE', 'TRAP']
-        #
-        # ark4 = ide.AdaptiveIntegroDifferentialEquationSpecification('int={}__evol={}'.format('simpson', 'ARK4'),
-        #                                                             time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = 1 * asec,
-        #                                                             prefactor = prefactor,
-        #                                                             electric_potential = electric_pot,
-        #                                                             kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
-        #                                                             evolution_method = 'ARK4',
-        #                                                             integration_method = 'simpson',
-        #                                                             ).to_simulation()
-        # ark4.run_simulation()
-        #
-        # si.vis.xy_plot('time_step',
-        #                ark4.times,
-        #                ark4.time_steps_list,
-        #                x_axis_label = r'Time $t$', x_unit = 'asec',
-        #                y_axis_label = r'Time Step $\Delta t$', y_unit = 'asec',
-        #                y_log_axis = True,
-        #                target_dir = OUT_DIR,
-        #                )
+
+        spec_kwargs = dict(
+                time_initial = -t_bound * pw, time_final = t_bound * pw, time_step = dt,
+                prefactor = prefactor,
+                electric_potential = electric_pot,
+                kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                # electric_potential_dc_correction = True,
+        )
 
         specs = []
 
@@ -93,19 +83,13 @@ if __name__ == '__main__':
             specs.append(ide.IntegroDifferentialEquationSpecification(
                     f'{evol_method}',
                     # 'int={}_evol={}'.format(int_method, evol_method),
-                    time_initial = -t_bound * pw, time_final = t_bound * pw, time_step = dt,
-                    prefactor = prefactor,
-                    electric_potential = electric_pot,
-                    kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
                     evolution_method = evol_method,
                     integration_method = int_method,
-                    # electric_potential_dc_correction = True,
+                    # maximum_time_step = dt,
+                    **spec_kwargs
             ))
 
         results = si.utils.multi_map(run, specs)
-
-        for r in results:
-            print(r.times)
 
         for kwargs in PLT_KWARGS:
             si.vis.xxyy_plot(
@@ -114,7 +98,15 @@ if __name__ == '__main__':
                     (r.a2 for r in results),
                     line_labels = (r.name for r in results),
                     x_label = r'Time $t$', x_unit = 'asec',
-                    y_label = r'$\left| a(t) \right|^2$',
+                    y_label = r'$\left| a(t) \right|^2$', y_lower_limit = 0, y_upper_limit = 1,
                     title = fr'Method Comparison at $\tau = {uround(pw, asec, 3)}$ as, $\Delta t = {uround(dt, asec, 3)}$ as',
                     **kwargs,
             )
+
+        for r in results:
+            print(r.info())
+
+        print()
+
+        for r in results:
+            print(r.name.ljust(5), np.abs(r.a[-1]))
