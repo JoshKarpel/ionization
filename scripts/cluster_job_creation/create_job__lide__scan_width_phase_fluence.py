@@ -66,7 +66,7 @@ if __name__ == '__main__':
                                         value = prefactor))
 
         parameters.append(clu.Parameter(name = 'kernel',
-                                        value = ide.gaussian_kernel))
+                                        value = ide.gaussian_kernel_LEN))
 
         parameters.append(clu.Parameter(name = 'kernel_kwargs',
                                         value = dict(tau_alpha = tau_alpha)))

@@ -34,7 +34,7 @@ if __name__ == '__main__':
                                                                time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
                                                                prefactor = prefactor,
                                                                electric_potential = electric_field,
-                                                               kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                                                               kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                store_data_every = sde,
                                                                ).to_simulation()
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
                                                                        time_initial = -t_bound * asec, time_final = t_bound * asec,
                                                                        prefactor = prefactor,
                                                                        electric_potential = electric_field,
-                                                                       kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                                                                       kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                        store_data_every = sde,
                                                                        ).to_simulation()
 

@@ -86,7 +86,7 @@ if __name__ == '__main__':
                                                                               minimum_time_step = 1e-3 * asec,
                                                                               prefactor = prefactor,
                                                                               f = electric_field.get_electric_field_amplitude,
-                                                                              kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                                                                              kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                               pulse_width = pw * asec,
                                                                               phase = phase,
                                                                               out_dir = OUT_DIR,

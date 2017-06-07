@@ -1,124 +1,138 @@
 import logging
 import os
+import itertools
 
 import numpy as np
+
 import simulacra as si
 from simulacra.units import *
-
 import ionization as ion
-from src.ionization import integrodiff as ide
+from ionization import integrodiff as ide
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
+logman = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG)
+
+PLT_KWARGS = (
+    dict(
+            target_dir = OUT_DIR,
+            img_format = 'png',
+            fig_dpi_scale = 3,
+    ),
+    dict(
+            target_dir = OUT_DIR,
+    )
+)
+
 
 def run(spec):
-    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG) as logger:
+    with logman as logger:
         sim = spec.to_simulation()
 
         logger.debug(sim.info())
         sim.run_simulation()
         logger.debug(sim.info())
 
-        # sim.plot_solution(target_dir = OUT_DIR,
-        #                   y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
-        #                   f_axis_label = r'${}(t)$'.format(str_efield),
-        #                   f_scale = 'AEF')
+        for kwargs in PLT_KWARGS:
+            sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
 
         return sim
 
 
+
 if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG) as logger:
-        pw = 105
-        amp = 5
-        t_bound = pw + 10
-        electric_field = ion.Rectangle(start_time = -pw * asec, end_time = pw * asec, amplitude = 1 * atomic_electric_field)
-        OUT_DIR = os.path.join(OUT_DIR, '{}_pw={}as_amp={}aef'.format(electric_field.__class__.__name__, pw, amp))
+    with logman as logger:
+        # gauge = 'LEN'
+        # dt = 1 * asec
 
-        # pw = 50
-        # flu = 1
-        # t_bound = pw * 30
-        # phase = pi / 2
-        # electric_field = ion.SincPulse(pulse_width = pw * asec, fluence = flu * Jcm2, phase = phase)
-        # OUT_DIR = os.path.join(OUT_DIR, '{}_pw={}as_flu={}jcm2_phase={}__bound={}'.format(electric_field.__class__.__name__, pw, flu, round(phase, 3), round(t_bound / pw)))
+        for gauge in ('LEN', 'VEL'):
+            for dt in (1 * asec, .1 * asec):
+                pw = 100 * asec
+                flu = .1 * Jcm2
 
-        q = electron_charge
-        m = electron_mass_reduced
-        L = bohr_radius
+                # t_bound = 10
+                # electric_pot = ion.SincPulse(pulse_width = pw, fluence = flu,
+                #                              window = ion.SymmetricExponentialTimeWindow((t_bound - 2) * pw, .2 * pw))
 
-        tau_alpha = 4 * m * (L ** 2) / hbar
-        prefactor = -np.sqrt(pi) * (L ** 2) * ((q / hbar) ** 2)
+                t_bound = 3
+                electric_pot = ion.Rectangle(start_time = -5 * pw, end_time = 5 * pw, amplitude = 1 * atomic_electric_field,
+                                             window = ion.SymmetricExponentialTimeWindow(pw / 2, .1 * pw, window_center = -1 * pw))
+                electric_pot += ion.Rectangle(start_time = 0 * pw, end_time = 5 * pw, amplitude = -1 * atomic_electric_field,
+                                              window = ion.SymmetricExponentialTimeWindow(pw / 2, .1 * pw, window_center = 1 * pw))
 
-        # dt = 2
+                q = electron_charge
+                m = electron_mass_reduced
+                L = bohr_radius
 
-        int_methods = ['simpson']
-        # int_methods = ['trapezoid', 'simpson']
-        evol_methods = ['FE', 'BE', 'RK4', 'TRAP']
+                int_methods = ['simpson']
+                # int_methods = ['trapezoid', 'simpson']
+                # evol_methods = ['ARK4', ]
+                evol_methods = ['FE', 'BE', 'TRAP', 'RK4']
+                # evol_methods = ['FE', 'BE']
 
-        ark4 = ide.AdaptiveIntegroDifferentialEquationSpecification('int={}__evol={}'.format('simpson', 'ARK4'),
-                                                                    time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = 1 * asec,
-                                                                    prefactor = prefactor,
-                                                                    f = electric_field.get_electric_field_amplitude,
-                                                                    kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
-                                                                    evolution_method = 'ARK4',
-                                                                    integration_method = 'simpson',
-                                                                    ).to_simulation()
-        ark4.run_simulation()
+                if gauge == 'LEN':
+                    spec_kwargs = dict(
+                            time_initial = -t_bound * pw, time_final = t_bound * pw, time_step = dt,
+                            prefactor = -np.sqrt(pi) * (L ** 2) * ((q / hbar) ** 2),
+                            electric_potential = electric_pot,
+                            evolution_gauge = 'LEN',
+                            kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = 4 * m * (L ** 2) / hbar),
+                            # electric_potential_dc_correction = True,
+                    )
+                elif gauge == 'VEL':
+                    spec_kwargs = dict(
+                            time_initial = -t_bound * pw, time_final = t_bound * pw, time_step = dt,
+                            prefactor = -((q / m) ** 2) / (4 * (L ** 2)),
+                            electric_potential = electric_pot,
+                            evolution_gauge = 'VEL',
+                            kernel = ide.gaussian_kernel_VEL, kernel_kwargs = dict(tau_alpha = 2 * m * (L ** 2) / hbar, width = L),
+                            # electric_potential_dc_correction = True,
+                    )
 
-        si.vis.xy_plot('time_step',
-                         ark4.times,
-                         ark4.time_steps_list,
-                         x_axis_label = r'Time $t$', x_unit = 'asec',
-                         y_axis_label = r'Time Step $\Delta t$', y_unit = 'asec',
-                         y_log_axis = True,
-                         target_dir = OUT_DIR,
-                         )
+                specs = []
 
-        for dt in [5, 2, 1, .5, .1, .05]:
-            specs = []
+                for evol_method, int_method in itertools.product(evol_methods, int_methods):
+                    specs.append(ide.IntegroDifferentialEquationSpecification(
+                            f'{gauge}_{evol_method}',
+                            # 'int={}_evol={}'.format(int_method, evol_method),
+                            evolution_method = evol_method,
+                            integration_method = int_method,
+                            **spec_kwargs
+                    ))
 
-            for evol_method in evol_methods:
-                for int_method in int_methods:
-                    specs.append(ide.IntegroDifferentialEquationSpecification('int={}__evol={}'.format(int_method, evol_method),
-                                                                              time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
-                                                                              prefactor = prefactor,
-                                                                              electric_potential = electric_field.get_electric_field_amplitude,
-                                                                              kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
-                                                                              evolution_method = evol_method,
-                                                                              integration_method = int_method,
-                                                                              ))
+                for int_method, eps in itertools.product(int_methods, (1e-3, 1e-6, 1e-9)):
+                    specs.append(ide.IntegroDifferentialEquationSpecification(
+                            f'{gauge}_ARK4_eps={eps}',
+                            evolution_method = 'ARK4',
+                            integration_method = int_method,
+                            epsilon = eps,
+                            **spec_kwargs
+                    ))
 
-            results = si.utils.multi_map(run, specs, processes = 5)
+                results = si.utils.multi_map(run, specs)
+                # results = si.utils.multi_map(run, specs, processes = 1)
 
-            t = results[0].times
-            # y = [np.abs(r.y) ** 2 for r in results]
+                for kwargs in PLT_KWARGS:
+                    si.vis.xxyy_plot(
+                            f'{gauge}__method_comparison__pw={uround(pw, asec, 3)}_dt={uround(dt, asec, 3)}',
+                            (r.times for r in results),
+                            (r.a2 for r in results),
+                            line_labels = (r.name for r in results),
+                            x_label = r'Time $t$', x_unit = 'asec',
+                            y_label = r'$\left| a(t) \right|^2$', y_lower_limit = 0, y_upper_limit = 1,
+                            title = fr'Method Comparison at $\tau = {uround(pw, asec, 3)}$ as, $\Delta t = {uround(dt, asec, 3)}$ as',
+                            **kwargs,
+                    )
 
-            y = [si.utils.downsample(ark4.times, t, np.abs(ark4.y) ** 2)]
-            for r in results:
-                y.append(np.abs(r.y) ** 2)
+                for r in results:
+                    print(r.info())
 
-            labels = [ark4.name] + list(r.name for r in results)
+                print()
 
-            plt_kwargs = dict(
-                    line_labels = labels,
-                    target_dir = OUT_DIR,
-            )
-
-            si.vis.xy_plot('dt={}as__compare'.format(dt),
-                             t,
-                             *y,
-                             x_label = r'Time $t$', x_unit = 'asec', y_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
-                             **plt_kwargs, y_upper_limit = 1, y_lower_limit = 0,
-                             )
-
-            si.vis.xy_plot('dt={}as__compare_log'.format(dt),
-                             t,
-                             *y,
-                             x_label = r'Time $t$', x_unit = 'asec', y_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
-                             y_log_axis = True, y_upper_limit = 1, y_lower_limit = 1e-2,
-                             **plt_kwargs
-                             )
-
-        print('ark4 min step (as):', uround(ark4.minimum_time_step, 'asec', 5))
+                # print(f'gauge: {gauge}, dt = {uround(dt, asec, 3)} as')
+                just = max(len(r.name) for r in results) + 1
+                with open(os.path.join(OUT_DIR, f'guage={gauge}_dt={uround(dt, asec, 3)}as.txt'), mode = 'w') as file:
+                    for r in results:
+                        print(r.name.rjust(just), str(np.abs(r.a[-1]) ** 2).ljust(15), str(len(r.times)).rjust(5), str(r.running_time.total_seconds()), file = file)

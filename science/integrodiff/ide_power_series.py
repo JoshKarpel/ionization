@@ -83,7 +83,7 @@ if __name__ == '__main__':
                                                                    minimum_time_step = 1e-3 * asec,
                                                                    prefactor = prefactor,
                                                                    electric_potential = electric_field,
-                                                                   kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                                                                   kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                    pulse_width = pw * asec,
                                                                    phase = phase,
                                                                    out_dir = OUT_DIR,
@@ -105,7 +105,7 @@ if __name__ == '__main__':
         def integrand_no_phi(t_inner, t_outer):
             amp = electric_field.amplitude_time ** 2
             envelopes = electric_field.get_electric_field_envelope(t_outer) * electric_field.get_electric_field_envelope(t_inner)
-            kernel = ide.gaussian_kernel(t_outer - t_inner, tau_alpha = tau_alpha)
+            kernel = ide.gaussian_kernel_LEN(t_outer - t_inner, tau_alpha = tau_alpha)
             cosines = np.cos(electric_field.omega_carrier * (t_outer - t_inner))
 
             return amp * envelopes * kernel * cosines
@@ -114,7 +114,7 @@ if __name__ == '__main__':
         def integrand_phi(t_inner, t_outer):
             amp = electric_field.amplitude_time ** 2
             envelopes = electric_field.get_electric_field_envelope(t_outer) * electric_field.get_electric_field_envelope(t_inner)
-            kernel = ide.gaussian_kernel(t_outer - t_inner, tau_alpha = tau_alpha)
+            kernel = ide.gaussian_kernel_LEN(t_outer - t_inner, tau_alpha = tau_alpha)
             cosines = np.cos((electric_field.omega_carrier * (t_outer + t_inner)) + (2 * electric_field.phase))
 
             return amp * envelopes * kernel * cosines
