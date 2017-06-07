@@ -33,7 +33,7 @@ if __name__ == '__main__':
                                                                    time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
                                                                    prefactor = prefactor,
                                                                    f = electric_field.get_electric_field_amplitude,
-                                                                   kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+                                                                   kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                    evolution_method = 'ARK4',
                                                                    integration_method = 'simpson',
                                                                    maximum_time_step = 1 * asec,
