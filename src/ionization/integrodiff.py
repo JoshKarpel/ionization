@@ -36,6 +36,22 @@ def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width)
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
+    """
+    A class that encapsulates a simulation of an IDE with the form
+    da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
+
+    Attributes
+    ----------
+    time : :class:`float`
+        The current simulation time.
+    time_steps : :class:`int`
+        The current number of time steps that have been solved for.
+    a
+        The solution of the IDE vs time (i.e., the bound state probability amplitude).
+    a2
+        The square of the absolute value of the solution vs time (i.e., the probability that the system is in the bound state).
+    """
+
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -74,12 +90,44 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         return np.abs(self.a) ** 2
 
     def eval_kernel(self, time_difference, *, quiver_difference = None):
+        """
+        Calculate the values of the IDE kernel as a function of the time difference.
+
+        Parameters
+        ----------
+        time_difference
+            The time differences to evaluate the kernel at.
+        quiver_difference
+            The quiver motion differences to evaluate the kernel at. Only used for velocity-gauge kernels.
+
+        Returns
+        -------
+        kernel :
+            The value of the kernel at the time differences.
+        """
         if self.spec.evolution_gauge == 'LEN':
             return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
         elif self.spec.evolution_gauge == 'VEL':  # if we're on velocity, f is the vector potential
             return self.spec.kernel(time_difference, quiver_difference = quiver_difference, **self.spec.kernel_kwargs)
 
     def eval_quiver_motion(self, vector_potential_vs_time, times, time_step):
+        """
+        Calculate the quiver motion as a function of time using cumulative trapezoid-rule integration.
+
+        Parameters
+        ----------
+        vector_potential_vs_time
+            The vector potential at each of the `times`.
+        times
+            The times to get the quiver motion at.
+        time_step
+            The time step (only used if `times` is a single time).
+
+        Returns
+        -------
+        quiver_motion_vs_time :
+            The quiver motion at each of the `times`.
+        """
         if len(times) != 1:
             integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
         else:
@@ -87,7 +135,19 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         return -(self.spec.test_charge / self.spec.test_mass) * integral
 
     def evolve_FE(self, a, times, time_step):
-        # print('\n' * 3)
+        """
+        Evolve the IDE forward in time by `time_step` using the Forward Euler algorithm.
+
+        Parameters
+        ----------
+        a
+        times
+        time_step
+
+        Returns
+        -------
+
+        """
         times = np.array(times)
         time_curr = times[-1]
 
@@ -114,6 +174,19 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         return a[-1] + (time_step * k), time_curr + time_step
 
     def evolve_BE(self, a, times, time_step):
+        """
+        Evolve the IDE forward in time by `time_step` using the Backward Euler algorithm.
+
+        Parameters
+        ----------
+        a
+        times
+        time_step
+
+        Returns
+        -------
+
+        """
         times_next = np.array(times + [times[-1] + time_step])
         times = np.array(times)
 
@@ -139,6 +212,19 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         return (a[-1] + (time_step * k)) / (1 - self.spec.prefactor * ((time_step * f_next) ** 2)), time_curr + time_step  # estimate next point
 
     def evolve_TRAP(self, a, times, time_step):
+        """
+        Evolve the IDE forward in time by `time_step` using the Trapezoidal algorithm.
+
+        Parameters
+        ----------
+        a
+        times
+        time_step
+
+        Returns
+        -------
+
+        """
         times_next = np.array(times + [times[-1] + time_step])
         times = np.array(times)
         time_curr = times[-1]
@@ -163,7 +249,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             qd_1 = None
             qd_2 = None
 
-        kernel_1 = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd_1)  # fs_curr?
+        kernel_1 = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd_1)
         kernel_2 = self.eval_kernel(time_curr - times, quiver_difference = qd_2)
 
         k_1 = self.spec.prefactor * f_next * self.integrate(y = fs_curr_times_a * kernel_1,
@@ -174,6 +260,19 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         return (a[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - (.5 * self.spec.prefactor * ((time_step * f_next) ** 2))), time_curr + time_step  # estimate next point
 
     def evolve_RK4(self, a, times, time_step):
+        """
+        Evole the IDE forward in time by `time_step` using the fourth-order Runge-Kutta algorithm.
+
+        Parameters
+        ----------
+        a
+        times
+        time_step
+
+        Returns
+        -------
+
+        """
         a_curr = a[-1]
 
         time_curr = times[-1]
@@ -242,7 +341,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def evolve_ARK4(self, a, times, time_step):
         """
-        Evolve y forward in time by the time step, controlling for the local truncation error.
+        Evolve the IDE forward in time by `time_step` using an adaptive-time-step fourth-order Runge-Kutta algorithm.
+
+        Parameters
+        ----------
+        a
+        times
+        time_step
+
+        Returns
+        -------
+
         """
         a_full_step_estimate, _ = self.evolve_RK4(a, times, time_step)
 
@@ -283,12 +392,18 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             logger.debug(f'Rejected ARK4 step. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
             return self.evolve_ARK4(a, times, self.time_step)  # retry with new time step
 
-    def run_simulation(self, progress_bar = False, callback = None):
+    def run_simulation(self, callback = None):
+        """
+        Run the IDE simulation by repeatedly evolving it forward in time.
+
+
+        Parameters
+        ----------
+        callback : callable
+            A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
+        """
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
         self.status = si.STATUS_RUN
-
-        if progress_bar:
-            pbar = tqdm(total = self.time_steps - 1)
 
         while self.time < self.spec.time_final:
             new_a, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.a, self.times, self.time_step)
@@ -296,26 +411,16 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.times.append(new_t)
             self.time_index += 1
 
+            logger.debug(f'{self} evolved to time index {self.time_index}')
+
             if callback is not None:
                 callback(self)
-
-            logger.debug(f'{self} evolved to time index {self.time_index}')
 
             if self.spec.checkpoints:
                 if (self.time_index + 1) % self.spec.checkpoint_every == 0:
                     self.save(target_dir = self.spec.checkpoint_dir)
                     logger.info(f'Checkpointed {self} at time index {self.time_index}')
                     self.status = si.STATUS_RUN
-
-            try:
-                pbar.update(1)
-            except NameError:
-                pass
-
-        try:
-            pbar.close()
-        except NameError:
-            pass
 
         self.a = np.array(self.a)
         self.times = np.array(self.times)
@@ -343,10 +448,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 10,
-                fancybox = True,
-                framealpha = .3,
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -457,6 +562,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
 
 class IntegroDifferentialEquationSpecification(si.Specification):
+    """
+    A Specification for an :class:`IntegroDifferentialEquationSimulation`.
+    """
     simulation_type = IntegroDifferentialEquationSimulation
 
     integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
@@ -478,17 +586,56 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  epsilon = 1e-3, error_on = 'da/dt', safety_factor = .98,
                  **kwargs):
         """
-        Initialize an IntegroDifferentialEquationSpecification from the given parameters.
-
         The differential equation should be of the form
-        dy/dt = prefactor * f(t) * integral[ y(t') * f(t') * kernel(t - t')  ; {t', t_initial, t} ]
+        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
 
-        :param name:
-        :param time_initial:
-        :param time_final:
-        :param time_step:
-        :param a_initial: initial value of y
-        :param kwargs:
+        Parameters
+        ----------
+        name : :class:`str`
+            The name for the simulation.
+        time_initial : :class:`float`
+            The initial time.
+        time_final : :class:`float`
+            The final time.
+        time_step : :class:`float`
+            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
+        test_mass : :class:`float`
+            The mass of the test particle.
+        test_charge : :class:`float`
+            The charge of the test particle.
+        a_initial
+            The initial value of a, the bound state probability amplitude.
+        prefactor
+            The overall prefactor of the IDE.
+        electric_potential
+            The electric potential that provides ``f`` (either as the electric field or the vector potential).
+        electric_potential_dc_correction
+            If True, DC correction is performed on the electric field.
+        kernel
+            The kernel function of the IDE.
+        kernel_kwargs
+            Additional keyword arguments to pass to `kernel`.
+        integration_method : {``'trapz'``, ``'simps'``}
+            Which integration method to use, when applicable.
+        evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
+            Which evolution algorithm/method to use.
+        evolution_gauge : {``'LEN'``, ``'VEL'``}
+            Which gauge to perform time evolution in.
+        checkpoints
+        checkpoint_every
+        checkpoint_dir
+        store_data_every
+        minimum_time_step : :class:`float`
+            The minimum time step that can be used by an adaptive algorithm.
+        maximum_time_step : :class:`float`
+            the maximum time step that can be used by an adaptive algorithm.
+        epsilon : :class:`float`
+            The acceptable fractional error in the quantity specified by `error_on`.
+        error_on : {``'a'``, ``'da/dt'``}
+            Which quantity to control the fractional error in.
+        safety_factor : :class:`float`
+            The safety factor that new time steps are multiplicatively fudged by.
+        kwargs
         """
         super().__init__(name, **kwargs)
 
