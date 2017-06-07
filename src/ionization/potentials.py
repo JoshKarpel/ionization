@@ -59,7 +59,7 @@ class TimeWindow(si.Summand):
     """A class representing a time-window that can be attached to another potential."""
 
     def __init__(self):
-        super(TimeWindow, self).__init__()
+        super().__init__()
         self.summation_class = TimeWindowSum
 
 
@@ -83,7 +83,7 @@ class Mask(si.Summand):
     """A class representing a spatial 'mask' that can be applied to the wavefunction to reduce it in certain regions."""
 
     def __init__(self):
-        super(Mask, self).__init__()
+        super().__init__()
         self.summation_class = MaskSum
 
 
@@ -267,7 +267,7 @@ class RadialImaginary(PotentialEnergy):
 
         self.prefactor = -1j * self.decay_rate * hbar
 
-        super(RadialImaginary, self).__init__()
+        super().__init__()
 
     def __repr__(self):
         return '{}(center = {}, width = {}, decay_time = {})'.format(self.__class__.__name__, self.center, self.width, self.decay_time)
@@ -297,7 +297,7 @@ def DC_correct_electric_potential(electric_field, times):
 
 class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
     def __init__(self, window = NoTimeWindow()):
-        super(UniformLinearlyPolarizedElectricPotential, self).__init__()
+        super().__init__()
 
         self.window = window
 
@@ -348,11 +348,11 @@ class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
     """A class representing the lack of an electric field."""
 
     def __str__(self):
-        return self.__class__.__name__ + super(NoElectricPotential, self).__str__()
+        return self.__class__.__name__ + super().__str__()
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.zeros(np.shape(t)) * super(NoElectricPotential, self).get_electric_field_amplitude(t)
+        return np.zeros(np.shape(t)) * super().get_electric_field_amplitude(t)
 
 
 class Rectangle(UniformLinearlyPolarizedElectricPotential):
@@ -367,7 +367,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         :param amplitude: the amplitude of the electric field between start_time and end_time
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
-        super(Rectangle, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.start_time = start_time
         self.end_time = end_time
@@ -379,7 +379,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
                                                                                     uround(self.end_time, asec, 3),
                                                                                     uround(self.amplitude, atomic_electric_field, 3))
 
-        return out + super(Rectangle, self).__str__()
+        return out + super().__str__()
 
     def __repr__(self):
         out = '{}(start_time = {}, end_time = {}, amplitude = {}, window = {})'.format(self.__class__.__name__,
@@ -396,7 +396,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         on = np.ones(np.shape(t))
         off = np.zeros(np.shape(t))
 
-        out = np.where(cond, on, off) * self.amplitude * super(Rectangle, self).get_electric_field_amplitude(t)
+        out = np.where(cond, on, off) * self.amplitude * super().get_electric_field_amplitude(t)
 
         return out
 
@@ -422,7 +422,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param phase: the phase of the electric field (0 corresponds to a sine wave)
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
-        super(SineWave, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
         self.omega = omega
         self.phase = phase % twopi
@@ -436,7 +436,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
                                                                                                                                  uround(self.amplitude, atomic_electric_field, 3),
                                                                                                                                  uround(self.phase, twopi, 3))
 
-        return out + super(SineWave, self).__str__()
+        return out + super().__str__()
 
     def __repr__(self):
         out = '{}(omega = {}, amplitude = {}, phase = {}, window = {})'.format(self.__class__.__name__,
@@ -507,7 +507,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.sin((self.omega * t) + self.phase) * self.amplitude * super(SineWave, self).get_electric_field_amplitude(t)
+        return np.sin((self.omega * t) + self.phase) * self.amplitude * super().get_electric_field_amplitude(t)
 
     def get_peak_amplitude(self):
         return self.amplitude

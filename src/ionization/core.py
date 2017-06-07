@@ -129,7 +129,7 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
-        super(ElectricFieldSimulation, self).__init__(spec)
+        super().__init__(spec)
 
         self.animators = self.spec.animators
 
@@ -473,10 +473,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 10,
-                fancybox = True,
-                framealpha = .3,
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -516,10 +516,10 @@ class ElectricFieldSimulation(si.Simulation):
 
             self.attach_electric_potential_plot_to_axis(ax_field,
                                                         legend_kwargs = dict(
-                                                                bbox_to_anchor = (1.1, .9),
-                                                                loc = 'upper left',
-                                                                borderaxespad = 0.1,
-                                                                fontsize = 10)
+                                                            bbox_to_anchor = (1.1, .9),
+                                                            loc = 'upper left',
+                                                            borderaxespad = 0.1,
+                                                            fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
@@ -1033,7 +1033,7 @@ class ElectricFieldSpecification(si.Specification):
         :param snapshot_types:
         :param kwargs:
         """
-        super(ElectricFieldSpecification, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
         if mesh_type is None:
             raise ValueError('{} must have a mesh_type'.format(name))
@@ -1511,9 +1511,10 @@ class LineSpecification(ElectricFieldSpecification):
                  use_numeric_eigenstates = False,
                  numeric_eigenstate_max_energy = 100 * eV,
                  **kwargs):
-        super(LineSpecification, self).__init__(name, mesh_type = LineMesh,
-                                                initial_state = initial_state,
-                                                **kwargs)
+        super().__init__(name,
+                         mesh_type = LineMesh,
+                         initial_state = initial_state,
+                         **kwargs)
 
         self.x_bound = x_bound
         self.x_points = int(x_points)
@@ -1526,19 +1527,23 @@ class LineSpecification(ElectricFieldSpecification):
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
 
     def info(self):
-        mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
-                '   X Bound: {} Bohr radii | {} nm'.format(uround(self.x_bound, bohr_radius, 3), uround(self.x_bound, nm, 3)),
-                '   X Points: {}'.format(self.x_points),
-                '   X Mesh Spacing: ~{} Bohr radii | ~{} nm'.format(uround(2 * self.x_bound / self.x_points, bohr_radius, 3), uround(2 * self.x_bound / self.x_points, nm, 3))]
+        info = super().info()
 
-        return '\n'.join((super(LineSpecification, self).info(), *mesh))
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
+        info_mesh.add_field('X Boundary', f'{uround(self.x_bound, bohr_radius, 3)} Bohr radii | {uround(self.x_bound, nm, 3)} nm')
+        info_mesh.add_field('X Points', self.x_points)
+        info_mesh.add_field('X Mesh Spacing', f'~{uround(self.x_bound / self.x_points, bohr_radius, 3)} Bohr radii | {uround(self.x_bound / self.x_points, nm, 3)} nm')
+
+        info.add_info(info_mesh)
+
+        return info
 
 
 class LineMesh(QuantumMesh):
     mesh_storage_method = ['x']
 
     def __init__(self, simulation):
-        super(LineMesh, self).__init__(simulation)
+        super().__init__(simulation)
 
         self.x_mesh = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
         self.delta_x = np.abs(self.x_mesh[1] - self.x_mesh[0])
@@ -1855,12 +1860,12 @@ class CylindricalSliceSpecification(ElectricFieldSpecification):
                  evolution_method = 'CN',
                  evolution_gauge = 'LEN',
                  **kwargs):
-        super(CylindricalSliceSpecification, self).__init__(name,
-                                                            mesh_type = CylindricalSliceMesh,
-                                                            evolution_equations = evolution_equations,
-                                                            evolution_method = evolution_method,
-                                                            evolution_gauge = evolution_gauge,
-                                                            **kwargs)
+        super().__init__(name,
+                         mesh_type = CylindricalSliceMesh,
+                         evolution_equations = evolution_equations,
+                         evolution_method = evolution_method,
+                         evolution_gauge = evolution_gauge,
+                         **kwargs)
 
         self.z_bound = z_bound
         self.rho_bound = rho_bound
@@ -1868,23 +1873,27 @@ class CylindricalSliceSpecification(ElectricFieldSpecification):
         self.rho_points = int(rho_points)
 
     def info(self):
-        mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
-                '   Z Boundary: {} Bohr radii'.format(uround(self.z_bound, bohr_radius, 3)),
-                '   Z Points: {}'.format(self.z_points),
-                '   Z Mesh Spacing: ~{} Bohr radii'.format(uround(2 * self.z_bound / self.z_points, bohr_radius, 3)),
-                '   Rho Boundary: {} Bohr radii'.format(uround(self.rho_bound, bohr_radius, 3)),
-                '   Rho Points: {}'.format(self.rho_points),
-                '   Rho Mesh Spacing: ~{} Bohr radii'.format(uround(self.rho_bound / self.rho_points, bohr_radius, 3)),
-                '   Total Mesh Points: {}'.format(int(self.z_points * self.rho_points))]
+        info = super().info()
 
-        return '\n'.join((super(CylindricalSliceSpecification, self).info(), *mesh))
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
+        info_mesh.add_field('Z Boundary', f'{uround(self.z_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Z Points', self.z_points)
+        info_mesh.add_field('Z Mesh Spacing', f'~{uround(self.z_bound / self.z_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Rho Boundary', f'{uround(self.rho_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Rho Points', self.rho_points)
+        info_mesh.add_field('Rho Mesh Spacing', f'~{uround(self.rho_bound / self.rho_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
+
+        info.add_info(info_mesh)
+
+        return info
 
 
 class CylindricalSliceMesh(QuantumMesh):
     mesh_storage_method = ('z', 'rho')
 
     def __init__(self, simulation):
-        super(CylindricalSliceMesh, self).__init__(simulation)
+        super().__init__(simulation)
 
         self.z = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
         self.rho = np.delete(np.linspace(0, self.spec.rho_bound, self.spec.rho_points + 1), 0)
@@ -2255,7 +2264,7 @@ class SphericalSliceSpecification(ElectricFieldSpecification):
                  r_bound = 20 * bohr_radius,
                  r_points = 2 ** 10, theta_points = 2 ** 10,
                  **kwargs):
-        super(SphericalSliceSpecification, self).__init__(name, mesh_type = SphericalSliceMesh, **kwargs)
+        super().__init__(name, mesh_type = SphericalSliceMesh, **kwargs)
 
         self.r_bound = r_bound
 
@@ -2263,23 +2272,27 @@ class SphericalSliceSpecification(ElectricFieldSpecification):
         self.theta_points = int(theta_points)
 
     def info(self):
-        mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
-                '   R Boundary: {} Bohr radii'.format(uround(self.r_bound, bohr_radius, 3)),
-                '   R Points: {}'.format(self.r_points),
-                '   R Mesh Spacing: ~{} Bohr radii'.format(uround(self.r_bound / self.r_points, bohr_radius, 3)),
-                '   Theta Points: {}'.format(self.theta_points),
-                '   Theta Mesh Spacing: ~{} rad | ~{} deg'.format(round(pi / self.theta_points, 3), round(180 / self.theta_points, 3)),
-                '   Maximum Adjacent-Point Spacing: ~{} Bohr radii'.format(uround(pi * self.r_bound / self.theta_points, bohr_radius, 3)),
-                '   Total Mesh Points: {}'.format(int(self.r_points * self.theta_points))]
+        info = super().info()
 
-        return '\n'.join((super(SphericalSliceSpecification, self).info(), *mesh))
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
+        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('R Points', self.r_points)
+        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.z_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Theta Points', self.theta_points)
+        info_mesh.add_field('Theta Mesh Spacing', f'~{uround(pi / self.theta_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{uround(pi * self.r_bound / self.theta_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Total Mesh Points', int(self.r_points * self.theta_points))
+
+        info.add_info(info_mesh)
+
+        return info
 
 
 class SphericalSliceMesh(QuantumMesh):
     mesh_storage_method = ('r', 'theta')
 
     def __init__(self, simulation):
-        super(SphericalSliceMesh, self).__init__(simulation)
+        super().__init__(simulation)
 
         self.r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
         self.theta = np.delete(np.linspace(0, pi, self.spec.theta_points + 1), 0)
@@ -2659,7 +2672,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
     def info(self):
         info = super().info()
 
-        info_mesh = si.Info(header = 'Mesh:')
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
         info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} Bohr radii')
         info_mesh.add_field('R Points', self.r_points)
         info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.r_points, bohr_radius, 3)} Bohr radii')
@@ -2667,13 +2680,6 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         info_mesh.add_field('Total Mesh Points', self.r_points * self.l_bound)
 
         info.add_info(info_mesh)
-
-        # mesh = ['Mesh: {}'.format(self.mesh_type.__name__),
-        #         '   R Boundary: {} Bohr radii'.format(uround(self.r_bound, bohr_radius, 3)),
-        #         '   R Points: {}'.format(self.r_points),
-        #         '   R Mesh Spacing: ~{} Bohr radii'.format(uround(self.r_bound / self.r_points, bohr_radius, 3)),
-        #         '   Spherical Harmonics: {}'.format(self.l_bound),
-        #         '   Total Mesh Points: {}'.format(self.r_points * self.l_bound)]
 
         return info
 

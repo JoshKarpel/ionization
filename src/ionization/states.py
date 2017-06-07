@@ -39,7 +39,7 @@ class QuantumState(si.Summand):
 
         :param amplitude: the probability amplitude of the state
         """
-        super(QuantumState, self).__init__()
+        super().__init__()
         self.amplitude = amplitude
         self.summation_class = Superposition
 
@@ -113,7 +113,7 @@ class Superposition(si.Sum, QuantumState):
 
         :param states: any number of QuantumStates
         """
-        super(Superposition, self).__init__(amplitude = 1)
+        super().__init__(amplitude = 1)
         norm = np.sqrt(sum(s.norm for s in states))
         self.states = list(s / norm for s in states)  # note that the states are implicitly copied here
 
@@ -140,7 +140,7 @@ class FreeSphericalWave(QuantumState):
         :param m: quantum number for angular momentum z-component
         :param amplitude: the probability amplitude of the state
         """
-        super(FreeSphericalWave, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
         if any(int(x) != x for x in (l, m)):
             raise IllegalQuantumState('l and m must be integers')
@@ -234,7 +234,7 @@ class HydrogenBoundState(QuantumState):
         :param l: orbital angular momentum quantum number
         :param m: quantum number for angular momentum z-component
         """
-        super(HydrogenBoundState, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
         self.n = n
         self.l = l
@@ -362,7 +362,7 @@ class HydrogenCoulombState(QuantumState):
         :param l: orbital angular momentum quantum number
         :param m: quantum number for angular momentum z-component
         """
-        super(HydrogenCoulombState, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
         if any(int(x) != x for x in (l, m)):
             raise IllegalQuantumState('l and m must be integers')
@@ -619,7 +619,7 @@ class OneDFreeParticle(QuantumState):
         self.mass = mass
         self.dimension_label = dimension_label
 
-        super(OneDFreeParticle, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
     @classmethod
     def from_energy(cls, energy = 1.50412 * eV, k_sign = 1, mass = electron_mass, amplitude = 1, dimension_label = 'x'):
@@ -691,7 +691,7 @@ class QHOState(QuantumState):
         self.mass = mass
         self.dimension_label = dimension_label
 
-        super(QHOState, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
     @classmethod
     def from_omega_and_mass(cls, omega, mass = electron_mass, n = 0, amplitude = 1, dimension_label = 'x'):
@@ -837,7 +837,7 @@ class FiniteSquareWellState(QuantumState):
         self.normalization_factor_inside_well = 1 / np.sqrt((self.well_width / 2) + (1 / self.wavenumber_outside_well))
         self.normalization_factor_outside_well = np.exp(self.wavenumber_outside_well * (self.well_width / 2)) * self.function_inside_well(self.wavenumber_inside_well * (self.well_width / 2)) / np.sqrt((self.well_width / 2) + (1 / self.wavenumber_outside_well))
 
-        super(FiniteSquareWellState, self).__init__(amplitude = amplitude)
+        super().__init__(amplitude = amplitude)
 
     @classmethod
     def from_potential(cls, potential, mass, n = 1, amplitude = 1, dimension_label = 'x'):
