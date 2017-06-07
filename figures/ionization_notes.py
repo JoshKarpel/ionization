@@ -418,7 +418,7 @@ def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
             error_on = 'y', eps = 1e-3,
             maximum_time_step = 5 * asec,
             prefactor = prefactor,
-            kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha),
+            kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
     )
 
     specs = []

@@ -329,7 +329,11 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
                                     x = times)
 
     def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
-        return -self.get_electric_field_integral_numeric(times, rule = rule)
+        times = np.array(times)
+        if len(times) == 1:
+            return -self.get_electric_field_integral_numeric(times, rule = rule)
+        else:
+            return -self.get_electric_field_integral_numeric_cumulative(times)
 
     def get_electric_field_integral_numeric_cumulative(self, times):
         """Return the integral of the electric field amplitude from the start of times for each interval in times."""

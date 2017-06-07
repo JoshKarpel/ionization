@@ -49,7 +49,7 @@ if __name__ == '__main__':
                                                                                    time_initial = - t_bound * pw, time_final = t_bound * pw, time_step = 1 * asec,
                                                                                    electric_potential = efield,
                                                                                    prefactor = prefactor,
-                                                                                   kernel = ide.velocity_guassian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha, width = L),
+                                                                                   kernel = ide.gaussian_kernel_VEL, kernel_kwargs = dict(tau_alpha = tau_alpha, width = L),
                                                                                    evolution_method = method,
                                                                                    ))
 

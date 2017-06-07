@@ -31,7 +31,7 @@ if __name__ == '__main__':
                                                             time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
                                                             prefactor = prefactor,
                                                             electric_potential = electric_field.get_electric_field_amplitude,
-                                                            kernel = ide.gaussian_kernel, kernel_kwargs = dict(tau_alpha = tau_alpha)
+                                                            kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha)
                                                             )
 
         sim = spec.to_simulation()

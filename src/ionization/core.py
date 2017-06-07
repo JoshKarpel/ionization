@@ -1033,7 +1033,7 @@ class ElectricFieldSpecification(si.Specification):
         :param snapshot_types:
         :param kwargs:
         """
-        super(ElectricFieldSpecification, self).__init__(name, **kwargs)
+        super().__init__(name, **kwargs)
 
         if mesh_type is None:
             raise ValueError('{} must have a mesh_type'.format(name))
