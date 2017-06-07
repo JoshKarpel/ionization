@@ -127,7 +127,10 @@ if __name__ == '__main__':
         state_a = dummy.mesh.analytic_to_numeric[state_a]
         state_b = dummy.mesh.analytic_to_numeric[state_b]
 
-        dipole_moment = np.abs(dummy.mesh.dipole_moment_expectation_value(mesh_a = dummy.mesh.get_g_for_state(state_b)))
+        dipole_moment = np.abs(dummy.mesh.dipole_moment_inner_product(b = state_b))
+
+        print(f'calculated dipole moment between {state_a} and {state_b} is {dipole_moment / (proton_charge * bohr_radius)}')
+        print(np.sqrt(2) * (2 ** 7) / (3 ** 5))
 
         specs = []
 
@@ -149,4 +152,4 @@ if __name__ == '__main__':
                     **spec_kwargs
             ))
 
-        si.utils.multi_map(run, specs, processes = 5)
+        si.utils.multi_map(run, specs)

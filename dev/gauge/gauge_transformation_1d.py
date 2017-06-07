@@ -23,7 +23,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.INFO)
 
-plt_kwargs = dict(
+PLT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -55,8 +55,8 @@ GAUGE_TO_OPP = {
 def wrapped_plot_g_1d(sim):
     if sim.time_index % (sim.time_steps // 6) == 0 or sim.time_index == sim.time_steps - 1:
         print(f'index {sim.time_index}')
-        plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}', sim.mesh.g, sim.mesh.x_mesh, **plt_kwargs)
-        plot_g_1d(f'{sim.time_index}_g__{GAUGE_TO_OPP[sim.spec.evolution_gauge]}_from_{sim.spec.evolution_gauge}', sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge), sim.mesh.x_mesh, **plt_kwargs)
+        plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}', sim.mesh.g, sim.mesh.x_mesh, **PLT_KWARGS)
+        plot_g_1d(f'{sim.time_index}_g__{GAUGE_TO_OPP[sim.spec.evolution_gauge]}_from_{sim.spec.evolution_gauge}', sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge), sim.mesh.x_mesh, **PLT_KWARGS)
 
 
 def run_sim(spec):
@@ -68,18 +68,10 @@ def run_sim(spec):
         logger.info(sim.info())
 
         sim.plot_state_overlaps_vs_time(
-            **plt_kwargs,
+            **PLT_KWARGS,
         )
 
-        # plot_g_1d(f'{sim.name}__g', sim.mesh.g, sim.mesh.x_mesh,
-        #           **plt_kwargs, )
-        #
-        # g_transformed = sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge)
-        #
-        # plot_g_1d(f'{sim.name}__g_transformed', g_transformed, sim.mesh.x_mesh,
-        #           **plt_kwargs, )
-
-        # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
+        return sim
 
 
 if __name__ == '__main__':
@@ -108,7 +100,7 @@ if __name__ == '__main__':
             # time_initial = 0, time_final = 300 * asec,
             time_step = 5 * asec,
             electric_potential_dc_correction = True,
-            evolution_algorithm = 'CN',
+            evolution_method = 'CN',
             animators = [
                 ion.animators.RectangleAnimator(
                     # length = 10,
@@ -132,7 +124,22 @@ if __name__ == '__main__':
                 ion.LineSpecification(f'{gauge}',
                                       **line_spec_base,
                                       evolution_gauge = gauge,
+                                      dipole_gauges = ('LEN',)
                                       )
             )
 
     results = si.utils.multi_map(run_sim, specs)
+
+    for r in results:
+        print(r.electric_dipole_moment_expectation_value_vs_time)
+
+    si.vis.xxyy_plot(
+        'dipole_moment',
+        (r.times for r in results),
+        (r.electric_dipole_moment_expectation_value_vs_time for r in results),
+        line_labels = (r.name for r in results),
+        line_kwargs = ({'linestyle': '-'}, {'linestyle': '--'}),
+        x_label = r'Time $t$', x_unit = 'asec',
+        y_label = r'Dipole Moment $d$', y_unit = 'atomic_electric_dipole_moment',
+        **PLT_KWARGS,
+    )

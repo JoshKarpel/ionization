@@ -131,8 +131,6 @@ class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
 
-        self.animators = self.spec.animators
-
         self.times = self.get_times()
 
         if self.spec.electric_potential_dc_correction:
@@ -164,11 +162,12 @@ class ElectricFieldSimulation(si.Simulation):
         self.electric_field_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
         self.vector_potential_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
-        self.electric_dipole_moment_vs_time = {gauge: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN for gauge in self.spec.dipole_gauges}
-
         # optional data storage initialization
         if 'l' in self.mesh.mesh_storage_method and self.spec.store_norm_by_l:
             self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
+
+        if self.spec.store_electric_dipole_moment_expectation_value:
+            self.electric_dipole_moment_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
@@ -200,7 +199,7 @@ class ElectricFieldSimulation(si.Simulation):
         mem_other_time_data = sum(x.nbytes for x in (
             self.electric_field_amplitude_vs_time,
             self.vector_potential_amplitude_vs_time,
-            *self.electric_dipole_moment_vs_time.values(),
+            self.electric_dipole_moment_expectation_value_vs_time,
             self.norm_vs_time,
         ))
 
@@ -297,11 +296,11 @@ class ElectricFieldSimulation(si.Simulation):
         if self.spec.store_internal_energy_expectation_value:
             self.energy_expectation_value_vs_time_internal[self.data_time_index] = self.mesh.energy_expectation_value
 
-        for gauge in self.spec.dipole_gauges:
-            self.electric_dipole_moment_vs_time[gauge][self.data_time_index] = self.mesh.dipole_moment_expectation_value(gauge = gauge)
+        if self.spec.store_electric_dipole_moment_expectation_value:
+            self.electric_dipole_moment_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.dipole_moment_inner_product())
 
         for state in self.spec.test_states:
-            self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(self.mesh.get_g_for_state(state))
+            self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(state)
 
         self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
         self.vector_potential_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.times_to_current)
@@ -340,7 +339,7 @@ class ElectricFieldSimulation(si.Simulation):
         try:
             self.status = si.STATUS_RUN
 
-            for animator in self.animators:
+            for animator in self.spec.animators:
                 animator.initialize(self)
 
             if progress_bar:
@@ -353,7 +352,7 @@ class ElectricFieldSimulation(si.Simulation):
                 if self.time in self.snapshot_times:
                     self.take_snapshot()
 
-                for animator in self.animators:
+                for animator in self.spec.animators:
                     if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
 
@@ -398,8 +397,10 @@ class ElectricFieldSimulation(si.Simulation):
             raise e
         finally:
             # make sure the animators get cleaned up if there's some kind of error during time evolution
-            for animator in self.animators:
+            for animator in self.spec.animators:
                 animator.cleanup()
+
+            self.spec.animators = ()
 
     @property
     def bound_states(self):
@@ -893,7 +894,7 @@ class ElectricFieldSimulation(si.Simulation):
             prefix = self.name
         si.vis.xy_plot(prefix + '__dipole_moment_vs_time',
                        self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
-                       x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole',
+                       x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole_moment',
                        x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
                        **kwargs)
 
@@ -923,7 +924,7 @@ class ElectricFieldSimulation(si.Simulation):
 
         si.vis.xy_plot(prefix + '__dipole_moment_vs_frequency',
                        frequency, np.abs(dipole_moment) ** 2,
-                       x_unit_value = 'THz', y_unit_value = atomic_electric_dipole ** 2,
+                       x_unit_value = 'THz', y_unit_value = atomic_electric_dipole_moment ** 2,
                        y_log_axis = True,
                        x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
                        x_lower_limit = 0, x_upper_limit = frequency_range,
@@ -994,7 +995,9 @@ class ElectricFieldSpecification(si.Specification):
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  animators = tuple(),
-                 store_norm_diff_mask = False, store_internal_energy_expectation_value = False,
+                 store_electric_dipole_moment_expectation_value = True,
+                 store_norm_diff_mask = False,
+                 store_internal_energy_expectation_value = False,
                  store_data_every = 1,
                  snapshot_times = (), snapshot_indices = (), snapshot_type = None, snapshot_kwargs = None,
                  **kwargs):
@@ -1066,6 +1069,7 @@ class ElectricFieldSpecification(si.Specification):
 
         self.animators = deepcopy(tuple(animators))
 
+        self.store_electric_dipole_moment_expectation_value = store_electric_dipole_moment_expectation_value
         self.store_norm_diff_mask = store_norm_diff_mask
         self.store_internal_energy_expectation_value = store_internal_energy_expectation_value
 
@@ -1135,9 +1139,10 @@ class ElectricFieldSpecification(si.Specification):
             info_analysis.add_field(f'Test States (first 5 of {len(self.test_states)})', ', '.join(str(s) for s in sorted(self.test_states)[:5]))
         else:
             info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
+        info_analysis.add_field('Store Dipole Moment EV', self.store_electric_dipole_moment_expectation_value)
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
-        info_analysis.add_field('Snapshot Times', ' as, '.join([uround(st, asec, 3) for st in self.snapshot_times]) if len(self.snapshot_times) > 0 else 'none')
+        info_analysis.add_field('Snapshot Times', (f'{uround(st, asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
 
         info.add_info(info_analysis)
 
@@ -1312,7 +1317,7 @@ class QuantumMesh:
     def energy_expectation_value(self):
         raise NotImplementedError
 
-    def dipole_moment_expectation_value(self, gauge = 'length'):
+    def dipole_moment_inner_product(self, a = None, b = None):
         raise NotImplementedError
 
     def __abs__(self):
@@ -1604,12 +1609,8 @@ class LineMesh(QuantumMesh):
 
         return np.real(potential + kinetic)
 
-    def dipole_moment_expectation_value(self, gauge = 'length'):
-        """Get the dipole moment in the specified gauge."""
-        if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.x_mesh * self.g)
-        elif gauge == 'velocity':
-            raise NotImplementedError
+    def dipole_moment_inner_product(self, a = None, b = None):
+        return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
 
     def fft(self, mesh = None):
         if mesh is None:
@@ -1979,12 +1980,8 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return g
 
-    def dipole_moment_expectation_value(self, gauge = 'length'):
-        """Get the dipole moment in the specified gauge."""
-        if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g)
-        elif gauge == 'velocity':
-            raise NotImplementedError
+    def dipole_moment_inner_product(self, a = None, b = None):
+        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
         """Get the mesh kinetic energy operator matrices for z and rho."""
@@ -2377,12 +2374,8 @@ class SphericalSliceMesh(QuantumMesh):
 
         return g
 
-    def dipole_moment_expectation_value(self, gauge = 'length'):
-        """Get the dipole moment in the specified gauge."""
-        if gauge == 'length':
-            return self.spec.test_charge * self.inner_product(b = self.z_mesh * self.g)
-        elif gauge == 'velocity':
-            raise NotImplementedError
+    def dipole_moment_inner_product(self, a = None, b = None):
+        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
@@ -2758,19 +2751,10 @@ class SphericalHarmonicMesh(QuantumMesh):
     def norm_by_l(self):
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
-    def dipole_moment_expectation_value(self, mesh_a = None, mesh_b = None, gauge = 'LEN'):
-        """Get the dipole moment in the specified gauge."""
-        if mesh_a is None:
-            mesh_a = self.g
-        if mesh_b is None:
-            mesh_b = self.g
-
-        if gauge == 'LEN':
-            operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
-            g = self.wrap_vector(operator.dot(self.flatten_mesh(mesh_b, 'l')), 'l')
-            return self.inner_product(a = mesh_a, b = g)
-        elif gauge == 'VEL':
-            raise NotImplementedError
+    def dipole_moment_inner_product(self, a = None, b = None):
+        operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
+        b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
+        return -self.inner_product(a = a, b = b)
 
     def get_g_for_state(self, state):
         """
@@ -3449,11 +3433,10 @@ class SphericalHarmonicMesh(QuantumMesh):
                 prefactor = np.sqrt(4 * pi * ((2 * l_outer) + 1)) * ((1j) ** (l_outer % 4)) * bessel_mesh[l_outer, :]
                 for l_inner in self.l:  # l
                     print(l_result, l_outer, l_inner)
-                    g_transformed[l_result, :] += g[l_inner, :] * triple_y_integral(l_outer, 0, l_result, 0, l_inner, 0)
+                    g_transformed[l_result, :] += g[l_inner, :] * prefactor * triple_y_integral(l_outer, 0, l_result, 0, l_inner, 0)
 
         return g_transformed
 
-    @si.utils.timed
     def gauge_transformation(self, *, g = None, leaving_gauge = None):
         if g is None:
             g = self.g
