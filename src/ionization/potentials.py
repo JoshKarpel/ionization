@@ -206,8 +206,9 @@ class HarmonicOscillator(PotentialEnergy):
     def info(self):
         info = super().info()
 
-        info.add_field('Spring Constant', f'{uround(self.spring_constant, 1, 3)} N/m')
-        info.add_field('Center', f'{uround(self.center, nm, 3)} nm')
+        info.add_field('Spring Constant', f'{uround(self.spring_constant, 1, 3)} N/m | {uround(self.spring_constant, atomic_force, 3)} a.u./Bohr Radius')
+        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} Bohr radii | {uround(self.center, nm, 3)} nm')
+        info.add_field('Cutoff Distance', f'{uround(self.cutoff_distance, bohr_radius, 3)} Bohr radii | {uround(self.cutoff_distance, nm, 3)} nm')
 
         return info
 
@@ -508,6 +509,9 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
     @photon_energy.setter
     def photon_energy(self, photon_energy):
         self.omega = photon_energy / hbar
+
+    def keldysh_parameter(self, ionization_potential, test_mass = electron_mass, test_charge = electron_charge):
+        return self.omega * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * self.amplitude)
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""

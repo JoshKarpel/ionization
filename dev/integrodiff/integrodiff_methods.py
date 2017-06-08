@@ -41,7 +41,6 @@ def run(spec):
         return sim
 
 
-
 if __name__ == '__main__':
     with logman as logger:
         # gauge = 'LEN'
