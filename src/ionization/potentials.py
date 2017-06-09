@@ -462,6 +462,27 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return cls(frequency * twopi, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
+    def from_wavelength(cls, wavelength, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+        """
+        Construct a :class:`SineWave` from a wavelength and amplitude.
+
+        Parameters
+        ----------
+        wavelength
+            The wavelength of the sine wave.
+        amplitude
+            The maximum amplitude of the electric field of the sine wave.
+        phase
+            The phase of the sine wave. ``0`` is sine, ``pi`` is cosine.
+        kwargs
+
+        Returns
+        -------
+        :class:`SineWave`
+        """
+        return cls(c / wavelength, amplitude = amplitude, phase = phase, **kwargs)
+
+    @classmethod
     def from_photon_energy(cls, photon_energy, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a SineWave from the photon energy, electric field amplitude, and phase.

@@ -3,6 +3,7 @@ import argparse
 import logging
 import datetime as dt
 import socket
+import platform
 
 import simulacra as si
 
@@ -22,7 +23,12 @@ if __name__ == '__main__':
                              stdout_logs = False,
                              file_logs = True, file_level = logging.INFO, file_name = '{}'.format(args.sim_name), file_mode = 'a') as log:
         try:
-            log.info('Loaded onto execute node {} at {}.'.format(socket.gethostname(), dt.datetime.now()))
+            log.info('Loaded onto execute node {} at {}.'.format(socket.getfqdn(), dt.datetime.now()))
+            log.info(os.uname())
+            try:
+                log.info(platform.linux_distribution())
+            except Exception:
+                pass
             log.info('Local directory contents: {}'.format(os.listdir(os.getcwd())))
 
             # try to find existing checkpoint, and start from scratch if that fails

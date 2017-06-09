@@ -32,7 +32,7 @@ def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential 
 
     f = amplitude_scaled / ((2 * potential_scaled) ** 1.5)
 
-    return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time
+    return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time / 2
 
     # e_a = (electron_mass_reduced ** 2) * (proton_charge ** 5) / (((4 * pi * epsilon_0) ** 3) * (hbar ** 4))
     # w_a = (electron_mass_reduced * (proton_charge ** 4)) / (((4 * pi * epsilon_0) ** 2) * (hbar ** 3))
@@ -80,28 +80,28 @@ if __name__ == '__main__':
         #                        window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
 
         energy = 1 * eV
-        amp = 0.2 * atomic_electric_field
+        amp = 0.1 * atomic_electric_field
         frac = 0.7
-        bound_mult = 5
+        bound_mult = 3
         efield = ion.SineWave.from_photon_energy(energy, amplitude = amp)
         t_bound = bound_mult * efield.period
         efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound)
         title = f'sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}'
 
-        r_bound = 50
-        dt = 2 * asec
+        r_bound = 100
+        dt = 1 * asec
 
         sim = ion.SphericalHarmonicSpecification(
             title + f'__tdse__dt={uround(dt, asec)}as',
             r_bound = r_bound * bohr_radius,
             r_points = r_bound * 4,
             # evolution_gauge = 'VEL', l_bound = 200,
-            evolution_gauge = 'LEN', l_bound = 400,
+            evolution_gauge = 'LEN', l_bound = 100,
             time_initial = -t_bound, time_final = t_bound, time_step = dt,
             electric_potential = efield,
             # electric_potential_dc_correction = True,
             use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 10 * eV,
+            numeric_eigenstate_max_energy = 50 * eV,
             numeric_eigenstate_max_angular_momentum = 10,
             mask = ion.RadialCosineMask(inner_radius = .8 * r_bound * bohr_radius, outer_radius = r_bound * bohr_radius),
             store_data_every = 50,

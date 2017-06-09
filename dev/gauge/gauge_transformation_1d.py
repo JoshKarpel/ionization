@@ -135,7 +135,7 @@ if __name__ == '__main__':
 
     si.vis.xxyy_plot(
         'dipole_moment',
-        (r.times for r in results),
+        (r.data_times for r in results),
         (r.electric_dipole_moment_expectation_value_vs_time for r in results),
         line_labels = (r.name for r in results),
         line_kwargs = ({'linestyle': '-'}, {'linestyle': '--'}),
