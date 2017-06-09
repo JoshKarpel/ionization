@@ -106,7 +106,7 @@ if __name__ == '__main__':
                                                                      outer_radius = bohr_radius * clu.ask_for_input('Mask Outer Radius (in Bohr radii)?', default = outer_radius_default, cast_to = float),
                                                                      smoothness = clu.ask_for_input('Mask Smoothness?', default = 8, cast_to = int))))
 
-        parameters.append(clu.Parameter(name = 'evolution_guage',
+        parameters.append(clu.Parameter(name = 'evolution_gauge',
                                         value = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN')))
 
         pulse_parameters = []

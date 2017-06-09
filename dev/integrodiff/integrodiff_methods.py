@@ -132,6 +132,6 @@ if __name__ == '__main__':
 
                 # print(f'gauge: {gauge}, dt = {uround(dt, asec, 3)} as')
                 just = max(len(r.name) for r in results) + 1
-                with open(os.path.join(OUT_DIR, f'guage={gauge}_dt={uround(dt, asec, 3)}as.txt'), mode = 'w') as file:
+                with open(os.path.join(OUT_DIR, f'gauge={gauge}_dt={uround(dt, asec, 3)}as.txt'), mode = 'w') as file:
                     for r in results:
                         print(r.name.rjust(just), str(np.abs(r.a[-1]) ** 2).ljust(15), str(len(r.times)).rjust(5), str(r.running_time.total_seconds()), file = file)
