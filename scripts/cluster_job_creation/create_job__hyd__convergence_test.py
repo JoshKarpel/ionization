@@ -130,7 +130,7 @@ if __name__ == '__main__':
                              file_name = str(ii),
                              l_bound = 50,
                              time_initial = -t_bound, time_final = t_bound,
-                             electric_field_dc_correction = False,
+                             electric_potential_dc_correction = False,
                              r_points = r_points,
                              **spec_kwargs)
 

@@ -55,8 +55,8 @@ if __name__ == '__main__':
         parameters.append(r_bound)
 
         parameters.append(clu.Parameter(name = 'delta_r',
-                                        value = bohr_radius * clu.ask_for_eval('Radial Mesh Spacings (in Bohr radii)?',
-                                                                               default = 'np.logspace(0, -2, 50)'),
+                                        value = bohr_radius * np.array(clu.ask_for_eval('Radial Mesh Spacings (in Bohr radii)?',
+                                                                                        default = 'np.logspace(0, -2, 50)')),
                                         expandable = True))
 
         parameters.append(clu.Parameter(name = 'l_bound',
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                                         expandable = True))
 
         parameters.append(clu.Parameter(name = 'time_step',
-                                        value = asec * clu.ask_for_eval('Time Steps (in asec)?', default = 'np.logspace(0, -2, 50)'),
+                                        value = asec * np.array(clu.ask_for_eval('Time Steps (in asec)?', default = 'np.logspace(0, -2, 50)')),
                                         expandable = True))
 
         time_initial_in_pw = clu.Parameter(name = 'initial_time_in_pw',

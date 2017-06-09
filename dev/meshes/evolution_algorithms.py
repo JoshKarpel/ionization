@@ -60,7 +60,7 @@ if __name__ == '__main__':
             test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
             electric_potential = hyd_efield,
             time_initial = -5 * hyd_efield.period, time_final = 5 * hyd_efield.period, time_step = 1 * asec,
-            electric_field_dc_correction = True,
+            electric_potential_dc_correction = True,
         )
 
         line_potential = ion.HarmonicOscillator.from_energy_spacing_and_mass(1 * eV, electron_mass)
