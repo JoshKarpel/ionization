@@ -133,7 +133,7 @@ class Coulomb(PotentialEnergy):
         :param kwargs: absorbs any other keyword arguments
         :return:
         """
-        return coulomb_force_constant * self.charge * test_charge / r
+        return coulomb_constant * self.charge * test_charge / r
 
     def info(self):
         info = super().info()
@@ -330,11 +330,7 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
                                     x = times)
 
     def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
-        times = np.array(times)
-        if len(times) == 1:
-            return -self.get_electric_field_integral_numeric(times, rule = rule)
-        else:
-            return -self.get_electric_field_integral_numeric_cumulative(times)
+        return -self.get_electric_field_integral_numeric(times, rule = rule)
 
     def get_electric_field_integral_numeric_cumulative(self, times):
         """Return the integral of the electric field amplitude from the start of times for each interval in times."""
@@ -708,6 +704,12 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def amplitude_per_frequency(self):
         return np.sqrt(twopi) * self.amplitude_omega
 
+    def keldysh_parameter(self, ionization_potential, test_mass = electron_mass, test_charge = electron_charge):
+        if self.phase != 0:
+            logger.warning(f'Evaluated Keldysh parameter for {self}, but phase is not zero.')
+        amp = self.get_electric_field_amplitude(0)
+        return self.omega_carrier * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * amp)
+
     def __str__(self):
         out = si.utils.field_str(self,
                                  ('pulse_width', 'asec'),
@@ -815,6 +817,12 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                                   'photon_energy_carrier',
                                   )
 
+    def keldysh_parameter(self, ionization_potential, test_mass = electron_mass, test_charge = electron_charge):
+        if self.phase != 0:
+            logger.warning(f'Evaluated Keldysh parameter for {self}, but phase is not zero.')
+        amp = self.get_electric_field_amplitude(0)
+        return self.omega_carrier * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * amp)
+
     def get_electric_field_envelope(self, t):
         tau = np.array(t) - self.pulse_center
         return np.exp(-0.5 * ((tau / self.pulse_width) ** 2))
@@ -874,6 +882,12 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     @property
     def frequency_carrier(self):
         return self.omega_carrier / twopi
+
+    def keldysh_parameter(self, ionization_potential, test_mass = electron_mass, test_charge = electron_charge):
+        if self.phase != 0:
+            logger.warning(f'Evaluated Keldysh parameter for {self}, but phase is not zero.')
+        amp = self.get_electric_field_amplitude(0)
+        return self.omega_carrier * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * amp)
 
     def __str__(self):
         out = si.utils.field_str(self,

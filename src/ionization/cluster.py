@@ -11,6 +11,7 @@ from simulacra.units import *
 
 from . import core, integrodiff
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -146,17 +147,17 @@ class PulseParameterScanMixin:
                                 log_str = ''
 
                             si.vis.xy_plot('1d__' + plot_name + log_str,
-                                             x,
-                                             *lines,
-                                             line_labels = line_labels,
-                                             title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                             x_label = scan_parameter_name, x_unit = scan_parameter_unit,
-                                             y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
-                                             y_label = ionization_metric_name,
-                                             legend_on_right = True,
-                                             target_dir = self.summaries_dir
+                                           x,
+                                           *lines,
+                                           line_labels = line_labels,
+                                           title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                                           x_label = scan_parameter_name, x_unit = scan_parameter_unit,
+                                           y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
+                                           y_label = ionization_metric_name,
+                                           legend_on_right = True,
+                                           target_dir = self.summaries_dir
 
-                                             )
+                                           )
 
     def make_pulse_parameter_scans_2d(self):
         for ionization_metric in self.ionization_metrics:
@@ -210,13 +211,13 @@ class PulseParameterScanMixin:
 
                             try:
                                 si.vis.xyz_plot(plot_name,
-                                                  x_mesh, y_mesh, z_mesh,
-                                                  x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                                  x_label = x_parameter_name, y_label = y_parameter_name,
-                                                  x_log_axis = log_x, y_log_axis = log_y,
-                                                  z_log_axis = True, z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
-                                                  z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                                  target_dir = self.summaries_dir)
+                                                x_mesh, y_mesh, z_mesh,
+                                                x_unit = x_parameter_unit, y_unit = y_parameter_unit,
+                                                x_label = x_parameter_name, y_label = y_parameter_name,
+                                                x_log_axis = log_x, y_log_axis = log_y,
+                                                z_log_axis = True, z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
+                                                z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                                                target_dir = self.summaries_dir)
                             except ValueError as e:
                                 logger.warning(f'Failed to make plot {plot_name} because of {e}')
 
@@ -241,9 +242,9 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
 
     def make_wavefunction_plots(self, sim):
         plot_kwargs = dict(
-                target_dir = self.plots_dir,
-                plot_name = 'name',
-                show_title = True,
+            target_dir = self.plots_dir,
+            plot_name = 'name',
+            show_title = True,
         )
 
         # sim.plot_wavefunction_vs_time(**plot_kwargs)
@@ -339,15 +340,15 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                             y_lower_limit = None
 
                         si.vis.xy_plot('1d__' + plot_name + log_str,
-                                         x,
-                                         line,
-                                         title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                         x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
-                                         y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y,
-                                         y_label = ionization_metric_name,
-                                         legend_on_right = True,
-                                         target_dir = self.summaries_dir
-                                         )
+                                       x,
+                                       line,
+                                       title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                                       x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
+                                       y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y,
+                                       y_label = ionization_metric_name,
+                                       legend_on_right = True,
+                                       target_dir = self.summaries_dir
+                                       )
 
     def make_pulse_parameter_scans_1d_relative(self):
         for ionization_metric in self.ionization_metrics:
@@ -384,15 +385,15 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                             log_str = ''
 
                         si.vis.xy_plot('1d__' + plot_name + log_str,
-                                         x,
-                                         line,
-                                         title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$ (Diff from Best)",
-                                         x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
-                                         y_lower_limit = None, y_upper_limit = None, y_log_axis = log_y,
-                                         y_label = ionization_metric_name,
-                                         legend_on_right = True,
-                                         target_dir = self.summaries_dir
-                                         )
+                                       x,
+                                       line,
+                                       title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$ (Diff from Best)",
+                                       x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
+                                       y_lower_limit = None, y_upper_limit = None, y_log_axis = log_y,
+                                       y_label = ionization_metric_name,
+                                       legend_on_right = True,
+                                       target_dir = self.summaries_dir
+                                       )
 
     def make_pulse_parameter_scans_2d(self):
         for ionization_metric in self.ionization_metrics:
@@ -440,13 +441,13 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                         z_upper_limit = 1
 
                     si.vis.xyz_plot('2d__' + plot_name + log_str,
-                                      x_mesh, y_mesh, z_mesh,
-                                      x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                      x_label = x_parameter_name, y_label = y_parameter_name,
-                                      x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
-                                      z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
-                                      z_label = ionization_metric_name,
-                                      target_dir = self.summaries_dir)
+                                    x_mesh, y_mesh, z_mesh,
+                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
+                                    x_label = x_parameter_name, y_label = y_parameter_name,
+                                    x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
+                                    z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
+                                    z_label = ionization_metric_name,
+                                    target_dir = self.summaries_dir)
 
     def make_pulse_parameter_scans_2d_relative(self):
         for ionization_metric in self.ionization_metrics:
@@ -494,13 +495,13 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                         log_str = ''
 
                     si.vis.xyz_plot('2d__' + plot_name + log_str,
-                                      x_mesh, y_mesh, z_mesh,
-                                      x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                      x_label = x_parameter_name, y_label = y_parameter_name,
-                                      x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
-                                      z_lower_limit = None, z_upper_limit = None,
-                                      z_label = ionization_metric_name + ' (Diff from Best)',
-                                      target_dir = self.summaries_dir)
+                                    x_mesh, y_mesh, z_mesh,
+                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
+                                    x_label = x_parameter_name, y_label = y_parameter_name,
+                                    x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
+                                    z_lower_limit = None, z_upper_limit = None,
+                                    z_label = ionization_metric_name + ' (Diff from Best)',
+                                    target_dir = self.summaries_dir)
 
 
 class PulseSimulationResult(ElectricFieldSimulationResult):
@@ -534,10 +535,10 @@ class IDESimulationResult(clu.SimulationResult):
 
     def make_a_plots(self, sim):
         plot_kwargs = dict(
-                target_dir = self.plots_dir,
-                plot_name = 'name',
-                show_title = True,
-                name_postfix = f'__{sim.file_name}',
+            target_dir = self.plots_dir,
+            plot_name = 'name',
+            show_title = True,
+            name_postfix = f'__{sim.file_name}',
         )
 
         sim.plot_a2_vs_time(**plot_kwargs)

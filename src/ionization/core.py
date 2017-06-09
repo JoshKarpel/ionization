@@ -256,6 +256,14 @@ class ElectricFieldSimulation(si.Simulation):
     def total_overlap_vs_time(self):
         return np.sum(overlap for overlap in self.state_overlaps_vs_time.values())
 
+    @property
+    def total_bound_state_overlap_vs_time(self):
+        return np.sum(overlap for state, overlap in self.state_overlaps_vs_time.items() if state.bound)
+
+    @property
+    def total_free_state_overlap_vs_time(self):
+        return np.sum(overlap for state, overlap in self.state_overlaps_vs_time.items() if state.free)
+
     def get_times(self):
         if not callable(self.spec.time_step):
             total_time = self.spec.time_final - self.spec.time_initial
@@ -312,13 +320,12 @@ class ElectricFieldSimulation(si.Simulation):
                     self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
 
                 norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
-
             else:
                 largest_l_mesh = self.mesh.g[-1]
                 norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
-                logger.warning(f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.time_index]}), consider increasing l bound')
+                logger.warning(f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
 
         logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
 
@@ -335,7 +342,7 @@ class ElectricFieldSimulation(si.Simulation):
         """
         Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
         """
-        logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
+        logger.info(f'Performing time evolution on {self}, starting from time index {self.time_index}')
         try:
             self.status = si.STATUS_RUN
 
@@ -466,6 +473,8 @@ class ElectricFieldSimulation(si.Simulation):
 
     def attach_electric_potential_plot_to_axis(self,
                                                axis,
+                                               show_electric_field = True,
+                                               show_vector_potential = True,
                                                time_unit = 'asec',
                                                legend_kwargs = None,
                                                show_y_label = False, ):
@@ -481,14 +490,16 @@ class ElectricFieldSimulation(si.Simulation):
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
-        axis.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field,
-                  color = COLOR_ELECTRIC_FIELD,
-                  linewidth = 1.5,
-                  label = fr'$ {LATEX_EFIELD}(t) $')
-        axis.plot(self.data_times / time_unit_value, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
-                  color = COLOR_VECTOR_POTENTIAL,
-                  linewidth = 1.5,
-                  label = fr'$ e \, {LATEX_AFIELD}(t) $')
+        if show_electric_field:
+            axis.plot(self.data_times / time_unit_value, self.electric_field_amplitude_vs_time / atomic_electric_field,
+                      color = COLOR_ELECTRIC_FIELD,
+                      linewidth = 1.5,
+                      label = fr'$ {LATEX_EFIELD}(t) $')
+        if show_vector_potential:
+            axis.plot(self.data_times / time_unit_value, proton_charge * self.vector_potential_amplitude_vs_time / atomic_momentum,
+                      color = COLOR_VECTOR_POTENTIAL,
+                      linewidth = 1.5,
+                      label = fr'$ e \, {LATEX_AFIELD}(t) $')
 
         if show_y_label:
             axis.set_ylabel('${}(t)$'.format(LATEX_EFIELD), fontsize = 13, color = COLOR_ELECTRIC_FIELD)
@@ -507,6 +518,8 @@ class ElectricFieldSimulation(si.Simulation):
                                     states = None,
                                     log = False,
                                     time_unit = 'asec',
+                                    show_electric_field = True,
+                                    show_vector_potential = True,
                                     **kwargs):
         with si.vis.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
@@ -516,11 +529,13 @@ class ElectricFieldSimulation(si.Simulation):
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             self.attach_electric_potential_plot_to_axis(ax_field,
-                                                        legend_kwargs = dict(
-                                                            bbox_to_anchor = (1.1, .9),
-                                                            loc = 'upper left',
-                                                            borderaxespad = 0.1,
-                                                            fontsize = 10)
+                                                        show_electric_field = show_electric_field,
+                                                        show_vector_potential = show_vector_potential,
+                                                        # legend_kwargs = dict(
+                                                        #     bbox_to_anchor = (1.1, .9),
+                                                        #     loc = 'upper left',
+                                                        #     borderaxespad = 0.1,
+                                                        #     fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
@@ -590,6 +605,8 @@ class ElectricFieldSimulation(si.Simulation):
                                   group_free_states_labels = None,
                                   show_title = False,
                                   plot_name_from = 'file_name',
+                                  show_electric_field = True,
+                                  show_vector_potential = True,
                                   **kwargs):
         with si.vis.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
@@ -599,10 +616,13 @@ class ElectricFieldSimulation(si.Simulation):
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
             self.attach_electric_potential_plot_to_axis(ax_field,
-                                                        legend_kwargs = dict(bbox_to_anchor = (1.1, .9),
-                                                                             loc = 'upper left',
-                                                                             borderaxespad = 0.1,
-                                                                             fontsize = 10)
+                                                        show_electric_field = show_electric_field,
+                                                        show_vector_potential = show_vector_potential,
+                                                        # legend_kwargs = dict(
+                                                        #     bbox_to_anchor = (1.1, .9),
+                                                        #     loc = 'upper left',
+                                                        #     borderaxespad = 0.1,
+                                                        #     fontsize = 10)
                                                         )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
@@ -951,7 +971,7 @@ class ElectricFieldSimulation(si.Simulation):
             except AttributeError:  # mesh is already None
                 mesh = None
 
-        if len(self.animators) > 0:
+        if len(self.spec.animators) > 0:
             raise si.SimulacraException('Cannot pickle Simulation with Animators')
 
         out = super().save(target_dir = target_dir, file_extension = file_extension, **kwargs)
