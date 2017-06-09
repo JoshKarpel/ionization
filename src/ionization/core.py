@@ -1394,6 +1394,7 @@ class QuantumMesh:
             return norm_diff_mask
         else:
             method(time_step)
+            self.g *= self.spec.mask(r = self.r_mesh)
 
     def get_mesh_slicer(self, plot_limit):
         raise NotImplementedError

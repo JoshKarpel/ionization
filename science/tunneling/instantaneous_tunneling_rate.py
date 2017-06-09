@@ -71,21 +71,33 @@ if __name__ == '__main__':
         # efield = ion.SincPulse(pulse_width = pw, fluence = flu,
         #                       window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - (2 * pw)), window_width = .2 * pw))
 
-        amp = 0.03 * atomic_electric_field
-        t_bound = 20 * fsec
-        frac = .6
+        # amp = 0.03 * atomic_electric_field
+        # t_bound = 20 * fsec
+        # frac = .6
+        #
+        # title = f'rect_amp={uround(amp, atomic_electric_field)}aef_tb={uround(t_bound, asec)}_frac={frac}'
+        # efield = ion.Rectangle(start_time = -t_bound, end_time = t_bound, amplitude = amp,
+        #                        window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
 
-        title = f'rect_amp={uround(amp, atomic_electric_field)}aef_tb={uround(t_bound, asec)}_frac={frac}'
-        efield = ion.Rectangle(start_time = -t_bound, end_time = t_bound, amplitude = amp,
-                               window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
+        energy = 1 * eV
+        amp = 0.2 * atomic_electric_field
+        frac = 0.7
+        bound_mult = 5
+        efield = ion.SineWave.from_photon_energy(energy, amplitude = amp)
+        t_bound = bound_mult * efield.period
+        efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound)
+        title = f'sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}'
 
-        r_bound = 100
+        r_bound = 50
+        dt = 2 * asec
 
         sim = ion.SphericalHarmonicSpecification(
-            title + '__tdse',
+            title + f'__tdse__dt={uround(dt, asec)}as',
             r_bound = r_bound * bohr_radius,
-            r_points = r_bound * 4, l_bound = 400,
-            time_initial = -t_bound, time_final = t_bound, time_step = 1 * asec,
+            r_points = r_bound * 4,
+            # evolution_gauge = 'VEL', l_bound = 200,
+            evolution_gauge = 'LEN', l_bound = 400,
+            time_initial = -t_bound, time_final = t_bound, time_step = dt,
             electric_potential = efield,
             # electric_potential_dc_correction = True,
             use_numeric_eigenstates = True,
@@ -137,7 +149,7 @@ if __name__ == '__main__':
                 sim.state_overlaps_vs_time[sim.spec.initial_state],
                 wavefunction_remaining,
             ),
-            # line_labels = ['TDSE Norm', 'TDSE All Bound States', 'TDSE Initial State', 'Tunneling Ionization'],
+            line_labels = ['TDSE Norm', 'TDSE All Bound States', 'TDSE Initial State', 'Tunneling Ionization'],
             x_label = r'Time $t$', x_unit = 'asec',
             y_label = 'Wavefunction Remaining',
             # y_lower_limit = 0, y_upper_limit = 1, y_pad = 0,

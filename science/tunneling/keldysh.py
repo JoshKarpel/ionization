@@ -58,13 +58,13 @@ def monochromatic_keldysh_2d(photon_energy_min, photon_energy_max, electric_fiel
             gamma_mesh[ii, jj] = ion.SineWave.from_photon_energy(photon_energy, amplitude = electric_field_amplitude).keldysh_parameter(ionization_potential)
 
     si.vis.xyz_plot(
-        f'2d_keldysh_monochromatic__{uround(photon_energy_min, eV)}eV_to_{uround(photon_energy_max, eV)}eV__{uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_{uround(electric_field_amplitude_max, atomic_electric_field)}aef',
+        f'2d_monochromatic_keldysh__{uround(photon_energy_min, eV)}eV_to_{uround(photon_energy_max, eV)}eV__{uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_{uround(electric_field_amplitude_max, atomic_electric_field)}aef',
         photon_energy_mesh, electric_field_amplitude_mesh, gamma_mesh,
         x_label = r'Photon Energy $E$', x_unit = 'eV',
         y_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}_0$', y_unit = 'atomic_electric_field',
         z_log_axis = True, z_lower_limit = .01, z_upper_limit = 10,
         z_label = fr'Keldysh Parameter $\gamma$ vs. $E$ and ${ion.LATEX_EFIELD}_0$',
-        contours = (0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
+        contours = (.01, 0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
         **PLT_KWARGS,
     )
 
@@ -84,13 +84,13 @@ def pulse_keldysh_2d(pulse_width_min, pulse_width_max, fluence_min, fluence_max,
             gamma_mesh[ii, jj] = pulse.keldysh_parameter(ionization_potential)
 
     si.vis.xyz_plot(
-        f'2d_keldysh_{pulse_type.__name__}__{uround(pulse_width_min, asec)}as_to_{uround(pulse_width_max, asec)}as__{uround(fluence, Jcm2)}jcm2_to_{uround(fluence, Jcm2)}jcm2',
+        f'2d_pulse_keldysh__{uround(pulse_width_min, asec)}as_to_{uround(pulse_width_max, asec)}as__{uround(fluence_min, Jcm2)}jcm2_to_{uround(fluence_max, Jcm2)}jcm2___{pulse_type.__name__}',
         pulse_width_mesh, fluence_mesh, gamma_mesh,
         x_label = r'Pulse Width $\tau$', x_unit = 'asec',
         y_label = fr'Fluence $H$', y_unit = 'Jcm2', y_log_axis = True,
         z_log_axis = True, z_lower_limit = .01, z_upper_limit = 10,
         z_label = fr'Keldysh Parameter $\gamma$ vs. $\tau$ and $H$ for {pulse_type.__name__}',
-        contours = (0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
+        contours = (.01, 0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
         **PLT_KWARGS,
     )
 
@@ -98,9 +98,14 @@ def pulse_keldysh_2d(pulse_width_min, pulse_width_max, fluence_min, fluence_max,
 if __name__ == '__main__':
     with log as logger:
         # monochromatic_keldysh_1d(.01 * eV, 50 * eV, atomic_electric_field * np.array([.01, .05, .1, .5, 1, 5]))
-        # monochromatic_keldysh_2d(0 * eV, 50 * eV, 0 * atomic_electric_field, 5 * atomic_electric_field, points = 300)
-        # monochromatic_keldysh_2d(0 * eV, 30 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
-        # monochromatic_keldysh_2d(0 * eV, 100 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
-        pulse_keldysh_2d(50 * asec, 1000 * asec, .01 * Jcm2, 20 * Jcm2, pulse_type = ion.SincPulse, points = 300)
-        pulse_keldysh_2d(50 * asec, 1000 * asec, .01 * Jcm2, 20 * Jcm2, pulse_type = ion.GaussianPulse, points = 300)
-        pulse_keldysh_2d(50 * asec, 1000 * asec, .01 * Jcm2, 20 * Jcm2, pulse_type = ion.SechPulse, points = 300)
+
+        monochromatic_keldysh_2d(0 * eV, 5 * eV, 0 * atomic_electric_field, .5 * atomic_electric_field, points = 300)
+        monochromatic_keldysh_2d(0 * eV, 10 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
+        monochromatic_keldysh_2d(0 * eV, 50 * eV, 0 * atomic_electric_field, 5 * atomic_electric_field, points = 300)
+        monochromatic_keldysh_2d(0 * eV, 30 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
+        monochromatic_keldysh_2d(0 * eV, 100 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
+
+        for pulse_type in (ion.SincPulse, ion.GaussianPulse, ion.SechPulse):
+            pulse_keldysh_2d(50 * asec, 1000 * asec, 0.01 * Jcm2, 50 * Jcm2, pulse_type = pulse_type, points = 300)
+            pulse_keldysh_2d(50 * asec, 1000 * asec, 0.01 * Jcm2, 20 * Jcm2, pulse_type = pulse_type, points = 300)
+            pulse_keldysh_2d(50 * asec, 5000 * asec, 0.01 * Jcm2, 100 * Jcm2, pulse_type = pulse_type, points = 500)

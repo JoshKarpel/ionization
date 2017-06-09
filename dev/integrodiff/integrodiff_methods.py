@@ -47,7 +47,7 @@ if __name__ == '__main__':
         # dt = 1 * asec
 
         for gauge in ('LEN', 'VEL'):
-            for dt in (1 * asec, .1 * asec):
+            for dt in [1 * asec, .1 * asec]:
                 pw = 100 * asec
                 flu = .1 * Jcm2
 
@@ -101,7 +101,8 @@ if __name__ == '__main__':
                             **spec_kwargs
                     ))
 
-                for int_method, eps in itertools.product(int_methods, (1e-3, 1e-6, 1e-9)):
+                for int_method, eps in itertools.product(int_methods, [1e-3]):
+                # for int_method, eps in itertools.product(int_methods, [1e-3, 1e-6, 1e-9]):
                     specs.append(ide.IntegroDifferentialEquationSpecification(
                             f'{gauge}_ARK4_eps={eps}',
                             evolution_method = 'ARK4',
