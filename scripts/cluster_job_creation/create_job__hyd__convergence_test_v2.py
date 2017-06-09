@@ -194,7 +194,6 @@ if __name__ == '__main__':
             spec = spec_type(name,
                              file_name = str(ii),
                              time_initial = time_initial, time_final = time_final,
-                             electric_field_dc_correction = False,
                              r_points = r_points,
                              **spec_kwargs)
 
