@@ -21,7 +21,7 @@ FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 logman = si.utils.LogManager('simulacra', 'ionization',
-                             stdout_level = logging.INFO)
+                             stdout_level = logging.DEBUG)
 
 PLT_KWARGS = dict(
     target_dir = OUT_DIR,
@@ -46,17 +46,21 @@ GAUGE_TO_OPP = {
 
 
 def wrapped_plot_g_1d(sim):
-    if sim.time_index % (sim.time_steps // 6) == 0 or sim.time_index == sim.time_steps - 1:
+    if sim.time_index % (sim.time_steps // 20) == 0 or sim.time_index == sim.time_steps - 1:
+        sim.mesh.plot_g_repr(name_postfix = f'_{sim.time_index}',
+                             **PLT_KWARGS)
+        sim.mesh.plot_g_repr(name_postfix = f'__TEST__{sim.time_index}',
+                             norm = si.vis.RichardsonNormalization(),
+                             **PLT_KWARGS)
         # print(f'index {sim.time_index}')
-        plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}',
-                  sim.mesh.g,
-                  sim,
-                  **PLT_KWARGS)
+        # plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}',
+        #           sim.mesh.g,
+        #           sim,
+        #           **PLT_KWARGS)
         # plot_g_1d(f'{sim.time_index}_g__{GAUGE_TO_OPP[sim.spec.evolution_gauge]}_from_{sim.spec.evolution_gauge}',
         #           sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge),
         #           sim,
         #           **PLT_KWARGS)
-
 
 def run_sim(spec):
     with logman as logger:

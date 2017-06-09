@@ -3710,6 +3710,102 @@ class SphericalHarmonicMesh(QuantumMesh):
     def update_psi_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.space_psi, **kwargs)
 
+    def attach_mesh_repr_to_axis(self, axis, mesh,
+                                 distance_unit = 'bohr_radius',
+                                 colormap = plt.get_cmap('inferno'),
+                                 norm = si.vis.AbsoluteRenormalize(),
+                                 shading = 'gouraud',
+                                 plot_limit = None,
+                                 slicer = 'get_mesh_slicer',
+                                 **kwargs):
+        unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
+
+        _slice = getattr(self, slicer)(plot_limit)
+
+        color_mesh = axis.pcolormesh(self.l_mesh[_slice],
+                                     self.r_mesh[_slice] / unit_value,
+                                     self.g[_slice],
+                                     shading = shading,
+                                     cmap = colormap,
+                                     norm = norm,
+                                     **kwargs)
+
+        return color_mesh
+
+    def plot_mesh_repr(self, mesh,
+                       name = '',
+                       title = None,
+                       distance_unit = 'bohr_radius',
+                       colormap = COLORMAP_WAVEFUNCTION,
+                       norm = si.vis.AbsoluteRenormalize(),
+                       shading = 'flat',
+                       plot_limit = None,
+                       slicer = 'get_mesh_slicer',
+                       aspect_ratio = si.vis.GOLDEN_RATIO,
+                       show_colorbar = True,
+                       show_axes = True,
+                       **kwargs):
+        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
+            fig = figman.fig
+
+            fig.set_tight_layout(True)
+            axis = plt.subplot(111)
+
+            unit_value, unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
+
+            color_mesh = self.attach_mesh_repr_to_axis(axis, mesh,
+                                                       distance_unit = distance_unit,
+                                                       colormap = colormap,
+                                                       norm = norm,
+                                                       shading = shading,
+                                                       plot_limit = plot_limit,
+                                                       slicer = slicer
+                                                       )
+
+            axis.set_xlabel(r'$\ell$', fontsize = 15)
+            axis.set_ylabel(fr'$r$ (${unit_latex}$)', fontsize = 15)
+            if title is not None:
+                title = axis.set_title(title, fontsize = 15)
+                title.set_y(1.05)  # move title up a bit
+
+            # make a colorbar
+            if show_colorbar and show_axes:
+                cbar = fig.colorbar(mappable = color_mesh, ax = axis)
+                cbar.ax.tick_params(labelsize = 10)
+
+            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+
+            axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
+            axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
+            axis.tick_params(axis = 'both', which = 'both', length = 0)
+
+            y_ticks = axis.yaxis.get_major_ticks()
+            y_ticks[0].label1.set_visible(False)
+            y_ticks[0].label2.set_visible(False)
+            y_ticks[-1].label1.set_visible(False)
+            y_ticks[-1].label2.set_visible(False)
+
+            axis.axis('tight')
+
+            if not show_axes:
+                axis.axis('off')
+
+    def plot_g_repr(self, name_postfix = '',
+               colormap = plt.get_cmap('richardson'),
+               norm = None,
+               **kwargs):
+        title = r'$g$'
+        name = 'g_repr' + name_postfix
+
+        if norm is None:
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        self.plot_mesh_repr(self.g, name = name, title = title,
+                            colormap = colormap,
+                            norm = norm,
+                            show_colorbar = False,
+                            **kwargs)
+
     def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,
                                         theta_points = 360,
