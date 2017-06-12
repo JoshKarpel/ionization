@@ -34,15 +34,16 @@ if __name__ == '__main__':
     with logman as logger:
         t_bound = 100
         p_bound = 30
-        freq_window = 8000 * THz
+        freq_window = 10000 * THz
 
-        pw = 200 * asec
+        pw = 50 * asec
         flu = 1 * Jcm2
 
         times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 14)
         dt = np.abs(times[1] - times[0])
 
-        dummy = ion.SincPulse(pulse_width = pw, fluence = flu, phase = 0,
+        dummy = ion.SincPulse(pulse_width = pw, fluence = flu,
+                              phase = 0,
                               window = ion.SymmetricExponentialTimeWindow(window_time = p_bound * pw, window_width = .2 * pw))
         pulses = [
             dummy,
@@ -52,7 +53,13 @@ if __name__ == '__main__':
                           window = dummy.window),
         ]
 
+        pulses = list(ion.DC_correct_electric_potential(pulse, times) for pulse in pulses)
+
         fields = tuple(pulse.get_electric_field_amplitude(times) for pulse in pulses)
+
+        # gaussian_max = np.nanmax(np.abs(fields[1]))
+        # gaussian_fwhm_time = pulses[1].time_fwhm
+        # gaussian_hwhm_time = gaussian_fwhm_time / 2
 
         si.vis.xy_plot(
             'efields_vs_time',
@@ -61,7 +68,10 @@ if __name__ == '__main__':
             line_labels = (pulse.__class__.__name__ for pulse in pulses),
             x_label = r'$ t $', x_unit = 'asec',
             y_label = fr'$ {ion.LATEX_EFIELD}(t) $', y_unit = 'atomic_electric_field',
+            x_lower_limit = -p_bound * pw, x_upper_limit = p_bound * pw,
             title = fr'Electric Fields at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            # hlines = (gaussian_max, gaussian_max / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
+            # vlines = (-gaussian_hwhm_time, gaussian_hwhm_time), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLT_KWARGS,
         )
 
@@ -82,6 +92,11 @@ if __name__ == '__main__':
             **PLT_KWARGS,
         )
 
+        # gaussian_max_freq = np.nanmax(np.abs(ffts[1]))
+        # gaussian_center_freq= pulses[1].frequency_carrier
+        # gaussian_fwhm_freq = pulses[1].frequency_fwhm
+        # gaussian_hwhm_freq = gaussian_fwhm_freq / 2
+
         si.vis.xy_plot(
             'abs_amplitude_spectra',
             freqs,
@@ -92,8 +107,12 @@ if __name__ == '__main__':
             y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right| $ ($\mathrm{{a.u. / THz}}$)',
             y_unit = atomic_electric_field / THz,
             title = fr'Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            # hlines = (gaussian_max_freq, gaussian_max_freq / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
+            # vlines = (-gaussian_hwhm_freq + gaussian_center_freq, gaussian_hwhm_freq + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLT_KWARGS,
         )
+
+        # gaussian_max_power = np.nanmax(np.abs(epsilon_0 * c * (np.abs(ffts[1]) ** 2) / len(times)))
 
         si.vis.xy_plot(
             'power_spectra',
@@ -105,16 +124,21 @@ if __name__ == '__main__':
             y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)',
             y_unit = Jcm2 / THz,
             title = fr'Power Density Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            # hlines = (gaussian_max_power, gaussian_max_power / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
+            # vlines = (-gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq, gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLT_KWARGS,
         )
 
         for pulse, f in zip(pulses, ffts):
-            print(pulse.__class__.__name__)
+            print(pulse)
             print(pulse.get_fluence_numeric(times) / Jcm2)
-            print(pulse.fluence / Jcm2)
+            # print(pulse.fluence / Jcm2)
             print(integ.simps(y = epsilon_0 * c * (np.abs(f) ** 2) / len(times),
                               x = freqs) / Jcm2)
 
             print('-' * 80)
 
         print(len(times))
+
+        for pulse in pulses:
+            print(pulse.info())
