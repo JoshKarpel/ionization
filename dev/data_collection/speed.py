@@ -19,8 +19,8 @@ if __name__ == '__main__':
                                                  time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
                                                  dipole_gauges = (),
                                                  store_data_every = -1,
-                                                 # evolution_gauge = 'LEN',
-                                                 evolution_gauge = 'VEL',
+                                                 evolution_gauge = 'LEN',
+                                                 # evolution_gauge = 'VEL',
                                                  ).to_simulation()
 
         logger.info(sim.info())

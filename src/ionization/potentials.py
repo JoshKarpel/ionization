@@ -342,7 +342,8 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
         return -self.get_electric_field_integral_numeric_cumulative(times)
 
     def get_fluence_numeric(self, times, rule = 'simps'):
-        return epsilon_0 * c * self.get_electric_field_integral_numeric(times, rule = rule)
+        return epsilon_0 * c * getattr(integ, rule)(y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
+                                                    x = times)
 
 
 class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
