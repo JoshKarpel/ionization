@@ -87,7 +87,7 @@ if __name__ == '__main__':
                                         value = dict(tau_alpha = tau_alpha)))
 
         parameters.append(clu.Parameter(name = 'time_step',
-                                        value = asec * clu.ask_for_input('Initial Time Step (in as)?', default = .1, cast_to = float)))
+                                        value = asec * clu.ask_for_input('Time Step (in as)?', default = .1, cast_to = float)))
 
         if evolution_method.value == 'ARK4':
             parameters.append(clu.Parameter(name = 'time_step_minimum',
@@ -96,11 +96,11 @@ if __name__ == '__main__':
             parameters.append(clu.Parameter(name = 'time_step_maximum',
                                             value = asec * clu.ask_for_input('Maximum Time Step (in as)?', default = 10, cast_to = float)))
 
-        parameters.append(clu.Parameter(name = 'error_on',
-                                        value = clu.ask_for_input('Fractional Truncation Error Control on a or da/dt?', default = 'da/dt', cast_to = str)))
+            parameters.append(clu.Parameter(name = 'error_on',
+                                            value = clu.ask_for_input('Fractional Truncation Error Control on a or da/dt?', default = 'da/dt', cast_to = str)))
 
-        parameters.append(clu.Parameter(name = 'epsilon',
-                                        value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
+            parameters.append(clu.Parameter(name = 'epsilon',
+                                            value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
 
         time_bound_in_pw = clu.Parameter(name = 'time_bound_in_pw',
                                          value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 30, cast_to = float))
