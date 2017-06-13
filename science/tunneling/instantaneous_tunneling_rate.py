@@ -32,7 +32,7 @@ def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential 
 
     f = amplitude_scaled / ((2 * potential_scaled) ** 1.5)
 
-    return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time / 2
+    return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time
 
     # e_a = (electron_mass_reduced ** 2) * (proton_charge ** 5) / (((4 * pi * epsilon_0) ** 3) * (hbar ** 4))
     # w_a = (electron_mass_reduced * (proton_charge ** 4)) / (((4 * pi * epsilon_0) ** 2) * (hbar ** 3))
@@ -79,8 +79,8 @@ if __name__ == '__main__':
         # efield = ion.Rectangle(start_time = -t_bound, end_time = t_bound, amplitude = amp,
         #                        window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
 
-        energy = 1 * eV
-        amp = 0.1 * atomic_electric_field
+        energy = 1.0 * eV
+        amp = .1 * atomic_electric_field
         frac = 0.7
         bound_mult = 3
         efield = ion.SineWave.from_photon_energy(energy, amplitude = amp)
@@ -88,15 +88,15 @@ if __name__ == '__main__':
         efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound)
         title = f'sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}'
 
-        r_bound = 100
-        dt = 1 * asec
+        r_bound = 200
+        dt = 2 * asec
 
         sim = ion.SphericalHarmonicSpecification(
             title + f'__tdse__dt={uround(dt, asec)}as',
             r_bound = r_bound * bohr_radius,
             r_points = r_bound * 4,
             # evolution_gauge = 'VEL', l_bound = 200,
-            evolution_gauge = 'LEN', l_bound = 100,
+            evolution_gauge = 'LEN', l_bound = 200,
             time_initial = -t_bound, time_final = t_bound, time_step = dt,
             electric_potential = efield,
             # electric_potential_dc_correction = True,

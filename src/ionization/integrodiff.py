@@ -504,7 +504,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
             if log:
                 ax_a.set_yscale('log')
-                min_overlap = np.min(overlap)
+                min_overlap = np.min(self.a2)
                 ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
                 ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
             else:

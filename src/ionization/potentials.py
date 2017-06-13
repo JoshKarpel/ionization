@@ -17,7 +17,7 @@ class PotentialEnergy(si.Summand):
     """A class representing some kind of potential energy. Can be summed to form a PotentialEnergySum."""
 
     def __init__(self, *args, **kwargs):
-        super(PotentialEnergy, self).__init__()
+        super().__init__()
         self.summation_class = PotentialEnergySum
 
 
@@ -36,7 +36,6 @@ class PotentialEnergySum(si.Sum, PotentialEnergy):
         return sum(x.get_vector_potential_amplitude(t) for x in self._container)
 
     def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
-        print(list(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container))
         return sum(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container)
 
     def get_electric_field_integral_numeric_cumulative(self, times):
@@ -142,6 +141,48 @@ class Coulomb(PotentialEnergy):
         info = super().info()
 
         info.add_field('Charge', f'{uround(self.charge, proton_charge, 3)} e')
+
+        return info
+
+
+class SoftCoulomb(PotentialEnergy):
+    """A class representing the electric potential energy caused by the Coulomb potential."""
+
+    def __init__(self, charge = 1 * proton_charge, softening_distance = .0265 * angstrom):
+        """
+        Construct a Coulomb from a charge.
+
+        :param charge: the charge of the particle providing the potential
+        """
+        super().__init__()
+
+        self.charge = charge
+        self.softening_distance = softening_distance
+
+    def __str__(self):
+        return si.utils.field_str(self, ('charge', 'proton_charge'))
+
+    def __repr__(self):
+        return si.utils.field_str(self, 'charge')
+
+    def __call__(self, *, r, test_charge, **kwargs):
+        """
+        Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
+
+        Accepts only keyword arguments.
+
+        :param r: the radial distance coordinate
+        :param test_charge: the test charge
+        :param kwargs: absorbs any other keyword arguments
+        :return:
+        """
+        return coulomb_constant * self.charge * test_charge / np.sqrt((r ** 2) + (self.softening_distance ** 2))
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Charge', f'{uround(self.charge, proton_charge)} e')
+        info.add_field('Softening Distance', f'{uround(self.softening_distance, bohr_radius)} Bohr radii')
 
         return info
 
@@ -501,7 +542,23 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         :return: a SineWave instance
         """
-        return cls.from_frequency(photon_energy / h, amplitude = amplitude, phase = phase, **kwargs)
+        return cls(photon_energy / hbar, amplitude = amplitude, phase = phase, **kwargs)
+
+    @classmethod
+    def from_photon_energy_and_intensity(cls, photon_energy, intensity = 1e14 * W / (cm ** 2), phase = 0, **kwargs):
+        """
+        Construct a SineWave from the photon energy, electric field amplitude, and phase.
+
+        :param photon_energy: the photon energy
+        :param phase: the phase of the electric field (0 corresponds to a sine wave)
+        :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
+        :return: a SineWave instance
+        """
+        return cls(photon_energy / hbar, amplitude = np.sqrt(2 * intensity / (epsilon_0 * c)), phase = phase, **kwargs)
+
+    @property
+    def intensity(self):
+        return .5 * epsilon_0 * c * (self.amplitude ** 2)
 
     @property
     def frequency(self):
@@ -552,6 +609,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} AEF')
+        info.add_field('Intensity', f'{uround(self.intensity, TW / (cm ** 2))} TW/cm^2')
         info.add_field('Photon Energy', f'{uround(self.photon_energy, eV)} eV')
         info.add_field('Frequency', f'{uround(self.frequency, THz)} THz')
         info.add_field('Period', f'{uround(self.period, asec)} as | {uround(self.period, fsec)} fs')
@@ -696,6 +754,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     amplitude_per_frequency
     """
+
     def __init__(self, pulse_width = 200 * asec, omega_min = twopi * 500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
                  **kwargs):
         """

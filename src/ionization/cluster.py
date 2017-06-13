@@ -551,4 +551,4 @@ class IDEJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
     ionization_metrics = ['final_bound_state_overlap']
 
     def __init__(self, job_name, job_dir_path):
-        super().__init__(job_name, job_dir_path, integrodiff.AdaptiveIntegroDifferentialEquationSimulation)
+        super().__init__(job_name, job_dir_path, integrodiff.IntegroDifferentialEquationSimulation)

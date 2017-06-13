@@ -2704,7 +2704,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         info_eigenstates = si.Info(header = f'Numeric Eigenstates: {self.use_numeric_eigenstates}')
         if self.use_numeric_eigenstates:
             info_eigenstates.add_field('Max Energy', f'{uround(self.numeric_eigenstate_max_energy, eV)} eV')
-            info_eigenstates.add_field('Max Angular Moment', self.numeric_eigenstate_max_angular_momentum)
+            info_eigenstates.add_field('Max Angular Momentum', self.numeric_eigenstate_max_angular_momentum)
 
         info.add_info(info_eigenstates)
 
