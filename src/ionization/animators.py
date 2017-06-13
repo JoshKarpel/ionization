@@ -112,7 +112,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             data.append(self.spec.electric_potential.get_electric_field_amplitude(self.sim.times) / self.electric_field_unit_value)
         if self.show_vector_potential:
-            data.append(proton_charge * self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times) / self.vector_potential_unit_value)
+            data.append(proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times) / self.vector_potential_unit_value)
 
         y_lower_limit, y_upper_limit = si.vis.set_axis_limits(self.axis,
                                                               *data,

@@ -75,7 +75,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         if self.spec.evolution_gauge == 'LEN':
             self.f = self.spec.electric_potential.get_electric_field_amplitude
         elif self.spec.evolution_gauge == 'VEL':
-            self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric
+            self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
 
     @property
     def time_steps(self):
@@ -152,11 +152,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         time_curr = times[-1]
 
         fs_curr = self.f(times)
-        try:
-            f_curr = fs_curr[-1]
-        except IndexError:
-            f_curr = fs_curr
-            fs_curr = np.array([fs_curr])
+        f_curr = fs_curr[-1]
 
         if self.spec.evolution_gauge == 'VEL':
             quiver = self.eval_quiver_motion(self.f(times), times, time_step)
@@ -465,7 +461,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             y_labels.append(e_label)
         if show_vector_potential:
             a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
-            axis.plot(self.times / time_unit_value, proton_charge * self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.times) / atomic_momentum,
+            axis.plot(self.times / time_unit_value, proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / atomic_momentum,
                       color = core.COLOR_VECTOR_POTENTIAL,
                       linewidth = 1.5,
                       label = a_label)
@@ -582,7 +578,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  evolution_gauge = 'LEN',
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  store_data_every = 1,
-                 minimum_time_step = .01 * asec, maximum_time_step = 10 * asec,
+                 time_step_minimum = .01 * asec, time_step_maximum = 10 * asec,
                  epsilon = 1e-3, error_on = 'da/dt', safety_factor = .98,
                  **kwargs):
         """
@@ -625,9 +621,9 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         checkpoint_every
         checkpoint_dir
         store_data_every
-        minimum_time_step : :class:`float`
+        time_step_minimum : :class:`float`
             The minimum time step that can be used by an adaptive algorithm.
-        maximum_time_step : :class:`float`
+        time_step_maximum : :class:`float`
             the maximum time step that can be used by an adaptive algorithm.
         epsilon : :class:`float`
             The acceptable fractional error in the quantity specified by `error_on`.
@@ -668,8 +664,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.store_data_every = store_data_every
 
-        self.minimum_time_step = minimum_time_step
-        self.maximum_time_step = maximum_time_step
+        self.minimum_time_step = time_step_minimum
+        self.maximum_time_step = time_step_maximum
 
         self.epsilon = epsilon
         self.error_on = error_on

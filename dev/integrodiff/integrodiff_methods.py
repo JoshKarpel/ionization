@@ -46,7 +46,8 @@ if __name__ == '__main__':
         # gauge = 'LEN'
         # dt = 1 * asec
 
-        for gauge in ('LEN', 'VEL'):
+        for gauge in ['LEN', 'VEL']:
+        # for gauge in ['VEL']:
             for dt in [1 * asec, .1 * asec]:
                 pw = 100 * asec
                 flu = .1 * Jcm2
@@ -69,6 +70,7 @@ if __name__ == '__main__':
                 # int_methods = ['trapezoid', 'simpson']
                 # evol_methods = ['ARK4', ]
                 evol_methods = ['FE', 'BE', 'TRAP', 'RK4']
+                # evol_methods = ['BE']
                 # evol_methods = ['FE', 'BE']
 
                 if gauge == 'LEN':
@@ -108,6 +110,7 @@ if __name__ == '__main__':
                             evolution_method = 'ARK4',
                             integration_method = int_method,
                             epsilon = eps,
+                            time_step_minimum = .1 * asec,
                             **spec_kwargs
                     ))
 

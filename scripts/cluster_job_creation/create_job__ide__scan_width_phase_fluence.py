@@ -35,6 +35,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = 31 - ((args.verbosity + 1) * 10)) as logger:
+        logger.warning('This script only supports Gaussian bound state wavefunctions!')
         # job type options
         job_processor = iclu.IDEJobProcessor
 
@@ -48,12 +49,26 @@ if __name__ == '__main__':
 
         parameters = []
 
+        evolution_gauge = clu.Parameter(name = 'evolution_gauge',
+                                        value = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN'))
+        parameters.append(evolution_gauge)
+
+        evolution_method = clu.Parameter(name = 'evolution_method',
+                                         value = clu.ask_for_input('Evolution Method? [FE/BE/RK4/ARK4]', default = 'ARK4'))
+        parameters.append(evolution_method)
+
         test_charge = electron_charge * clu.ask_for_input('Test Particle Electric Charge (in electron charges)?', default = 1, cast_to = float)
         test_mass = electron_mass * clu.ask_for_input('Test Particle Mass (in electron masses)?', default = 1, cast_to = float)
         test_width = bohr_radius * clu.ask_for_input('Gaussian Test Wavefunction Width (in Bohr radii)?', default = 1, cast_to = float)
 
-        prefactor = -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
-        tau_alpha = 4 * test_mass * (test_width ** 2) / hbar
+        if evolution_gauge.value == 'LEN':
+            prefactor = -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
+            tau_alpha = 4 * test_mass * (test_width ** 2) / hbar
+        elif evolution_gauge.value == 'VEL':
+            prefactor = -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
+            tau_alpha = 2 * m * (test_width ** 2) / hbar
+        else:
+            raise ValueError('Unknown evolution gauge')
 
         parameters.append(clu.Parameter(name = 'test_charge',
                                         value = test_charge))
@@ -71,17 +86,18 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'kernel_kwargs',
                                         value = dict(tau_alpha = tau_alpha)))
 
-        parameters.append(clu.Parameter(name = 'minimum_time_step',
-                                        value = asec * clu.ask_for_input('Minimum Time Step (in as)?', default = .01, cast_to = float)))
-
-        parameters.append(clu.Parameter(name = 'maximum_time_step',
-                                        value = asec * clu.ask_for_input('Maximum Time Step (in as)?', default = 10, cast_to = float)))
-
         parameters.append(clu.Parameter(name = 'time_step',
                                         value = asec * clu.ask_for_input('Initial Time Step (in as)?', default = .1, cast_to = float)))
 
+        if evolution_method.value == 'ARK4':
+            parameters.append(clu.Parameter(name = 'time_step_minimum',
+                                            value = asec * clu.ask_for_input('Minimum Time Step (in as)?', default = .01, cast_to = float)))
+
+            parameters.append(clu.Parameter(name = 'time_step_maximum',
+                                            value = asec * clu.ask_for_input('Maximum Time Step (in as)?', default = 10, cast_to = float)))
+
         parameters.append(clu.Parameter(name = 'error_on',
-                                        value = clu.ask_for_input('Fractional Truncation Error Control on y or dydt?', default = 'dydt', cast_to = str)))
+                                        value = clu.ask_for_input('Fractional Truncation Error Control on a or da/dt?', default = 'da/dt', cast_to = str)))
 
         parameters.append(clu.Parameter(name = 'epsilon',
                                         value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
@@ -144,12 +160,15 @@ if __name__ == '__main__':
                                       window = p.window)
                            for p in pulses)
 
-        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
-                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
-
         parameters.append(clu.Parameter(name = 'electric_potential',
                                         value = pulses,
                                         expandable = True))
+
+        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
+                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
+
+        parameters.append(clu.Parameter(name = 'store_data_every',
+                                        value = clu.ask_for_input('Store Data Every?', default = 1, cast_to = int)))
 
         print('Generating parameters...')
 
@@ -169,10 +188,10 @@ if __name__ == '__main__':
             )
 
             time_bound = spec_kwargs['time_bound_in_pw'] * electric_potential.pulse_width
-            spec = ide.AdaptiveIntegroDifferentialEquationSpecification(name,
-                                                                        file_name = str(ii),
-                                                                        time_initial = -time_bound, time_final = time_bound,
-                                                                        **spec_kwargs)
+            spec = ide.IntegroDifferentialEquationSpecification(name,
+                                                                file_name = str(ii),
+                                                                time_initial = -time_bound, time_final = time_bound,
+                                                                **spec_kwargs)
 
             spec.pulse_type = pulse_type
             spec.pulse_width = electric_potential.pulse_width

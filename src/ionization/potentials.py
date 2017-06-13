@@ -36,14 +36,15 @@ class PotentialEnergySum(si.Sum, PotentialEnergy):
         return sum(x.get_vector_potential_amplitude(t) for x in self._container)
 
     def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
+        print(list(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container))
         return sum(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container)
 
     def get_electric_field_integral_numeric_cumulative(self, times):
         """Return the integral of the electric field amplitude from the start of times for each interval in times."""
         return sum(x.get_electric_field_integral_numeric_cumulative(times) for x in self._container)
 
-    def get_vector_potential_amplitudes_numeric(self, times):
-        return sum(x.get_vector_potential_amplitudes_numeric(times) for x in self._container)
+    def get_vector_potential_amplitude_numeric_cumulative(self, times):
+        return sum(x.get_vector_potential_amplitude_numeric_cumulative(times) for x in self._container)
 
     def get_fluence_numeric(self, times, rule = 'simps'):
         return sum(x.get_fluence_numeric(times, rule = rule) for x in self._container)
@@ -340,12 +341,13 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
                               x = times,
                               initial = 0)
 
-    def get_vector_potential_amplitudes_numeric(self, times):
+    def get_vector_potential_amplitude_numeric_cumulative(self, times):
         return -self.get_electric_field_integral_numeric_cumulative(times)
 
     def get_fluence_numeric(self, times, rule = 'simps'):
         return epsilon_0 * c * getattr(integ, rule)(y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
-                                                    x = times)
+                                                    x = times,
+                                                    initial = 0)
 
 
 class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):

@@ -1828,7 +1828,7 @@ class LineMesh(QuantumMesh):
         if leaving_gauge is None:
             leaving_gauge = self.spec.evolution_gauge
 
-        vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
+        vamp = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
 
@@ -3477,7 +3477,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         if leaving_gauge is None:
             leaving_gauge = self.spec.evolution_gauge
 
-        vamp = self.spec.electric_potential.get_vector_potential_amplitudes_numeric(self.sim.times_to_current)
+        vamp = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times_to_current)
         integral = integ.simps(y = vamp ** 2,
                                x = self.sim.times_to_current)
 
