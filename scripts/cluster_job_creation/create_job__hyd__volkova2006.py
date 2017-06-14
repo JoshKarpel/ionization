@@ -206,6 +206,10 @@ if __name__ == '__main__':
                              time_initial = time_initial, time_final = time_final,
                              **mesh_kwargs, **spec_kwargs)
 
+            spec.photon_energy = electric_potential.photon_energy
+            spec.intensity = electric_potential.intensity
+            spec.phase = electric_potential.phase
+
             specs.append(spec)
 
         clu.specification_check(specs)
