@@ -62,8 +62,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.a = [self.spec.a_initial]
 
         if self.spec.electric_potential_dc_correction:
+            dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, 1000000)
             old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
