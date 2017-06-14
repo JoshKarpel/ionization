@@ -267,7 +267,7 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
             pass
 
 
-class ElectricFieldJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
+class ElectricFieldJobProcessor(clu.JobProcessor):
     simulation_result_type = ElectricFieldSimulationResult
 
     ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']
@@ -514,7 +514,7 @@ class PulseSimulationResult(ElectricFieldSimulationResult):
         self.phase = copy(sim.spec.phase)
 
 
-class PulseJobProcessor(ElectricFieldJobProcessor):
+class PulseJobProcessor(PulseParameterScanMixin, ElectricFieldJobProcessor):
     simulation_result_type = PulseSimulationResult
 
     ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']
