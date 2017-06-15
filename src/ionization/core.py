@@ -23,7 +23,6 @@ from . import potentials, states
 
 from .cy import tdma
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -2253,8 +2252,8 @@ class CylindricalSliceMesh(QuantumMesh):
         if overlay_probability_current:
             quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-        axis.set_xlabel(r'$z$ ({})'.format(unit_name), fontsize = 15)
-        axis.set_ylabel(r'$\rho$ ({})'.format(unit_name), fontsize = 15)
+        axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 15)
+        axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 15)
         if title is not None:
             title = axis.set_title(title, fontsize = 15)
             title.set_y(1.05)  # move title up a bit
@@ -3804,9 +3803,9 @@ class SphericalHarmonicMesh(QuantumMesh):
                 axis.axis('off')
 
     def plot_g_repr(self, name_postfix = '',
-               colormap = plt.get_cmap('richardson'),
-               norm = None,
-               **kwargs):
+                    colormap = plt.get_cmap('richardson'),
+                    norm = None,
+                    **kwargs):
         title = r'$g$'
         name = 'g_repr' + name_postfix
 
@@ -3818,6 +3817,21 @@ class SphericalHarmonicMesh(QuantumMesh):
                             norm = norm,
                             show_colorbar = False,
                             **kwargs)
+
+    def attach_g_repr_to_axis(self,
+                              axis,
+                              colormap = plt.get_cmap('richardson'),
+                              norm = None,
+                              **kwargs
+                              ):
+
+        if norm is None:
+            norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
+
+        return self.attach_mesh_repr_to_axis(axis, self.g,
+                                             colormap = colormap,
+                                             norm = norm,
+                                             **kwargs)
 
     def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
                                         r_lower_lim = twopi * .01 * per_nm, r_upper_lim = twopi * 10 * per_nm, r_points = 100,

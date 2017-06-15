@@ -10,16 +10,15 @@ from simulacra.units import *
 
 from . import core
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLORMESH_GRID_KWARGS = {
     **si.vis.COLORMESH_GRID_KWARGS,
     **dict(
-            linestyle = ':',
-            linewidth = 1.5,
-            alpha = 0.6
+        linestyle = ':',
+        linewidth = 1.5,
+        alpha = 0.6
     )
 }
 
@@ -59,10 +58,10 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 20,
-                fancybox = True,
-                framealpha = .1,
+            loc = 'lower left',
+            fontsize = 20,
+            fancybox = True,
+            framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -174,10 +173,10 @@ class StackplotAxis(si.vis.AxisManager):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 20,
-                fancybox = True,
-                framealpha = .1,
+            loc = 'lower left',
+            fontsize = 20,
+            fancybox = True,
+            framealpha = .1,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -267,6 +266,7 @@ class StackplotAxis(si.vis.AxisManager):
         info.add_field('Time Unit', self.time_unit)
 
         return info
+
 
 class TestStateStackplotAxis(StackplotAxis):
     def __init__(self,
