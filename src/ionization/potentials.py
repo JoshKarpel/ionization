@@ -148,7 +148,7 @@ class Coulomb(PotentialEnergy):
 class SoftCoulomb(PotentialEnergy):
     """A class representing the electric potential energy caused by the Coulomb potential."""
 
-    def __init__(self, charge = 1 * proton_charge, softening_distance = .0265 * angstrom):
+    def __init__(self, charge = 1 * proton_charge, softening_distance = .05 * bohr_radius):
         """
         Construct a Coulomb from a charge.
 
@@ -558,6 +558,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def intensity(self):
+        """Cycle-averaged intensity"""
         return .5 * epsilon_0 * c * (self.amplitude ** 2)
 
     @property
@@ -602,8 +603,8 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
     def get_peak_amplitude(self):
         return self.amplitude
 
-    def get_peak_power_density(self):
-        return 0.5 * c * epsilon_0 * (np.abs(self.amplitude) ** 2)  # TODO: check factor of 1/2 here
+    # def get_peak_power_density(self):
+    #     return 0.5 * c * epsilon_0 * (np.abs(self.amplitude) ** 2)  # TODO: check factor of 1/2 here
 
     def info(self):
         info = super().info()
