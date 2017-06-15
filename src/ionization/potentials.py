@@ -1321,7 +1321,7 @@ class SymmetricExponentialTimeWindow(TimeWindow):
         self.window_width = window_width
         self.window_center = window_center
 
-        super(SymmetricExponentialTimeWindow, self).__init__()
+        super().__init__()
 
     def __str__(self):
         return '{}(window time = {} as, window width = {} as, window center = {})'.format(self.__class__.__name__,
@@ -1345,6 +1345,33 @@ class SymmetricExponentialTimeWindow(TimeWindow):
         info.add_field('Window Time', f'{uround(self.window_time, asec)} asec')
         info.add_field('Window Width', f'{uround(self.window_width, asec)} asec')
         info.add_field('Window Center', f'{uround(self.window_center, asec)} asec')
+
+        return info
+
+
+class SmoothedTrapezoidalWindow(TimeWindow):
+    def __init__(self, *, time_front, time_plateau):
+        super().__init__()
+
+        self.time_front = time_front
+        self.time_plateau = time_plateau
+
+    def __call__(self, t):
+        cond_before = np.less(t, self.time_front)
+        cond_middle = np.less_equal(self.time_front, t) * np.less_equal(t, self.time_front + self.time_plateau)
+        cond_after = np.less(self.time_front + self.time_plateau, t) * np.less_equal(t, (2 * self.time_front) + self.time_plateau)
+
+        out = np.where(cond_before, np.sin(pi * t / (2 * self.time_front)) ** 2, 0)
+        out += np.where(cond_middle, 1, 0)
+        out += np.where(cond_after, np.cos(pi * (t - (self.time_front + self.time_plateau)) / (2 * self.time_front)) ** 2, 0)
+
+        return out
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Front Time', f'{uround(self.time_front, asec)} asec | {uround(self.time_front, fsec)} fsec')
+        info.add_field('Plateau Time', f'{uround(self.time_plateau, asec)} asec | {uround(self.time_plateau, fsec)} fsec')
 
         return info
 

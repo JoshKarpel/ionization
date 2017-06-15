@@ -77,12 +77,12 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'time_step',
                                         value = asec * clu.ask_for_input('Time Step (in as)?', default = 1, cast_to = float)))
 
-        time_initial_in_periods = clu.Parameter(name = 'initial_time_in_periods',
-                                                value = clu.ask_for_input('Initial Time (in pulse periods)?', default = -4, cast_to = float))
-        parameters.append(time_initial_in_periods)
+        # time_initial_in_periods = clu.Parameter(name = 'initial_time_in_periods',
+        #                                         value = clu.ask_for_input('Initial Time (in pulse periods)?', default = -4, cast_to = float))
+        # parameters.append(time_initial_in_periods)
 
-        parameters.append(clu.Parameter(name = 'final_time_in_periods',
-                                        value = clu.ask_for_input('Final Time (in pulse periods)?', default = 4, cast_to = float)))
+        # parameters.append(clu.Parameter(name = 'final_time_in_periods',
+        #                                 value = clu.ask_for_input('Final Time (in pulse periods)?', default = 4, cast_to = float)))
 
         extra_time = clu.Parameter(name = 'extra_time',
                                    value = asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float))
@@ -148,23 +148,33 @@ if __name__ == '__main__':
                                expandable = True)
         pulse_parameters.append(phases)
 
-        window_time_in_periods = clu.Parameter(name = 'window_time_in_periods',
-                                               value = clu.ask_for_input('Window Time (in pulse widths)?', default = 2.5, cast_to = float))
-        window_width_in_periods = clu.Parameter(name = 'window_width_in_periods',
-                                                value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.2, cast_to = float))
-        parameters.append(window_time_in_periods)
-        parameters.append(window_width_in_periods)
+        # window_time_in_periods = clu.Parameter(name = 'window_time_in_periods',
+        #                                        value = clu.ask_for_input('Window Time (in pulse widths)?', default = 2.5, cast_to = float))
+        # window_width_in_periods = clu.Parameter(name = 'window_width_in_periods',
+        #                                         value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.2, cast_to = float))
+        # parameters.append(window_time_in_periods)
+        # parameters.append(window_width_in_periods)
+
+        T = ion.SineWave.from_photon_energy(.5 * eV).period
+
+        front_time_in_periods = clu.Parameter(name = 'front_time_in_periods',
+                                              value = clu.ask_for_input('Front time (in periods of hbar * omega = 0.5 eV sine wave)?', default = 1, cast_to = float))
+        plateau_time_in_periods = clu.Parameter(name = 'plateau_time_in_periods',
+                                                value = clu.ask_for_input('Plateau time (in periods of hbar * omega = 0.5 eV sine wave)?', default = 5, cast_to = float))
+        parameters.append(front_time_in_periods)
+        parameters.append(plateau_time_in_periods)
 
         pulses = tuple(
             ion.SineWave.from_photon_energy_and_intensity(**d) for d in clu.expand_parameters_to_dicts(pulse_parameters)
         )
 
         for p in pulses:
-            p.window = ion.SymmetricExponentialTimeWindow(window_time = p.period * window_time_in_periods.value,
-                                                          window_width = p.period * window_width_in_periods.value)
+            p.window = ion.SmoothedTrapezoidalWindow(time_front = front_time_in_periods.value * T, time_plateau = plateau_time_in_periods.value * T)
+        # p.window = ion.SymmetricExponentialTimeWindow(window_time = p.period * window_time_in_periods.value,
+        #                                                   window_width = p.period * window_width_in_periods.value)
 
-        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
-                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
+        # parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
+        #                                 value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
         parameters.append(clu.Parameter(name = 'electric_potential',
                                         value = pulses,
@@ -193,13 +203,16 @@ if __name__ == '__main__':
             electric_potential = spec_kwargs['electric_potential']
             name = 'energy={}eV_intensity={}TWcm2_phase={}pi'.format(
                 uround(electric_potential.photon_energy, eV),
-                uround(electric_potential.intensity, TW / (cm ** 2)),
+                uround(electric_potential.intensity, TWcm2),
                 uround(electric_potential.phase, pi),
             )
 
-            time_initial = spec_kwargs['initial_time_in_periods'] * electric_potential.period
-            time_final = spec_kwargs['final_time_in_periods'] * electric_potential.period + extra_time.value
+            # time_initial = spec_kwargs['initial_time_in_periods'] * electric_potential.period
+            # time_final = spec_kwargs['final_time_in_periods'] * electric_potential.period + extra_time.value
             # snapshot_times = np.concatenate((snapshot_times, electric_potential.period * snapshot_times_in_pw))
+
+            time_initial = 0
+            time_final = T * ((2 * front_time_in_periods.value) + plateau_time_in_periods.value + 1)
 
             spec = spec_type(name,
                              file_name = str(ii),

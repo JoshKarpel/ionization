@@ -27,6 +27,10 @@ PLT_KWARGS = dict(
 
 
 def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential = -rydberg):
+    # f = np.abs(electric_field_amplitude / atomic_electric_field)
+    #
+    # return (4 / f) * (electron_mass_reduced * (proton_charge ** 4) / (hbar ** 3)) * np.exp(-(2 / 3) / f)
+
     amplitude_scaled = np.abs(electric_field_amplitude / atomic_electric_field)
     potential_scaled = np.abs(ionization_potential / hartree)
 

@@ -11,7 +11,6 @@ import simulacra as si
 from simulacra.units import *
 import ionization as ion
 
-
 # import matplotlib.pyplot as plt
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
@@ -24,70 +23,63 @@ logman = si.utils.LogManager('simulacra', 'ionization',
 PLT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
-    fig_dpi_scale = 3,
+    fig_dpi_scale = 5,
 )
 
 
-def run(spec):
-    with logman as logger:
-        # sim = spec.to_simulation()
-        sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
+def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential = -rydberg):
+    # f = np.abs(electric_field_amplitude / atomic_electric_field)
+    #
+    # return (4 / f) * (electron_mass_reduced * (proton_charge ** 4) / (hbar ** 3)) * np.exp(-(2 / 3) / f)
 
-        logger.info(sim.info())
+    amplitude_scaled = np.abs(electric_field_amplitude / atomic_electric_field)
+    potential_scaled = np.abs(ionization_potential / hartree)
 
-        sim.run_simulation()
-        sim.save(target_dir = SIM_LIB)
+    f = amplitude_scaled / ((2 * potential_scaled) ** 1.5)
 
-        logger.info(sim.info())
+    # return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time
+    return 4 * np.sqrt(4 / (3 * f)) * np.exp(-2 / (3 * f)) / atomic_time
 
-        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
+    # e_a = (electron_mass_reduced ** 2) * (proton_charge ** 5) / (((4 * pi * epsilon_0) ** 3) * (hbar ** 4))
+    # w_a = (electron_mass_reduced * (proton_charge ** 4)) / (((4 * pi * epsilon_0) ** 2) * (hbar ** 3))
+    # f = e_a / np.abs(electric_field_amplitude)
 
-        for state in sim.bound_states:
-            print(state, state.energy / eV)
+    # return 4 * w_a * f * np.exp(-2 * f / 3)
 
-        return sim
 
 if __name__ == '__main__':
     with logman as logger:
-        photon_energy = .5 * eV
-        intensities = np.array([1e14]) * W / (cm ** 2)
+        intensities = np.linspace((1 / 35 ** 2) * atomic_intensity, (1 / 10 ** 2) * atomic_intensity, 1e5)
+        efields = np.sqrt(2 * intensities / (c * epsilon_0))
 
-        window_mult = 2.5
-        bound_mult = 4
+        tunneling_rates = instantaneous_tunneling_rate(efields)
 
-        r_bound = 200
-        l_bound = 400
-        dt = 4.12e-3 * fsec
-
-        spec_kwargs = dict(
-            internal_potential = ion.SoftCoulomb(softening_distance = .0265 * angstrom),
-            r_bound = r_bound * bohr_radius,
-            r_points = r_bound * 4,
-            evolution_gauge = 'LEN', l_bound = l_bound,
-            time_step = dt,
-            electric_potential_dc_correction = True,
-            use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 20 * eV,
-            numeric_eigenstate_max_angular_momentum = 20,
-            mask = ion.RadialCosineMask(inner_radius = (r_bound - 20) * bohr_radius, outer_radius = r_bound * bohr_radius),
-            store_data_every = 50,
-            checkpoints = True,
-            checkpoint_dir = SIM_LIB,
+        si.vis.xy_plot(
+            'rate_vs_field',
+            efields,
+            tunneling_rates,
+            x_label = fr'Electric Field $ {ion.LATEX_EFIELD}_0 $', x_unit = 'atomic_electric_field',
+            y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
+            y_log_axis = True,
+            ** PLT_KWARGS,
         )
 
-        specs = []
-        for intensity in intensities:
-            efield = ion.SineWave.from_photon_energy_and_intensity(photon_energy, intensity = intensity, phase = pi / 2)
-            t_window = window_mult * efield.period
-            t_bound = bound_mult * efield.period
-            efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = t_window, window_width = .2 * efield.period)
-            name = f'sine_energy={uround(photon_energy, eV)}eV_int={uround(intensity, TW / (cm ** 2))}TWcm2'
+        si.vis.xy_plot(
+            'rate_vs_intensity',
+            intensities,
+            tunneling_rates,
+            x_label = 'Intensity $P$', x_unit = 'atomic_intensity',
+            y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
+            y_log_axis = True,
+            **PLT_KWARGS,
+        )
 
-            specs.append(ion.SphericalHarmonicSpecification(
-                name,
-                time_initial = -t_bound, time_final = t_bound,
-                electric_potential = efield,
-                **spec_kwargs
-            ))
-
-        si.utils.multi_map(run, specs)
+        si.vis.xy_plot(
+            'rate_vs_inv_sqrt_intensity',
+            1 / np.sqrt(intensities / atomic_intensity),
+            tunneling_rates,
+            x_label = '$ 1 / \sqrt{P / P_{\mathrm{atomic}}} $',
+            y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
+            y_log_axis = True,
+            **PLT_KWARGS,
+        )
