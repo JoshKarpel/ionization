@@ -2,11 +2,13 @@ import functools as ft
 import logging
 import os
 import sys
+from copy import deepcopy
 
 import matplotlib
 import numpy as np
 import scipy.optimize as optimize
 from tqdm import tqdm
+
 
 matplotlib.use('pgf')
 
@@ -14,6 +16,7 @@ import simulacra as si
 import ionization as ion
 import ionization.integrodiff as ide
 from simulacra.units import *
+
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -43,6 +46,7 @@ matplotlib.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
 
+
 PPT_WIDTH = 13 + (1 / 3)
 PPT_HEIGHT = 7.5
 
@@ -50,15 +54,17 @@ PPT_ASPECT_RATIO = PPT_HEIGHT / PPT_WIDTH
 PPT_WIDTH_PTS = 960
 
 FIGMAN_KWARGS = dict(
-    fig_width_pts = PPT_WIDTH_PTS,
-    aspect_ratio = PPT_ASPECT_RATIO,
+        fig_width_pts = PPT_WIDTH_PTS,
+        aspect_ratio = PPT_ASPECT_RATIO,
 )
 
 PLOT_KWARGS = dict(
-    img_format = 'png',
-    fig_dpi_scale = 3,
-    target_dir = OUT_DIR,
+        img_format = 'png',
+        fig_dpi_scale = 3,
+        target_dir = OUT_DIR,
 )
+
+BIG_SINE_WAVE = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field)
 
 
 def run(spec):
@@ -79,15 +85,32 @@ def get_func_name():
 
 def title_bg():
     sim = ion.CylindricalSliceSpecification(
-        'cylindrical_slice_mesh',
-        electric_potential = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field),
-        time_initial = 0, time_final = 200 * asec,
-        z_bound = 40 * bohr_radius,
+            'cylindrical_slice_mesh',
+            electric_potential = BIG_SINE_WAVE,
+            time_initial = 0, time_final = 200 * asec,
+            z_bound = 40 * bohr_radius,
     ).to_simulation()
     sim.run_simulation(progress_bar = True)
 
-    sim.mesh.plot_g(**FIGMAN_KWARGS, **PLOT_KWARGS)  # TODO: fix these at source
-    sim.mesh.plot_g2(**FIGMAN_KWARGS, **PLOT_KWARGS)
+    sim.mesh.plot_g(
+            plot_limit = 25 * bohr_radius,
+            tick_label_size = 20,
+            axis_label_size = 35,
+            title = '',
+            grid_kwargs = {'linewidth': 2},
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS
+    )
+    sim.mesh.plot_g2(
+            plot_limit = 25 * bohr_radius,
+            tick_label_size = 20,
+            axis_label_size = 35,
+            title = '',
+            show_colorbar = False,
+            grid_kwargs = {'linewidth': 2},
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS
+    )
 
     for which in ('g', 'g2'):
         with si.vis.FigureManager(
@@ -101,25 +124,76 @@ def title_bg():
 
             getattr(sim.mesh, f'attach_{which}_to_axis')(ax, plot_limit = 20 * bohr_radius)
 
+            ax.axis('off')
+
 
 def spherical_harmonic_mesh():
     sim = ion.SphericalHarmonicSpecification(
-        'spherical_harmonic_mesh',
-        electric_potential = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field),
-        time_initial = 0, time_final = 200 * asec,
-        r_points = 500,
-        r_bound = 60 * bohr_radius,
-        l_bound = 40,
+            'spherical_harmonic_mesh',
+            electric_potential = BIG_SINE_WAVE,
+            time_initial = 0, time_final = 200 * asec,
+            r_points = 500,
+            r_bound = 60 * bohr_radius,
+            l_bound = 40,
     ).to_simulation()
     sim.run_simulation(progress_bar = True)
 
-    sim.mesh.plot_g_repr(plot_limit = 25 * bohr_radius, **FIGMAN_KWARGS, **PLOT_KWARGS)
-    sim.mesh.plot_g(plot_limit = 25 * bohr_radius, **FIGMAN_KWARGS, **PLOT_KWARGS)
+    sim.mesh.plot_g_repr(
+            plot_limit = 25 * bohr_radius,
+            tick_label_size = 20,
+            axis_label_size = 35,
+            title = '',
+            grid_kwargs = {'linewidth': 2},
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS,
+    )
+    sim.mesh.plot_g(
+            plot_limit = 25 * bohr_radius,
+            tick_label_size = 20,
+            title_size = 30,
+            grid_kwargs = {'linewidth': 2},
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS
+    )
+    sim.mesh.plot_g2(
+            plot_limit = 25 * bohr_radius,
+            tick_label_size = 20,
+            title_size = 30,
+            show_colorbar = False,
+            grid_kwargs = {'linewidth': 2},
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS
+    )
+
+
+def efield_and_afield():
+    times = np.linspace(-1000 * asec, 1000 * asec, 1e5)
+
+    bsw = deepcopy(BIG_SINE_WAVE)
+    bsw.window = ion.SymmetricExponentialTimeWindow(window_time = 800 * asec, window_width = 30 * asec)
+
+    si.vis.xy_plot(
+            'e_and_a_fields',
+            times,
+            bsw.get_electric_field_amplitude(times) / atomic_electric_field,
+            proton_charge * bsw.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
+            line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
+            line_kwargs = [{'linewidth': 3}, {'linewidth': 3}],
+            x_label = r'Time $t$', x_unit = 'asec',
+            title = r'Windowed Sine Wave Pulse w/ $E = 10 \, \mathrm{eV}$',
+            font_size_axis_labels = 35,
+            font_size_tick_labels = 20,
+            font_size_legend = 25,
+            font_size_title = 35,
+            **FIGMAN_KWARGS,
+            **PLOT_KWARGS,
+    )
 
 
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            efield_and_afield,
             title_bg,
             spherical_harmonic_mesh,
         ]

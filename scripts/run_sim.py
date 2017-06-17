@@ -43,9 +43,7 @@ if __name__ == '__main__':
 
             # run the simulation and save it
             log.info(sim.info())
-
             sim.run_simulation()
-
             log.info(sim.info())
 
             sim.save()

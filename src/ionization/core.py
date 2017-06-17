@@ -23,6 +23,7 @@ from . import potentials, states
 
 from .cy import tdma
 
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -482,10 +483,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 10,
-            fancybox = True,
-            framealpha = .3,
+                loc = 'lower left',
+                fontsize = 10,
+                fancybox = True,
+                framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -1479,8 +1480,9 @@ class QuantumMesh:
         """kwargs go to figman"""
         raise NotImplementedError
 
-    def plot_g2(self, name_postfix = '', **kwargs):
-        title = r'$|g|^2$'
+    def plot_g2(self, name_postfix = '', title = None, **kwargs):
+        if title is None:
+            title = r'$|g|^2$'
         name = 'g2' + name_postfix
 
         self.plot_mesh(self.g2, name = name, title = title, **kwargs)
@@ -1492,11 +1494,13 @@ class QuantumMesh:
         self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
 
     def plot_g(self,
+               title = None,
                name_postfix = '',
                colormap = plt.get_cmap('richardson'),
                norm = None,
                **kwargs):
-        title = r'$g$'
+        if title is None:
+            title = r'$g$'
         name = 'g' + name_postfix
 
         if norm is None:
@@ -2233,53 +2237,74 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return quiv
 
-    def plot_mesh(self, mesh, name = '', target_dir = None, title = None,
-                  overlay_probability_current = False, probability_current_time_step = 0, plot_limit = None,
-                  distance_unit = 'nm',
-                  color_map = plt.get_cmap('inferno'),
+    def plot_mesh(self, mesh,
+                  name = '',
+                  title = None,
+                  distance_unit = 'bohr_radius',
+                  colormap = COLORMAP_WAVEFUNCTION,
+                  norm = si.vis.AbsoluteRenormalize(),
+                  shading = 'gouraud',
+                  plot_limit = None,
+                  slicer = 'get_mesh_slicer',
+                  aspect_ratio = 1,
+                  show_colorbar = True,
+                  show_axes = True,
+                  title_size = 20,
+                  axis_label_size = 15,
+                  tick_label_size = 10,
+                  grid_kwargs = None,
+                  # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
-        plt.close()
+        if grid_kwargs is None:
+            grid_kwargs = {}
 
-        plt.set_cmap(color_map)
+        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
+            fig = figman.fig
+            fig.set_tight_layout(True)
+            axis = plt.subplot(111)
 
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(distance_unit)
+            unit_value, unit_name = get_unit_value_and_latex_from_unit(distance_unit)
 
-        fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
-        fig.set_tight_layout(True)
-        axis = plt.subplot(111)
+            color_mesh = self.attach_mesh_to_axis(
+                    axis, mesh,
+                    distance_unit = distance_unit,
+                    colormap = colormap,
+                    norm = norm,
+                    shading = shading,
+                    plot_limit = plot_limit,
+                    slicer = slicer
+            )
+            # if overlay_probability_current:
+            #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-        color_mesh = self.attach_mesh_to_axis(axis, mesh, plot_limit = plot_limit, distance_unit = distance_unit)
-        if overlay_probability_current:
-            quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
+            axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = axis_label_size)
+            axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = axis_label_size)
+            if title is not None and show_axes and title != '':
+                title = axis.set_title(title, fontsize = title_size)
+                title.set_y(1.05)  # move title up a bit
 
-        axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 15)
-        axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 15)
-        if title is not None:
-            title = axis.set_title(title, fontsize = 15)
-            title.set_y(1.05)  # move title up a bit
+            # make a colorbar
+            if show_colorbar and show_axes:
+                cbar = fig.colorbar(mappable = color_mesh, ax = axis)
+                cbar.ax.tick_params(labelsize = tick_label_size)
 
-        # make a colorbar
-        cbar = fig.colorbar(mappable = color_mesh, ax = axis)
-        cbar.ax.tick_params(labelsize = 10)
+            axis.axis('tight')  # removes blank space between color mesh and axes
 
-        axis.axis('tight')  # removes blank space between color mesh and axes
+            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
 
-        axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[color_map], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
+            axis.tick_params(axis = 'both', which = 'major', labelsize = tick_label_size)  # increase size of tick labels
+            # axis.tick_params(axis = 'both', which = 'both', length = 0)
 
-        axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
-        axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
-        axis.tick_params(axis = 'both', which = 'both', length = 0)
+            # set upper and lower y ticks to not display to avoid collisions with the x ticks at the edges
+            y_ticks = axis.yaxis.get_major_ticks()
+            y_ticks[0].label1.set_visible(False)
+            y_ticks[0].label2.set_visible(False)
+            y_ticks[-1].label1.set_visible(False)
+            y_ticks[-1].label2.set_visible(False)
 
-        # set upper and lower y ticks to not display to avoid collisions with the x ticks at the edges
-        y_ticks = axis.yaxis.get_major_ticks()
-        y_ticks[0].label1.set_visible(False)
-        y_ticks[0].label2.set_visible(False)
-        y_ticks[-1].label1.set_visible(False)
-        y_ticks[-1].label2.set_visible(False)
-
-        si.vis.save_current_figure(name = '{}_{}'.format(self.spec.name, name), target_dir = target_dir, **kwargs)
-
-        plt.close()
+            if not show_axes:
+                axis.axis('off')
 
 
 class SphericalSliceSpecification(ElectricFieldSpecification):
@@ -3597,8 +3622,14 @@ class SphericalHarmonicMesh(QuantumMesh):
                   aspect_ratio = 1,
                   show_colorbar = True,
                   show_axes = True,
+                  title_size = 20,
+                  tick_label_size = 10,
+                  grid_kwargs = None,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
+        if grid_kwargs is None:
+            grid_kwarg = {}
+
         with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
@@ -3609,19 +3640,20 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             unit_value, unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
 
-            color_mesh = self.attach_mesh_to_axis(axis, mesh,
-                                                  distance_unit = distance_unit,
-                                                  colormap = colormap,
-                                                  norm = norm,
-                                                  shading = shading,
-                                                  plot_limit = plot_limit,
-                                                  slicer = slicer
-                                                  )
+            color_mesh = self.attach_mesh_to_axis(
+                    axis, mesh,
+                    distance_unit = distance_unit,
+                    colormap = colormap,
+                    norm = norm,
+                    shading = shading,
+                    plot_limit = plot_limit,
+                    slicer = slicer
+            )
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None and show_axes:
-                title = axis.set_title(title, fontsize = 20)
+            if title is not None and show_axes and title != '':
+                title = axis.set_title(title, fontsize = title_size)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
 
@@ -3629,15 +3661,15 @@ class SphericalHarmonicMesh(QuantumMesh):
             if show_colorbar and show_axes:
                 cbar_axis = fig.add_axes([1.01, .1, .04, .8])  # add a new axis for the cbar so that the old axis can stay square
                 cbar = plt.colorbar(mappable = color_mesh, cax = cbar_axis)
-                cbar.ax.tick_params(labelsize = 10)
+                cbar.ax.tick_params(labelsize = tick_label_size)
 
-            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
             angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
-            axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
+            axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.09, labels = angle_labels)
 
-            axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
+            axis.tick_params(axis = 'both', which = 'major', labelsize = tick_label_size)  # increase size of tick labels
             axis.tick_params(axis = 'y', which = 'major', colors = si.vis.CMAP_TO_OPPOSITE[colormap.name], pad = 3)  # make r ticks a color that shows up against the colormesh
-            axis.tick_params(axis = 'both', which = 'both', length = 0)
+            # axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             axis.set_rlabel_position(80)
 
@@ -3756,7 +3788,13 @@ class SphericalHarmonicMesh(QuantumMesh):
                        aspect_ratio = si.vis.GOLDEN_RATIO,
                        show_colorbar = True,
                        show_axes = True,
+                       title_size = 15,
+                       axis_label_size = 15,
+                       tick_label_size = 10,
+                       grid_kwargs = None,
                        **kwargs):
+        if grid_kwargs is None:
+            grid_kwargs = {}
         with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
 
@@ -3774,22 +3812,22 @@ class SphericalHarmonicMesh(QuantumMesh):
                                                        slicer = slicer
                                                        )
 
-            axis.set_xlabel(r'$\ell$', fontsize = 15)
-            axis.set_ylabel(fr'$r$ (${unit_latex}$)', fontsize = 15)
-            if title is not None:
-                title = axis.set_title(title, fontsize = 15)
+            axis.set_xlabel(r'$\ell$', fontsize = axis_label_size)
+            axis.set_ylabel(fr'$r$ (${unit_latex}$)', fontsize = axis_label_size)
+            if title is not None and show_axes and title != '':
+                title = axis.set_title(title, fontsize = title_size)
                 title.set_y(1.05)  # move title up a bit
 
             # make a colorbar
             if show_colorbar and show_axes:
                 cbar = fig.colorbar(mappable = color_mesh, ax = axis)
-                cbar.ax.tick_params(labelsize = 10)
+                cbar.ax.tick_params(labelsize = tick_label_size)
 
-            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
 
             axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
-            axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
-            axis.tick_params(axis = 'both', which = 'both', length = 0)
+            axis.tick_params(axis = 'both', which = 'major', labelsize = tick_label_size)  # increase size of tick labels
+            # axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             y_ticks = axis.yaxis.get_major_ticks()
             y_ticks[0].label1.set_visible(False)
@@ -3805,8 +3843,10 @@ class SphericalHarmonicMesh(QuantumMesh):
     def plot_g_repr(self, name_postfix = '',
                     colormap = plt.get_cmap('richardson'),
                     norm = None,
+                    title = None,
                     **kwargs):
-        title = r'$g$'
+        if title is None:
+            title = r'$g$'
         name = 'g_repr' + name_postfix
 
         if norm is None:
