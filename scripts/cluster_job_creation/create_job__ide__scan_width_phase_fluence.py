@@ -80,8 +80,12 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'prefactor',
                                         value = prefactor))
 
-        parameters.append(clu.Parameter(name = 'kernel',
-                                        value = ide.gaussian_kernel_LEN))
+        if evolution_gauge.value == 'LEN':
+            parameters.append(clu.Parameter(name = 'kernel',
+                                            value = ide.gaussian_kernel_LEN))
+        elif evolution_gauge.value == 'VEL':
+            parameters.append(clu.Parameter(name = 'kernel',
+                                            value = ide.gaussian_kernel_VEL))
 
         parameters.append(clu.Parameter(name = 'kernel_kwargs',
                                         value = dict(tau_alpha = tau_alpha)))
