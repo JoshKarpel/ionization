@@ -58,36 +58,60 @@ def averaged_tunneling_rate(electric_field_amplitude, ionization_potential = -ry
     f = amplitude_scaled / ((2 * potential_scaled) ** 1.5)
 
     # return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time
-    return np.where(np.not_equal(electric_field_amplitude, 0), 4 * np.sqrt(4 / (3 * f)) * np.exp(-2 / (3 * f)) / atomic_time, 0)
+    return np.where(np.not_equal(electric_field_amplitude, 0), 4 * np.sqrt(3 / (pi * f)) * np.exp(-2 / (3 * f)) / atomic_time, 0)
+    # return np.where(np.not_equal(electric_field_amplitude, 0), 4 * np.sqrt(4 / (3 * f)) * np.exp(-2 / (3 * f)) / atomic_time, 0)
 
 
 def compare_quasistatic_to_tdse(intensity, photon_energy):
-    title = f'P={uround(intensity, atomic_intensity, 5)}_E={uround(photon_energy, eV, 3)}'
-
     dummy = ion.SineWave.from_photon_energy(.5 * eV)
-    efield = ion.SineWave.from_photon_energy_and_intensity(photon_energy, intensity)
-    efield.window = ion.SmoothedTrapezoidalWindow(time_front = dummy.period, time_plateau = 5 * dummy.period)
 
     time_initial = 0
     time_final = 8 * dummy.period
 
-    sim = ion.SphericalHarmonicSpecification(
-        'tdse',
-        r_bound = 100 * bohr_radius,
-        r_points = 400,
-        l_bound = 400,
+    time_front = 1 * dummy.period
+    time_plateau = 5 * dummy.period
+
+    efield = ion.SineWave.from_photon_energy_and_intensity(photon_energy, intensity)
+    efield.window = ion.SmoothedTrapezoidalWindow(time_front = time_front, time_plateau = time_plateau)
+
+    r_bound = 100
+    r_points = 4 * r_bound
+    l_bound = 400
+    dt = 4
+    store = 5
+
+    h = hash((intensity, photon_energy, time_initial, time_final, time_front, time_plateau, r_bound, r_points, l_bound, dt, store))
+
+    title = f'P={uround(intensity, atomic_intensity, 5)}_E={uround(photon_energy, eV, 1)}_R={r_bound}_Rp={r_points}_L={l_bound}_dt={dt}_sde={store}'
+
+    spec = ion.SphericalHarmonicSpecification(
+        f'tdse_{h}',
+        r_bound = r_bound * bohr_radius,
+        r_points = r_points,
+        l_bound = l_bound,
         internal_potential = ion.SoftCoulomb(softening_distance = .05 * bohr_radius),
-        time_initial = time_initial, time_final = time_final, time_step = 4 * asec,
+        time_initial = time_initial, time_final = time_final, time_step = dt * asec,
         electric_potential = efield,
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 20 * eV,
         numeric_eigenstate_max_angular_momentum = 5,
-        store_data_every = 5,
-    ).to_simulation()
+        store_data_every = store,
+        checkpoints = True,
+        checkpoint_dir = SIM_LIB,
+        checkpoint_every = 50,
+        mask = ion.RadialCosineMask(.9 * r_bound * bohr_radius, r_bound * bohr_radius),
+    )
+
+    sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
     logger.info(sim.info())
-    sim.run_simulation(progress_bar = True)
-    logger.info(sim.info())
+    if not sim.status == si.STATUS_FIN:
+        sim.run_simulation(progress_bar = True)
+        logger.info(sim.info())
+
+    sim.save(target_dir = SIM_LIB)
+
+    sim.plot_wavefunction_vs_time(**PLT_KWARGS)
 
     times = np.linspace(time_initial, time_final, 1e3)
 
@@ -99,8 +123,6 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
         y_label = fr'$ {ion.LATEX_EFIELD}(t) $)', y_unit = 'atomic_electric_field',
         **PLT_KWARGS,
     )
-
-    print(sim.spec.initial_state.energy / eV)
 
     tunneling_rate_vs_time = instantaneous_tunneling_rate(efield.get_electric_field_amplitude(times), sim.spec.initial_state.energy)
 
@@ -118,9 +140,13 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
     for ii, tunneling_rate in enumerate(tunneling_rate_vs_time[:-1]):
         wavefunction_remaining[ii + 1] = wavefunction_remaining[ii] * (1 - (tunneling_rate * np.abs(times[ii + 1] - times[ii])))
 
+    cycle_avg_rate = averaged_tunneling_rate(efield.amplitude)
+    cycle_avg_norm_remaining_plat = np.exp(-cycle_avg_rate * time_plateau)
+    cycle_avg_norm_remaining_all = np.exp(-cycle_avg_rate * (time_plateau + (2 * time_front)))
+
     for log in (True, False):
         si.vis.xxyy_plot(
-            f'comparison__{title}__log={log}',
+            title + f'__comparison__log={log}',
             (
                 sim.data_times,
                 sim.data_times,
@@ -136,6 +162,8 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
             line_labels = ('TDSE Norm', 'TDSE Bound States', 'TDSE Initial State', 'Tunneling',),
             x_label = r'Time $t$', x_unit = 'fsec',
             y_label = 'Remaining Wavefunction', y_log_axis = log,
+            hlines = [cycle_avg_norm_remaining_plat, cycle_avg_norm_remaining_all],
+            hline_kwargs = [{'linestyle': '--'}, {'linestyle': ':'}],
             **PLT_KWARGS,
         )
 
@@ -177,4 +205,22 @@ if __name__ == '__main__':
             **PLT_KWARGS,
         )
 
-        compare_quasistatic_to_tdse(atomic_intensity / (10 ** 2), .5 * eV)
+        # compare_quasistatic_to_tdse(atomic_intensity / (10 ** 2), .5 * eV)
+        # for intensity in [.0025]:
+        for intensity in [.0020, .0025, .0030]:
+            compare_quasistatic_to_tdse(intensity * atomic_intensity, .5 * eV)
+
+        ##############
+
+        # intensity = .0025 * atomic_intensity
+        # efield = np.sqrt(2 * intensity / (c * epsilon_0))
+        # rate = averaged_tunneling_rate(efield)
+        #
+        # print(rate)
+        # print(rate / THz)
+        #
+        # dummy = ion.SineWave.from_photon_energy(.5 * eV)
+        # plat_time = 5 * dummy.period
+        #
+        # remaining = np.exp(-rate * plat_time)
+        # print(remaining)
