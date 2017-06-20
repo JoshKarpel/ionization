@@ -697,6 +697,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info_algorithm = si.Info(header = 'Evolution Algorithm')
         info_algorithm.add_field('Integration Method', self.integration_method)
         info_algorithm.add_field('Evolution Method', self.evolution_method)
+        info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
         if self.evolution_method == 'ARK4':
             info_algorithm.add_field('Error Control On', self.error_on)
             info_algorithm.add_field('Epsilon', self.epsilon)
