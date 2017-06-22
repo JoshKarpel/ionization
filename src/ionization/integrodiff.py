@@ -575,7 +575,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  electric_potential_dc_correction = False,
                  kernel = return_one, kernel_kwargs = None,
                  integration_method = 'simpson',
-                 evolution_method = 'FE',
+                 evolution_method = 'RK4',
                  evolution_gauge = 'LEN',
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  store_data_every = 1,

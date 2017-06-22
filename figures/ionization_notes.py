@@ -8,14 +8,12 @@ import numpy as np
 import scipy.optimize as optimize
 from tqdm import tqdm
 
-
 matplotlib.use('pgf')
 
 import simulacra as si
 import ionization as ion
 import ionization.integrodiff as ide
 from simulacra.units import *
-
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -40,7 +38,7 @@ pgf_with_latex = {  # setup matplotlib to use latex for output
         r"\usepackage[T1]{fontenc}",  # plots will be generated using this preamble
     ]
 }
-matplotlib.rcParams.update_axis(pgf_with_latex)
+matplotlib.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
 
@@ -413,27 +411,31 @@ def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
     prefactor = -np.sqrt(pi) * (L ** 2) * ((q / hbar) ** 2)
 
     spec_kwargs = dict(
-            time_initial = -20 * pulse_width * asec, time_final = 20 * pulse_width * asec,
-            time_step = .1 * asec,
-            error_on = 'y', eps = 1e-3,
-            maximum_time_step = 5 * asec,
-            prefactor = prefactor,
-            kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
+        time_initial = -20 * pulse_width * asec, time_final = 20 * pulse_width * asec,
+        time_step = 1 * asec,
+        error_on = 'da/dt', eps = 1e-3,
+        minimum_time_step = .1 * asec,
+        maximum_time_step = 5 * asec,
+        prefactor = prefactor,
+        kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
+        evolution_gauge = 'LEN',
+        evolution_method = 'ARK4',
+        electric_potential_DC_correction = True,
     )
 
     specs = []
     for efield in efields:
-        specs.append(ide.AdaptiveIntegroDifferentialEquationSpecification(efield.phase,
-                                                                          f = efield.get_electric_field_amplitude,
-                                                                          **spec_kwargs,
-                                                                          ))
-    sims = si.utils.multi_map(run, specs, processes = 2)
+        specs.append(ide.IntegroDifferentialEquationSpecification(efield.phase,
+                                                                  electric_potential = efield,
+                                                                  **spec_kwargs,
+                                                                  ))
+    results = si.utils.multi_map(run, specs, processes = 2)
 
-    for sim, cep, color, style in zip(sims, (r'$\mathrm{CEP} = \varphi$', r'$\mathrm{CEP} = -\varphi$'), ('C0', 'C1'), ('-', '-')):
-        ax_lower.plot(sim.times, sim.spec.f(sim.times), color = color, linewidth = 1.5, label = cep, linestyle = style)
-        ax_upper.plot(sim.times, np.abs(sim.y) ** 2, color = color, linewidth = 1.5, label = cep, linestyle = style)
+    for result, cep, color, style in zip(results, (r'$\mathrm{CEP} = \varphi$', r'$\mathrm{CEP} = -\varphi$'), ('C0', 'C1'), ('-', '-')):
+        ax_lower.plot(result.times, result.spec.electric_potential.get_electric_field_amplitude(result.times), color = color, linewidth = 1.5, label = cep, linestyle = style)
+        ax_upper.plot(result.times, result.a2, color = color, linewidth = 1.5, label = cep, linestyle = style)
 
-    efield_1 = sims[0].spec.f(sims[0].times)
+    efield_1 = results[0].spec.electric_potential.get_electric_field_amplitude(results[0].times)
     field_max = np.max(efield_1)
     field_min = np.min(efield_1)
     field_range = np.abs(field_max - field_min)
@@ -483,9 +485,56 @@ def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
     save_figure(get_func_name() + '_phase={}'.format(round(phase, 3)))
 
 
+def tunneling_ionization():
+    r = np.linspace(-5, 50, 1000) * bohr_radius
+
+    coulomb = -atomic_electric_potential * bohr_radius / np.abs(r)
+    efield = -.02 * atomic_electric_field * r
+
+    for img_format in ('pdf', 'png', 'pgf'):
+        fm = si.vis.xy_plot(
+            get_func_name(),
+            r,
+            coulomb,
+            efield,
+            coulomb + efield,
+            line_labels = [r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{field}} $', r'$ V_{\mathrm{Coul}} + V_{\mathrm{field}} $'],
+            y_lower_limit = -2 * atomic_electric_potential,
+            y_upper_limit = 0 * atomic_electric_potential,
+            y_unit = 'atomic_electric_potential',
+            y_label = '$ V(r) $',
+            x_unit = 'bohr_radius',
+            x_label = r'$ r $',
+            img_format = img_format,
+            target_dir = OUT_DIR,
+            close_after_exit = False,
+            save = False,
+        )
+
+        ax = fm.fig.get_axes()[0]
+        y1 = ion.HydrogenBoundState(1, 0).energy / (atomic_electric_potential * proton_charge)
+        y2 = (coulomb + efield) / atomic_electric_potential
+        ax.fill_between(
+            r / bohr_radius,
+            y1,
+            y2,
+            where = y1 > y2,
+            # facecolor = 'none',
+            # edgecolor = 'purple',
+            interpolate = True,
+            # hatch = 'X'
+            facecolor = 'black',
+            alpha = 0.5,
+        )
+
+        fm.save()
+        fm.cleanup()
+
+
 if __name__ == '__main__':
     with log as logger:
         figures = [
+            tunneling_ionization,
             a_alpha_v2_kernel_gaussian,
             finite_square_well,
             finite_square_well_energies,

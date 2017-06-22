@@ -6,3 +6,4 @@ paramiko
 psutil
 scipy
 tqdm
+simulacra
