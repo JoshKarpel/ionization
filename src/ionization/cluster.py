@@ -531,7 +531,8 @@ class IDESimulationResult(clu.SimulationResult):
 
         self.final_bound_state_overlap = np.abs(sim.a[-1]) ** 2
 
-        self.make_a_plots(sim)
+        if len(sim.data_times):
+            self.make_a_plots(sim)
 
     def make_a_plots(self, sim):
         plot_kwargs = dict(

@@ -252,7 +252,8 @@ class HarmonicOscillator(PotentialEnergy):
 
         info.add_field('Spring Constant', f'{uround(self.spring_constant, 1, 3)} N/m | {uround(self.spring_constant, atomic_force, 3)} a.u./Bohr Radius')
         info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} Bohr radii | {uround(self.center, nm, 3)} nm')
-        info.add_field('Cutoff Distance', f'{uround(self.cutoff_distance, bohr_radius, 3)} Bohr radii | {uround(self.cutoff_distance, nm, 3)} nm')
+        if self.cutoff_distance is not None:
+            info.add_field('Cutoff Distance', f'{uround(self.cutoff_distance, bohr_radius, 3)} Bohr radii | {uround(self.cutoff_distance, nm, 3)} nm')
 
         return info
 

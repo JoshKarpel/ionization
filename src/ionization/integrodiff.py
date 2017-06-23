@@ -11,20 +11,35 @@ from simulacra.units import *
 
 from . import core, potentials, states
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def gaussian_tau_alpha_LEN(test_width, test_mass):
+    return 4 * test_mass * (test_width ** 2) / hbar
+
+
+def gaussian_prefactor_LEN(test_width, test_charge):
+    return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
+
+
+def gaussian_tau_alpha_VEL(test_width, test_mass):
+    return 2 * test_mass * (test_width ** 2) / hbar
+
+
+def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
+    return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
 
 
 def return_one(x, **kwargs):
     return 1
 
 
-def gaussian_kernel_LEN(time_difference, *, tau_alpha):
+def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
     return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
 
 
-def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width):
+def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
     time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
     alpha_diff_inner = (quiver_difference / width) ** 2
 
@@ -85,6 +100,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     @property
     def time(self):
         return self.times[self.time_index]
+
+    @property
+    def data_times(self):
+        return self.times
 
     @property
     def a2(self):
@@ -480,6 +499,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         axis.legend(**legend_kwargs)
 
         axis.grid(True, **si.vis.GRID_KWARGS)
+
+    def plot_wavefunction_vs_time(self, *args, **kwargs):
+        """Alias for plot_a2_vs_time."""
+        self.plot_a2_vs_time(*args, **kwargs)
 
     def plot_a2_vs_time(self,
                         log = False,

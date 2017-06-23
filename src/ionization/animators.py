@@ -631,12 +631,12 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
                  axman_lower_left = ElectricPotentialPlotAxis(),
                  axman_lower_right = WavefunctionStackplotAxis(),
                  **kwargs):
+        super().__init__(**kwargs)
+
         self.axman_lower_left = axman_lower_left
         self.axman_lower_right = axman_lower_right
 
         self.axis_managers += [self.axman_lower_left, self.axman_lower_right]
-
-        super().__init__(**kwargs)
 
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (16, 12))
@@ -665,7 +665,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         self.axman_upper_right = axman_upper_right
         self.axman_colorbar = axman_colorbar
 
-        self.axis_managers += [self.axman_lower_right, self.axman_upper_right, self.axman_colorbar]
+        self.axis_managers += [axman for axman in [self.axman_lower_right, self.axman_upper_right, self.axman_colorbar] if axman is not None]
 
     def _initialize_figure(self):
         self.fig = plt.figure(figsize = (20, 12))

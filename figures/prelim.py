@@ -1,4 +1,4 @@
-import functools as ft
+import functools
 import logging
 import os
 import sys
@@ -176,7 +176,27 @@ def efield_and_afield():
         proton_charge * bsw.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
-        x_label = r'Time $t$', x_unit = 'asec',
+        x_label = r'$t$', x_unit = 'asec',
+        y_label = r'Amplitude (a.u.)',
+        y_lower_limit = -1.6, y_upper_limit = 1,
+        title = r'Windowed Sine Wave Pulse w/ $E = 10 \, \mathrm{eV}$',
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        **FIGMAN_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xy_plot(
+        'e_field',
+        times,
+        bsw.get_electric_field_amplitude(times) / atomic_electric_field,
+        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $'],
+        line_kwargs = [{'linewidth': 3}],
+        x_label = r'$t$', x_unit = 'asec',
+        y_label = r'Amplitude (a.u.)',
+        y_lower_limit = -1.6, y_upper_limit = 1,
         title = r'Windowed Sine Wave Pulse w/ $E = 10 \, \mathrm{eV}$',
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
@@ -205,7 +225,7 @@ def sinc_pulse():
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
-        x_label = r'Time $t$', x_unit = 'asec',
+        x_label = r'$t$', x_unit = 'asec',
         title = fr'Windowed Sinc Pulse w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
@@ -214,6 +234,7 @@ def sinc_pulse():
         **FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
+
 
 def gaussian_pulse():
     pw = 200 * asec
@@ -233,7 +254,8 @@ def gaussian_pulse():
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
-        x_label = r'Time $t$', x_unit = 'asec',
+        x_label = r'$t$', x_unit = 'asec',
+        y_label = r'Amplitude (a.u.)',
         title = fr'Gaussian Pulse w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
@@ -241,6 +263,64 @@ def gaussian_pulse():
         font_size_title = 35,
         **FIGMAN_KWARGS,
         **PLOT_KWARGS,
+    )
+
+
+def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
+    pw = 200 * asec
+    flu = 1 * Jcm2
+    phases = np.linspace(0, twopi, 600)
+    # phase_frames = list(range(len(phases)))
+
+    times = np.linspace(-10 * pw, 10 * pw, 1000)
+
+    @si.utils.memoize
+    def get_pulse_by_phase(phase):
+        pulse = pulse_type(pulse_width = pw,
+                           fluence = flu,
+                           phase = phase,
+                           window = ion.SymmetricExponentialTimeWindow(window_time = pw * 8,
+                                                                       window_width = .2 * pw))
+
+        return ion.DC_correct_electric_potential(pulse, times)
+
+    def efield(times, phase):
+        return get_pulse_by_phase(phase).get_electric_field_amplitude(times) / atomic_electric_field
+
+    def efield_intensity(times, phase):
+        return epsilon_0 * c * (np.abs(efield(times, phase) * atomic_electric_field) ** 2)
+
+    def afield(times, phase):
+        return get_pulse_by_phase(phase).get_vector_potential_amplitude_numeric_cumulative(times) * proton_charge / atomic_momentum
+
+    si.vis.xyt_plot(
+        f'cep_movie__{pulse_type.__name__}_efield',
+        times,
+        phases,
+        efield, afield,
+        line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ e \, {ion.LATEX_AFIELD}(t) $'],
+        line_kwargs = [None, {'linestyle': '--'}],
+        x_label = r'$ t $', x_unit = 'asec',
+        y_label = r'Amplitude (a.u.)',
+        t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
+        title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
+        progress_bar = True,
+        length = 10,
+        target_dir = OUT_DIR,
+    )
+
+    si.vis.xyt_plot(
+        f'cep_movie__{pulse_type.__name__}_intensity',
+        times,
+        phases,
+        efield_intensity,
+        x_label = r'$ t $', x_unit = 'asec',
+        y_label = r'$ P(t) $', y_unit = 'atomic_intensity',
+        t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
+        title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
+        progress_bar = True,
+        length = 10,
+        target_dir = OUT_DIR,
     )
 
 
@@ -252,6 +332,8 @@ if __name__ == '__main__':
             efield_and_afield,
             title_bg,
             spherical_harmonic_mesh,
+            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
         ]
 
         for fig in tqdm(figures):

@@ -8,8 +8,8 @@ import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-import src.ionization as ion
-import src.ionization.cluster as iclu
+import ionization as ion
+import ionization.cluster as iclu
 
 
 if __name__ == '__main__':
@@ -52,12 +52,12 @@ if __name__ == '__main__':
 
         spec_type = ion.LineSpecification
 
-        x_bound = bohr_radius * clu.ask_for_input('X Bound (in Bohr radii)?', default = 500, cast_to = float)
+        x_bound = bohr_radius * clu.ask_for_input('X Bound (in Bohr radii)?', default = 200, cast_to = float)
         parameters.append(clu.Parameter(name = 'x_bound',
                                         value = x_bound))
 
         parameters.append(clu.Parameter(name = 'x_points',
-                                        value = 2 ** clu.ask_for_input('X Points? (2 ** input)', default = 16, cast_to = int)))
+                                        value = 2 ** clu.ask_for_input('X Points? (2 ** input)', default = 14, cast_to = int)))
 
         potential = ion.FiniteSquareWell(potential_depth = eV * clu.ask_for_input('Finite Square Well Depth (in eV)?', default = 36.831335, cast_to = float),
                                          width = bohr_radius * clu.ask_for_input('Finite Square Well Width (in Bohr radii)?', default = 1, cast_to = float))
@@ -90,9 +90,12 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'time_step',
                                         value = asec * clu.ask_for_input('Time Step (in as)?', default = 1, cast_to = float)))
 
-        time_bound_in_pw = clu.Parameter(name = 'time_bound_in_pw',
-                                         value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 30, cast_to = float))
-        parameters.append(time_bound_in_pw)
+        time_initial_in_pw = clu.Parameter(name = 'initial_time_in_pw',
+                                           value = clu.ask_for_input('Initial Time (in pulse widths)?', default = -35, cast_to = float))
+        parameters.append(time_initial_in_pw)
+
+        parameters.append(clu.Parameter(name = 'final_time_in_pw',
+                                        value = clu.ask_for_input('Final Time (in pulse widths)?', default = 40, cast_to = float)))
 
         extra_time = clu.Parameter(name = 'extra_time',
                                    value = asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float))
@@ -140,7 +143,7 @@ if __name__ == '__main__':
         pulse_parameters.append(phases)
 
         window_time_in_pw = clu.Parameter(name = 'window_time_in_pw',
-                                          value = clu.ask_for_input('Window Time (in pulse widths)?', default = time_bound_in_pw.value - 2, cast_to = float))
+                                          value = clu.ask_for_input('Window Time (in pulse widths)?', default = abs(time_initial_in_pw.value) - 2, cast_to = float))
         window_width_in_pw = clu.Parameter(name = 'window_width_in_pw',
                                            value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.5, cast_to = float))
         parameters.append(window_time_in_pw)
@@ -196,8 +199,8 @@ if __name__ == '__main__':
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
             time_final = spec_kwargs['final_time_in_pw'] * electric_potential.pulse_width + extra_time.value
+            snapshot_times = np.concatenate((snapshot_times, electric_potential.pulse_width * snapshot_times_in_pw))
 
-            time_bound = spec_kwargs['time_bound_in_pw'] * electric_potential.pulse_width
             spec = spec_type(name,
                              file_name = str(ii),
                              time_initial = time_initial, time_final = time_final,

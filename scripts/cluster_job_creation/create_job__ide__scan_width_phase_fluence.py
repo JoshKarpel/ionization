@@ -66,7 +66,7 @@ if __name__ == '__main__':
             tau_alpha = 4 * test_mass * (test_width ** 2) / hbar
         elif evolution_gauge.value == 'VEL':
             prefactor = -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
-            tau_alpha = 2 * m * (test_width ** 2) / hbar
+            tau_alpha = 2 * test_mass * (test_width ** 2) / hbar
         else:
             raise ValueError('Unknown evolution gauge')
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
                                             value = ide.gaussian_kernel_VEL))
 
         parameters.append(clu.Parameter(name = 'kernel_kwargs',
-                                        value = dict(tau_alpha = tau_alpha)))
+                                        value = dict(tau_alpha = tau_alpha, width = test_width)))
 
         parameters.append(clu.Parameter(name = 'time_step',
                                         value = asec * clu.ask_for_input('Time Step (in as)?', default = .1, cast_to = float)))
