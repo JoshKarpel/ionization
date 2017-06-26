@@ -71,7 +71,7 @@ def monochromatic_keldysh_2d(photon_energy_min, photon_energy_max, electric_fiel
 
 def pulse_keldysh_2d(pulse_width_min, pulse_width_max, fluence_min, fluence_max, ionization_potential = -rydberg, pulse_type = ion.SincPulse, points = 200):
     pulse_widths = np.linspace(pulse_width_min, pulse_width_max, points)
-    fluences = np.linspace(fluence_min, fluence_max, points)
+    fluences = np.geomspace(fluence_min, fluence_max, points)
 
     pulse_width_mesh, fluence_mesh = np.meshgrid(pulse_widths, fluences, indexing = 'ij')
     gamma_mesh = np.empty_like(pulse_width_mesh)
@@ -106,6 +106,7 @@ if __name__ == '__main__':
         monochromatic_keldysh_2d(0 * eV, 100 * eV, 0 * atomic_electric_field, 3 * atomic_electric_field, points = 300)
 
         for pulse_type in (ion.SincPulse, ion.GaussianPulse, ion.SechPulse):
+            pulse_keldysh_2d(50 * asec, 1000 * asec, 0.001 * Jcm2, 30 * Jcm2, pulse_type = pulse_type, points = 300)
             pulse_keldysh_2d(50 * asec, 1000 * asec, 0.01 * Jcm2, 50 * Jcm2, pulse_type = pulse_type, points = 300)
             pulse_keldysh_2d(50 * asec, 1000 * asec, 0.01 * Jcm2, 20 * Jcm2, pulse_type = pulse_type, points = 300)
             pulse_keldysh_2d(50 * asec, 5000 * asec, 0.01 * Jcm2, 100 * Jcm2, pulse_type = pulse_type, points = 500)
