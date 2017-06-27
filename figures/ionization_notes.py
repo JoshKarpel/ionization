@@ -485,26 +485,28 @@ def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
     save_figure(get_func_name() + '_phase={}'.format(round(phase, 3)))
 
 
-def tunneling_ionization():
-    r = np.linspace(-5, 50, 1000) * bohr_radius
+def tunneling_ionization(amplitude):
+    z = np.linspace(-5, 50, 1000) * bohr_radius
 
-    coulomb = -atomic_electric_potential * bohr_radius / np.abs(r)
-    efield = -.02 * atomic_electric_field * r
+    coul_pot = -coulomb_constant * (proton_charge ** 2) / np.abs(z)
+    elec_pot = -proton_charge * amplitude * z
 
     for img_format in ('pdf', 'png', 'pgf'):
         fm = si.vis.xy_plot(
-            get_func_name(),
-            r,
-            coulomb,
-            efield,
-            coulomb + efield,
-            line_labels = [r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{field}} $', r'$ V_{\mathrm{Coul}} + V_{\mathrm{field}} $'],
-            y_lower_limit = -2 * atomic_electric_potential,
-            y_upper_limit = 0 * atomic_electric_potential,
-            y_unit = 'atomic_electric_potential',
-            y_label = '$ V(r) $',
+            get_func_name() + f'__amp={uround(amplitude, atomic_electric_field, 5)}aef',
+            z,
+            coul_pot + elec_pot,
+            coul_pot,
+            elec_pot,
+            line_labels = [r'$ V_{\mathrm{Coul}} + V_{\mathrm{Field}} $', r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{Field}} $'],
+            line_kwargs = [None, {'linestyle': '--'}, {'linestyle': '--'}],
+            hlines = [ion.HydrogenBoundState(1, 0).energy], hline_kwargs = [{'linestyle': ':', 'color': 'black'}],
+            y_lower_limit = -2 * hartree,
+            y_upper_limit = 0 * hartree,
+            y_unit = 'eV',
+            y_label = '$ V(z) $',
             x_unit = 'bohr_radius',
-            x_label = r'$ r $',
+            x_label = r'$ z $',
             img_format = img_format,
             target_dir = OUT_DIR,
             close_after_exit = False,
@@ -512,12 +514,12 @@ def tunneling_ionization():
         )
 
         ax = fm.fig.get_axes()[0]
-        y1 = ion.HydrogenBoundState(1, 0).energy / (atomic_electric_potential * proton_charge)
-        y2 = (coulomb + efield) / atomic_electric_potential
+        y1 = ion.HydrogenBoundState(1, 0).energy
+        y2 = (coul_pot + elec_pot)
         ax.fill_between(
-            r / bohr_radius,
-            y1,
-            y2,
+            z / bohr_radius,
+            y1 / eV,
+            y2 / eV,
             where = y1 > y2,
             # facecolor = 'none',
             # edgecolor = 'purple',
@@ -534,7 +536,15 @@ def tunneling_ionization():
 if __name__ == '__main__':
     with log as logger:
         figures = [
-            tunneling_ionization,
+            ft.partial(tunneling_ionization, (pi * epsilon_0 / (proton_charge ** 3)) * (rydberg ** 2)),
+            ft.partial(tunneling_ionization, 1 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .5 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .1 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .05 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .03 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .025 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .02 * atomic_electric_field),
+            ft.partial(tunneling_ionization, .01 * atomic_electric_field),
             a_alpha_v2_kernel_gaussian,
             finite_square_well,
             finite_square_well_energies,

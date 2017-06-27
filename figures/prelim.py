@@ -324,9 +324,78 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
     )
 
 
+def tunneling_ionization_animation():
+    z = np.linspace(-5, 50, 1000) * bohr_radius
+    amplitudes = np.hstack([0, np.geomspace(0.001, .3, 599)]) * atomic_electric_field
+    amplitudes = np.hstack([amplitudes, amplitudes[::-1]])
+
+    coul_pot = -coulomb_constant * (proton_charge ** 2) / np.abs(z)
+    elec_pot = -proton_charge * amplitudes[0] * z
+
+    fm = si.vis.xy_plot(
+        get_func_name(),
+        z,
+        coul_pot + elec_pot,
+        coul_pot,
+        elec_pot,
+        line_labels = [r'$ V_{\mathrm{Coul}} + V_{\mathrm{Field}} $', r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{Field}} $'],
+        line_kwargs = [{'animated': True}, {'linestyle': '--'}, {'linestyle': '--', 'animated': True}],
+        hlines = [ion.HydrogenBoundState(1, 0).energy], hline_kwargs = [{'linestyle': ':', 'color': 'black'}],
+        y_lower_limit = -2 * hartree,
+        y_upper_limit = 0,
+        y_unit = 'eV',
+        y_label = '$ V(z) $',
+        x_unit = 'bohr_radius',
+        x_label = r'$ z $',
+        target_dir = OUT_DIR,
+        fig_dpi_scale = 3,
+        close_after_exit = False,
+        save_on_exit = False,
+    )
+
+    ax = fm.fig.get_axes()[0]
+    y1 = ion.HydrogenBoundState(1, 0).energy
+    y2 = (coul_pot + elec_pot)
+    fb = ax.fill_between(
+        z / bohr_radius,
+        y1 / eV,
+        y2 / eV,
+        where = y1 > y2,
+        interpolate = True,
+        facecolor = 'black',
+        alpha = 0.5,
+        animated = True,
+    )
+
+    def update(amp):
+        nonlocal fb
+
+        elec_pot = -proton_charge * amp * z
+        y2 = (coul_pot + elec_pot)
+
+        fm.elements['lines'][0].set_ydata(y2 / eV)
+        fm.elements['lines'][2].set_ydata(elec_pot / eV)
+
+        fb.remove()
+        fb = ax.fill_between(
+            z / bohr_radius,
+            y1 / eV,
+            y2 / eV,
+            where = y1 > y2,
+            interpolate = True,
+            facecolor = 'black',
+            alpha = 0.5,
+        )
+
+        fm.fig.draw_artist(fb)
+
+    si.vis.animate(fm, update, amplitudes, artists = [fm.elements['lines'][0], fm.elements['lines'][2]], length = 20)
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            tunneling_ionization_animation,
             sinc_pulse,
             gaussian_pulse,
             efield_and_afield,
