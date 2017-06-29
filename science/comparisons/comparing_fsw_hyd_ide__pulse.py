@@ -39,9 +39,9 @@ def run(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        pulse_widths = np.array([100, 200]) * asec
-        fluences = np.array([0.1, 1]) * Jcm2
-        phases = [0, pi / 4, pi / 2]
+        pulse_widths = np.array([200]) * asec
+        fluences = np.array([.001, .01, 0.1, 1, 10]) * Jcm2
+        phases = [0, pi / 2]
 
         for pw, flu, phase in itertools.product(pulse_widths, fluences, phases):
             t_bound = 30
@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 checkpoint_dir = SIM_LIB,
             )
 
-            prefix = f'pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 2)}jcm2_phase={uround(phase, pi, 2)}pi'
+            prefix = f'pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 4)}jcm2_phase={uround(phase, pi, 3)}pi'
 
             specs = [
                 ion.LineSpecification(
@@ -136,7 +136,7 @@ if __name__ == '__main__':
                 )
             ]
 
-            results = si.utils.multi_map(run, specs, processes = 3)
+            results = si.utils.multi_map(run, specs, processes = 2)
 
             final_initial_state_overlaps = []
             with open(os.path.join(OUT_DIR, f'results__{prefix}.txt'), mode = 'w') as file:
