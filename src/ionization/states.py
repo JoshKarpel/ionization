@@ -551,45 +551,27 @@ class NumericOneDState(QuantumState):
         self.bound = bound
 
     def __str__(self):
-        if self.analytic_state is None:
-            return self.ket
-        else:
-            return str(self.analytic_state)
+        return str(self.analytic_state) + '_n'
 
     def __repr__(self):
-        if self.analytic_state is None:
-            return self.ket
-        else:
-            return repr(self.analytic_state)
+        return repr(self.analytic_state) + '_n'
 
     @property
     def tuple(self):
-        if self.analytic_state is None:
-            return (self.energy,)
-        else:
-            return self.analytic_state.tuple
+        return self.analytic_state.tuple
 
     @property
     def ket(self):
-        if self.analytic_state is None:
-            return f'|E={uround(self.energy, "eV", 3)} eV>_n'
-        else:
-            return self.analytic_state.ket
+        return self.analytic_state.ket
 
     @property
     def bra(self):
-        if self.analytic_state is None:
-            return f'<E={uround(self.energy, "eV", 3)} eV|_n'
-        else:
-            return self.analytic_state.bra
+        return self.analytic_state.bra
 
     @property
     def latex(self):
-        """Return a LaTeX-formatted string for the NumericOneDState."""
-        if self.analytic_state is None:
-            return fr'E = {uround(self.energy, "eV", 3)} \mathrm{eV}'
-        else:
-            return self.analytic_state.latex
+        """Return a LaTeX-formatted string for the NumericSphericalHarmonicState."""
+        return self.analytic_state.latex
 
     @property
     def n(self):

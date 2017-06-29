@@ -200,27 +200,27 @@ class HarmonicOscillator(PotentialEnergy):
         super().__init__()
 
     @classmethod
-    def from_frequency_and_mass(cls, omega = 1.5192675e15 * Hz, mass = electron_mass):
+    def from_frequency_and_mass(cls, omega = 1.5192675e15 * Hz, mass = electron_mass, **kwargs):
         """Return a HarmonicOscillator constructed from the given angular frequency and mass."""
-        return cls(spring_constant = mass * (omega ** 2))
+        return cls(spring_constant = mass * (omega ** 2), **kwargs)
 
     @classmethod
-    def from_ground_state_energy_and_mass(cls, ground_state_energy = 0.5 * eV, mass = electron_mass):
+    def from_ground_state_energy_and_mass(cls, ground_state_energy = 0.5 * eV, mass = electron_mass, **kwargs):
         """
         Return a HarmonicOscillator constructed from the given ground state energy and mass.
 
         Note: the ground state energy is half of the energy spacing of the oscillator.
         """
-        return cls.from_frequency_and_mass(omega = 2 * ground_state_energy / hbar, mass = mass)
+        return cls.from_frequency_and_mass(omega = 2 * ground_state_energy / hbar, mass = mass, **kwargs)
 
     @classmethod
-    def from_energy_spacing_and_mass(cls, energy_spacing = 1 * eV, mass = electron_mass):
+    def from_energy_spacing_and_mass(cls, energy_spacing = 1 * eV, mass = electron_mass, **kwargs):
         """
         Return a HarmonicOscillator constructed from the given state energy spacing and mass.
 
         Note: the ground state energy is half of the energy spacing of the oscillator.
         """
-        return cls.from_frequency_and_mass(omega = energy_spacing / hbar, mass = mass)
+        return cls.from_frequency_and_mass(omega = energy_spacing / hbar, mass = mass, **kwargs)
 
     def __call__(self, *, distance, **kwargs):
         """Return the HarmonicOscillator potential energy evaluated at position distance."""
