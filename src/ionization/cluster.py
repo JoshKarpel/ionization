@@ -11,7 +11,6 @@ from simulacra.units import *
 
 from . import core, integrodiff
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -88,7 +87,7 @@ class PulseParameterScanMixin:
 
         if len(self.unprocessed_sim_names) == 0:
             logger.info(f'Generating pulse parameter scans for job {self.name}')
-            # self.make_pulse_parameter_scans_1d()
+            self.make_pulse_parameter_scans_1d()
             self.make_pulse_parameter_scans_2d()
 
     def make_pulse_parameter_scans_1d(self):
@@ -100,64 +99,63 @@ class PulseParameterScanMixin:
                 plot_parameter_unit, line_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[line_parameter], parameter_name_to_unit_name[scan_parameter]
                 plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
 
-                if len(scan_parameter_set) < 2:
+                if len(scan_parameter_set) < 2 or len(line_parameter_set) > 8:
                     continue
 
                 for plot_parameter_value in plot_parameter_set:
-                    for line_group_number, line_parameter_group in enumerate(si.utils.grouper(sorted(line_parameter_set), 8)):
-                        plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__grouped_by_{line_parameter}__group_{line_group_number}'
+                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__grouped_by_{line_parameter}'
 
-                        lines = []
-                        line_labels = []
+                    lines = []
+                    line_labels = []
 
-                        for line_parameter_value in sorted(l for l in line_parameter_group if l is not None):
-                            selector = {
-                                plot_parameter: plot_parameter_value,
-                                line_parameter: line_parameter_value,
-                            }
-                            results = sorted(self.select_by_kwargs(**selector), key = lambda result: getattr(result, scan_parameter))
+                    for line_parameter_value in sorted(line_parameter_set):
+                        selector = {
+                            plot_parameter: plot_parameter_value,
+                            line_parameter: line_parameter_value,
+                        }
+                        results = sorted(self.select_by_kwargs(**selector), key = lambda result: getattr(result, scan_parameter))
 
-                            lines.append(np.array([getattr(result, ionization_metric) for result in results]))
+                        lines.append(np.array([getattr(result, ionization_metric) for result in results]))
 
-                            label = fr"{line_parameter_name}$\, = {uround(line_parameter_value, line_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
-                            line_labels.append(label)
+                        label = fr"{line_parameter_name}$\, = {uround(line_parameter_value, line_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
+                        line_labels.append(label)
 
-                        x = np.array([getattr(result, scan_parameter) for result in results])
+                    x = np.array([getattr(result, scan_parameter) for result in results])
 
-                        for log_x, log_y in it.product((True, False), repeat = 2):
-                            if scan_parameter == 'phase':
-                                log_x = False
+                    for log_x, log_y in it.product((True, False), repeat = 2):
+                        if scan_parameter == 'phase' and log_x:
+                            continue
 
-                            if not log_y:
-                                y_upper_limit = 1
-                                y_lower_limit = 0
-                            else:
-                                y_upper_limit = None
-                                y_lower_limit = None
+                        if not log_y:
+                            y_upper_limit = 1
+                            y_lower_limit = 0
+                        else:
+                            y_upper_limit = None
+                            y_lower_limit = None
 
-                            if any((log_x, log_y)):
-                                log_str = '__log'
+                        if any((log_x, log_y)):
+                            log_str = '__log'
 
-                                if log_x:
-                                    log_str += 'X'
+                            if log_x:
+                                log_str += 'X'
 
-                                if log_y:
-                                    log_str += 'Y'
-                            else:
-                                log_str = ''
+                            if log_y:
+                                log_str += 'Y'
+                        else:
+                            log_str = ''
 
-                            si.vis.xy_plot('1d__' + plot_name + log_str,
-                                           x,
-                                           *lines,
-                                           line_labels = line_labels,
-                                           title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                           x_label = scan_parameter_name, x_unit = scan_parameter_unit,
-                                           y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
-                                           y_label = ionization_metric_name,
-                                           legend_on_right = True,
-                                           target_dir = self.summaries_dir
-
-                                           )
+                        si.vis.xy_plot(
+                            '1d__' + plot_name + log_str,
+                            x,
+                            *lines,
+                            line_labels = line_labels,
+                            title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                            x_label = scan_parameter_name, x_unit = scan_parameter_unit,
+                            y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
+                            y_label = ionization_metric_name,
+                            legend_on_right = True,
+                            target_dir = self.summaries_dir
+                        )
 
     def make_pulse_parameter_scans_2d(self):
         for ionization_metric in self.ionization_metrics:
@@ -170,7 +168,7 @@ class PulseParameterScanMixin:
                     plot_parameter_unit, x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
                     plot_parameter_set, x_parameter_set, y_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(x_parameter), self.parameter_set(y_parameter)
 
-                    if len(x_parameter_set) < 2 or len(y_parameter_set) < 2:
+                    if len(x_parameter_set) < 10 or len(y_parameter_set) < 10:
                         continue
 
                     x, y = np.array(sorted(x_parameter_set)), np.array(sorted(y_parameter_set))
@@ -204,22 +202,19 @@ class PulseParameterScanMixin:
                             else:
                                 log_str = ''
 
-                            z_lower_limit = np.nanmin(z_mesh)
-                            z_upper_limit = 1
-
-                            plot_name = '2d__' + plot_name + log_str
-
                             try:
-                                si.vis.xyz_plot(plot_name,
-                                                x_mesh, y_mesh, z_mesh,
-                                                x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                                x_label = x_parameter_name, y_label = y_parameter_name,
-                                                x_log_axis = log_x, y_log_axis = log_y,
-                                                z_log_axis = True, z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
-                                                z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                                target_dir = self.summaries_dir)
-                            except ValueError as e:
-                                logger.warning(f'Failed to make plot {plot_name} because of {e}')
+                                si.vis.xyz_plot(
+                                    '2d__' + plot_name + log_str,
+                                    x_mesh, y_mesh, z_mesh,
+                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
+                                    x_label = x_parameter_name, y_label = y_parameter_name,
+                                    x_log_axis = log_x, y_log_axis = log_y,
+                                    z_log_axis = True, z_upper_limit = 1,
+                                    z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                                    target_dir = self.summaries_dir
+                                )
+                            except ValueError as ex:
+                                logger.exception(f'Failed to make plot {plot_name} because of {ex}')
 
 
 class ElectricFieldSimulationResult(clu.SimulationResult):
@@ -247,22 +242,14 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
             show_title = True,
         )
 
-        # sim.plot_wavefunction_vs_time(**plot_kwargs)
-
         grouped_states, group_labels = sim.group_free_states_by_continuous_attr('energy', divisions = 12, cutoff_value = 100 * eV, attr_unit = 'eV')
         sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = f'__energy__{sim.file_name}',
                                       grouped_free_states = grouped_states, group_free_states_labels = group_labels)
-        # sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__energy__collapsed',
-        #                               collapse_bound_state_angular_momentums = True,
-        #                               grouped_free_states = grouped_states, group_labels = group_labels)
 
         try:
             grouped_states, group_labels = sim.group_free_states_by_discrete_attr('l', cutoff_value = 10)
             sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = f'__l__{sim.file_name}',
                                           grouped_free_states = grouped_states, group_free_states_labels = group_labels)
-            # sim.plot_wavefunction_vs_time(**plot_kwargs, name_postfix = '__l__collapsed',
-            #                               collapse_bound_state_angular_momentums = True,
-            #                               grouped_free_states = grouped_states, group_labels = group_labels)
         except AttributeError:  # free states must not have l
             pass
 
@@ -544,6 +531,14 @@ class IDESimulationResult(clu.SimulationResult):
 
         sim.plot_a2_vs_time(**plot_kwargs)
         sim.plot_a2_vs_time(**plot_kwargs, log = True)
+
+    @property
+    def final_initial_state_overlap(self):
+        return self.final_bound_state_overlap
+
+    @property
+    def final_norm(self):
+        return self.final_bound_state_overlap
 
 
 class IDEJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
