@@ -32,23 +32,23 @@ def run(spec):
             sim.save(target_dir = SIM_LIB)
             logger.info(sim.info())
 
-        sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
+        sim.plot_wavefunction_vs_time(show_vector_potential = 'vel' in sim.name, **PLOT_KWARGS)
 
         return sim
 
 
 if __name__ == '__main__':
     with logman as logger:
-        pulse_widths = np.array([200]) * asec
-        fluences = np.array([.001, .01, 0.1, 1, 10, 20]) * Jcm2
-        # fluences = np.array([.1, 1, 10, 20]) * Jcm2
-        phases = [0, pi / 2]
+        photon_energies = np.array([1, 10, 15, 20, 30]) * eV
+        amplitudes = np.array([.025, .05, .1, .5, 1]) * atomic_electric_field
 
-        for pw, flu, phase in itertools.product(pulse_widths, fluences, phases):
-            t_bound = 32
+        front_periods = 1
+        plat_periods = 2
+        end_periods = plat_periods + (2 * front_periods) + .1
 
-            efield = ion.SincPulse(pulse_width = pw, fluence = flu, phase = phase,
-                                   window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 2) * pw, window_width = .2 * pw))
+        for photon_energy, amplitude in itertools.product(photon_energies, amplitudes):
+            efield = ion.SineWave.from_photon_energy(photon_energy, amplitude = amplitude)
+            efield.window = ion.SmoothedTrapezoidalWindow(time_front = front_periods * efield.period, time_plateau = plat_periods * efield.period)
 
             test_width = 1 * bohr_radius
             test_charge = 1 * electron_charge
@@ -63,8 +63,8 @@ if __name__ == '__main__':
                 test_mass = test_mass,
                 potential_depth = potential_depth,
                 electric_potential = efield,
-                time_initial = -t_bound * pw,
-                time_final = t_bound * pw,
+                time_initial = -.1 * efield.period,
+                time_final = end_periods * efield.period,
                 time_step = 1 * asec,
                 electric_potential_dc_correction = True,
                 x_bound = 200 * bohr_radius,
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                 store_data_every = 20,
             )
 
-            prefix = f'pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 4)}jcm2_phase={uround(phase, pi, 3)}pi'
+            prefix = f'E={uround(photon_energy, eV, 3)}eV_amp={uround(amplitude, atomic_electric_field, 3)}aef'
 
             specs = [
                 ion.LineSpecification(
@@ -97,7 +97,7 @@ if __name__ == '__main__':
                     **shared_kwargs,
                 ),
                 # ion.LineSpecification(
-                #     prefix + '__line_vel',
+                #     prefix + '__fsw_vel',
                 #     internal_potential = internal_potential,
                 #     initial_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = test_mass),
                 #     evolution_gauge = 'VEL',

@@ -1813,7 +1813,7 @@ class LineMesh(QuantumMesh):
                                                                                    n = nn + self.spec.analytic_eigenstate_type.smallest_n)
             except states.IllegalQuantumState:
                 bound = False
-                analytic_state = None
+                analytic_state = states.OneDFreeParticle.from_energy(eigenvalue, mass = self.spec.test_mass)
 
             numeric_state = states.NumericOneDState(eigenvector, eigenvalue, bound = bound, analytic_state = analytic_state)
             if analytic_state is None:
