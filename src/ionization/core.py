@@ -1395,6 +1395,7 @@ class QuantumMesh:
         else:
             method(time_step)
             self.g *= self.spec.mask(r = self.r_mesh)
+            logger.debug('Applied mask {} to g for {} {}'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name))
 
     def get_mesh_slicer(self, plot_limit):
         raise NotImplementedError
