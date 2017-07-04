@@ -87,12 +87,13 @@ if __name__ == '__main__':
             )
 
             prefix = f'E={uround(photon_energy, eV, 3)}eV_amp={uround(amplitude, atomic_electric_field, 3)}aef'
+            fsw_initial_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = test_mass)
 
             specs = [
                 ion.LineSpecification(
                     prefix + '__fsw_len',
                     internal_potential = internal_potential,
-                    initial_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = test_mass),
+                    initial_state = fsw_initial_state,
                     evolution_gauge = 'LEN',
                     **shared_kwargs,
                 ),
@@ -118,6 +119,7 @@ if __name__ == '__main__':
                     prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
                     kernel = ide.gaussian_kernel_LEN,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
+                    test_energy = fsw_initial_state.energy,
                     evolution_gauge = 'LEN',
                     evolution_method = 'ARK4',
                     **shared_kwargs,
@@ -128,13 +130,14 @@ if __name__ == '__main__':
                     kernel = ide.gaussian_kernel_VEL,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
                                      'width': test_width},
+                    test_energy = fsw_initial_state.energy,
                     evolution_gauge = 'VEL',
                     evolution_method = 'ARK4',
                     **shared_kwargs,
                 )
             ]
 
-            results = si.utils.multi_map(run, specs, processes = 4)
+            results = si.utils.multi_map(run, specs, processes = 2)
 
             final_initial_state_overlaps = []
             with open(os.path.join(OUT_DIR, f'results__{prefix}.txt'), mode = 'w') as file:
