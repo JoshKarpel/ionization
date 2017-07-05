@@ -76,14 +76,14 @@ if __name__ == '__main__':
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 10 * eV,
                 numeric_eigenstate_max_angular_momentum = 10,
-                time_step_minimum = .05 * asec,
+                time_step_minimum = 1 * asec,
                 time_step_maximum = 10 * asec,
                 error_on = 'da/dt',
                 epsilon = 1e-6,
                 analytic_eigenstate_type = ion.FiniteSquareWellState,
                 checkpoints = True,
                 checkpoint_dir = SIM_LIB,
-                store_data_every = 20,
+                store_data_every = 1,
             )
 
             prefix = f'pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 4)}jcm2_phase={uround(phase, pi, 3)}pi'
@@ -138,7 +138,7 @@ if __name__ == '__main__':
                 )
             ]
 
-            results = si.utils.multi_map(run, specs, processes = 2)
+            results = si.utils.multi_map(run, specs, processes = 4)
 
             final_initial_state_overlaps = []
             with open(os.path.join(OUT_DIR, f'results__{prefix}.txt'), mode = 'w') as file:

@@ -43,7 +43,7 @@ if __name__ == '__main__':
         amplitudes = np.array([.025, .05, .1, .5, 1]) * atomic_electric_field
 
         front_periods = 1
-        plat_periods = 2
+        plat_periods = 3
         end_periods = plat_periods + (2 * front_periods) + .1
 
         for photon_energy, amplitude in itertools.product(photon_energies, amplitudes):
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                 test_mass = test_mass,
                 potential_depth = potential_depth,
                 electric_potential = efield,
-                time_initial = -.1 * efield.period,
+                time_initial = 0,
                 time_final = end_periods * efield.period,
                 time_step = 1 * asec,
                 electric_potential_dc_correction = True,
@@ -76,14 +76,14 @@ if __name__ == '__main__':
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 10 * eV,
                 numeric_eigenstate_max_angular_momentum = 10,
-                time_step_minimum = .05 * asec,
+                time_step_minimum = 1 * asec,
                 time_step_maximum = 10 * asec,
                 error_on = 'da/dt',
                 epsilon = 1e-6,
                 analytic_eigenstate_type = ion.FiniteSquareWellState,
                 checkpoints = True,
                 checkpoint_dir = SIM_LIB,
-                store_data_every = 20,
+                store_data_every = 1,
             )
 
             prefix = f'E={uround(photon_energy, eV, 3)}eV_amp={uround(amplitude, atomic_electric_field, 3)}aef'
@@ -137,7 +137,7 @@ if __name__ == '__main__':
                 )
             ]
 
-            results = si.utils.multi_map(run, specs, processes = 2)
+            results = si.utils.multi_map(run, specs, processes = 4)
 
             final_initial_state_overlaps = []
             with open(os.path.join(OUT_DIR, f'results__{prefix}.txt'), mode = 'w') as file:

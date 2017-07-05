@@ -32,14 +32,14 @@ def t1(b):
 
 def t2(pulse_delay, b, kernel_func):
     # return (b ** 2) * (1 - (b ** 2)) * (np.abs(kernel_func(pulse_delay)) ** 2)
-    return (b ** 2) * ((1 - b) ** 2) * (np.abs(kernel_func(pulse_delay)) ** 2)
+    return (b ** 2) * ((1 - b) ** 2) * (np.abs(kernel_func(2 * pulse_delay)) ** 2)
 
 
 def t3(pulse_delay, b, kernel_func, tau_alpha):
     # prefactor = b * (1 - b) * (1 - (b ** 2))
     # return prefactor * 2 * np.real(np.exp(1j * pulse_delay / tau_alpha) * kernel_func(pulse_delay))
     prefactor = b * ((1 - b) ** 3)
-    return prefactor * 2 * np.real(np.exp(-1j * pulse_delay / tau_alpha) * kernel_func(pulse_delay))
+    return prefactor * 2 * np.real(np.exp(-1j * pulse_delay / tau_alpha) * kernel_func(2 * pulse_delay))
 
 
 def a_alpha(pulse_delay, *, b, tau_alpha, kernel_func):
@@ -74,18 +74,19 @@ def compare_cosine_and_sine(cosine_product, sine_product):
 
     print(b_sine, b_cosine)
 
-    pulse_delays = np.linspace(0, 1000 * asec, 1e3)
+    pulse_delays = np.linspace(0, 500 * asec, 1e3)
     double_kick = functools.partial(a_alpha, b = b_sine, tau_alpha = tau_alpha, kernel_func = kernel)
 
     ex = np.exp(-1j * pulse_delays / tau_alpha)
+    kern = kernel(2 * pulse_delays)
     si.vis.xy_plot(
         'inteference',
         pulse_delays,
         np.real(ex),
         np.imag(ex),
-        np.real(kernel(pulse_delays)),
-        np.imag(kernel(pulse_delays)),
-        2 * np.real(ex + kernel(pulse_delays)),
+        np.real(kern),
+        np.imag(kern),
+        2 * np.real(ex + kern),
         line_labels = [
             r'exp real',
             r'exp imag',
@@ -122,6 +123,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
         ],
         legend_on_right = True,
         x_label = 'Pulse Delay', x_unit = 'asec',
+        vlines = [tau_alpha], vline_kwargs = [{'linestyle': ':'}],
         # x_extra_ticks = [tau_alpha, classical_orbit_time],
         # x_extra_tick_labels = [r'$ \tau_{\alpha} $', r'$ \tau_{\mathrm{orb}} $'],
         **PLT_KWARGS,
@@ -192,9 +194,10 @@ def decompose_sinc(sinc, times):
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4))
-        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4))
+        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .2 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4))
+        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .2 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4))
         compare_cosine_and_sine(cosine_product = .496 * time_field_unit, sine_product = .372 * time_field_unit)
+        compare_cosine_and_sine(cosine_product = .702 * time_field_unit, sine_product = .526 * time_field_unit)
 
         # times = np.linspace(-1000 * asec, 1000 * asec, 1e5)
         # sinc = ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0)
