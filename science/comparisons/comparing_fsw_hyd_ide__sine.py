@@ -40,7 +40,7 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         photon_energies = np.array([1, 10, 15, 20, 30]) * eV
-        amplitudes = np.array([.025, .05, .1, .5, 1]) * atomic_electric_field
+        amplitudes = np.array([.025, .05, .1, .5, 1, 3]) * atomic_electric_field
 
         front_periods = 1
         plat_periods = 2
@@ -122,16 +122,16 @@ if __name__ == '__main__':
                     evolution_method = 'ARK4',
                     **shared_kwargs,
                 ),
-                ide.IntegroDifferentialEquationSpecification(
-                    prefix + '__ide_vel',
-                    prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
-                    kernel = ide.gaussian_kernel_VEL,
-                    kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
-                                     'width': test_width},
-                    evolution_gauge = 'VEL',
-                    evolution_method = 'ARK4',
-                    **shared_kwargs,
-                )
+                # ide.IntegroDifferentialEquationSpecification(
+                #     prefix + '__ide_vel',
+                #     prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
+                #     kernel = ide.gaussian_kernel_VEL,
+                #     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
+                #                      'width': test_width},
+                #     evolution_gauge = 'VEL',
+                #     evolution_method = 'ARK4',
+                #     **shared_kwargs,
+                # )
             ]
 
             results = si.utils.multi_map(run, specs, processes = 4)
@@ -192,11 +192,11 @@ if __name__ == '__main__':
             si.vis.xxyy_plot(
                 f'comparison__{prefix}__log',
                 list(r.data_times for r in results),
-                [1 - y for y in y_data],
+                y_data,
                 line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results),
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
-                y_label = '1 - Initial State Population',
+                y_label = 'Initial State Population',
                 y_log_axis = True,
                 y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_pad = 1,
                 **PLOT_KWARGS,
