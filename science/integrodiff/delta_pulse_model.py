@@ -133,7 +133,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
 kick = collections.namedtuple('kick', ['time', 'time_field_product'])
 
 
-def decompose_pulse_into_kicks(electric_potential, times):
+def decompose_pulse_into_kicks__amplitude(electric_potential, times):
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
@@ -163,14 +163,47 @@ def decompose_pulse_into_kicks(electric_potential, times):
     return kicks
 
 
-def decompose_sinc(sinc, times):
-    kicks = decompose_pulse_into_kicks(sinc, times)
+def decompose_pulse_into_kicks__power(electric_potential, times):
+    efield_vs_time = electric_potential.get_electric_field_amplitude(times)
+    signs = np.sign(efield_vs_time)
+
+    # state machine
+    kicks = []
+    current_sign = signs[0]
+    fluence_accumulator = 0
+    start_time = times[0]
+    prev_time = times[0]
+    for efield, sign, time in zip(efield_vs_time, signs, times):
+        if sign == current_sign:
+            # efield_accumulator += (efield ** 2) * (time - prev_time)
+            fluence_accumulator += (np.abs(efield) ** 2) * (time - prev_time)
+        else:
+            time_diff = time - start_time
+            kick_time = (time + start_time) / 2
+
+            kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(fluence_accumulator * time_diff)))
+
+            # reset
+            current_sign = sign
+            start_time = time
+            fluence_accumulator = 0
+        prev_time = time
+
+    return kicks
+
+
+def decompose_sinc(sinc, times, selector = 'amplitude'):
+    # kicks = locals()[f'decompose_pulse_into_kicks__{selector}'](sinc, times)
+    if selector == 'amplitude':
+        kicks = decompose_pulse_into_kicks__amplitude(sinc, times)
+    elif selector == 'power':
+        kicks = decompose_pulse_into_kicks__power(sinc, times)
 
     for k in kicks:
         print(uround(k.time, asec), uround(k.time_field_product, time_field_unit))
 
     si.vis.xy_plot(
-        f'pulse__{sinc}',
+        f'pulse__{uround(sinc.pulse_width, asec)}as_{uround(sinc.fluence, Jcm2)}jcm2_{uround(sinc.phase, pi)}pi',
         times,
         sinc.get_electric_field_amplitude(times),
         x_label = '$t$', x_unit = 'asec',
@@ -182,20 +215,22 @@ def decompose_sinc(sinc, times):
     kick_products = [k.time_field_product for k in kicks]
 
     si.vis.xy_plot(
-        f'pulse__{sinc}__decomposed',
+        f'pulse__{uround(sinc.pulse_width, asec)}as_{uround(sinc.fluence, Jcm2)}jcm2_{uround(sinc.phase, pi)}pi__decomposed__{selector}',
         kick_times,
         kick_products,
         line_kwargs = [{'linestyle': ':', 'marker': 'o'}],
         x_label = 'Kick Times', x_unit = 'asec',
         y_label = r'Amplitudes (au * au)', y_unit = time_field_unit,
+        y_lower_limit = -1 * time_field_unit, y_upper_limit = 1 * time_field_unit,
         **PLT_KWARGS,
     )
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .2 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4))
-        decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .2 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4))
+        for selector in ['amplitude', 'power']:
+            decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
+            decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
         compare_cosine_and_sine(cosine_product = .496 * time_field_unit, sine_product = .372 * time_field_unit)
         compare_cosine_and_sine(cosine_product = .702 * time_field_unit, sine_product = .526 * time_field_unit)
 
