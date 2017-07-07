@@ -3,6 +3,8 @@ import os
 import functools
 import collections
 
+from tqdm import tqdm
+
 import numpy as np
 import scipy.integrate as integrate
 
@@ -72,7 +74,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
     b_sine = np.sqrt(pi) * ((test_width * test_charge * sine_product / hbar) ** 2)
     b_cosine = np.sqrt(pi) * ((test_width * test_charge * cosine_product / hbar) ** 2)
 
-    print(b_sine, b_cosine)
+    # print(b_sine, b_cosine)
 
     pulse_delays = np.linspace(0, 500 * asec, 1e3)
     double_kick = functools.partial(a_alpha, b = b_sine, tau_alpha = tau_alpha, kernel_func = kernel)
@@ -163,7 +165,7 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
     return kicks
 
 
-def decompose_pulse_into_kicks__power(electric_potential, times):
+def decompose_pulse_into_kicks__fluence(electric_potential, times):
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
@@ -197,7 +199,7 @@ def decompose_sinc(sinc, times, selector = 'amplitude'):
     if selector == 'amplitude':
         kicks = decompose_pulse_into_kicks__amplitude(sinc, times)
     elif selector == 'power':
-        kicks = decompose_pulse_into_kicks__power(sinc, times)
+        kicks = decompose_pulse_into_kicks__fluence(sinc, times)
 
     for k in kicks:
         print(uround(k.time, asec), uround(k.time_field_product, time_field_unit))
@@ -225,15 +227,189 @@ def decompose_sinc(sinc, times, selector = 'amplitude'):
         **PLT_KWARGS,
     )
 
+    return kicks
+
+
+def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency):
+    abs_prefactor = np.abs(prefactor)
+    bound_state_frequency = np.abs(bound_state_frequency)
+
+    @si.utils.memoize
+    def time_diff(i, j):
+        return kicks[i].time - kicks[j].time
+
+    @si.utils.memoize
+    def b(i, j):
+        return abs_prefactor * kicks[i].time_field_product * kicks[j].time_field_product
+
+    @si.utils.memoize
+    def a(n):
+        # print(f'calling a({n})')
+        if n < 0:
+            return 1
+        else:
+            first_term = np.exp(-1j * np.abs(bound_state_frequency) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
+            second_term = sum(a(i) * b(n, i) * kernel_func(time_diff(n, i)) for i in range(n))  # all but current kick
+            # print(second_term)
+
+            return first_term - second_term
+
+    return np.array(list(a(i) for i in range(len(kicks))))
+
 
 if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization') as logger:
-        for selector in ['amplitude', 'power']:
-            decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
-            decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
-        compare_cosine_and_sine(cosine_product = .496 * time_field_unit, sine_product = .372 * time_field_unit)
-        compare_cosine_and_sine(cosine_product = .702 * time_field_unit, sine_product = .526 * time_field_unit)
+    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
+        # for selector in ['amplitude', 'power']:
+        #     decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
+        #     decompose_sinc(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4), selector = selector)
+        # compare_cosine_and_sine(cosine_product = .496 * time_field_unit, sine_product = .372 * time_field_unit)
+        # compare_cosine_and_sine(cosine_product = .702 * time_field_unit, sine_product = .526 * time_field_unit)
 
-        # times = np.linspace(-1000 * asec, 1000 * asec, 1e5)
-        # sinc = ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0)
-        # field = sinc.get_electric_field_amplitude(times)
+        # COMPARE TO FULL IDE
+        pulse_width = 200 * asec
+        fluence = .2 * Jcm2
+        phase = pi / 2
+
+        test_width = 1 * bohr_radius
+        test_charge = 1 * electron_charge
+        test_mass = 1 * electron_mass
+        potential_depth = 36.831335 * eV
+
+        internal_potential = ion.FiniteSquareWell(potential_depth = potential_depth, width = test_width)
+        bound_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = electron_mass)
+        pulse = ion.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        # pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+
+        t_bound = 10 * pulse_width
+
+        prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge)
+        tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)
+        kernel = functools.partial(ide.gaussian_kernel_LEN, tau_alpha = tau_alpha)
+        omega_alpha = 1 / (2 * tau_alpha)
+
+        sim = ide.IntegroDifferentialEquationSpecification(
+            'compare',
+            test_width = test_width,
+            test_charge = test_charge,
+            test_mass = test_mass,
+            potential_depth = potential_depth,
+            electric_potential = pulse,
+            time_initial = -t_bound,
+            time_final = t_bound,
+            time_step = 1 * asec,
+            electric_potential_dc_correction = True,
+            prefactor = prefactor,
+            kernel = ide.gaussian_kernel_LEN,
+            kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
+            test_energy = hbar * omega_alpha,
+            # test_energy = bound_state.energy,
+            evolution_gauge = 'LEN',
+            evolution_method = 'RK4',
+            # time_step_minimum = 1 * asec,
+            # time_step_maximum = 10 * asec,
+            # error_on = 'da/dt',
+            # epsilon = 1e-6,
+            store_data_every = 1,
+        ).to_simulation()
+
+        sim.run_simulation()
+        sim.plot_wavefunction_vs_time(
+            show_vector_potential = False,
+            **PLT_KWARGS
+        )
+
+        kicks_amp = decompose_pulse_into_kicks__amplitude(
+            sim.spec.electric_potential,
+            sim.times
+        )
+        kick_a_vs_time__amp = recursive_kicks(
+            kicks_amp,
+            abs_prefactor = np.abs(prefactor),
+            kernel_func = kernel,
+            bound_state_frequency = omega_alpha
+        )
+
+        kicks_flu = decompose_pulse_into_kicks__fluence(
+            sim.spec.electric_potential,
+            sim.times
+        )
+        kick_a_vs_time__flu = recursive_kicks(
+            kicks_flu,
+            abs_prefactor = np.abs(prefactor),
+            kernel_func = kernel,
+            bound_state_frequency = omega_alpha
+        )
+
+        si.vis.xxyy_plot(
+            'comparison_to_full_simulation',
+            [
+                sim.times,
+                [k.time for k in kicks_amp],
+                [k.time for k in kicks_flu],
+            ],
+            [
+                sim.a2,
+                np.abs(kick_a_vs_time__amp) ** 2,
+                np.abs(kick_a_vs_time__flu) ** 2,
+            ],
+            line_labels = ['IDE Simulation', r'$\delta$-kick Model (Amp.)', r'$\delta$-kick Model (Flu.)'],
+            x_label = r'$ t $', x_unit = 'asec',
+            y_label = 'Bound State Overlap',
+            **PLT_KWARGS
+        )
+
+
+        # vs pulse width plot
+
+        def get_final_a2(pulse, times):
+            kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
+
+            r = recursive_kicks(
+                kicks,
+                abs_prefactor = prefactor,
+                kernel_func = kernel,
+                bound_state_frequency = omega_alpha
+            )
+
+            return np.abs(r[-1]) ** 2
+
+        pulse_widths = np.linspace(50, 2000, 1e3) * asec
+        cosine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        # cosine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        sine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+        # sine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+
+        cosine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(cosine_pulses)))
+        sine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(sine_pulses)))
+
+        si.vis.xy_plot(
+            'recursive_vs_pulse_width',
+            pulse_widths,
+            cosine_results,
+            sine_results,
+            line_labels = ['cos', 'sin'],
+            x_label = r'$ \tau $', x_unit = 'asec',
+            y_label = 'Bound State Overlap',
+            **PLT_KWARGS,
+        )
+
+        # consistency
+
+        # decomposition = decompose_pulse_into_kicks__amplitude(pulse, sim.times)
+        # for k in decomposition:
+        #     print(k.time / asec, k.time_field_product / time_field_unit)
+        #
+        # test_kicks_cosine = [kick(0, .496 * time_field_unit)]
+        # test_kicks_sine = [kick(-83.408 * asec, .372 * time_field_unit), kick(83.408 * asec, .372 * time_field_unit)]
+        # pulse_delay = 2 * 83.408
+        # print(pulse_delay)
+        # kicks_a_vs_time_cosine = recursive_kicks(test_kicks_cosine,
+        #                                          abs_prefactor = np.abs(prefactor),
+        #                                          kernel_func = kernel,
+        #                                          bound_state_frequency = omega_alpha)
+        # kicks_a_vs_time_sine = recursive_kicks(test_kicks_sine,
+        #                                        abs_prefactor = np.abs(prefactor),
+        #                                        kernel_func = kernel,
+        #                                        bound_state_frequency = omega_alpha)
+        # print(np.abs(kicks_a_vs_time_cosine) ** 2)
+        # print(np.abs(kicks_a_vs_time_sine) ** 2)
