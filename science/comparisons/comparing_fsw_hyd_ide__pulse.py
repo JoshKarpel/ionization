@@ -77,23 +77,25 @@ if __name__ == '__main__':
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 10 * eV,
                 numeric_eigenstate_max_angular_momentum = 10,
-                time_step_minimum = .05 * asec,
+                time_step_minimum = 1 * asec,
                 time_step_maximum = 10 * asec,
                 error_on = 'da/dt',
                 epsilon = 1e-6,
                 analytic_eigenstate_type = ion.FiniteSquareWellState,
                 checkpoints = True,
                 checkpoint_dir = SIM_LIB,
-                store_data_every = 20,
+                store_data_every = 1,
             )
 
             prefix = f'pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 4)}jcm2_phase={uround(phase, pi, 3)}pi'
+
+            fsw_initial_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = test_mass)
 
             specs = [
                 ion.LineSpecification(
                     prefix + '__fsw_len',
                     internal_potential = internal_potential,
-                    initial_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = test_mass),
+                    initial_state = fsw_initial_state,
                     evolution_gauge = 'LEN',
                     **shared_kwargs,
                 ),
@@ -119,6 +121,7 @@ if __name__ == '__main__':
                     prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
                     kernel = ide.gaussian_kernel_LEN,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
+                    test_energy = fsw_initial_state.energy,
                     evolution_gauge = 'LEN',
                     evolution_method = 'ARK4',
                     **shared_kwargs,
@@ -129,6 +132,7 @@ if __name__ == '__main__':
                     kernel = ide.gaussian_kernel_VEL,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
                                      'width': test_width},
+                    test_energy = fsw_initial_state.energy,
                     evolution_gauge = 'VEL',
                     evolution_method = 'ARK4',
                     **shared_kwargs,

@@ -188,6 +188,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                                                           x = times)
 
         return a[-1] + (time_step * k), time_curr + time_step
+        # return a[-1] - (1j * time_step * self.spec.test_omega * a[-1]) + (time_step * k), time_curr + time_step
 
     def evolve_BE(self, a, times, time_step):
         """
@@ -423,6 +424,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         while self.time < self.spec.time_final:
             new_a, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.a, self.times, self.time_step)
+            new_a *= np.exp(-1j * self.spec.test_omega * self.time_step)
             self.a.append(new_a)
             self.times.append(new_t)
             self.time_index += 1
@@ -591,7 +593,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
     def __init__(self, name,
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 test_mass = electron_mass, test_charge = electron_charge,
+                 test_mass = electron_mass, test_charge = electron_charge, test_energy = -rydberg,
                  a_initial = 1,
                  prefactor = 1,
                  electric_potential = potentials.NoElectricPotential(),
@@ -665,6 +667,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.test_mass = test_mass
         self.test_charge = test_charge
+        self.test_energy = test_energy
 
         self.a_initial = a_initial
 
@@ -695,6 +698,14 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         self.error_on = error_on
 
         self.safety_factor = safety_factor
+
+    @property
+    def test_omega(self):
+        return self.test_energy / hbar
+
+    @property
+    def test_frequency(self):
+        return self.test_omega / twopi
 
     def info(self):
         info = super().info()
