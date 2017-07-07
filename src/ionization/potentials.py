@@ -464,7 +464,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
 
 
 class SineWave(UniformLinearlyPolarizedElectricPotential):
-    def __init__(self, omega, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def __init__(self, omega, amplitude = 1 * atomic_electric_field, phase = 0):
         """
         Construct a SineWave from the angular frequency, electric field amplitude, and phase.
 
@@ -473,7 +473,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param phase: the phase of the electric field (0 corresponds to a sine wave)
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.omega = omega
         self.phase = phase % twopi
@@ -554,23 +554,34 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         """
         Construct a SineWave from the photon energy, electric field amplitude, and phase.
 
-        :param photon_energy: the photon energy
-        :param amplitude: the electric field amplitude
-        :param phase: the phase of the electric field (0 corresponds to a sine wave)
-        :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
-        :return: a SineWave instance
+        Parameters
+        ----------
+        photon_energy
+        amplitude
+        phase
+        kwargs
+
+        Returns
+        -------
+
         """
         return cls(photon_energy / hbar, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
-    def from_photon_energy_and_intensity(cls, photon_energy, intensity = 1e14 * W / (cm ** 2), phase = 0, **kwargs):
+    def from_photon_energy_and_intensity(cls, photon_energy, intensity = 1 * TWcm2, phase = 0, **kwargs):
         """
-        Construct a SineWave from the photon energy, electric field amplitude, and phase.
+        Construct a SineWave from the photon energy, electric field intensity, and phase.
 
-        :param photon_energy: the photon energy
-        :param phase: the phase of the electric field (0 corresponds to a sine wave)
-        :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
-        :return: a SineWave instance
+        Parameters
+        ----------
+        photon_energy
+        intensity
+        phase
+        kwargs
+
+        Returns
+        -------
+
         """
         return cls(photon_energy / hbar, amplitude = np.sqrt(2 * intensity / (epsilon_0 * c)), phase = phase, **kwargs)
 
@@ -744,6 +755,14 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
 
 
+DEFAULT_PULSE_WIDTH = 200 * asec
+DEFAULT_FLUENCE = 1 * Jcm2
+DEFAULT_PHASE = 0
+DEFAULT_OMEGA_MIN = twopi * 500 * THz
+DEFAULT_OMEGA_CARRIER = twopi * 3500 * THz
+DEFAULT_PULSE_CENTER = 0 * asec
+
+
 class SincPulse(UniformLinearlyPolarizedElectricPotential):
     """
     Attributes
@@ -760,7 +779,6 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     omega_min
     omega_max
     delta_omega
-        Sue me.
 
     frequency_carrier
     frequency_min
@@ -774,8 +792,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     amplitude_per_frequency
     """
 
-    def __init__(self, pulse_width = 200 * asec, omega_min = twopi * 500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
-                 **kwargs):
+    def __init__(
+            self,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_min = DEFAULT_OMEGA_MIN,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
         """
 
         Parameters
@@ -787,7 +810,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.omega_min = omega_min
         self.pulse_width = pulse_width
@@ -803,12 +826,42 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         self.amplitude_time = np.sqrt(self.fluence * self.delta_omega / (pi * epsilon_0 * c))
 
     @classmethod
-    def from_omega_carrier(cls, pulse_width = 200 * asec, omega_carrier = twopi * 3500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
-                           **kwargs):
+    def from_omega_min(cls, *args, **kwargs):
+        """Alias for the default constructor."""
+        return cls(*args, **kwargs)
+
+    @classmethod
+    def from_omega_carrier(
+            cls,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_carrier = DEFAULT_OMEGA_CARRIER,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
+        """
+
+        Parameters
+        ----------
+        pulse_width
+        omega_carrier
+        fluence
+        phase
+        pulse_center
+
+        Returns
+        -------
+
+        """
         delta_omega = twopi / pulse_width
         omega_min = omega_carrier - delta_omega / 2
 
-        return cls(pulse_width = pulse_width, omega_min = omega_min, fluence = fluence, phase = phase, pulse_center = pulse_center, **kwargs)
+        return cls(
+            pulse_width = pulse_width,
+            omega_min = omega_min,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center
+        )
 
     @property
     def photon_energy_min(self):
@@ -906,8 +959,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
 
 class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
-    def __init__(self, pulse_width = 200 * asec, omega_carrier = twopi * 3500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
-                 **kwargs):
+    def __init__(
+            self,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_carrier = DEFAULT_OMEGA_CARRIER,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
         """
 
         Parameters
@@ -919,7 +977,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
@@ -929,6 +987,45 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.amplitude_time = np.sqrt(2 * self.fluence / (np.sqrt(pi) * epsilon_0 * c * self.pulse_width))
         self.amplitude_omega = self.amplitude_time * self.pulse_width / 2
+
+    @classmethod
+    def from_omega_min(
+            cls,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_min = DEFAULT_OMEGA_MIN,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
+        """
+        Construct a new GaussianPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
+
+        Parameters
+        ----------
+        pulse_width
+        omega_min
+        fluence
+        phase
+        pulse_center
+
+        Returns
+        -------
+
+        """
+        dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
+
+        return cls(
+            pulse_width = pulse_width,
+            omega_carrier = dummy.omega_carrier,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center
+        )
+
+    @classmethod
+    def from_omega_carrier(cls, *args, **kwargs):
+        """Alias for the default constructor."""
+
+        return cls(*args, **kwargs)
 
     @property
     def photon_energy_carrier(self):
@@ -1027,8 +1124,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
 
 class SechPulse(UniformLinearlyPolarizedElectricPotential):
-    def __init__(self, pulse_width = 200 * asec, omega_carrier = twopi * 3500 * THz, fluence = 1 * J / (cm ** 2), phase = 0, pulse_center = 0 * asec,
-                 **kwargs):
+    def __init__(
+            self,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_carrier = DEFAULT_OMEGA_CARRIER,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
         """
         Parameters
         ----------
@@ -1039,7 +1141,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__(**kwargs)
+        super().__init__()
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
@@ -1049,6 +1151,45 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.amplitude_time = np.sqrt(self.fluence / (epsilon_0 * c * self.pulse_width))
         self.amplitude_omega = self.amplitude_time * self.pulse_width * np.sqrt(pi / 2)
+
+    @classmethod
+    def from_omega_min(
+            cls,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_min = DEFAULT_OMEGA_MIN,
+            fluence = DEFAULT_FLUENCE,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER):
+        """
+        Construct a new SechPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
+
+        Parameters
+        ----------
+        pulse_width
+        omega_min
+        fluence
+        phase
+        pulse_center
+
+        Returns
+        -------
+
+        """
+        dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
+
+        return cls(
+            pulse_width = pulse_width,
+            omega_carrier = dummy.omega_carrier,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center
+        )
+
+    @classmethod
+    def from_omega_carrier(cls, *args, **kwargs):
+        """Alias for the default constructor."""
+
+        return cls(*args, **kwargs)
 
     @property
     def photon_energy_carrier(self):

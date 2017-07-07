@@ -1,5 +1,8 @@
 import logging
 import os
+import itertools
+
+from tqdm import tqdm
 
 import numpy as np
 import simulacra as si
@@ -11,77 +14,41 @@ import ionization as ion
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
+PLOT_KWARGS = dict(
+    target_dir = OUT_DIR,
+    img_format = 'png',
+    fig_dpi_scale = 5,
+)
+
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG):
-        pw = 200
-        flu = 1
-        phase = pi / 2
+        pulse_types = [ion.SincPulse, ion.GaussianPulse, ion.SechPulse]
+        pulse_widths = np.array([50, 100, 200, 400, 800, 1600]) * asec
+        fluences = np.array([.1, 1]) * Jcm2
+        phases = [0, pi / 4, pi / 2]
+        omega_mins = np.array([300, 500, 800]) * twopi * THz
 
-        bound = 10
+        t_bound = 10
 
-        prefix = 'pw={}as_flu={}Jcm2'.format(pw, flu)
+        for pulse_type, pw, flu, phase, omega_min in tqdm(itertools.product(pulse_types, pulse_widths, fluences, phases, omega_mins)):
+            name = f'{pulse_type.__name__}__PW={uround(pw, asec)}as__FLU={uround(flu, Jcm2)}jcm2__PHA={uround(phase, pi)}pi__OmegaMin=2pi_x_{uround(omega_min, twopi * THz)}THz'
 
-        pulse_kwargs = dict(
-                pulse_width = pw * asec,
-                fluence = flu * Jcm2,
+            kwargs = dict(
+                pulse_width = pw,
+                fluence = flu,
                 phase = phase,
-        )
+                omega_min = omega_min,
+            )
 
-        # omega_c = twopi * 50000 * THz
+            pulse = pulse_type.from_omega_min(**kwargs)
+            times = np.linspace(-t_bound * pw, t_bound * pw, 1000)
 
-        sinc = ion.SincPulse(**pulse_kwargs, omega_min = twopi * 1000 * THz)
-        # sinc = ion.SincPulse.from_omega_carrier(**pulse_kwargs, omega_carrier = omega_c)
-        # gaus = ion.GaussianPulse(**pulse_kwargs, omega_carrier = omega_c)
-        gaus = ion.GaussianPulse(**pulse_kwargs, omega_carrier = sinc.omega_carrier)
-        sech = ion.SechPulse(**pulse_kwargs, omega_carrier = sinc.omega_carrier)
-        # sech = ion.SechPulse(**pulse_kwargs, omega_carrier = omega_c)
+            si.vis.xy_plot(
+                name,
+                times,
+                pulse.get_electric_field_amplitude(times),
+                x_label = r'$ t $', x_unit = 'asec',
+                y_label = fr'$ {ion.LATEX_EFIELD}(t) $', y_unit = 'atomic_electric_field',
+                **PLOT_KWARGS,
+            )
 
-        print('carrier f (THz):', )
-        print(sinc.omega_carrier / (twopi * THz))
-        print(gaus.omega_carrier / (twopi * THz))
-        print(sech.omega_carrier / (twopi * THz))
-
-        times = np.linspace(-bound * pw, bound * pw, bound * pw * 50) * asec
-
-        print('fluences (J/cm^2):')
-        print('sinc:', sinc.get_fluence_numeric(times) / Jcm2)
-        print('gaus:', gaus.get_fluence_numeric(times) / Jcm2)
-        print('sech:', sech.get_fluence_numeric(times) / Jcm2)
-
-        plot_kwargs = {
-            'x_label': r'Time $t$',
-            'x_unit': 'asec',
-            'y_label': r'Electric Field $\mathcal{E}(t)$',
-            'y_unit': 'AEF',
-            'target_dir': OUT_DIR}
-
-        si.vis.xy_plot(prefix + '__pulse_comparison',
-                         times,
-                         sinc.get_electric_field_amplitude(times),
-                         gaus.get_electric_field_amplitude(times),
-                         sech.get_electric_field_amplitude(times),
-                         line_labels = ('Sinc', 'Gaussian', 'Sech'),
-                         **plot_kwargs
-                         )
-
-
-        # si.utils.xy_plot('sinc_pulse_comparison',
-        #                  times,
-        #                  sinc_plain.get_electric_field_amplitude(times),
-        #                  sinc.get_electric_field_amplitude(times),
-        #                  line_labels = ('No Carrier', 'w/ Carrier'),
-        #                  **plot_kwargs)
-        #
-        # si.utils.xy_plot('sinc_pulse_envelope',
-        #                  times,
-        #                  np.abs(sinc_plain.get_electric_field_amplitude(times)),
-        #                  -np.abs(sinc_plain.get_electric_field_amplitude(times)),
-        #                  sinc.get_electric_field_amplitude(times),
-        #                  line_labels = ('Envelope', 'Envelope'),
-        #                  line_kwargs = ({'color': 'red'}, {'color': 'red'}),
-        #                  **plot_kwargs)
-        #
-        # si.utils.xy_plot('sech_pulse',
-        #                  times,
-        #                  sech_with_carrier.get_electric_field_amplitude(times),
-        #                  **plot_kwargs)
