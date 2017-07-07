@@ -2683,6 +2683,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
                  use_numeric_eigenstates = False,
                  numeric_eigenstate_max_angular_momentum = 20,
                  numeric_eigenstate_max_energy = 100 * eV,
+                 hydrogen_zero_angular_momentum_correction = True,
                  **kwargs):
         """
         Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
@@ -2713,6 +2714,8 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.use_numeric_eigenstates = use_numeric_eigenstates
         self.numeric_eigenstate_max_angular_momentum = min(self.l_bound - 1, numeric_eigenstate_max_angular_momentum)
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
+
+        self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
 
     def info(self):
         info = super().info()
@@ -3023,7 +3026,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         effective_potential = ((hbar ** 2) / (2 * electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
 
         r_beta = self.beta(np.array(range(len(self.r)), dtype = np.complex128))
-        if l == 0:
+        if l == 0 and self.spec.hydrogen_zero_angular_momentum_correction:
             dr = self.delta_r / bohr_radius
             r_beta[0] += dr * (1 + dr) / 8
         r_diagonal = (-2 * r_prefactor * r_beta) + effective_potential
@@ -3048,8 +3051,9 @@ class SphericalHarmonicMesh(QuantumMesh):
         for r_index in range(self.mesh_points):
             j = r_index % self.spec.r_points
             r_diagonal[r_index] = self.beta(j)
-        dr = self.delta_r / bohr_radius
-        r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
+        if self.spec.hydrogen_zero_angular_momentum_correction:
+            dr = self.delta_r / bohr_radius
+            r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
 
         for r_index in range(self.mesh_points - 1):
             if (r_index + 1) % self.spec.r_points != 0:

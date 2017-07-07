@@ -185,12 +185,12 @@ class PulseParameterScanMixin:
                             for jj, y_value in enumerate(y):
                                 z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
 
-                        for log_x, log_y in it.product((True, False), repeat = 2):
+                        for log_x, log_y, log_z in it.product((True, False), repeat = 3):
                             if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y): # skip log phase plots
                                 continue
 
                             log_str = ''
-                            if any((log_x, log_y)):
+                            if any((log_x, log_y, log_z)):
                                 log_str = '__log'
 
                                 if log_x:
@@ -199,6 +199,9 @@ class PulseParameterScanMixin:
                                 if log_y:
                                     log_str += 'Y'
 
+                                if log_z:
+                                    log_str += 'Z'
+
                             try:
                                 si.vis.xyz_plot(
                                     '2d__' + plot_name + log_str,
@@ -206,7 +209,7 @@ class PulseParameterScanMixin:
                                     x_unit = x_parameter_unit, y_unit = y_parameter_unit,
                                     x_label = x_parameter_name, y_label = y_parameter_name,
                                     x_log_axis = log_x, y_log_axis = log_y,
-                                    z_log_axis = True, z_upper_limit = 1,
+                                    z_log_axis = log_z, z_upper_limit = 1,
                                     z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
                                     target_dir = self.summaries_dir
                                 )
