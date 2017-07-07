@@ -512,6 +512,23 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return cls(frequency * twopi, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
+    def from_period(cls, period, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+        """
+
+        Parameters
+        ----------
+        period
+        amplitude
+        phase
+        kwargs
+
+        Returns
+        -------
+
+        """
+        return cls.from_frequency(1 / period, amplitude = amplitude, phase = phase, **kwargs)
+
+    @classmethod
     def from_wavelength(cls, wavelength, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a :class:`SineWave` from a wavelength and amplitude.

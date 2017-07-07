@@ -231,7 +231,7 @@ def decompose_sinc(sinc, times, selector = 'amplitude'):
 
 
 def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency):
-    abs_prefactor = np.abs(prefactor)
+    abs_prefactor = np.abs(abs_prefactor)
     bound_state_frequency = np.abs(bound_state_frequency)
 
     @si.utils.memoize
@@ -277,8 +277,8 @@ if __name__ == '__main__':
 
         internal_potential = ion.FiniteSquareWell(potential_depth = potential_depth, width = test_width)
         bound_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = electron_mass)
-        pulse = ion.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
-        # pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        # pulse = ion.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
 
         t_bound = 10 * pulse_width
 
@@ -374,10 +374,10 @@ if __name__ == '__main__':
             return np.abs(r[-1]) ** 2
 
         pulse_widths = np.linspace(50, 2000, 1e3) * asec
-        cosine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
-        # cosine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
-        sine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
-        # sine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+        # cosine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        cosine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        # sine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+        sine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
 
         cosine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(cosine_pulses)))
         sine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(sine_pulses)))
