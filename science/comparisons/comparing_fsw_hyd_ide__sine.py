@@ -25,6 +25,7 @@ PLOT_KWARGS = dict(
 def run(spec):
     with logman as logger:
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
+        sim.spec.hydrogen_zero_angular_momentum_correction = True
 
         logger.info(sim.info())
         if not sim.status == si.STATUS_FIN:
@@ -39,8 +40,8 @@ def run(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        photon_energies = np.array([1, 10, 15, 20, 30]) * eV
-        amplitudes = np.array([.025, .05, .1, .5, 1, 3]) * atomic_electric_field
+        photon_energies = np.array([1, 2, 5, 10, 15, 20, 30, 50]) * eV
+        amplitudes = np.array([.01, .025, .05, .1, .5, 1, 2]) * atomic_electric_field
 
         front_periods = 1
         plat_periods = 3
@@ -71,7 +72,7 @@ if __name__ == '__main__':
                 x_points = 2 ** 12,
                 r_bound = 200 * bohr_radius,
                 r_points = 800,
-                l_bound = 400,
+                l_bound = 1000,
                 mask = ion.RadialCosineMask(inner_radius = 175 * bohr_radius, outer_radius = 200 * bohr_radius),
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 10 * eV,
@@ -195,11 +196,11 @@ if __name__ == '__main__':
             si.vis.xxyy_plot(
                 f'comparison__{prefix}__log',
                 list(r.data_times for r in results),
-                y_data,
+                [1 - y for y in y_data],
                 line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results),
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
-                y_label = 'Initial State Population',
+                y_label = '1 - Initial State Population',
                 y_log_axis = True,
                 y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_pad = 1,
                 **PLOT_KWARGS,

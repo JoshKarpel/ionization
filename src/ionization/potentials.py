@@ -798,7 +798,8 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             omega_min = DEFAULT_OMEGA_MIN,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
 
         Parameters
@@ -810,7 +811,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.omega_min = omega_min
         self.pulse_width = pulse_width
@@ -837,7 +838,8 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             omega_carrier = DEFAULT_OMEGA_CARRIER,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
 
         Parameters
@@ -860,7 +862,8 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             omega_min = omega_min,
             fluence = fluence,
             phase = phase,
-            pulse_center = pulse_center
+            pulse_center = pulse_center,
+            **kwargs
         )
 
     @property
@@ -965,7 +968,8 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             omega_carrier = DEFAULT_OMEGA_CARRIER,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
 
         Parameters
@@ -977,7 +981,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
@@ -995,7 +999,8 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             omega_min = DEFAULT_OMEGA_MIN,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
         Construct a new GaussianPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
 
@@ -1018,7 +1023,8 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             omega_carrier = dummy.omega_carrier,
             fluence = fluence,
             phase = phase,
-            pulse_center = pulse_center
+            pulse_center = pulse_center,
+            **kwargs
         )
 
     @classmethod
@@ -1130,7 +1136,8 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             omega_carrier = DEFAULT_OMEGA_CARRIER,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
         Parameters
         ----------
@@ -1141,7 +1148,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
@@ -1159,7 +1166,8 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             omega_min = DEFAULT_OMEGA_MIN,
             fluence = DEFAULT_FLUENCE,
             phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER):
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
         """
         Construct a new SechPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
 
@@ -1182,7 +1190,8 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             omega_carrier = dummy.omega_carrier,
             fluence = fluence,
             phase = phase,
-            pulse_center = pulse_center
+            pulse_center = pulse_center,
+            **kwargs
         )
 
     @classmethod

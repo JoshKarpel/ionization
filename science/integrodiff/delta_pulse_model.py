@@ -194,20 +194,25 @@ def decompose_pulse_into_kicks__fluence(electric_potential, times):
     return kicks
 
 
-def decompose_sinc(sinc, times, selector = 'amplitude'):
+def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
     # kicks = locals()[f'decompose_pulse_into_kicks__{selector}'](sinc, times)
     if selector == 'amplitude':
-        kicks = decompose_pulse_into_kicks__amplitude(sinc, times)
+        kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
     elif selector == 'power':
-        kicks = decompose_pulse_into_kicks__fluence(sinc, times)
+        kicks = decompose_pulse_into_kicks__fluence(pulse, times)
 
-    for k in kicks:
-        print(uround(k.time, asec), uround(k.time_field_product, time_field_unit))
+    # for k in kicks:
+    #     print(uround(k.time, asec), uround(k.time_field_product, time_field_unit))
+
+    try:
+        name = f'pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi'
+    except AttributeError:
+        name = f'sinewave__{uround(pulse.period, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef'
 
     si.vis.xy_plot(
-        f'pulse__{uround(sinc.pulse_width, asec)}as_{uround(sinc.fluence, Jcm2)}jcm2_{uround(sinc.phase, pi)}pi',
+        name,
         times,
-        sinc.get_electric_field_amplitude(times),
+        pulse.get_electric_field_amplitude(times),
         x_label = '$t$', x_unit = 'asec',
         y_label = r'$ \mathcal{E}(t) $', y_unit = 'atomic_electric_field',
         **PLT_KWARGS,
@@ -217,7 +222,7 @@ def decompose_sinc(sinc, times, selector = 'amplitude'):
     kick_products = [k.time_field_product for k in kicks]
 
     si.vis.xy_plot(
-        f'pulse__{uround(sinc.pulse_width, asec)}as_{uround(sinc.fluence, Jcm2)}jcm2_{uround(sinc.phase, pi)}pi__decomposed__{selector}',
+        f'{name}__decomposed__{selector}',
         kick_times,
         kick_products,
         line_kwargs = [{'linestyle': ':', 'marker': 'o'}],
@@ -372,6 +377,7 @@ if __name__ == '__main__':
             )
 
             return np.abs(r[-1]) ** 2
+
 
         pulse_widths = np.linspace(50, 2000, 1e3) * asec
         # cosine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
