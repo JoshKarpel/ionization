@@ -1130,10 +1130,10 @@ class ElectricFieldSpecification(si.Specification):
 
         info_evolution = si.Info(header = 'Time Evolution')
         info_evolution.add_field('Initial State', self.initial_state)
-        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as | {uround(self.time_initial, fsec, 3)} fs | {uround(self.time_initial, atomic_time, 3)} a.u.')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as | {uround(self.time_final, fsec, 3)} as | {uround(self.time_final, atomic_time, 3)} a.u.')
         if not callable(self.time_step):
-            info_evolution.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as')
+            info_evolution.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as | {uround(self.time_step, atomic_time, 3)} a.u.')
         else:
             info_evolution.add_field('Time Step', f'determined by {self.time_step}')
 
@@ -1560,9 +1560,9 @@ class LineSpecification(ElectricFieldSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('X Boundary', f'{uround(self.x_bound, bohr_radius, 3)} Bohr radii | {uround(self.x_bound, nm, 3)} nm')
+        info_mesh.add_field('X Boundary', f'{uround(self.x_bound, bohr_radius, 3)} a_0 | {uround(self.x_bound, nm, 3)} nm')
         info_mesh.add_field('X Points', self.x_points)
-        info_mesh.add_field('X Mesh Spacing', f'~{uround(self.x_bound / self.x_points, bohr_radius, 3)} Bohr radii | {uround(self.x_bound / self.x_points, nm, 3)} nm')
+        info_mesh.add_field('X Mesh Spacing', f'~{uround(self.x_bound / self.x_points, bohr_radius, 3)} a_0 | {uround(self.x_bound / self.x_points, nm, 3)} nm')
 
         info.add_info(info_mesh)
 
@@ -1908,12 +1908,12 @@ class CylindricalSliceSpecification(ElectricFieldSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('Z Boundary', f'{uround(self.z_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Z Boundary', f'{uround(self.z_bound, bohr_radius, 3)} a_0')
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', f'~{uround(self.z_bound / self.z_points, bohr_radius, 3)} Bohr radii')
-        info_mesh.add_field('Rho Boundary', f'{uround(self.rho_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Z Mesh Spacing', f'~{uround(self.z_bound / self.z_points, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Rho Boundary', f'{uround(self.rho_bound, bohr_radius, 3)} a_0')
         info_mesh.add_field('Rho Points', self.rho_points)
-        info_mesh.add_field('Rho Mesh Spacing', f'~{uround(self.rho_bound / self.rho_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Rho Mesh Spacing', f'~{uround(self.rho_bound / self.rho_points, bohr_radius, 3)} a_0')
         info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
 
         info.add_info(info_mesh)
@@ -2324,12 +2324,12 @@ class SphericalSliceSpecification(ElectricFieldSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} a_0')
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.z_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.z_points, bohr_radius, 3)} a_0')
         info_mesh.add_field('Theta Points', self.theta_points)
-        info_mesh.add_field('Theta Mesh Spacing', f'~{uround(pi / self.theta_points, bohr_radius, 3)} Bohr radii')
-        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{uround(pi * self.r_bound / self.theta_points, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('Theta Mesh Spacing', f'~{uround(pi / self.theta_points, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{uround(pi * self.r_bound / self.theta_points, bohr_radius, 3)} a_0')
         info_mesh.add_field('Total Mesh Points', int(self.r_points * self.theta_points))
 
         info.add_info(info_mesh)
@@ -2721,10 +2721,10 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} Bohr radii')
+        info_mesh.add_field('R Boundary', f'{uround(self.r_bound, bohr_radius, 3)} a_0 | {uround(self.r_bound, nm, 3)} nm')
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.r_points, bohr_radius, 3)} Bohr radii')
-        info_mesh.add_field('Spherical Harmonics', self.l_bound)
+        info_mesh.add_field('R Mesh Spacing', f'~{uround(self.r_bound / self.r_points, bohr_radius, 3)} a_0')
+        info_mesh.add_field('L Bound', self.l_bound)
         info_mesh.add_field('Total Mesh Points', self.r_points * self.l_bound)
 
         info.add_info(info_mesh)

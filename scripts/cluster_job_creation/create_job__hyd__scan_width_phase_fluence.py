@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -10,7 +12,6 @@ from simulacra.units import *
 
 import ionization as ion
 import ionization.cluster as iclu
-
 
 if __name__ == '__main__':
     # get command line arguments
@@ -83,7 +84,7 @@ if __name__ == '__main__':
         parameters.append(time_initial_in_pw)
 
         parameters.append(clu.Parameter(name = 'final_time_in_pw',
-                                        value = clu.ask_for_input('Final Time (in pulse widths)?', default = 40, cast_to = float)))
+                                        value = clu.ask_for_input('Final Time (in pulse widths)?', default = 35, cast_to = float)))
 
         extra_time = clu.Parameter(name = 'extra_time',
                                    value = asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float))
@@ -98,38 +99,36 @@ if __name__ == '__main__':
 
         outer_radius_default = mesh_kwargs['outer_radius'] / bohr_radius
         parameters.append(clu.Parameter(name = 'mask',
-                                        value = ion.RadialCosineMask(inner_radius = bohr_radius * clu.ask_for_input('Mask Inner Radius (in Bohr radii)?', default = outer_radius_default * .8, cast_to = float),
+                                        value = ion.RadialCosineMask(inner_radius = bohr_radius * clu.ask_for_input('Mask Inner Radius (in Bohr radii)?', default = outer_radius_default - 25, cast_to = float),
                                                                      outer_radius = bohr_radius * clu.ask_for_input('Mask Outer Radius (in Bohr radii)?', default = outer_radius_default, cast_to = float),
                                                                      smoothness = clu.ask_for_input('Mask Smoothness?', default = 8, cast_to = int))))
 
         parameters.append(clu.Parameter(name = 'evolution_gauge',
                                         value = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN')))
 
-        # pulse parameters
+        # PULSE PARAMETERS
         pulse_parameters = []
 
         pulse_type_q = clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')
-        if pulse_type_q == 'sinc':
-            pulse_type = ion.SincPulse
-        elif pulse_type_q == 'gaussian':
-            pulse_type = ion.GaussianPulse
-        elif pulse_type_q == 'sech':
-            pulse_type = ion.SechPulse
-        else:
-            raise ValueError("Pulse type ({}) was not one of 'sinc', 'gaussian', or 'sech'".format(pulse_type_q))
+        pulse_names_to_types = {
+            'sinc': ion.SincPulse,
+            'gaussian': ion.GaussianPulse,
+            'sech': ion.SechPulse,
+        }
+        pulse_type = pulse_names_to_types[pulse_type_q]
 
         pulse_width = clu.Parameter(name = 'pulse_width',
-                                    value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 300, 400, 500]')),
+                                    value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
                                     expandable = True)
         pulse_parameters.append(pulse_width)
 
         fluence = clu.Parameter(name = 'fluence',
-                                value = (J / (cm ** 2)) * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.1, 1, 5, 10, 20]')),
+                                value = (J / (cm ** 2)) * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.01, .1, 1, 10, 20]')),
                                 expandable = True)
         pulse_parameters.append(fluence)
 
         phases = clu.Parameter(name = 'phase',
-                               value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 50)')),
+                               value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 100)')),
                                expandable = True)
         pulse_parameters.append(phases)
 
@@ -140,24 +139,24 @@ if __name__ == '__main__':
         parameters.append(window_time_in_pw)
         parameters.append(window_width_in_pw)
 
-        pulses = tuple(ion.SincPulse(**d,
-                                     window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
-                                                                                 window_width = d['pulse_width'] * window_width_in_pw.value))
+        omega_min = clu.Parameter(name = 'omega_min',
+                                  value = twopi * THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)',
+                                                                                  default = '[30]')),
+                                  expandable = True)
+        pulse_parameters.append(omega_min)
+
+        pulses = tuple(pulse_type.from_omega_min(**d,
+                                                 window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
+                                                                                             window_width = d['pulse_width'] * window_width_in_pw.value))
                        for d in clu.expand_parameters_to_dicts(pulse_parameters))
-
-        if pulse_type != ion.SincPulse:
-            pulses = tuple(pulse_type(pulse_width = p.pulse_width, fluence = p.fluence, phase = p.phase,
-                                      omega_carrier = p.omega_carrier,
-                                      pulse_center = p.pulse_center,
-                                      window = p.window)
-                           for p in pulses)
-
-        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
-                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
         parameters.append(clu.Parameter(name = 'electric_potential',
                                         value = pulses,
                                         expandable = True))
+        # MISCELLANEOUS
+
+        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
+                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
         parameters.append(clu.Parameter(name = 'store_norm_by_l',
                                         value = clu.ask_for_bool('Store Norm-by-L?', default = False)))
@@ -178,13 +177,13 @@ if __name__ == '__main__':
 
         print('Generating specifications...')
 
-        for ii, spec_kwargs in enumerate(spec_kwargs_list):
+        for ii, spec_kwargs in tqdm(enumerate(spec_kwargs_list)):
             electric_potential = spec_kwargs['electric_potential']
             name = '{}_pw={}asec_flu={}Jcm2_phase={}pi'.format(
-                    pulse_type_q,
-                    uround(electric_potential.pulse_width, asec),
-                    uround(electric_potential.fluence, Jcm2),
-                    uround(electric_potential.phase, pi)
+                pulse_type_q,
+                uround(electric_potential.pulse_width, asec),
+                uround(electric_potential.fluence, Jcm2),
+                uround(electric_potential.phase, pi)
             )
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
@@ -205,7 +204,7 @@ if __name__ == '__main__':
 
         clu.specification_check(specs)
 
-        submit_string = clu.format_chtc_submit_string(args.job_name, len(specs), checkpoints = checkpoints)
+        submit_string = clu.generate_chtc_submit_string(args.job_name, len(specs), checkpoints = checkpoints)
         clu.submit_check(submit_string)
 
         # point of no return

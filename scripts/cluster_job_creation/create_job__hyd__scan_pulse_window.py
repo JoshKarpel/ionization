@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -10,7 +12,6 @@ from simulacra.units import *
 
 import ionization as ion
 import ionization.cluster as iclu
-
 
 if __name__ == '__main__':
     # get command line arguments
@@ -175,14 +176,14 @@ if __name__ == '__main__':
 
         print('Generating specifications...')
 
-        for ii, spec_kwargs in enumerate(spec_kwargs_list):
+        for ii, spec_kwargs in tqdm(enumerate(spec_kwargs_list)):
             electric_potential = spec_kwargs['electric_potential']
             name = '{}_pw={}asec_flu={}Jcm2_phase={}pi_window={}asec'.format(
-                    pulse_type_q,
-                    uround(electric_potential.pulse_width, asec),
-                    uround(electric_potential.fluence, Jcm2),
-                    uround(electric_potential.phase, pi),
-                    uround(electric_potential.window.window_time, asec),
+                pulse_type_q,
+                uround(electric_potential.pulse_width, asec),
+                uround(electric_potential.fluence, Jcm2),
+                uround(electric_potential.phase, pi),
+                uround(electric_potential.window.window_time, asec),
             )
 
             time_initial = spec_kwargs['initial_time_in_pw'] * electric_potential.pulse_width
@@ -203,7 +204,7 @@ if __name__ == '__main__':
 
         clu.specification_check(specs)
 
-        submit_string = clu.format_chtc_submit_string(args.job_name, len(specs), checkpoints = checkpoints)
+        submit_string = clu.generate_chtc_submit_string(args.job_name, len(specs), checkpoints = checkpoints)
         clu.submit_check(submit_string)
 
         # point of no return

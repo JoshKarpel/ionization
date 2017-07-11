@@ -50,9 +50,11 @@ def ask_mesh_type():
         elif mesh_type == 'harm':
             spec_type = core.SphericalHarmonicSpecification
 
-            mesh_kwargs['r_bound'] = bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 250, cast_to = float)
-            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 8, cast_to = int)
-            mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 200, cast_to = int)
+            r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
+            mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
+            mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
+
+            mesh_kwargs['r_bound'] = bohr_radius * r_bound
 
             mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
