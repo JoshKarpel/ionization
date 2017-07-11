@@ -34,7 +34,7 @@ def run_spec(spec):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        num_random_pulses = 6
+        num_random_pulses = 100
 
         pw = 200 * asec
         flu = 1 * Jcm2
@@ -64,20 +64,26 @@ if __name__ == '__main__':
             store_data_every = 20,
         )
 
-        specs = [
-            ion.SphericalHarmonicSpecification(
+        # specs = [
+        #     ion.SphericalHarmonicSpecification(
+        #         'cosine',
+        #         electric_potential = cosine_pulse,
+        #         **shared_kwargs,
+        #     ),
+        #     ion.SphericalHarmonicSpecification(
+        #         'sine',
+        #         electric_potential = sine_pulse,
+        #         **shared_kwargs,
+        #     )
+        # ]
+        specs = []
+
+        cosine_sim = ion.SphericalHarmonicSpecification(
                 'cosine',
                 electric_potential = cosine_pulse,
                 **shared_kwargs,
-            ),
-            ion.SphericalHarmonicSpecification(
-                'sine',
-                electric_potential = sine_pulse,
-                **shared_kwargs,
             )
-        ]
-
-        cosine_sim = specs[0].clone().to_simulation()
+        # cosine_sim = specs[0].clone().to_simulation()
         times = cosine_sim.times
 
         print(specs)
@@ -120,11 +126,10 @@ if __name__ == '__main__':
         for r in results:
             print(r.name, r.state_overlaps_vs_time[r.spec.initial_state][-1])
 
-        si.vis.xxyy_plot(
+        si.vis.xy_plot(
             'comparison',
-            [r.data_times for r in results],
-            [r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
-            line_labels = [r.name for r in results],
+            [r.name for r in results],
+            *[r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
             x_label = r'$t$', x_unit = 'asec',
             y_label = 'Initial State Overlap',
             legend_on_right = True,

@@ -34,20 +34,20 @@ def run_spec(spec):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        num_random_pulses = 6
+        num_random_pulses = 5
 
         pw = 200 * asec
         flu = 1 * Jcm2
 
         r_bound = 100
 
-        pulse_bound = 10
-        time_bound = 12
+        pulse_bound = 5
+        time_bound = 7
 
         window = ion.SymmetricExponentialTimeWindow(window_time = pulse_bound * pw, window_width = .2 * pw)
 
-        cosine_pulse = ion.potentials.SincPulse(pulse_width = pw, fluence = flu, phase = 0, window = window)
-        sine_pulse = ion.potentials.SincPulse(pulse_width = pw, fluence = flu, phase = pi / 2, window = window)
+        cosine_pulse = ion.potentials.GaussianPulse(pulse_width = pw, fluence = flu, phase = 0, window = window)
+        sine_pulse = ion.potentials.GaussianPulse(pulse_width = pw, fluence = flu, phase = pi / 2, window = window)
 
         shared_kwargs = dict(
             r_bound = r_bound * bohr_radius,
