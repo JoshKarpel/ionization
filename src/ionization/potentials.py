@@ -872,7 +872,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
         """
         delta_omega = twopi / pulse_width
-        omega_min = omega_carrier - delta_omega / 2
+        omega_min = omega_carrier - (delta_omega / 2)
 
         return cls(
             pulse_width = pulse_width,

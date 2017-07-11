@@ -1,5 +1,6 @@
 import logging
 import os
+import itertools
 
 import numpy as np
 import simulacra as si
@@ -98,8 +99,10 @@ if __name__ == '__main__':
             **PLOT_KWARGS,
         )
 
+        all_pulses = list(itertools.chain([cosine_pulse, sine_pulse], rand_pulses))
+
         correlations = []
-        for pulse in rand_pulses:
+        for pulse in all_pulses:
             field = pulse.get_electric_field_amplitude(times)
             print(field)
             correlations.append(np.correlate(field, field, 'same'))
@@ -110,6 +113,8 @@ if __name__ == '__main__':
             'correlations',
             times,
             *correlations,
+            line_labels = ['cosine', 'sine', *range(num_random_pulses)],
+            line_kwargs = [None, {'linestyle': '--'}],
             x_unit = 'asec', x_label = r'$\Delta t$',
             **PLOT_KWARGS
         )
@@ -118,42 +123,44 @@ if __name__ == '__main__':
             'correlations_zoom',
             times,
             *correlations,
+            line_labels = ['cosine', 'sine', *range(num_random_pulses)],
+            line_kwargs = [None, {'linestyle': '--'}],
             x_unit = 'asec', x_label = r'$\Delta t$',
             x_lower_limit = -300 * asec, x_upper_limit = 300 * asec,
             **PLOT_KWARGS
         )
 
-        for name, pulse in enumerate(rand_pulses):
-            specs.append(
-                ion.SphericalHarmonicSpecification(
-                    f'rand_{name}',
-                    electric_potential = pulse,
-                    **shared_kwargs,
-                )
-            )
-
-        for spec in specs:
-            print(spec.info())
-
-        results = si.utils.multi_map(run_spec, specs, processes = 7)
-
-        for r in results:
-            print(r.info())
-
-        print('\n' * 3)
-
-        for r in results:
-            print(r.name, r.state_overlaps_vs_time[r.spec.initial_state][-1])
-
-        si.vis.xxyy_plot(
-            'comparison',
-            [r.data_times for r in results],
-            [r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
-            line_labels = [r.name for r in results],
-            x_label = r'$t$', x_unit = 'asec',
-            y_label = 'Initial State Overlap',
-            legend_on_right = True,
-            **PLOT_KWARGS,
-        )
-
-
+        # for name, pulse in enumerate(rand_pulses):
+        #     specs.append(
+        #         ion.SphericalHarmonicSpecification(
+        #             f'rand_{name}',
+        #             electric_potential = pulse,
+        #             **shared_kwargs,
+        #         )
+        #     )
+        #
+        # for spec in specs:
+        #     print(spec.info())
+        #
+        # results = si.utils.multi_map(run_spec, specs, processes = 7)
+        #
+        # for r in results:
+        #     print(r.info())
+        #
+        # print('\n' * 3)
+        #
+        # for r in results:
+        #     print(r.name, r.state_overlaps_vs_time[r.spec.initial_state][-1])
+        #
+        # si.vis.xxyy_plot(
+        #     'comparison',
+        #     [r.data_times for r in results],
+        #     [r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
+        #     line_labels = [r.name for r in results],
+        #     x_label = r'$t$', x_unit = 'asec',
+        #     y_label = 'Initial State Overlap',
+        #     legend_on_right = True,
+        #     **PLOT_KWARGS,
+        # )
+        #
+        #

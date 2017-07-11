@@ -98,37 +98,37 @@ if __name__ == '__main__':
         #     **PLOT_KWARGS,
         # )
 
-        for name, pulse in enumerate(rand_pulses):
-            specs.append(
-                ion.SphericalHarmonicSpecification(
-                    f'rand_{name}',
-                    electric_potential = pulse,
-                    **shared_kwargs,
-                )
-            )
+        # for name, pulse in enumerate(rand_pulses):
+        #     specs.append(
+        #         ion.SphericalHarmonicSpecification(
+        #             f'rand_{name}',
+        #             electric_potential = pulse,
+        #             **shared_kwargs,
+        #         )
+        #     )
 
-        for spec in specs:
-            print(spec.info())
-
-        results = si.utils.multi_map(run_spec, specs, processes = 7)
-
-        for r in results:
-            print(r.info())
-
-        print('\n' * 3)
-
-        for r in results:
-            print(r.name, r.state_overlaps_vs_time[r.spec.initial_state][-1])
-
-        si.vis.xxyy_plot(
-            'comparison',
-            [r.data_times for r in results],
-            [r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
-            line_labels = [r.name for r in results],
-            x_label = r'$t$', x_unit = 'asec',
-            y_label = 'Initial State Overlap',
-            legend_on_right = True,
-            **PLOT_KWARGS,
-        )
+        # for spec in specs:
+        #     print(spec.info())
+        #
+        # results = si.utils.multi_map(run_spec, specs, processes = 7)
+        #
+        # for r in results:
+        #     print(r.info())
+        #
+        # print('\n' * 3)
+        #
+        # for r in results:
+        #     print(r.name, r.state_overlaps_vs_time[r.spec.initial_state][-1])
+        #
+        # si.vis.xxyy_plot(
+        #     'comparison',
+        #     [r.data_times for r in results],
+        #     [r.state_overlaps_vs_time[r.spec.initial_state] for r in results],
+        #     line_labels = [r.name for r in results],
+        #     x_label = r'$t$', x_unit = 'asec',
+        #     y_label = 'Initial State Overlap',
+        #     legend_on_right = True,
+        #     **PLOT_KWARGS,
+        # )
 
 
