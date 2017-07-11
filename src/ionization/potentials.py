@@ -9,6 +9,8 @@ import scipy.optimize as opt
 import simulacra as si
 from simulacra.units import *
 
+from . import core
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -328,17 +330,33 @@ class RadialImaginary(PotentialEnergy):
         return self.prefactor * np.exp(-(((r - self.center) / self.width) ** 2))
 
 
-def DC_correct_electric_potential(electric_field, times):
+def DC_correct_electric_potential(electric_potential, times):
     def func_to_minimize(amp, original_pulse):
-        test_correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = amp, window = electric_field.window)
+        test_correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = amp, window = electric_potential.window)
         test_pulse = original_pulse + test_correction_field
 
         return np.abs(test_pulse.get_electric_field_integral_numeric_cumulative(times)[-1])
 
-    correction_amp = opt.minimize_scalar(func_to_minimize, args = (electric_field,)).x
-    correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_field.window)
+    correction_amp = opt.minimize_scalar(func_to_minimize, args = (electric_potential,)).x
+    correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_potential.window)
 
-    return electric_field + correction_field
+    return electric_potential + correction_field
+
+
+def plot_electric_field_amplitude_vs_time(name, times, *electric_potentials, **kwargs):
+    default_kwargs = dict(
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = fr'${core.LATEX_EFIELD}(t)$',
+        y_unit = 'atomic_electric_field',
+    )
+
+    si.vis.xy_plot(
+        name,
+        times,
+        *[electric_potential.get_electric_field_amplitude(times) for electric_potential in electric_potentials],
+        **{**default_kwargs, **kwargs},
+    )
 
 
 class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
@@ -388,8 +406,7 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
 
     def get_fluence_numeric(self, times, rule = 'simps'):
         return epsilon_0 * c * getattr(integ, rule)(y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
-                                                    x = times,
-                                                    initial = 0)
+                                                    x = times)
 
 
 class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
@@ -758,8 +775,8 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
 DEFAULT_PULSE_WIDTH = 200 * asec
 DEFAULT_FLUENCE = 1 * Jcm2
 DEFAULT_PHASE = 0
-DEFAULT_OMEGA_MIN = twopi * 500 * THz
-DEFAULT_OMEGA_CARRIER = twopi * 3500 * THz
+DEFAULT_OMEGA_MIN = twopi * 30 * THz
+DEFAULT_OMEGA_CARRIER = twopi * 2530 * THz
 DEFAULT_PULSE_CENTER = 0 * asec
 
 
