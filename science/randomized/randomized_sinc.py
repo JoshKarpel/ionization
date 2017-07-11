@@ -91,12 +91,37 @@ if __name__ == '__main__':
                 window = window,
             ))
 
-        # ion.potentials.plot_electric_field_amplitude_vs_time(
-        #     'random_pulses',
-        #     times,
-        #     *rand_pulses,
-        #     **PLOT_KWARGS,
-        # )
+        ion.potentials.plot_electric_field_amplitude_vs_time(
+            'random_pulses',
+            times,
+            *rand_pulses,
+            **PLOT_KWARGS,
+        )
+
+        correlations = []
+        for pulse in rand_pulses:
+            field = pulse.get_electric_field_amplitude(times)
+            print(field)
+            correlations.append(np.correlate(field, field, 'same'))
+
+        print(correlations)
+
+        si.vis.xy_plot(
+            'correlations',
+            times,
+            *correlations,
+            x_unit = 'asec', x_label = r'$\Delta t$',
+            **PLOT_KWARGS
+        )
+
+        si.vis.xy_plot(
+            'correlations_zoom',
+            times,
+            *correlations,
+            x_unit = 'asec', x_label = r'$\Delta t$',
+            x_lower_limit = -300 * asec, x_upper_limit = 300 * asec,
+            **PLOT_KWARGS
+        )
 
         for name, pulse in enumerate(rand_pulses):
             specs.append(
