@@ -1298,11 +1298,12 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
     """Generate an electric field from a Fourier transform of a frequency-amplitude spectrum."""
 
-    def __init__(self, amplitude_function, phase_function = lambda f: 0,
-                 frequency_upper_limit = 10000 * THz, frequency_points = 2 ** 18,
-                 # fluence = None,
+    def __init__(self,
+                 frequencies,
+                 amplitudes,
+                 phases = 0,
+                 fluence = None,
                  name = 'GenericElectricField',
-                 extra_information = None,
                  **kwargs):
         """
 
@@ -1313,6 +1314,7 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         frequency_upper_limit
         frequency_points
         fluence
+            Nominal fluence for the pulse.
         name
         extra_information
         kwargs
@@ -1320,27 +1322,60 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         super().__init__(**kwargs)
 
         self.name = name
+        self.fluence = fluence
 
-        self.frequency = np.linspace(-frequency_upper_limit, frequency_upper_limit, frequency_points)
+        self.frequency = frequencies
         self.df = np.abs(self.frequency[1] - self.frequency[0])
-        amplitude_vs_frequency = amplitude_function(self.frequency)
-        phase_vs_frequency = phase_function(self.frequency)
-        self.complex_amplitude_vs_frequency = amplitude_vs_frequency * np.exp(1j * phase_vs_frequency) * np.ones(len(self.frequency))
+
+        self.amplitude_vs_frequency = amplitudes
+        self.phase_vs_frequency = phases
+
+        self.complex_amplitude_vs_frequency = self.amplitude_vs_frequency * np.exp(1j * self.phase_vs_frequency)
 
         self.times = nfft.fftshift(nfft.fftfreq(len(self.frequency), self.df))
         self.dt = np.abs(self.times[1] - self.times[0])
 
-        self.complex_electric_field_vs_time = self.df * len(self.frequency) * nfft.fftshift(nfft.ifft(nfft.ifftshift(self.complex_amplitude_vs_frequency)))
+        self.complex_electric_field_vs_time = nfft.ifft(nfft.ifftshift(self.complex_amplitude_vs_frequency), norm = 'ortho')
 
-        self.extra_attributes = tuple(extra_information.keys())
-        for k, v in extra_information.items():
-            if k not in self.__dict__:
-                setattr(self, k, v)
-            else:
-                logger.warning('Key collision in extra_arguments of {}: an attribute named {} was already defined'.format(self.name, k))
+    @classmethod
+    def from_funcs(cls, frequencies, amplitude_function, phase_function = lambda f: 0, **kwargs):
+        return cls(
+            frequencies,
+            amplitude_function(frequencies),
+            phase_function(frequencies),
+            **kwargs,
+        )
+
+    @classmethod
+    def from_pulse(cls, pulse, times, phase_function = lambda f: 0, **kwargs):
+        """
+        Construct a GenericElectricField pulse that has the same power spectrum as the provided pulse.
+
+        The power spectrum is extracted by taking the FFT of the pulse over the times.
+
+        Parameters
+        ----------
+        pulse
+        phase_function
+
+        Returns
+        -------
+
+        """
+        electric_field_vs_time = pulse.get_electric_field_amplitude(times)
+        dt = np.abs(times[1] - times[0])
+        frequencies = nfft.fftshift(nfft.fftfreq(len(times), dt))
+        amplitudes = nfft.fftshift(nfft.fft(electric_field_vs_time, norm = 'ortho'))
+
+        return cls.from_funcs(
+            frequencies,
+            lambda a: amplitudes,
+            phase_function,
+            **kwargs,
+        )
 
     @property
-    def angular_frequency(self):
+    def omega(self):
         return twopi * self.frequency
 
     @property
@@ -1352,7 +1387,7 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         return np.abs(self.complex_amplitude_vs_frequency) ** 2
 
     @property
-    def fluence(self):
+    def fluence_numeric(self):
         from_field = epsilon_0 * c * integ.simps(y = np.real(self.complex_electric_field_vs_time) ** 2,
                                                  dx = self.dt)
         # from_spectrum = epsilon_0 * c * integ.simps(y = self.complex_amplitude_vs_frequency ** 2,
@@ -1362,10 +1397,10 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         return from_field
 
     def __str__(self):
-        return si.utils.field_str(self, 'name', 'fluence', *self.extra_attributes)
+        return si.utils.field_str(self, 'name')
 
     def __repr__(self):
-        return si.utils.field_str(self, 'name', 'fluence', *self.extra_attributes)
+        return si.utils.field_str(self, 'name')
 
     def get_electric_field_amplitude(self, t):
         try:
@@ -1375,54 +1410,9 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
             amp = np.zeros(len(t), dtype = np.complex128) * np.NaN
             for ii, time in enumerate(t):
                 index, value, target = si.utils.find_nearest_entry(self.times, time)
-                # print(ii, index, value / asec, target / asec, time / asec, self.complex_electric_field_vs_time[index])
                 amp[ii] = self.complex_electric_field_vs_time[index]
 
         return np.real(amp) * super().get_electric_field_amplitude(t)
-
-
-# class RandomizedSincPulse(UniformLinearlyPolarizedElectricField):
-#     def __init__(self, pulse_width = 100 * asec, fluence = 1 * J / (cm ** 2), divisions = 100, **kwargs):
-#         super(RandomizedSincPulse, self).__init__(**kwargs)
-#
-#         self.pulse_width = pulse_width
-#
-#         self.fluence = fluence
-#         self.divisions = divisions
-#         self.phases = twopi * np.random.rand(divisions)
-#
-#         self.omega_cutoff = twopi / self.pulse_width
-#         self.amplitude_density = np.sqrt(self.fluence / (2 * epsilon_0 * c * self.omega_cutoff))
-#         self.amplitude_prefactor = np.sqrt(2 / pi) * self.amplitude_density
-#
-#     @property
-#     def largest_photon_energy(self):
-#         return hbar * self.omega_cutoff
-#
-#     def __str__(self):
-#         out = '{}(pulse width = {} as, pulse center = {} as, fluence = {} J/cm^2, phase = {}, largest photon energy = {} eV)'.format(self.__class__.__name__,
-#                                                                                                                                      uround(self.pulse_width, asec),
-#                                                                                                                                      uround(self.pulse_center, asec),
-#                                                                                                                                      uround(self.fluence, J / (cm ** 2), 3),
-#                                                                                                                                      self.phase,
-#                                                                                                                                      uround(self.largest_photon_energy, eV))
-#
-#         return out + super(RandomizedSincPulse, self).__str__()
-#
-#     def __repr__(self):
-#         out = '{}(pulse width = {}, pulse center = {}, fluence = {}, phase = {}, window = {})'.format(self.__class__.__name__,
-#                                                                                                       self.pulse_width,
-#                                                                                                       self.pulse_center,
-#                                                                                                       self.fluence,
-#                                                                                                       self.phase,
-#                                                                                                       repr(self.window))
-#
-#         return out
-#
-#     def get_electric_field_amplitude(self, t):
-#         raise NotImplementedError
-#
-#         # return amp * self.amplitude_prefactor * super(RandomizedSincPulse, self).get_amplitude(t)
 
 
 class RectangularTimeWindow(TimeWindow):

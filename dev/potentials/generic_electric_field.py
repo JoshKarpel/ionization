@@ -7,92 +7,87 @@ from simulacra.units import *
 
 import ionization as ion
 
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
+PLOT_KWARGS = dict(
+    target_dir = OUT_DIR,
+    img_format = 'png',
+    fig_dpi_scale = 5,
+)
+
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
-        pw = 200
-        flu = 1
+        pw = 200 * asec
+        flu = 1 * Jcm2
 
-        bound = 30
+        t_bound = 30
+        plot_bound = 35
+        times = np.linspace(-plot_bound * pw, plot_bound * pw, 2 ** 12)
 
-        times = np.linspace(-pw * bound * asec, pw * bound * asec, 1e4)
-        dt = np.abs(times[1] - times[0])
-        sinc = ion.SincPulse(pw * asec, fluence = flu * Jcm2, phase = 'cos')
+        window = ion.SymmetricExponentialTimeWindow(window_time = t_bound * pw, window_width = .2 * pw)
 
-        print(sinc.amplitude_omega)
-        print(sinc.amplitude_omega ** 2)
+        base_pulse = ion.SincPulse(pulse_width = pw, fluence = flu,
+                                   window = window)
+        base_pulse = ion.DC_correct_electric_potential(base_pulse, times)
 
-        print(2 * sinc.omega_max * epsilon_0 * c * sinc.amplitude_omega ** 2 / Jcm2)
-        print(2 * sinc.frequency_max * epsilon_0 * c * (np.sqrt(twopi) * sinc.amplitude_omega) ** 2 / Jcm2)
-        print(2 * sinc.frequency_max * epsilon_0 * c * (sinc.amplitude_per_frequency) ** 2 / Jcm2)
+        replica_pulse = ion.GenericElectricPotential.from_pulse(
+            base_pulse,
+            times,
+            phase_function = lambda f: 0,
+            window = window,
+        )
+        replica_pulse = ion.DC_correct_electric_potential(replica_pulse, times)
 
-        logger.info('Sinc cutoff frequency: {} THz'.format(uround(sinc.frequency_max, THz)))
+        rand_pulse = ion.GenericElectricPotential.from_pulse(
+            base_pulse,
+            times,
+            phase_function = lambda f: si.math.rand_phase(f.shape),
+            window = window,
+        )
 
-        generic = ion.GenericElectricPotential(lambda f: np.where(np.abs(f) < sinc.frequency_max, sinc.amplitude_per_frequency, 0),
-                                               lambda f: np.where(f >= 0, pi / 2, -pi / 2),
-                                               frequency_upper_limit = sinc.frequency_max * 20,
-                                               frequency_points = 2 ** 15
-                                               )
+        print(base_pulse)
+        print(replica_pulse)
+        print(rand_pulse)
 
-        for ii, phase in enumerate(np.arange(0, twopi + 0.01, pi / 8)):
-            generic = ion.GenericElectricPotential(lambda f: np.where(np.abs(f) < sinc.frequency_max, sinc.amplitude_per_frequency, 0),
-                                                   lambda f: np.where(f >= 0, phase, -phase),
-                                                   frequency_upper_limit = sinc.frequency_max * 20,
-                                                   frequency_points = 2 ** 15
-                                                   )
+        # print(rand_pulse.complex_amplitude_vs_frequency)
+        # si.vis.xy_plot(
+        #     'spectra',
+        #     rand_pulse.frequency,
+        #     np.real(rand_pulse.complex_amplitude_vs_frequency),
+        #     np.imag(rand_pulse.complex_amplitude_vs_frequency),
+        #     np.abs(rand_pulse.complex_amplitude_vs_frequency),
+        #     line_labels = ['real', 'imag'],
+        #     x_unit = 'THz', x_lower_limit = -6000 * THz, x_upper_limit = 6000 * THz,
+        #     **PLOT_KWARGS,
+        # )
 
-            si.vis.xy_plot('generic_electric_field_vs_time__zoom__{}__phase={}'.format(ii, phase / pi),
-                             generic.times, np.real(generic.complex_electric_field_vs_time),
-                             x_unit = 'asec', x_label = r'Time $t$',
-                             x_lower_limit = times[0], x_upper_limit = times[-1],
-                             y_unit = 'atomic_electric_field', y_label = r'Electric Field $E(t)$',
-                             target_dir = OUT_DIR)
+        ion.potentials.plot_electric_field_amplitude_vs_time(
+            'pulses',
+            times,
+            base_pulse,
+            replica_pulse,
+            rand_pulse,
+            line_labels = ['base', 'replica', 'rand'],
+            line_kwargs = [None, {'linestyle': '--'}],
+            **PLOT_KWARGS,
+        )
 
-            print(ii, phase, phase / pi)
-            print('fluence', epsilon_0 * c * np.sum(np.abs(generic.complex_electric_field_vs_time) ** 2) * generic.dt / Jcm2)
+        for pulse in [base_pulse, replica_pulse, rand_pulse]:
+            print(pulse.get_fluence_numeric(times) / Jcm2, pulse.get_vector_potential_amplitude_numeric(times), pulse)
 
-            # print('dt', generic.dt / asec)
-            # print('df', generic.df / THz)
-            #
-            # # print('expected center', sinc.amplitude_per_frequency)
-            # # print('center', generic.complex_amplitude_vs_frequency[len(generic.complex_amplitude_vs_frequency) // 2])
-            # # print(epsilon_0 * c * np.sum(generic.power_vs_frequency) * generic.df / Jcm2)
-            #
-            # si.utils.xy_plot('power_spectrum',
-            #                  generic.frequency, generic.power_vs_frequency,
-            #                  x_unit = 'THz', x_label = r'Frequency $f$',
-            #                  target_dir = OUT_DIR)
-            #
-            # si.utils.xy_plot('generic_electric_field_vs_time',
-            #                  generic.times, np.real(generic.complex_electric_field_vs_time),
-            #                  x_unit = 'asec', x_label = r'Time $t$',
-            #                  y_unit = 'atomic_electric_field', y_label = r'Electric Field $E(t)$',
-            #                  target_dir = OUT_DIR)
-            #
-            # si.utils.xy_plot('generic_electric_field_vs_time__zoom',
-            #                  generic.times, np.real(generic.complex_electric_field_vs_time),
-            #                  x_unit = 'asec', x_label = r'Time $t$',
-            #                  x_lower_limit = times[0], x_upper_limit = times[-1],
-            #                  y_unit = 'atomic_electric_field', y_label = r'Electric Field $E(t)$',
-            #                  target_dir = OUT_DIR)
-            #
-            # sinc_field = sinc.get_electric_field_amplitude(times)
-            # generic_field = generic.get_electric_field_amplitude(times)
-            #
-            # print(sinc_field[500])
-            # print(generic_field[500])
-            #
-            # print(epsilon_0 * c * np.sum(np.abs(sinc_field) ** 2) * dt / Jcm2)
-            # print(epsilon_0 * c * np.sum(np.abs(generic_field) ** 2) * dt / Jcm2)
-            # print(epsilon_0 * c * np.sum(np.abs(generic.complex_electric_field_vs_time) ** 2) * generic.dt / Jcm2)
-            #
-            # si.utils.xy_plot('electric_field_vs_time_comparison',
-            #                  times,
-            #                  sinc_field, generic_field,
-            #                  line_labels = ('Sinc Pulse', 'Generic Pulse'),
-            #                  x_unit = 'asec', x_label = r'Time $t$',
-            #                  y_unit = 'atomic_electric_field', y_label = r'Electric Field $E(t)$',
-            #                  target_dir = OUT_DIR)
+        rand_pulses = []
+        for i in range(5):
+            rand_pulses.append(ion.GenericElectricPotential.from_pulse(
+                base_pulse,
+                times,
+                phase_function = lambda f: si.math.rand_phase(f.shape),
+                window = window,
+            ))
+
+        ion.potentials.plot_electric_field_amplitude_vs_time(
+            'lots_of_pulses',
+            times,
+            *rand_pulses,
+            **PLOT_KWARGS,
+        )
