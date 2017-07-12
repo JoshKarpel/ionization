@@ -73,7 +73,7 @@ def run(spec):
 def save_figure(filename):
     # si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pdf')
     # si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'pgf')
-    si.vis.save_current_figure(filename, target_dir = OUT_DIR, img_format = 'png')
+    si.vis.save_current_figure(filename, **PLOT_KWARGS)
 
 
 def get_func_name():
@@ -462,18 +462,89 @@ def tunneling_ionization_animation__pulse():
     si.vis.animate(fm, update, amplitudes, artists = [fm.elements['lines'][0], fm.elements['lines'][2]], length = 20)
 
 
+def length_ide_kernel_gaussian():
+    dt = np.linspace(0, 3, 1000)
+    tau = .5
+    y = (1 + 1j * (dt / tau)) ** (-3 / 2)
+
+    si.vis.xy_plot(
+        get_func_name(),
+        dt,
+        np.abs(y),
+        np.real(y),
+        np.imag(y),
+        line_labels = [r"$\left| K(t-t') \right|$",
+                       r"$\mathrm{Re} \left\lbrace K(t-t') \right\rbrace$",
+                       r"$\mathrm{Im} \left\lbrace K(t-t') \right\rbrace$"],
+        line_kwargs = [{'color': 'black', 'linewidth': 3},
+                       {'color': 'C0', 'linewidth': 3},
+                       {'color': 'C1', 'linewidth': 3}],
+        x_label = r"$t-t'$ ($\mathrm{\tau_{\alpha}}$)", x_unit= tau,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        **FIGMAN_KWARGS,
+        **PLOT_KWARGS,
+    )
+    # with si.vis.FigureManager(get_func_name(), **FIGMAN_KWARGS, **PLOT_KWARGS) as figman:
+    #     fig = figman.fig
+    #     ax = fig.add_subplot(111)
+    #
+    #     dt = np.linspace(-10, 10, 1000)
+    #     tau = .5
+    #     y = (1 + 1j * (dt / tau)) ** (-3 / 2)
+
+        # ax.plot(dt, np.abs(y), color = 'black', label = r"$\left| K(t-t') \right|$")
+        # ax.plot(dt, np.real(y), color = 'C0', label = r"$  \mathrm{Re} \left\lbrace K(t-t') \right\rbrace  $")
+        # ax.plot(dt, np.imag(y), color = 'C1', label = r"$  \mathrm{Im} \left\lbrace K(t-t') \right\rbrace   $")
+        #
+        # ax.set_xlabel(r"$   t-t'  $")
+        # ax.set_ylabel(r"$   K(t-t') $")
+        # # ax.yaxis.set_label_coords(-., .5)
+        #
+        # ax.set_xticks([0, tau, -tau, 2 * tau, -2 * tau])
+        # ax.set_xticklabels(
+        #     [r'$0$',
+        #      r'$\tau_{\alpha}$',
+        #      r'$-\tau_{\alpha}$',
+        #      r'$2\tau_{\alpha}$',
+        #      r'$-2\tau_{\alpha}$',
+        #      ]
+        # )
+        #
+        # ax.set_yticks([0, 1, -1, .5, -.5, 1 / np.sqrt(2)])
+        # ax.set_yticklabels(
+        #     [r'$0$',
+        #      r'$1$',
+        #      r'$-1$',
+        #      r'$1/2$',
+        #      r'$-1/2$',
+        #      r'$1/\sqrt{2}$',
+        #      ]
+        # )
+        #
+        # ax.set_xlim(-3, 3)
+        # ax.set_ylim(-.75, 1.4)
+        #
+        # ax.grid(True, **si.vis.GRID_KWARGS)
+        #
+        # ax.legend(loc = 'upper right', framealpha = 1)
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            tunneling_ionization_animation__pulse,
-            tunneling_ionization_animation,
-            sinc_pulse,
-            gaussian_pulse,
-            efield_and_afield,
-            title_bg,
-            spherical_harmonic_mesh,
-            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
-            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
+            length_ide_kernel_gaussian,
+            # tunneling_ionization_animation__pulse,
+            # tunneling_ionization_animation,
+            # sinc_pulse,
+            # gaussian_pulse,
+            # efield_and_afield,
+            # title_bg,
+            # spherical_harmonic_mesh,
+            # functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            # functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
         ]
 
         for fig in tqdm(figures):
