@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -106,7 +108,7 @@ if __name__ == '__main__':
                                             value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
 
         time_bound_in_pw = clu.Parameter(name = 'time_bound_in_pw',
-                                         value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 30, cast_to = float))
+                                         value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 35, cast_to = float))
         parameters.append(time_bound_in_pw)
 
         checkpoints = clu.ask_for_bool('Checkpoints?', default = True)
@@ -116,58 +118,58 @@ if __name__ == '__main__':
             parameters.append(clu.Parameter(name = 'checkpoint_every',
                                             value = clu.ask_for_input('How many time steps per checkpoint?', default = 50, cast_to = int)))
 
-            # PULSE PARAMETERS
-            pulse_parameters = []
+        # PULSE PARAMETERS
+        pulse_parameters = []
 
-            pulse_type_q = clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')
-            pulse_names_to_types = {
-                'sinc': ion.SincPulse,
-                'gaussian': ion.GaussianPulse,
-                'sech': ion.SechPulse,
-            }
-            pulse_type = pulse_names_to_types[pulse_type_q]
+        pulse_type_q = clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')
+        pulse_names_to_types = {
+            'sinc': ion.SincPulse,
+            'gaussian': ion.GaussianPulse,
+            'sech': ion.SechPulse,
+        }
+        pulse_type = pulse_names_to_types[pulse_type_q]
 
-            pulse_width = clu.Parameter(name = 'pulse_width',
-                                        value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
-                                        expandable = True)
-            pulse_parameters.append(pulse_width)
+        pulse_width = clu.Parameter(name = 'pulse_width',
+                                    value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
+                                    expandable = True)
+        pulse_parameters.append(pulse_width)
 
-            keldysh_parameter = clu.Parameter(name = 'keldysh_parameter',
-                                              value = np.array(clu.ask_for_eval('Keldysh Parameters?', default = '[.1, .5, 1, 5, 10]')),
-                                              expandable = True)
-            pulse_parameters.append(keldysh_parameter)
+        keldysh_parameter = clu.Parameter(name = 'keldysh_parameter',
+                                          value = np.array(clu.ask_for_eval('Keldysh Parameters?', default = '[.1, .5, 1, 5, 10]')),
+                                          expandable = True)
+        pulse_parameters.append(keldysh_parameter)
 
-            pulse_parameters.append(clu.Parameter(name = 'keldysh_omega_selector',
-                                                  value = clu.ask_for_input('Which omega to use for Keldysh parameter? (carrier/bandwidth/bandwidth_power',
-                                                                            default = 'carrier',
-                                                                            cast_to = str)))
+        pulse_parameters.append(clu.Parameter(name = 'keldysh_omega_selector',
+                                              value = clu.ask_for_input('Which omega to use for Keldysh parameter? (carrier/bandwidth/bandwidth_power',
+                                                                        default = 'carrier',
+                                                                        cast_to = str)))
 
-            phases = clu.Parameter(name = 'phase',
-                                   value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 100)')),
-                                   expandable = True)
-            pulse_parameters.append(phases)
+        phases = clu.Parameter(name = 'phase',
+                               value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 100)')),
+                               expandable = True)
+        pulse_parameters.append(phases)
 
-            window_time_in_pw = clu.Parameter(name = 'window_time_in_pw',
-                                              value = clu.ask_for_input('Window Time (in pulse widths)?', default = np.abs(time_initial_in_pw.value) - 5, cast_to = float))
-            window_width_in_pw = clu.Parameter(name = 'window_width_in_pw',
-                                               value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.2, cast_to = float))
-            parameters.append(window_time_in_pw)
-            parameters.append(window_width_in_pw)
+        window_time_in_pw = clu.Parameter(name = 'window_time_in_pw',
+                                          value = clu.ask_for_input('Window Time (in pulse widths)?', default = np.abs(time_bound_in_pw.value) - 5, cast_to = float))
+        window_width_in_pw = clu.Parameter(name = 'window_width_in_pw',
+                                           value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.2, cast_to = float))
+        parameters.append(window_time_in_pw)
+        parameters.append(window_width_in_pw)
 
-            omega_min = clu.Parameter(name = 'omega_min',
-                                      value = twopi * THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)',
-                                                                                      default = '[30]')),
-                                      expandable = True)
-            pulse_parameters.append(omega_min)
+        omega_min = clu.Parameter(name = 'omega_min',
+                                  value = twopi * THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)',
+                                                                                  default = '[30]')),
+                                  expandable = True)
+        pulse_parameters.append(omega_min)
 
-            pulses = tuple(pulse_type.from_keldysh_parameter(**d,
-                                                             window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
-                                                                                                         window_width = d['pulse_width'] * window_width_in_pw.value))
-                           for d in clu.expand_parameters_to_dicts(pulse_parameters))
+        pulses = tuple(pulse_type.from_keldysh_parameter(**d,
+                                                         window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
+                                                                                                     window_width = d['pulse_width'] * window_width_in_pw.value))
+                       for d in clu.expand_parameters_to_dicts(pulse_parameters))
 
-            parameters.append(clu.Parameter(name = 'electric_potential',
-                                            value = pulses,
-                                            expandable = True))
+        parameters.append(clu.Parameter(name = 'electric_potential',
+                                        value = pulses,
+                                        expandable = True))
         # MISCELLANEOUS
 
 

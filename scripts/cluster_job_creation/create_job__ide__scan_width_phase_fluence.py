@@ -2,6 +2,8 @@ import argparse
 import os
 import shutil
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -106,7 +108,7 @@ if __name__ == '__main__':
                                             value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
 
         time_bound_in_pw = clu.Parameter(name = 'time_bound_in_pw',
-                                         value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 30, cast_to = float))
+                                         value = clu.ask_for_input('Time Bound (in pulse widths)?', default = 35, cast_to = float))
         parameters.append(time_bound_in_pw)
 
         checkpoints = clu.ask_for_bool('Checkpoints?', default = True)
@@ -143,7 +145,7 @@ if __name__ == '__main__':
         pulse_parameters.append(phases)
 
         window_time_in_pw = clu.Parameter(name = 'window_time_in_pw',
-                                          value = clu.ask_for_input('Window Time (in pulse widths)?', default = np.abs(time_initial_in_pw.value) - 5, cast_to = float))
+                                          value = clu.ask_for_input('Window Time (in pulse widths)?', default = np.abs(time_bound_in_pw.value) - 5, cast_to = float))
         window_width_in_pw = clu.Parameter(name = 'window_width_in_pw',
                                            value = clu.ask_for_input('Window Width (in pulse widths)?', default = 0.2, cast_to = float))
         parameters.append(window_time_in_pw)
@@ -163,9 +165,8 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'electric_potential',
                                         value = pulses,
                                         expandable = True))
+
         # MISCELLANEOUS
-
-
         parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
                                         value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
