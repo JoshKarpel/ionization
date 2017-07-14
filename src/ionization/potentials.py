@@ -262,7 +262,7 @@ class HarmonicOscillator(PotentialEnergy):
 
 class FiniteSquareWell(PotentialEnergy):
     def __init__(self, potential_depth = 1 * eV, width = 10 * nm, center = 0 * nm):
-        self.potential_depth = potential_depth
+        self.potential_depth = np.abs(potential_depth)
         self.width = width
         self.center = center
 
@@ -291,8 +291,33 @@ class FiniteSquareWell(PotentialEnergy):
         info = super().info()
 
         info.add_field('Potential Depth', f'{uround(self.potential_depth, eV)} eV')
-        info.add_field('Width', f'{uround(self.width, nm, 3)} nm')
-        info.add_field('Center', f'{uround(self.center, nm, 3)} nm')
+        info.add_field('Width', f'{uround(self.width, bohr_radius, 3)} a_0 | {uround(self.width, nm, 3)} nm')
+        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} a_0 | {uround(self.center, nm, 3)} nm')
+
+        return info
+
+
+class GaussianPotential(PotentialEnergy):
+    def __init__(self, potential_extrema = -1 * eV, width = 1 * bohr_radius, center = 0):
+        super().__init__()
+
+        self.potential_extrema = potential_extrema
+        self.width = width
+        self.center = center
+
+    def fwhm(self):
+        return 2 * np.sqrt(2 * np.log(2)) * self.width
+
+    def __call__(self, *, distance, **kwargs):
+        x = distance - self.center
+        return self.potential_extrema * np.exp(-.5 * ((x / self.width) ** 2))
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Potential Depth', f'{uround(self.potential_extrema, eV)} eV')
+        info.add_field('Width', f'{uround(self.width, bohr_radius, 3)} a_0 | {uround(self.width, nm, 3)} nm')
+        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} a_0 | {uround(self.center, nm, 3)} nm')
 
         return info
 

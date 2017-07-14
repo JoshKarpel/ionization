@@ -14,7 +14,6 @@ from simulacra.units import *
 
 from . import core
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -76,7 +75,7 @@ class QuantumState(si.Summand):
         raise NotImplementedError
 
     def __hash__(self):
-        return hash((self.__class__.__name__, ) + self.tuple)
+        return hash((self.__class__.__name__,) + self.tuple)
 
     def __eq__(self, other):
         return isinstance(other, self.__class__) and self.tuple == other.tuple
@@ -933,3 +932,97 @@ class FiniteSquareWellState(QuantumState):
                                   sym, 1)
 
         return psi * symmetrization
+
+
+class GaussianWellState(QuantumState):
+    """A class representing a bound state of a finite square well."""
+
+    smallest_n = 0
+
+    bound = True
+    discrete_eigenvalues = True
+    analytic = True
+
+    def __init__(self, well_depth, well_width, mass, n = 0, well_center = 0, amplitude = 1, dimension_label = 'x'):
+        """
+        Construct a GaussianWellState from the well properties, the particle mass, and an energy index.
+
+        :param well_depth: the depth of the potential well
+        :param well_width: the full width of the potential well
+        :param mass: the mass of the particle
+        :param n: the energy index of the state
+        :param well_center: the center position of the well
+        :param amplitude: the probability amplitude of the state
+        :param dimension_label: a label indicating which dimension the particle is confined in
+        """
+        self.well_depth = np.abs(well_depth)
+        self.well_width = well_width
+        self.well_center = well_center
+        self.mass = mass
+        self.n = n
+        self.dimension_label = dimension_label
+
+        if n > 0:
+            logger.warning('Analytic GaussianWellStates are not available for n > 0, and n = 0 is only approximate!')
+
+        max_n = np.ceil(2 * np.sqrt(2 * mass * self.well_depth / (pi * (hbar ** 2))) * well_width) + 0.5
+        if n > max_n:
+            raise IllegalQuantumState('Bound state energy must be less than zero')
+
+        self.width = optimize.newton(lambda w: ((w ** 4) / (((well_width ** 2) + (w ** 2)) ** 1.5)) - ((hbar ** 2) / (4 * mass * well_width * self.well_depth)), well_width)
+        self.energy = -(well_width * self.well_depth / np.sqrt(((well_width ** 2) + (self.width ** 2))) + ((hbar ** 2) / (8 * mass * (self.width ** 2))))
+
+        super().__init__(amplitude = amplitude)
+
+    @classmethod
+    def from_potential(cls, potential, mass, n = 0, amplitude = 1, dimension_label = 'x'):
+        """
+        Construct a FiniteSquareWellState from a FiniteSquareWell potential, the particle mass, and an energy index.
+
+        :param potential: a FiniteSquareWell potential.
+        :param mass: the mass of the particle
+        :param n: the energy index of the state
+        :param amplitude: the probability amplitude of the state
+        :param dimension_label: a label indicating which dimension the particle is confined in
+        :return: a FiniteSquareWellState instance
+        """
+        return cls(potential.potential_extrema, potential.width, mass, n = n, well_center = potential.center, amplitude = amplitude, dimension_label = dimension_label)
+
+    def __str__(self):
+        return self.ket
+
+    def __repr__(self):
+        return '{}(n = {}, mass = {}, well_depth = {}, well_width = {}, energy = {}, amplitude = {})'.format(self.__class__.__name__,
+                                                                                                             self.n,
+                                                                                                             self.mass,
+                                                                                                             self.well_depth,
+                                                                                                             self.well_width,
+                                                                                                             self.energy,
+                                                                                                             self.amplitude)
+
+    @property
+    def ket(self):
+        return '|{}>'.format(self.n)
+
+    @property
+    def bra(self):
+        return '<{}|'.format(self.n)
+
+    @property
+    def latex(self):
+        """Return a LaTeX-formatted string for the QHOState."""
+        return r'{}'.format(self.n)
+
+    @property
+    def tuple(self):
+        return self.well_depth, self.well_width, self.mass, self.n
+
+    def __call__(self, x):
+        """
+        Evaluate the finite square well bound state wavefunction at a point, or vectorized over an array of points.
+
+        :param x: the distance coordinate along the direction of confinement
+        :return: the value(s) of the wavefunction at x
+        """
+
+        return np.exp(-.25 * (x / self.width) ** 2) / (np.sqrt(np.sqrt(twopi) * self.width))
