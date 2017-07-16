@@ -44,20 +44,20 @@ matplotlib.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
 
-PPT_WIDTH = 13 + (1 / 3)
-PPT_HEIGHT = 7.5
+FULL_SLIDE_FIGMAN_KWARGS = dict(
+    fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
+    fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
+    img_format = 'png',
+    fig_dpi_scale = 6,
+)
 
-PPT_ASPECT_RATIO = PPT_HEIGHT / PPT_WIDTH
-PPT_WIDTH_PTS = 960
-
-FIGMAN_KWARGS = dict(
-    fig_width_pts = PPT_WIDTH_PTS,
-    aspect_ratio = PPT_ASPECT_RATIO,
+ANIMATED_FIGURE_KWARGS = dict(
+    fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
+    fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
+    fig_dpi_scale = 1,
 )
 
 PLOT_KWARGS = dict(
-    img_format = 'png',
-    fig_dpi_scale = 3,
     target_dir = OUT_DIR,
 )
 
@@ -86,6 +86,9 @@ def title_bg():
         electric_potential = BIG_SINE_WAVE,
         time_initial = 0, time_final = 200 * asec,
         z_bound = 40 * bohr_radius,
+        rho_bound = 40 * bohr_radius,
+        z_points = 40 * 10 * 2,
+        rho_points = 40 * 10,
     ).to_simulation()
     sim.run_simulation(progress_bar = True)
 
@@ -93,29 +96,27 @@ def title_bg():
         plot_limit = 25 * bohr_radius,
         tick_label_size = 20,
         axis_label_size = 35,
-        title = '',
+        show_title = False,
         grid_kwargs = {'linewidth': 2},
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS
     )
     sim.mesh.plot_g2(
         plot_limit = 25 * bohr_radius,
         tick_label_size = 20,
         axis_label_size = 35,
-        title = '',
+        show_title = False,
         show_colorbar = False,
         grid_kwargs = {'linewidth': 2},
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS
     )
 
     for which in ('g', 'g2'):
-        with si.vis.FigureManager(
-                f'title_bg__{which}',
-                tight_layout = False,
-                **FIGMAN_KWARGS,
-                **PLOT_KWARGS,
-        ) as figman:
+        with si.vis.FigureManager(f'title_bg__{which}',
+                                  tight_layout = False,
+                                  **FULL_SLIDE_FIGMAN_KWARGS,
+                                  **PLOT_KWARGS) as figman:
             fig = figman.fig
             ax = fig.add_axes([0, 0, 1, 1])
 
@@ -141,7 +142,7 @@ def spherical_harmonic_mesh():
         axis_label_size = 35,
         title = '',
         grid_kwargs = {'linewidth': 2},
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
     sim.mesh.plot_g(
@@ -149,7 +150,7 @@ def spherical_harmonic_mesh():
         tick_label_size = 20,
         title_size = 30,
         grid_kwargs = {'linewidth': 2},
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS
     )
     sim.mesh.plot_g2(
@@ -158,7 +159,7 @@ def spherical_harmonic_mesh():
         title_size = 30,
         show_colorbar = False,
         grid_kwargs = {'linewidth': 2},
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS
     )
 
@@ -184,7 +185,7 @@ def efield_and_afield():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -202,7 +203,7 @@ def efield_and_afield():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -231,7 +232,7 @@ def sinc_pulse():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -261,7 +262,7 @@ def gaussian_pulse():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -306,7 +307,12 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         progress_bar = True,
         length = 10,
-        target_dir = OUT_DIR,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        **ANIMATED_FIGURE_KWARGS,
+        **PLOT_KWARGS,
     )
 
     si.vis.xyt_plot(
@@ -320,7 +326,12 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         progress_bar = True,
         length = 10,
-        target_dir = OUT_DIR,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        **ANIMATED_FIGURE_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -347,8 +358,8 @@ def tunneling_ionization_animation():
         y_label = '$ V(z) $',
         x_unit = 'bohr_radius',
         x_label = r'$ z $',
-        target_dir = OUT_DIR,
-        fig_dpi_scale = 3,
+        **ANIMATED_FIGURE_KWARGS,
+        **PLOT_KWARGS,
         close_after_exit = False,
         save_on_exit = False,
     )
@@ -417,8 +428,8 @@ def tunneling_ionization_animation__pulse():
         y_label = '$ V(z) $',
         x_unit = 'bohr_radius',
         x_label = r'$ z $',
-        target_dir = OUT_DIR,
-        fig_dpi_scale = 3,
+        **FULL_SLIDE_FIGMAN_KWARGS,
+        **PLOT_KWARGS,
         close_after_exit = False,
         save_on_exit = False,
     )
@@ -479,12 +490,12 @@ def length_ide_kernel_gaussian():
         line_kwargs = [{'color': 'black', 'linewidth': 3},
                        {'color': 'C0', 'linewidth': 3},
                        {'color': 'C1', 'linewidth': 3}],
-        x_label = r"$t-t'$ ($\mathrm{\tau_{\alpha}}$)", x_unit= tau,
+        x_label = r"$t-t'$ ($\mathrm{\tau_{\alpha}}$)", x_unit = tau,
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
-        **FIGMAN_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
     # with si.vis.FigureManager(get_func_name(), **FIGMAN_KWARGS, **PLOT_KWARGS) as figman:
@@ -495,56 +506,56 @@ def length_ide_kernel_gaussian():
     #     tau = .5
     #     y = (1 + 1j * (dt / tau)) ** (-3 / 2)
 
-        # ax.plot(dt, np.abs(y), color = 'black', label = r"$\left| K(t-t') \right|$")
-        # ax.plot(dt, np.real(y), color = 'C0', label = r"$  \mathrm{Re} \left\lbrace K(t-t') \right\rbrace  $")
-        # ax.plot(dt, np.imag(y), color = 'C1', label = r"$  \mathrm{Im} \left\lbrace K(t-t') \right\rbrace   $")
-        #
-        # ax.set_xlabel(r"$   t-t'  $")
-        # ax.set_ylabel(r"$   K(t-t') $")
-        # # ax.yaxis.set_label_coords(-., .5)
-        #
-        # ax.set_xticks([0, tau, -tau, 2 * tau, -2 * tau])
-        # ax.set_xticklabels(
-        #     [r'$0$',
-        #      r'$\tau_{\alpha}$',
-        #      r'$-\tau_{\alpha}$',
-        #      r'$2\tau_{\alpha}$',
-        #      r'$-2\tau_{\alpha}$',
-        #      ]
-        # )
-        #
-        # ax.set_yticks([0, 1, -1, .5, -.5, 1 / np.sqrt(2)])
-        # ax.set_yticklabels(
-        #     [r'$0$',
-        #      r'$1$',
-        #      r'$-1$',
-        #      r'$1/2$',
-        #      r'$-1/2$',
-        #      r'$1/\sqrt{2}$',
-        #      ]
-        # )
-        #
-        # ax.set_xlim(-3, 3)
-        # ax.set_ylim(-.75, 1.4)
-        #
-        # ax.grid(True, **si.vis.GRID_KWARGS)
-        #
-        # ax.legend(loc = 'upper right', framealpha = 1)
+    # ax.plot(dt, np.abs(y), color = 'black', label = r"$\left| K(t-t') \right|$")
+    # ax.plot(dt, np.real(y), color = 'C0', label = r"$  \mathrm{Re} \left\lbrace K(t-t') \right\rbrace  $")
+    # ax.plot(dt, np.imag(y), color = 'C1', label = r"$  \mathrm{Im} \left\lbrace K(t-t') \right\rbrace   $")
+    #
+    # ax.set_xlabel(r"$   t-t'  $")
+    # ax.set_ylabel(r"$   K(t-t') $")
+    # # ax.yaxis.set_label_coords(-., .5)
+    #
+    # ax.set_xticks([0, tau, -tau, 2 * tau, -2 * tau])
+    # ax.set_xticklabels(
+    #     [r'$0$',
+    #      r'$\tau_{\alpha}$',
+    #      r'$-\tau_{\alpha}$',
+    #      r'$2\tau_{\alpha}$',
+    #      r'$-2\tau_{\alpha}$',
+    #      ]
+    # )
+    #
+    # ax.set_yticks([0, 1, -1, .5, -.5, 1 / np.sqrt(2)])
+    # ax.set_yticklabels(
+    #     [r'$0$',
+    #      r'$1$',
+    #      r'$-1$',
+    #      r'$1/2$',
+    #      r'$-1/2$',
+    #      r'$1/\sqrt{2}$',
+    #      ]
+    # )
+    #
+    # ax.set_xlim(-3, 3)
+    # ax.set_ylim(-.75, 1.4)
+    #
+    # ax.grid(True, **si.vis.GRID_KWARGS)
+    #
+    # ax.legend(loc = 'upper right', framealpha = 1)
 
 
 if __name__ == '__main__':
     with logman as logger:
         figures = [
             length_ide_kernel_gaussian,
-            # tunneling_ionization_animation__pulse,
-            # tunneling_ionization_animation,
-            # sinc_pulse,
-            # gaussian_pulse,
-            # efield_and_afield,
-            # title_bg,
-            # spherical_harmonic_mesh,
-            # functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
-            # functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
+            tunneling_ionization_animation__pulse,
+            tunneling_ionization_animation,
+            sinc_pulse,
+            gaussian_pulse,
+            efield_and_afield,
+            title_bg,
+            spherical_harmonic_mesh,
+            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
         ]
 
         for fig in tqdm(figures):

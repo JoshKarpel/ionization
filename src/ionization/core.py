@@ -23,7 +23,6 @@ from . import potentials, states
 
 from .cy import tdma
 
-
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -483,10 +482,10 @@ class ElectricFieldSimulation(si.Simulation):
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
-                loc = 'lower left',
-                fontsize = 10,
-                fancybox = True,
-                framealpha = .3,
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
         )
         legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -1860,8 +1859,7 @@ class LineMesh(QuantumMesh):
                             shading = 'gouraud',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
-                            **kwargs
-                            ):
+                            **kwargs):
         unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self, slicer)(plot_limit)
@@ -2247,19 +2245,20 @@ class CylindricalSliceMesh(QuantumMesh):
                   shading = 'gouraud',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
-                  aspect_ratio = 1,
                   show_colorbar = True,
+                  show_title = True,
                   show_axes = True,
-                  title_size = 20,
-                  axis_label_size = 15,
+                  title_size = 12,
+                  axis_label_size = 12,
                   tick_label_size = 10,
                   grid_kwargs = None,
+                  title_y_adjust = 1.1,
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         if grid_kwargs is None:
             grid_kwargs = {}
 
-        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
+        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', **kwargs) as figman:
             fig = figman.fig
             fig.set_tight_layout(True)
             axis = plt.subplot(111)
@@ -2267,26 +2266,26 @@ class CylindricalSliceMesh(QuantumMesh):
             unit_value, unit_name = get_unit_value_and_latex_from_unit(distance_unit)
 
             color_mesh = self.attach_mesh_to_axis(
-                    axis, mesh,
-                    distance_unit = distance_unit,
-                    colormap = colormap,
-                    norm = norm,
-                    shading = shading,
-                    plot_limit = plot_limit,
-                    slicer = slicer
+                axis, mesh,
+                distance_unit = distance_unit,
+                colormap = colormap,
+                norm = norm,
+                shading = shading,
+                plot_limit = plot_limit,
+                slicer = slicer
             )
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
             axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = axis_label_size)
             axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = axis_label_size)
-            if title is not None and show_axes and title != '':
+            if title is not None and title != '' and show_axes and show_title:
                 title = axis.set_title(title, fontsize = title_size)
-                title.set_y(1.05)  # move title up a bit
+                title.set_y(title_y_adjust)  # move title up a bit
 
             # make a colorbar
             if show_colorbar and show_axes:
-                cbar = fig.colorbar(mappable = color_mesh, ax = axis)
+                cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = .1)
                 cbar.ax.tick_params(labelsize = tick_label_size)
 
             axis.axis('tight')  # removes blank space between color mesh and axes
@@ -2298,11 +2297,11 @@ class CylindricalSliceMesh(QuantumMesh):
             # axis.tick_params(axis = 'both', which = 'both', length = 0)
 
             # set upper and lower y ticks to not display to avoid collisions with the x ticks at the edges
-            y_ticks = axis.yaxis.get_major_ticks()
-            y_ticks[0].label1.set_visible(False)
-            y_ticks[0].label2.set_visible(False)
-            y_ticks[-1].label1.set_visible(False)
-            y_ticks[-1].label2.set_visible(False)
+            # y_ticks = axis.yaxis.get_major_ticks()
+            # y_ticks[0].label1.set_visible(False)
+            # y_ticks[0].label2.set_visible(False)
+            # y_ticks[-1].label1.set_visible(False)
+            # y_ticks[-1].label2.set_visible(False)
 
             if not show_axes:
                 axis.axis('off')
@@ -3626,6 +3625,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   slicer = 'get_mesh_slicer_spatial',
                   aspect_ratio = 1,
                   show_colorbar = True,
+                  show_title = True,
                   show_axes = True,
                   title_size = 20,
                   tick_label_size = 10,
@@ -3633,7 +3633,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   # overlay_probability_current = False, probability_current_time_step = 0,
                   **kwargs):
         if grid_kwargs is None:
-            grid_kwarg = {}
+            grid_kwargs = {}
 
         with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
             fig = figman.fig
@@ -3646,18 +3646,18 @@ class SphericalHarmonicMesh(QuantumMesh):
             unit_value, unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
 
             color_mesh = self.attach_mesh_to_axis(
-                    axis, mesh,
-                    distance_unit = distance_unit,
-                    colormap = colormap,
-                    norm = norm,
-                    shading = shading,
-                    plot_limit = plot_limit,
-                    slicer = slicer
+                axis, mesh,
+                distance_unit = distance_unit,
+                colormap = colormap,
+                norm = norm,
+                shading = shading,
+                plot_limit = plot_limit,
+                slicer = slicer
             )
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            if title is not None and show_axes and title != '':
+            if title is not None and title != '' and show_axes and show_title:
                 title = axis.set_title(title, fontsize = title_size)
                 title.set_x(.03)  # move title to the upper left corner
                 title.set_y(.97)
@@ -3792,9 +3792,11 @@ class SphericalHarmonicMesh(QuantumMesh):
                        slicer = 'get_mesh_slicer',
                        aspect_ratio = si.vis.GOLDEN_RATIO,
                        show_colorbar = True,
+                       show_title = True,
                        show_axes = True,
-                       title_size = 15,
-                       axis_label_size = 15,
+                       title_y_adjust = 1.1,
+                       title_size = 12,
+                       axis_label_size = 12,
                        tick_label_size = 10,
                        grid_kwargs = None,
                        **kwargs):
@@ -3808,20 +3810,21 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             unit_value, unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
 
-            color_mesh = self.attach_mesh_repr_to_axis(axis, mesh,
-                                                       distance_unit = distance_unit,
-                                                       colormap = colormap,
-                                                       norm = norm,
-                                                       shading = shading,
-                                                       plot_limit = plot_limit,
-                                                       slicer = slicer
-                                                       )
+            color_mesh = self.attach_mesh_repr_to_axis(
+                axis, mesh,
+                distance_unit = distance_unit,
+                colormap = colormap,
+                norm = norm,
+                shading = shading,
+                plot_limit = plot_limit,
+                slicer = slicer
+            )
 
             axis.set_xlabel(r'$\ell$', fontsize = axis_label_size)
             axis.set_ylabel(fr'$r$ (${unit_latex}$)', fontsize = axis_label_size)
-            if title is not None and show_axes and title != '':
+            if title is not None and title != '' and show_axes and show_title:
                 title = axis.set_title(title, fontsize = title_size)
-                title.set_y(1.05)  # move title up a bit
+                title.set_y(title_y_adjust)  # move title up a bit
 
             # make a colorbar
             if show_colorbar and show_axes:

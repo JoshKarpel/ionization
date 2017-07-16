@@ -22,7 +22,8 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 # cmaps = (mpl.cm.get_cmap('inferno'),)
 
 units = ('bohr_radius',)
-bounds = np.array([10, 20, 50, 100]) * bohr_radius
+bounds = np.array([20]) * bohr_radius
+# bounds = np.array([10, 20, 50, 100]) * bohr_radius
 # shadings = ('flat', 'gouraud')
 shadings = ('gouraud',)
 cmaps = (mpl.cm.get_cmap('inferno'),)
@@ -35,17 +36,17 @@ def make_plots(spec):
     for unit, bound, shading, show_axes in itertools.product(units, bounds, shadings, axes):
         for cmap in cmaps:
             postfix = f'__{unit}__{uround(bound, unit)}__{cmap.name}__{shading}__axes={show_axes}'
-            sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes)
+            sim.mesh.plot_g2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes, tight_layout = True)
             # sim.mesh.plot_psi2(name_postfix = postfix, target_dir = OUT_DIR, colormap = cmap, distance_unit = unit, plot_limit = bound)
-        sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson__{shading}__axes={show_axes}', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes)
+        sim.mesh.plot_g(name_postfix = f'__{unit}__{uround(bound, unit)}__richardson__{shading}__axes={show_axes}', target_dir = OUT_DIR, distance_unit = unit, plot_limit = bound, shading = shading, show_axes = show_axes, tight_layout = True)
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        n = 5
-        angular_points = 200
+        max_n = 2
+        angular_points = 50
 
-        states = (ion.HydrogenBoundState(n, l) for n in range(n + 1) for l in range(n))
+        states = (ion.HydrogenBoundState(n, l) for n in range(max_n + 1) for l in range(n))
 
         specs = []
 
@@ -60,9 +61,9 @@ if __name__ == '__main__':
                                                            initial_state = state,
                                                            z_bound = np.max(bounds), rho_bound = np.max(bounds)))
 
-            specs.append(ion.SphericalSliceSpecification(f'sph_slice__{state.n}_{state.l}',
-                                                         initial_state = state,
-                                                         r_bound = np.max(bounds), theta_points = angular_points))
+            # specs.append(ion.SphericalSliceSpecification(f'sph_slice__{state.n}_{state.l}',
+            #                                              initial_state = state,
+            #                                              r_bound = np.max(bounds), theta_points = angular_points))
 
             specs.append(ion.SphericalHarmonicSpecification(f'sph_harms__{state.n}_{state.l}',
                                                             initial_state = state,
