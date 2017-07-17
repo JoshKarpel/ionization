@@ -36,17 +36,18 @@ if __name__ == '__main__':
         l_bound = 200
         dt = 1
         t_bound = 10
+        n_max = 3
 
         # initial_states = [ion.HydrogenBoundState(1, 0), ion.HydrogenBoundState(2, 0), ion.HydrogenBoundState(2, 1)]
         initial_states = [ion.HydrogenBoundState(1, 0)]
 
-        # test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(3) for l in range(n))
+        # test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(n_max + 1) for l in range(n))
         # pulse_types = [ion.SincPulse]
         pulse_types = [ion.SincPulse, ion.GaussianPulse]
-        pulse_widths = [50]
-        # pulse_widths = [50, 100, 200, 400, 800]
-        fluences = [1]
-        # fluences = [.1, 1, 10]
+        # pulse_widths = [50]
+        pulse_widths = [50, 100, 200, 400, 800]
+        # fluences = [1]
+        fluences = [.1, 1, 10]
         # phases = [0]
         phases = [0, pi / 4, pi / 2]
 
@@ -66,6 +67,7 @@ if __name__ == '__main__':
 
             animator_kwargs = dict(
                 target_dir = out_dir_mod,
+                fig_dpi_scale = 2,
                 length = 60,
             )
 
@@ -76,9 +78,10 @@ if __name__ == '__main__':
                 show_ticks_right = True,
             )
 
-            wavefunction_axman = ion.animators.WavefunctionStackplotAxis(states = (
-                initial_state,
-            ))
+            wavefunction_axman = ion.animators.WavefunctionStackplotAxis(
+                states = [initial_state],
+                legend_kwargs = {'fontsize': 20, 'borderaxespad': .1},
+            )
 
             animators = [
                 ion.animators.PolarAnimator(
@@ -129,23 +132,23 @@ if __name__ == '__main__':
                 ),
             ]
 
-            specs.append(
-                ion.SphericalHarmonicSpecification(
-                    name,
-                    electric_potential = efield,
-                    time_initial = -t_bound * pw,
-                    time_final = t_bound * pw,
-                    time_step = dt * asec,
-                    r_points = r_points,
-                    r_bound = r_bound * bohr_radius,
-                    l_bound = l_bound,
-                    initial_state = initial_state,
-                    mask = mask,
-                    use_numeric_eigenstates = True,
-                    numeric_eigenstate_max_energy = 100 * eV,
-                    numeric_eigenstate_max_angular_momentum = 20,
-                    animators = deepcopy(animators),
-                )
+        specs.append(
+            ion.SphericalHarmonicSpecification(
+                name,
+                electric_potential = efield,
+                time_initial = -t_bound * pw,
+                time_final = t_bound * pw,
+                time_step = dt * asec,
+                r_points = r_points,
+                r_bound = r_bound * bohr_radius,
+                l_bound = l_bound,
+                initial_state = initial_state,
+                mask = mask,
+                use_numeric_eigenstates = True,
+                numeric_eigenstate_max_energy = 100 * eV,
+                numeric_eigenstate_max_angular_momentum = 20,
+                animators = deepcopy(animators),
             )
+        )
 
-        si.utils.multi_map(run, specs, processes = 6)
+    si.utils.multi_map(run, specs, processes = 6)

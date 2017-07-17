@@ -54,7 +54,7 @@ FULL_SLIDE_FIGMAN_KWARGS = dict(
 ANIMATED_FIGURE_KWARGS = dict(
     fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
     fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
-    fig_dpi_scale = 1,
+    fig_dpi_scale = 2,
 )
 
 PLOT_KWARGS = dict(
@@ -185,6 +185,7 @@ def efield_and_afield():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        legend_kwargs = {'loc': 'lower left'},
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -203,6 +204,7 @@ def efield_and_afield():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        legend_kwargs = {'loc': 'lower left'},
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -300,7 +302,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         phases,
         efield, afield,
         line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ e \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [None, {'linestyle': '--'}],
+        line_kwargs = [{'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}],
         x_label = r'$ t $', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
@@ -311,6 +313,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        t_text_kwargs = {'fontsize': 25},
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
     )
@@ -320,6 +323,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         times,
         phases,
         efield_intensity,
+        line_kwargs = [{'linewidth': 3}],
         x_label = r'$ t $', x_unit = 'asec',
         y_label = r'$ P(t) $', y_unit = 'atomic_intensity',
         t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
@@ -330,6 +334,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        t_text_kwargs = {'fontsize': 25},
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
     )
@@ -350,7 +355,7 @@ def tunneling_ionization_animation():
         coul_pot,
         elec_pot,
         line_labels = [r'$ V_{\mathrm{Coul}} + V_{\mathrm{Field}} $', r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{Field}} $'],
-        line_kwargs = [{'animated': True}, {'linestyle': '--'}, {'linestyle': '--', 'animated': True}],
+        line_kwargs = [{'animated': True, 'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}, {'linestyle': '--', 'animated': True, 'linewidth': 3}],
         hlines = [ion.HydrogenBoundState(1, 0).energy], hline_kwargs = [{'linestyle': ':', 'color': 'black'}],
         y_lower_limit = -2 * hartree,
         y_upper_limit = 0,
@@ -358,6 +363,10 @@ def tunneling_ionization_animation():
         y_label = '$ V(z) $',
         x_unit = 'bohr_radius',
         x_label = r'$ z $',
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
         close_after_exit = False,
@@ -428,7 +437,7 @@ def tunneling_ionization_animation__pulse():
         y_label = '$ V(z) $',
         x_unit = 'bohr_radius',
         x_label = r'$ z $',
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
         close_after_exit = False,
         save_on_exit = False,

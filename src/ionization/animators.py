@@ -30,6 +30,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
                  electric_field_unit = 'AEF',
                  show_vector_potential = False,
                  vector_potential_unit = 'atomic_momentum',
+                 linewidth = 3,
                  show_y_label = False,
                  show_ticks_bottom = True,
                  show_ticks_top = False,
@@ -55,6 +56,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.show_ticks_right = show_ticks_right
         self.show_ticks_left = show_ticks_left
 
+        self.linewidth = linewidth
+
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
@@ -76,9 +79,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             self.electric_field_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
                                                        self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
-                                                       # label = fr'${core.LATEX_EFIELD}(t)$ (${self.electric_field_unit_latex}$)',
                                                        label = fr'${core.LATEX_EFIELD}(t)$',
-                                                       color = core.COLOR_ELECTRIC_FIELD, linewidth = 2,
+                                                       color = core.COLOR_ELECTRIC_FIELD, linewidth = self.linewidth,
                                                        animated = True)
 
             self.redraw.append(self.electric_field_line)
@@ -86,9 +88,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_vector_potential:
             self.vector_potential_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
                                                          proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
-                                                         # label = fr'$e{core.LATEX_AFIELD}(t)$ (${self.vector_potential_unit_latex}$)',
-                                                         label = fr'$e{core.LATEX_AFIELD}(t)$',
-                                                         color = core.COLOR_VECTOR_POTENTIAL, linewidth = 2,
+                                                         label = fr'$q \, {core.LATEX_AFIELD}(t)$',
+                                                         color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
                                                          animated = True)
 
             self.redraw.append(self.vector_potential_line)

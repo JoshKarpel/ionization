@@ -9,25 +9,24 @@ import ionization as ion
 
 import matplotlib.pyplot as plt
 
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG) as logger:
         anim_kwargs = dict(
-                length = 10,
-                target_dir = OUT_DIR,
+            length = 10,
+            target_dir = OUT_DIR,
         )
 
         epot_axman = ion.animators.ElectricPotentialPlotAxis(
-                show_electric_field = True,
-                show_vector_potential = False,
-                show_y_label = False,
-                show_ticks_right = True,
+            show_electric_field = True,
+            show_vector_potential = False,
+            show_y_label = False,
+            show_ticks_right = True,
         )
         test_state_axman = ion.animators.TestStateStackplotAxis(
-                states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n))[:8]
+            states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n))[:8]
         )
 
         wavefunction_axman = ion.animators.WavefunctionStackplotAxis(states = (
@@ -36,62 +35,75 @@ if __name__ == '__main__':
 
         animators = [
             ion.animators.PolarAnimator(
-                    postfix = 'g2',
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                            shading = 'flat'
-                    ),
-                    axman_lower_right = deepcopy(epot_axman),
-                    axman_upper_right = deepcopy(test_state_axman),
-                    axman_colorbar = ion.animators.ColorBarAxis(),
-                    **anim_kwargs,
+                postfix = 'g2',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    shading = 'flat'
+                ),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = deepcopy(test_state_axman),
+                axman_colorbar = ion.animators.ColorBarAxis(),
+                **anim_kwargs,
             ),
             ion.animators.PolarAnimator(
-                    postfix = 'g',
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                            which = 'g',
-                            colormap = plt.get_cmap('richardson'),
-                            norm = si.vis.RichardsonNormalization(),
-                            shading = 'flat'),
-                    axman_lower_right = deepcopy(epot_axman),
-                    axman_upper_right = deepcopy(test_state_axman),
-                    axman_colorbar = None,
-                    **anim_kwargs,
+                postfix = 'g',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    which = 'g',
+                    colormap = plt.get_cmap('richardson'),
+                    norm = si.vis.RichardsonNormalization(),
+                    shading = 'flat'),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = deepcopy(test_state_axman),
+                axman_colorbar = None,
+                **anim_kwargs,
             ),
             ion.animators.PolarAnimator(
-                    postfix = 'g_angmom',
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                            which = 'g',
-                            colormap = plt.get_cmap('richardson'),
-                            norm = si.vis.RichardsonNormalization(),
-                            shading = 'flat'),
-                    axman_lower_right = deepcopy(epot_axman),
-                    axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
-                    axman_colorbar = None,
-                    **anim_kwargs,
+                postfix = 'g_angmom',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    which = 'g',
+                    colormap = plt.get_cmap('richardson'),
+                    norm = si.vis.RichardsonNormalization(),
+                    shading = 'flat'),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
+                axman_colorbar = None,
+                **anim_kwargs,
             ),
             ion.animators.PolarAnimator(
-                    postfix = 'g_wavefunction',
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                            which = 'g',
-                            colormap = plt.get_cmap('richardson'),
-                            norm = si.vis.RichardsonNormalization(),
-                            shading = 'flat'),
-                    axman_lower_right = deepcopy(epot_axman),
-                    axman_upper_right = deepcopy(wavefunction_axman),
-                    axman_colorbar = None,
-                    **anim_kwargs,
+                postfix = 'g_wavefunction',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    which = 'g',
+                    colormap = plt.get_cmap('richardson'),
+                    norm = si.vis.RichardsonNormalization(),
+                    shading = 'flat'),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = deepcopy(wavefunction_axman),
+                axman_colorbar = None,
+                **anim_kwargs,
             ),
             ion.animators.PolarAnimator(
-                    postfix = 'g_wavefunction_again',
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                            which = 'g',
-                            colormap = plt.get_cmap('richardson'),
-                            norm = si.vis.RichardsonNormalization(),
-                            shading = 'flat'),
-                    axman_lower_right = deepcopy(epot_axman),
-                    axman_upper_right = deepcopy(wavefunction_axman),
-                    axman_colorbar = None,
-                    **anim_kwargs,
+                postfix = 'g_wavefunction_again',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    which = 'g',
+                    colormap = plt.get_cmap('richardson'),
+                    norm = si.vis.RichardsonNormalization(),
+                    shading = 'flat'),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = deepcopy(wavefunction_axman),
+                axman_colorbar = None,
+                **anim_kwargs,
+            ),
+            ion.animators.PolarAnimator(
+                postfix = 'g_wavefunction_again_hires',
+                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    which = 'g',
+                    colormap = plt.get_cmap('richardson'),
+                    norm = si.vis.RichardsonNormalization(),
+                    shading = 'flat'),
+                axman_lower_right = deepcopy(epot_axman),
+                axman_upper_right = deepcopy(wavefunction_axman),
+                axman_colorbar = None,
+                fig_dpi_scale = 2,
+                **anim_kwargs,
             ),
         ]
 
