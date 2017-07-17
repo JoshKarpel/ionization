@@ -13,15 +13,16 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG, file_logs = False, file_mode = 'w', file_dir = OUT_DIR, file_name = 'log') as logger:
         bound = 100
-        points_per_bohr_radius = 16
+        points_per_bohr_radius = 4
         l_max = 10
+        energy = 20
 
         sim = ion.SphericalHarmonicSpecification('eig',
                                                  r_bound = bound * bohr_radius,
                                                  r_points = bound * points_per_bohr_radius,
                                                  l_bound = 50,
                                                  use_numeric_eigenstates = True,
-                                                 numeric_eigenstate_max_energy = 500 * eV,
+                                                 numeric_eigenstate_max_energy = energy * eV,
                                                  numeric_eigenstate_max_angular_momentum = l_max,
                                                  ).to_simulation()
 

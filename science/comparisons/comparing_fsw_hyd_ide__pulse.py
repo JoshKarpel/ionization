@@ -40,10 +40,11 @@ def run(spec):
 
 if __name__ == '__main__':
     with logman as logger:
-        pulse_widths = np.array([100, 200, 400, 800]) * asec
-        fluences = np.array([.001, .01, 0.1, 1, 10, 20]) * Jcm2
+        pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
+        fluences = np.array([.01, 0.1, 1, 10, 20]) * Jcm2
         # fluences = np.array([.1, 1, 10, 20]) * Jcm2
-        phases = [0, pi / 2]
+        phases = [0]
+        # phases = [0, pi / 2]
 
         for pw, flu, phase in itertools.product(pulse_widths, fluences, phases):
             t_bound = 32
@@ -69,10 +70,10 @@ if __name__ == '__main__':
                 time_step = 1 * asec,
                 electric_potential_dc_correction = True,
                 x_bound = 200 * bohr_radius,
-                x_points = 2 ** 12,
+                x_points = 2 ** 14,
                 r_bound = 200 * bohr_radius,
-                r_points = 800,
-                l_bound = 400,
+                r_points = 200 * 10,
+                l_bound = 500,
                 mask = ion.RadialCosineMask(inner_radius = 175 * bohr_radius, outer_radius = 200 * bohr_radius),
                 use_numeric_eigenstates = True,
                 numeric_eigenstate_max_energy = 10 * eV,
@@ -190,19 +191,36 @@ if __name__ == '__main__':
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
                 y_label = 'Initial State Population',
+                title = prefix,
                 **PLOT_KWARGS,
             )
 
-            y_lower_limit, y_upper_limit = si.vis.get_axis_limits([1 - x for x in final_initial_state_overlaps], log = True, log_pad = 2)
+            y_lower_limit, y_upper_limit = si.vis.get_axis_limits([y[-1] for y in y_data], log = True, log_pad = 2)
             si.vis.xxyy_plot(
                 f'comparison__{prefix}__log',
                 list(r.data_times for r in results),
-                [1 - y for y in y_data],
+                y_data,
                 line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results),
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
-                y_label = '1 - Initial State Population',
+                y_label = 'Initial State Population',
                 y_log_axis = True,
-                y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_pad = 1,
+                y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit,
+                y_log_pad = 1,
+                title = prefix,
                 **PLOT_KWARGS,
             )
+
+            # y_lower_limit, y_upper_limit = si.vis.get_axis_limits([1 - x for x in final_initial_state_overlaps], log = True, log_pad = 2)
+            # si.vis.xxyy_plot(
+            #     f'comparison__{prefix}__log',
+            #     list(r.data_times for r in results),
+            #     [1 - y for y in y_data],
+            #     line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results),
+            #     line_kwargs = y_kwargs,
+            #     x_label = r'$t$', x_unit = 'asec',
+            #     y_label = '1 - Initial State Population',
+            #     y_log_axis = True,
+            #     y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_pad = 1,
+            #     **PLOT_KWARGS,
+            # )

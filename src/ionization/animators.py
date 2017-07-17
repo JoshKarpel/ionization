@@ -30,6 +30,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
                  electric_field_unit = 'AEF',
                  show_vector_potential = False,
                  vector_potential_unit = 'atomic_momentum',
+                 linewidth = 3,
                  show_y_label = False,
                  show_ticks_bottom = True,
                  show_ticks_top = False,
@@ -55,6 +56,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.show_ticks_right = show_ticks_right
         self.show_ticks_left = show_ticks_left
 
+        self.linewidth = linewidth
+
         if legend_kwargs is None:
             legend_kwargs = dict()
         legend_defaults = dict(
@@ -76,9 +79,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             self.electric_field_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
                                                        self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
-                                                       # label = fr'${core.LATEX_EFIELD}(t)$ (${self.electric_field_unit_latex}$)',
                                                        label = fr'${core.LATEX_EFIELD}(t)$',
-                                                       color = core.COLOR_ELECTRIC_FIELD, linewidth = 2,
+                                                       color = core.COLOR_ELECTRIC_FIELD, linewidth = self.linewidth,
                                                        animated = True)
 
             self.redraw.append(self.electric_field_line)
@@ -86,9 +88,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_vector_potential:
             self.vector_potential_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
                                                          proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
-                                                         # label = fr'$e{core.LATEX_AFIELD}(t)$ (${self.vector_potential_unit_latex}$)',
-                                                         label = fr'$e{core.LATEX_AFIELD}(t)$',
-                                                         color = core.COLOR_VECTOR_POTENTIAL, linewidth = 2,
+                                                         label = fr'$q \, {core.LATEX_AFIELD}(t)$',
+                                                         color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
                                                          animated = True)
 
             self.redraw.append(self.vector_potential_line)
@@ -312,11 +313,11 @@ class WavefunctionStackplotAxis(StackplotAxis):
         selected_state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in self.states or (state.numeric and state.analytic_state in self.states)}
         overlap_len = len(list(state_overlaps.values())[0])  # ugly, but I don't see a way around it
 
-        data = (
+        data = [
             *(overlap for state, overlap in sorted(selected_state_overlaps.items())),
-            sum((overlap for state, overlap in state_overlaps.items() if state.bound and state not in self.states), np.zeros(overlap_len)),
-            sum((overlap for state, overlap in state_overlaps.items() if state.free and state not in self.states), np.zeros(overlap_len)),
-        )
+            sum((overlap for state, overlap in state_overlaps.items() if state.bound and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))), np.zeros(overlap_len)),
+            sum((overlap for state, overlap in state_overlaps.items() if state.free and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))), np.zeros(overlap_len)),
+        ]
 
         labels = (
             *(r'$ \left| \left\langle \Psi | {} \right\rangle \right|^2 $'.format(state.latex) for state, overlap in sorted(selected_state_overlaps.items())),
@@ -608,14 +609,17 @@ class WavefunctionSimulationAnimator(si.vis.Animator):
 class RectangleAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower = ElectricPotentialPlotAxis(),
+                 fig_dpi_scale = 1,
                  **kwargs):
         super().__init__(**kwargs)
 
         self.axman_lower = axman_lower
         self.axis_managers.append(self.axman_lower)
 
+        self.fig_dpi_scale = fig_dpi_scale
+
     def _initialize_figure(self):
-        self.fig = plt.figure(figsize = (16, 12))
+        self.fig = si.vis.get_figure(fig_width = 16, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
 
         self.ax_mesh = self.fig.add_axes([.1, .34, .84, .6])
         self.axman_wavefunction.assign_axis(self.ax_mesh)
@@ -639,7 +643,7 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         self.axis_managers += [self.axman_lower_left, self.axman_lower_right]
 
     def _initialize_figure(self):
-        self.fig = plt.figure(figsize = (16, 12))
+        self.fig = si.vis.get_figure(fig_width = 16, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
 
         self.ax_mesh = self.fig.add_axes([.1, .34, .84, .6])
         self.axman_wavefunction.assign_axis(self.ax_mesh)
@@ -658,6 +662,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                  axman_lower_right = ElectricPotentialPlotAxis(),
                  axman_upper_right = WavefunctionStackplotAxis(),
                  axman_colorbar = ColorBarAxis(),
+                 fig_dpi_scale = 1,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -667,12 +672,13 @@ class PolarAnimator(WavefunctionSimulationAnimator):
 
         self.axis_managers += [axman for axman in [self.axman_lower_right, self.axman_upper_right, self.axman_colorbar] if axman is not None]
 
+        self.fig_dpi_scale = fig_dpi_scale
+
     def _initialize_figure(self):
-        self.fig = plt.figure(figsize = (20, 12))
+        self.fig = si.vis.get_figure(fig_width = 20, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
 
         self.ax_wavefunction = self.fig.add_axes([.05, .05, (12 / 20) - 0.05, .9], projection = 'polar')
         self.axman_wavefunction.assign_axis(self.ax_wavefunction)
-        self.axis_managers.append(self.axman_wavefunction)
 
         if self.axman_lower_right is not None:
             lower_legend_kwargs = dict(bbox_to_anchor = (1., 1.2),
@@ -697,7 +703,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
             if self.axman_wavefunction.which not in ('g', 'psi'):
                 self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colobar can see the colormesh
                 self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
-                self.ax_colobar = self.fig.add_axes([.65, .35, .02, .4])
+                self.ax_colobar = self.fig.add_axes([.65, .35, .02, .35])
                 self.axman_colorbar.assign_axis(self.ax_colobar)
             else:
                 logger.warning('ColorbarAxis cannot be used with nonlinear colormaps')

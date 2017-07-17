@@ -189,19 +189,38 @@ if __name__ == '__main__':
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
                 y_label = 'Initial State Population',
+                title = prefix,
                 **PLOT_KWARGS,
             )
 
-            y_lower_limit, y_upper_limit = si.vis.get_axis_limits([1 - x for x in final_initial_state_overlaps], log = True, log_pad = 2)
+            y_lower_limit, y_upper_limit = si.vis.get_axis_limits([y[-1] for y in y_data], log = True, log_pad = 2)
             si.vis.xxyy_plot(
                 f'comparison__{prefix}__log',
                 list(r.data_times for r in results),
-                [1 - y for y in y_data],
+                y_data,
                 line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results),
                 line_kwargs = y_kwargs,
                 x_label = r'$t$', x_unit = 'asec',
-                y_label = '1 - Initial State Population',
+                y_label = 'Initial State Population',
                 y_log_axis = True,
-                y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_pad = 1,
+                y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit,
+                y_log_pad = 1,
+                title = prefix,
                 **PLOT_KWARGS,
             )
+
+            # first_y_final = y_data[0][-1]
+            # y_lower_limit, y_upper_limit = si.vis.get_axis_limits([first_y_final - y[-1] for y in y_data[1:]], log = True, log_pad = 2)
+            # si.vis.xxyy_plot(
+            #     f'comparison__{prefix}__diff_from_fsw_log',
+            #     list(r.data_times for r in results[1:]),
+            #     [np.abs(first_y_final - y) for y in y_data[1:]],
+            #     line_labels = (r.name[-7:] if 'line' not in r.name else r.name[-8:] for r in results[1:]),
+            #     line_kwargs = y_kwargs[1:],
+            #     x_label = r'$t$', x_unit = 'asec',
+            #     y_label = '1 - Initial State Population',
+            #     y_log_axis = True,
+            #     y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit,
+            #     y_log_pad = 2,
+            #     **PLOT_KWARGS,
+            # )
