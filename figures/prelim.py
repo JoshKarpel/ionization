@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 from copy import deepcopy
+import collections
 
 import matplotlib
 import numpy as np
@@ -60,6 +61,11 @@ ANIMATED_FIGURE_KWARGS = dict(
 PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
 )
+
+BETTER_GRID_KWARGS = {
+    **si.vis.GRID_KWARGS,
+    'linewidth': 1,
+}
 
 BIG_SINE_WAVE = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field)
 
@@ -175,7 +181,7 @@ def efield_and_afield():
         times,
         bsw.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * bsw.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
-        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
+        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
@@ -186,6 +192,7 @@ def efield_and_afield():
         font_size_legend = 25,
         font_size_title = 35,
         legend_kwargs = {'loc': 'lower left'},
+        grid_kwargs = BETTER_GRID_KWARGS,
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -205,6 +212,7 @@ def efield_and_afield():
         font_size_legend = 25,
         font_size_title = 35,
         legend_kwargs = {'loc': 'lower left'},
+        grid_kwargs = BETTER_GRID_KWARGS,
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -226,7 +234,7 @@ def sinc_pulse():
         times,
         pulse.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
-        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
+        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         title = fr'Windowed Sinc Pulse w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
@@ -234,6 +242,7 @@ def sinc_pulse():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -255,7 +264,7 @@ def gaussian_pulse():
         times,
         pulse.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
-        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ e \, {ion.LATEX_AFIELD}(t) $'],
+        line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
@@ -264,6 +273,7 @@ def gaussian_pulse():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -301,11 +311,11 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         times,
         phases,
         efield, afield,
-        line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ e \, {ion.LATEX_AFIELD}(t) $'],
+        line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ q \, {ion.LATEX_AFIELD}(t) $'],
         line_kwargs = [{'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}],
-        x_label = r'$ t $', x_unit = 'asec',
+        x_label = r'Time', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
-        t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
+        t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         progress_bar = True,
         length = 10,
@@ -314,6 +324,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         font_size_legend = 25,
         font_size_title = 35,
         t_text_kwargs = {'fontsize': 25},
+        grid_kwargs = BETTER_GRID_KWARGS,
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
     )
@@ -324,9 +335,9 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         phases,
         efield_intensity,
         line_kwargs = [{'linewidth': 3}],
-        x_label = r'$ t $', x_unit = 'asec',
+        x_label = r'Time', x_unit = 'asec',
         y_label = r'$ P(t) $', y_unit = 'atomic_intensity',
-        t_fmt_string = r'$ \varphi = {}\pi \; {} $', t_unit = 'rad',
+        t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         progress_bar = True,
         length = 10,
@@ -335,6 +346,79 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         font_size_legend = 25,
         font_size_title = 35,
         t_text_kwargs = {'fontsize': 25},
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **ANIMATED_FIGURE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
+def pulse_cep_movie_zoom(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
+    pw = 200 * asec
+    flu = 1 * Jcm2
+    phases = np.linspace(0, twopi, 600)
+    # phase_frames = list(range(len(phases)))
+
+    times = np.linspace(-5 * pw, 5 * pw, 1000)
+
+    @si.utils.memoize
+    def get_pulse_by_phase(phase):
+        pulse = pulse_type(pulse_width = pw,
+                           fluence = flu,
+                           phase = phase,
+                           window = ion.SymmetricExponentialTimeWindow(window_time = pw * 8,
+                                                                       window_width = .2 * pw))
+
+        return ion.DC_correct_electric_potential(pulse, times)
+
+    def efield(times, phase):
+        return get_pulse_by_phase(phase).get_electric_field_amplitude(times) / atomic_electric_field
+
+    def efield_intensity(times, phase):
+        return epsilon_0 * c * (np.abs(efield(times, phase) * atomic_electric_field) ** 2)
+
+    def afield(times, phase):
+        return get_pulse_by_phase(phase).get_vector_potential_amplitude_numeric_cumulative(times) * proton_charge / atomic_momentum
+
+    # si.vis.xyt_plot(
+    #     f'cep_movie__{pulse_type.__name__}_efield',
+    #     times,
+    #     phases,
+    #     efield, afield,
+    #     line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ q \, {ion.LATEX_AFIELD}(t) $'],
+    #     line_kwargs = [{'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}],
+    #     x_label = r'Time', x_unit = 'asec',
+    #     y_label = r'Amplitude (a.u.)',
+    #     t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
+    #     title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
+    #     progress_bar = True,
+    #     length = 10,
+    #     font_size_axis_labels = 35,
+    #     font_size_tick_labels = 20,
+    #     font_size_legend = 25,
+    #     font_size_title = 35,
+    #     t_text_kwargs = {'fontsize': 25},
+    #     **ANIMATED_FIGURE_KWARGS,
+    #     **PLOT_KWARGS,
+    # )
+
+    si.vis.xyt_plot(
+        f'cep_movie__{pulse_type.__name__}_intensity__zoom',
+        times,
+        phases,
+        efield_intensity,
+        line_kwargs = [{'linewidth': 3}],
+        x_label = r'Time', x_unit = 'asec',
+        y_label = r'Intensity', y_unit = 'atomic_intensity',
+        t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
+        title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
+        progress_bar = True,
+        length = 10,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        t_text_kwargs = {'fontsize': 25},
+        grid_kwargs = BETTER_GRID_KWARGS,
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
     )
@@ -367,6 +451,7 @@ def tunneling_ionization_animation():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
         close_after_exit = False,
@@ -437,6 +522,7 @@ def tunneling_ionization_animation__pulse():
         y_label = '$ V(z) $',
         x_unit = 'bohr_radius',
         x_label = r'$ z $',
+        grid_kwargs = BETTER_GRID_KWARGS,
         **ANIMATED_FIGURE_KWARGS,
         **PLOT_KWARGS,
         close_after_exit = False,
@@ -504,6 +590,7 @@ def length_ide_kernel_gaussian():
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
         **FULL_SLIDE_FIGMAN_KWARGS,
         **PLOT_KWARGS,
     )
@@ -552,9 +639,202 @@ def length_ide_kernel_gaussian():
     # ax.legend(loc = 'upper right', framealpha = 1)
 
 
+time_field_unit = atomic_electric_field * atomic_time
+kick = collections.namedtuple('kick', ['time', 'time_field_product'])
+
+
+def decompose_pulse_into_kicks__amplitude(electric_potential, times):
+    efield_vs_time = electric_potential.get_electric_field_amplitude(times)
+    signs = np.sign(efield_vs_time)
+
+    # state machine
+    kicks = []
+    current_sign = signs[0]
+    efield_accumulator = 0
+    start_time = times[0]
+    prev_time = times[0]
+    last_time = times[-1]
+    max_field = 0
+    max_field_time = 0
+    for efield, sign, time in zip(efield_vs_time, signs, times):
+        if sign == current_sign and time != last_time:
+            # efield_accumulator += (efield ** 2) * (time - prev_time)
+            efield_accumulator += efield * (time - prev_time)
+            if max_field < np.abs(efield):
+                max_field = np.abs(efield)
+                max_field_time = time
+        else:
+            # time_diff = time - start_time
+            # kick_time = (time + start_time) / 2
+
+            kicks.append(kick(time = max_field_time, time_field_product = efield_accumulator))
+            # kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(efield_accumulator)))
+
+            # reset
+            current_sign = sign
+            start_time = time
+            efield_accumulator = 0
+            max_field = 0
+        prev_time = time
+
+    return kicks
+
+
+def delta_kick_decomposition_plot():
+    pulse_width = 200 * asec
+    timess = [np.linspace(-5 * pulse_width, 5 * pulse_width, 1000), np.linspace(-5 * pulse_width, 5 * pulse_width, 1000)]
+
+    pulses = [ion.GaussianPulse(), ion.GaussianPulse(phase = pi / 2)]
+    names = [r'Gaussian Pulse, $\varphi = 0$', r'Gaussian Pulse, $\varphi = \pi / 2$']
+
+    quarter_page_kwargs = dict(
+        fig_width = 13 / 2,
+        fig_height = 6.5 / 2
+    )
+
+    for pulse, name, times in zip(pulses, names, timess):
+        kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
+        kick_times = np.array(list(k.time for k in kicks))
+        # kick_products = np.array(list(k.time_field_product for k in kicks))
+
+        si.vis.xxyy_plot(
+            f'decomposition__{name.replace("$", "").replace(" ", "").lower()}_original',
+            [times, kick_times, *si.utils.grouper(np.repeat(kick_times, 2), 2)],
+            [
+                pulse.get_electric_field_amplitude(times),
+                pulse.get_electric_field_amplitude(kick_times),
+                *zip(np.zeros_like(kick_times), pulse.get_electric_field_amplitude(kick_times)),
+            ],
+            line_labels = ['Original', 'Decomposed'],
+            x_label = r'$t$', x_unit = 'asec',
+            y_label = fr'${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
+            line_kwargs = [{'linewidth': 3}, {'linestyle': '', 'marker': 'o'}, *[{'color': 'C1', 'linestyle': '-'} for _ in kick_times]],
+            font_size_axis_labels = 22,
+            font_size_tick_labels = 14,
+            font_size_legend = 16,
+            font_size_title = 22,
+            title = f'{name}',
+            grid_kwargs = BETTER_GRID_KWARGS,
+            **{**FULL_SLIDE_FIGMAN_KWARGS, **quarter_page_kwargs},
+            **PLOT_KWARGS,
+        )
+
+        # si.vis.xy_plot(
+        #     f'decomposition__{name}_decomposed',
+        #     kick_times,
+        #     kick_products,
+        #     line_kwargs = [{'linestyle': ':', 'marker': 'o'}],
+        #     x_label = r'$t$', x_unit = 'asec',
+        #     y_label = fr'$\eta_i$ (a.u.$\,\times\,$a.u.)', y_unit = time_field_unit,
+        #     font_size_axis_labels = 25,
+        #     font_size_tick_labels = 15,
+        #     font_size_legend = 20,
+        #     font_size_title = 25,
+        #     title = f'Decomposed {name} Pulse',
+        #     grid_kwargs = BETTER_GRID_KWARGS,
+        #     x_lower_limit = times[0], x_upper_limit = times[-1],
+        #     **{**FULL_SLIDE_FIGMAN_KWARGS, **quarter_page_kwargs},
+        #     **PLOT_KWARGS,
+        # )
+
+
+def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency):
+    abs_prefactor = np.abs(abs_prefactor)
+    bound_state_frequency = np.abs(bound_state_frequency)
+
+    @si.utils.memoize
+    def time_diff(i, j):
+        return kicks[i].time - kicks[j].time
+
+    @si.utils.memoize
+    def b(i, j):
+        return abs_prefactor * kicks[i].time_field_product * kicks[j].time_field_product
+
+    @si.utils.memoize
+    def a(n):
+        # print(f'calling a({n})')
+        if n < 0:
+            return 1
+        else:
+            first_term = np.exp(-1j * np.abs(bound_state_frequency) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
+            second_term = sum(a(i) * b(n, i) * kernel_func(time_diff(n, i)) for i in range(n))  # all but current kick
+            # print(second_term)
+
+            return first_term - second_term
+
+    return np.array(list(a(i) for i in range(len(kicks))))
+
+
+def make_sine_wave_kicks(number_of_periods, period, eta):
+    kicks = []
+    for n in range(number_of_periods):
+        kicks.append(kick(time = (2 * n) * period / 2, time_field_product = eta))
+        kicks.append(kick(time = ((2 * n) + 1) * period / 2, time_field_product = -eta))
+
+    return kicks
+
+
+def delta_kicks_eta_plot():
+    etas = np.array([.2, .4, .5]) * time_field_unit
+
+    number_of_periods = 10
+
+    test_width = 1 * bohr_radius
+    test_charge = 1 * electron_charge
+    test_mass = 1 * electron_mass
+    # potential_depth = 36.831335 * eV
+
+    prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge)
+    tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)
+    kernel = functools.partial(ide.gaussian_kernel_LEN, tau_alpha = tau_alpha)
+    omega_alpha = 1 / (2 * tau_alpha)
+
+    periods = np.linspace(0, 3, 500) * tau_alpha
+    periods = periods[1:]
+
+    def curve(periods, eta):
+        results = []
+        for period in periods:
+            kicks = make_sine_wave_kicks(number_of_periods, period, eta)
+
+            results.append(
+                recursive_kicks(
+                    kicks,
+                    abs_prefactor = np.abs(prefactor),
+                    kernel_func = kernel,
+                    bound_state_frequency = omega_alpha
+                )[-1])
+
+        return np.abs(results) ** 2
+
+    si.vis.xy_plot(
+        f'bound_state_amplitude_vs_sine_period__eta__{etas}',
+        periods,
+        *[curve(periods, eta) for eta in etas],
+        line_labels = [fr'$\eta = {uround(eta, time_field_unit)}$ a.u.' for eta in etas],
+        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}, {'linewidth': 3},],
+        x_label = r'Sine Wave Period $T$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,
+        y_label = r'$\left|\left\langle a | a \right\rangle\right|^2$',
+        # vlines = [tau_alpha / 2, tau_alpha], vline_kwargs = [{'linestyle': ':', 'color': 'black'}, {'linestyle': ':', 'color': 'black'}],
+        y_log_axis = True,
+        y_log_pad = 1,
+        legend_kwargs = {'loc': 'upper right'},
+        # y_lower_limit = 1e-9, y_upper_limit = 1,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **PLOT_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
+    )
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            delta_kicks_eta_plot,
+            delta_kick_decomposition_plot,
             length_ide_kernel_gaussian,
             tunneling_ionization_animation__pulse,
             tunneling_ionization_animation,
@@ -564,6 +844,7 @@ if __name__ == '__main__':
             title_bg,
             spherical_harmonic_mesh,
             functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            functools.partial(pulse_cep_movie_zoom, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
             functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
         ]
 

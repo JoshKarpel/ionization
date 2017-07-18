@@ -145,21 +145,27 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
     efield_accumulator = 0
     start_time = times[0]
     prev_time = times[0]
+    max_field = 0
+    max_field_time = 0
     for efield, sign, time in zip(efield_vs_time, signs, times):
         if sign == current_sign:
             # efield_accumulator += (efield ** 2) * (time - prev_time)
             efield_accumulator += efield * (time - prev_time)
+            if max_field < np.abs(efield):
+                max_field = np.abs(efield)
+                max_field_time = time
         else:
             # time_diff = time - start_time
-            kick_time = (time + start_time) / 2
+            # kick_time = (time + start_time) / 2
 
-            kicks.append(kick(time = kick_time, time_field_product = efield_accumulator))
+            kicks.append(kick(time = max_field_time, time_field_product = efield_accumulator))
             # kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(efield_accumulator)))
 
             # reset
             current_sign = sign
             start_time = time
             efield_accumulator = 0
+            max_field = 0
         prev_time = time
 
     return kicks
@@ -175,8 +181,9 @@ def decompose_pulse_into_kicks__fluence(electric_potential, times):
     fluence_accumulator = 0
     start_time = times[0]
     prev_time = times[0]
+    last_time = times[-1]
     for efield, sign, time in zip(efield_vs_time, signs, times):
-        if sign == current_sign:
+        if sign == current_sign and time != last_time:
             # efield_accumulator += (efield ** 2) * (time - prev_time)
             fluence_accumulator += (np.abs(efield) ** 2) * (time - prev_time)
         else:
