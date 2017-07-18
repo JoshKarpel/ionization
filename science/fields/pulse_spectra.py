@@ -2,7 +2,7 @@ import logging
 import os
 
 import numpy as np
-import numpy.fft as fft
+import numpy.fft as nfft
 import scipy.integrate as integ
 
 import simulacra as si
@@ -32,29 +32,27 @@ PULSE_TYPES = (
 
 if __name__ == '__main__':
     with logman as logger:
-        t_bound = 100
+        t_bound = 400
         p_bound = 30
         freq_window = 10000 * THz
 
-        pw = 50 * asec
+        pw = 200 * asec
         flu = 1 * Jcm2
+        phase = pi / 2
 
         times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 14)
         dt = np.abs(times[1] - times[0])
 
-        dummy = ion.SincPulse(pulse_width = pw, fluence = flu,
-                              phase = 0,
-                              window = ion.SymmetricExponentialTimeWindow(window_time = p_bound * pw, window_width = .2 * pw))
         pulses = [
-            dummy,
-            ion.GaussianPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
-                              window = dummy.window),
-            ion.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
-                          window = dummy.window),
+            ion.SincPulse.from_omega_min(pulse_width = pw, fluence = flu, phase = phase,
+                                         window = ion.SymmetricExponentialTimeWindow(window_time = 30 * pw, window_width = .2 * pw)),
+            ion.GaussianPulse(pulse_width = pw, fluence = flu, phase = phase,
+                              window = ion.SymmetricExponentialTimeWindow(window_time = 5 * pw, window_width = .2 * pw)),
+            # ion.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
+            #               window = dummy.window),
         ]
 
-        pulses = list(ion.DC_correct_electric_potential(pulse, times) for pulse in pulses)
-
+        # pulses = list(ion.DC_correct_electric_potential(pulse, times) for pulse in pulses)
         fields = tuple(pulse.get_electric_field_amplitude(times) for pulse in pulses)
 
         # gaussian_max = np.nanmax(np.abs(fields[1]))
@@ -75,20 +73,43 @@ if __name__ == '__main__':
             **PLT_KWARGS,
         )
 
-        freqs = fft.fftshift(fft.fftfreq(len(times), dt))
+        freqs = nfft.fftshift(nfft.fftfreq(len(times), dt))
         df = np.abs(freqs[1] - freqs[0])
-        # ffts = tuple(fft.fftshift(fft.fft(field) / df) for field in fields)
-        ffts = tuple(fft.fftshift(fft.fft(field, norm = 'ortho') / df) for field in fields)
+        ffts = tuple(nfft.fftshift(nfft.fft(nfft.fftshift(field), norm = 'ortho') / df) for field in fields)
 
         si.vis.xy_plot(
-            'amplitude_spectra',
+            'amplitude_spectra_real',
             freqs,
-            *ffts,
+            *(np.real(fft) for fft in ffts),
             line_labels = (pulse.__class__.__name__ for pulse in pulses),
             x_label = r'$ f $', x_unit = 'THz',
             x_lower_limit = -freq_window, x_upper_limit = freq_window,
             y_label = fr'$ {ion.LATEX_EFIELD}(f) $',
-            title = fr'Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            title = fr'Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            **PLT_KWARGS,
+        )
+        si.vis.xy_plot(
+            'amplitude_spectra_imag',
+            freqs,
+            *(np.imag(fft) for fft in ffts),
+            line_labels = (pulse.__class__.__name__ for pulse in pulses),
+            x_label = r'$ f $', x_unit = 'THz',
+            x_lower_limit = -freq_window, x_upper_limit = freq_window,
+            y_label = fr'$ {ion.LATEX_EFIELD}(f) $',
+            title = fr'Imaginary Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            **PLT_KWARGS,
+        )
+        si.vis.xy_plot(
+            'amplitude_spectra_real_zoom',
+            freqs,
+            *(np.real(fft) for fft in ffts),
+            line_labels = (pulse.__class__.__name__ for pulse in pulses),
+            x_label = r'$ f $', x_unit = 'THz',
+            # x_lower_limit = -freq_window, x_upper_limit = freq_window,
+            y_label = fr'$ {ion.LATEX_EFIELD}(f) $',
+            title = fr'Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+            x_lower_limit = 2450 * THz,
+            x_upper_limit = 2550 * THz,
             **PLT_KWARGS,
         )
 

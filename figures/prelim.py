@@ -7,6 +7,7 @@ import collections
 
 import matplotlib
 import numpy as np
+import numpy.fft as nfft
 import scipy.optimize as optimize
 from tqdm import tqdm
 
@@ -812,7 +813,7 @@ def delta_kicks_eta_plot():
         periods,
         *[curve(periods, eta) for eta in etas],
         line_labels = [fr'$\eta = {uround(eta, time_field_unit)}$ a.u.' for eta in etas],
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}, {'linewidth': 3},],
+        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}, {'linewidth': 3}, ],
         x_label = r'Sine Wave Period $T$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,
         y_label = r'$\left|\left\langle a | a \right\rangle\right|^2$',
         # vlines = [tau_alpha / 2, tau_alpha], vline_kwargs = [{'linestyle': ':', 'color': 'black'}, {'linestyle': ':', 'color': 'black'}],
@@ -830,9 +831,62 @@ def delta_kicks_eta_plot():
     )
 
 
+def pulse_ffts():
+    t_bound = 500
+    freq_plot_limit = 6000 * THz
+
+    pw = 200 * asec
+    flu = 1 * Jcm2
+    phase = pi / 2
+
+    times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 14)
+    dt = np.abs(times[1] - times[0])
+
+    pulses = [
+        ion.SincPulse.from_omega_min(pulse_width = pw, fluence = flu, phase = phase,
+                                     window = ion.SymmetricExponentialTimeWindow(window_time = 30 * pw, window_width = .2 * pw)),
+        ion.GaussianPulse.from_omega_min(pulse_width = pw, fluence = flu, phase = phase,
+                                         window = ion.SymmetricExponentialTimeWindow(window_time = 5 * pw, window_width = .2 * pw)),
+    ]
+
+    names = [
+        'Sinc',
+        'Gaussian',
+    ]
+
+    pulses = list(ion.DC_correct_electric_potential(pulse, times) for pulse in pulses)
+    fields = tuple(pulse.get_electric_field_amplitude(times) for pulse in pulses)
+
+    freqs = nfft.fftshift(nfft.fftfreq(len(times), dt))
+    df = np.abs(freqs[1] - freqs[0])
+
+    ffts = tuple(nfft.fftshift(nfft.fft(nfft.fftshift(field), norm = 'ortho') / df) for field in fields)
+
+    si.vis.xy_plot(
+        'pulse_power_spectra',
+        freqs,
+        *(epsilon_0 * c * (np.abs(f) ** 2) / len(times) for f in ffts),
+        line_labels = names,
+        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}],
+        x_label = r'$ f $', x_unit = 'THz',
+        x_lower_limit = -freq_plot_limit, x_upper_limit = freq_plot_limit,
+        y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)',
+        y_unit = Jcm2 / THz,
+        title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **FULL_SLIDE_FIGMAN_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            pulse_ffts,
             delta_kicks_eta_plot,
             delta_kick_decomposition_plot,
             length_ide_kernel_gaussian,

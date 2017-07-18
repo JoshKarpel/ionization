@@ -28,10 +28,16 @@ def run(spec):
         sim.run_simulation()
         logger.info(sim.info())
 
-        sim.plot_state_overlaps_vs_time(
-            states = sim.bound_states[:8],
-            show_vector_potential = 'vel' in sim.name,
-            **PLOT_KWARGS)
+        if 'msh' in sim.name:
+            sim.plot_state_overlaps_vs_time(
+                states = list(sim.bound_states)[:8],
+                show_vector_potential = 'vel' in sim.name,
+                **PLOT_KWARGS)
+        elif 'ide' in sim.name:
+            sim.plot_wavefunction_vs_time(
+                show_vector_potential = 'vel' in sim.name,
+                **PLOT_KWARGS,
+            )
 
         return sim
 
@@ -100,14 +106,14 @@ if __name__ == '__main__':
                     axman_wavefunction = ion.animators.LineMeshAxis(),
                     axman_lower_left = ion.animators.ElectricPotentialPlotAxis(show_vector_potential = False),
                     axman_lower_right = ion.animators.WavefunctionStackplotAxis(states = [variational_ground_state]),
-                    fig_dpi_scale = 2,
+                    fig_dpi_scale = 1,
                     target_dir = OUT_DIR,
                 ),
             ],
             **shared_kwargs,
         )
         len_spec = ide.IntegroDifferentialEquationSpecification(
-            'len',
+            'ide_len',
             evolution_gauge = 'LEN',
             kernel = ide.gaussian_kernel_LEN,
             kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
@@ -116,7 +122,7 @@ if __name__ == '__main__':
             **ide_shared_kwargs,
         )
         vel_spec = ide.IntegroDifferentialEquationSpecification(
-            'vel',
+            'ide_vel',
             evolution_gauge = 'VEL',
             kernel = ide.gaussian_kernel_VEL,
             kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass), 'width': test_width},
