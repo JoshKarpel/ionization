@@ -634,6 +634,7 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
     def __init__(self,
                  axman_lower_left = ElectricPotentialPlotAxis(),
                  axman_lower_right = WavefunctionStackplotAxis(),
+                 fig_dpi_scale = 1,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -641,6 +642,8 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         self.axman_lower_right = axman_lower_right
 
         self.axis_managers += [self.axman_lower_left, self.axman_lower_right]
+
+        self.fig_dpi_scale = fig_dpi_scale
 
     def _initialize_figure(self):
         self.fig = si.vis.get_figure(fig_width = 16, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)

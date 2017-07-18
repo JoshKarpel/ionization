@@ -599,7 +599,7 @@ class ElectricFieldSimulation(si.Simulation):
 
     def plot_wavefunction_vs_time(self, log = False, time_unit = 'asec',
                                   bound_state_max_n = 5,
-                                  collapse_bound_state_angular_momentums = True,
+                                  collapse_bound_state_angular_momenta = True,
                                   grouped_free_states = None,
                                   group_free_states_labels = None,
                                   show_title = False,
@@ -635,7 +635,7 @@ class ElectricFieldSimulation(si.Simulation):
             state_overlaps = self.state_overlaps_vs_time  # it's a property that would otherwise get evaluated every time we asked for it
 
             extra_bound_overlap = np.zeros(self.data_time_steps)
-            if collapse_bound_state_angular_momentums:
+            if collapse_bound_state_angular_momenta:
                 overlaps_by_n = {n: np.zeros(self.data_time_steps) for n in range(1, bound_state_max_n + 1)}  # prepare arrays to sum over angular momenta in, one for each n
                 for state in sorted(self.bound_states):
                     if state.n <= bound_state_max_n:
@@ -1591,6 +1591,8 @@ class LineMesh(QuantumMesh):
         self.g_factor = 1
 
         if self.spec.use_numeric_eigenstates:
+            logger.debug('Calculating numeric eigenstates')
+
             self.analytic_to_numeric = self._get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
@@ -2758,6 +2760,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.mesh_shape = np.shape(self.r_mesh)
 
         if self.spec.use_numeric_eigenstates:
+            logger.debug('Calculating numeric eigenstates')
+
             self.analytic_to_numeric = self.get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy, self.spec.numeric_eigenstate_max_angular_momentum)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]

@@ -509,6 +509,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     def plot_a2_vs_time(self,
                         log = False,
                         time_unit = 'asec',
+                        show_vector_potential = False,
                         show_title = False,
                         **kwargs):
         with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
@@ -521,6 +522,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             ax_pot = plt.subplot(grid_spec[1], sharex = ax_a)
 
             self.attach_electric_potential_plot_to_axis(ax_pot,
+                                                        show_vector_potential = show_vector_potential,
                                                         time_unit = time_unit)
 
             ax_a.plot(self.times / t_scale_unit,
