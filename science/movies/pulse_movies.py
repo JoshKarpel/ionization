@@ -20,9 +20,6 @@ def run(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
-        print(len(list(sim.bound_states)))
-        print(len(list(sim.free_states)))
-
         logger.info(sim.info())
         sim.run_simulation()
         logger.info(sim.info())
@@ -31,9 +28,9 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         r_bound = 100
-        points_per_r = 4
+        points_per_r = 5
         r_points = r_bound * points_per_r
-        l_bound = 200
+        l_bound = 400
         dt = 1
         t_bound = 10
         n_max = 3
@@ -44,39 +41,41 @@ if __name__ == '__main__':
         # test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(n_max + 1) for l in range(n))
         # pulse_types = [ion.SincPulse]
         pulse_types = [ion.SincPulse, ion.GaussianPulse]
-        # pulse_widths = [50]
-        pulse_widths = [50, 100, 200, 400, 800]
+        pulse_widths = [50, 200]
+        # pulse_widths = [50, 100, 200, 400, 800]
         # fluences = [1]
         fluences = [.1, 1, 10]
         # phases = [0]
         phases = [0, pi / 4, pi / 2]
 
         # used by all sims
-        mask = ion.RadialCosineMask(inner_radius = .8 * r_bound * bohr_radius, outer_radius = r_bound * bohr_radius)
+        mask = ion.RadialCosineMask(inner_radius = (r_bound - 25) * bohr_radius, outer_radius = r_bound * bohr_radius)
+        out_dir_mod = os.path.join(OUT_DIR, f'R={r_bound}br_PPR={points_per_r}_L={l_bound}_dt={dt}as_T={t_bound}pw')
+
+        # used by all animators
+        animator_kwargs = dict(
+            target_dir = out_dir_mod,
+            fig_dpi_scale = 2,
+            length = 60,
+            fps = 30,
+        )
+
+        epot_axman = ion.animators.ElectricPotentialPlotAxis(
+            show_electric_field = True,
+            show_vector_potential = False,
+            show_y_label = False,
+            show_ticks_right = True,
+        )
 
         specs = []
         for initial_state, pulse_type, pulse_width, fluence, phase in itertools.product(initial_states, pulse_types, pulse_widths, fluences, phases):
-            out_dir_mod = os.path.join(OUT_DIR, f'R={r_bound}br_PPR={points_per_r}_L={l_bound}_dt={dt}as_T={t_bound}pw')
-            name = f'{pulse_type.__name__}__pw={pulse_width}as_flu={fluence}jcm2_cep={uround(phase, pi)}pi__'
+            name = f'{pulse_type.__name__}__{initial_state.n}_{initial_state.l}__pw={pulse_width}as_flu={fluence}jcm2_cep={uround(phase, pi)}pi'
 
             pw = pulse_width * asec
             flu = fluence * Jcm2
 
             efield = pulse_type.from_omega_min(pulse_width = pw, fluence = flu, phase = phase,
                                                window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 2) * pw, window_width = .2 * pw))
-
-            animator_kwargs = dict(
-                target_dir = out_dir_mod,
-                fig_dpi_scale = 2,
-                length = 60,
-            )
-
-            epot_axman = ion.animators.ElectricPotentialPlotAxis(
-                show_electric_field = True,
-                show_vector_potential = False,
-                show_y_label = False,
-                show_ticks_right = True,
-            )
 
             wavefunction_axman = ion.animators.WavefunctionStackplotAxis(
                 states = [initial_state],
@@ -85,7 +84,19 @@ if __name__ == '__main__':
 
             animators = [
                 ion.animators.PolarAnimator(
-                    postfix = 'g_wavefunction',
+                    postfix = '__g_wavefunction_wide',
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g',
+                        colormap = plt.get_cmap('richardson'),
+                        norm = si.vis.RichardsonNormalization(),
+                    ),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
+                    axman_colorbar = None,
+                    **animator_kwargs,
+                ),
+                ion.animators.PolarAnimator(
+                    postfix = '__g_wavefunction',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g',
                         colormap = plt.get_cmap('richardson'),
@@ -98,7 +109,7 @@ if __name__ == '__main__':
                     **animator_kwargs,
                 ),
                 ion.animators.PolarAnimator(
-                    postfix = 'g_angular_momentum',
+                    postfix = '__g_angular_momentum',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g',
                         colormap = plt.get_cmap('richardson'),
@@ -111,10 +122,19 @@ if __name__ == '__main__':
                     **animator_kwargs,
                 ),
                 ion.animators.PolarAnimator(
-                    postfix = 'g2_wavefunction',
+                    postfix = '__g2_wavefunction',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g2',
                         plot_limit = 50 * bohr_radius,
+                    ),
+                    axman_lower_right = deepcopy(epot_axman),
+                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
+                    **animator_kwargs,
+                ),
+                ion.animators.PolarAnimator(
+                    postfix = 'g2_wavefunction_wide',
+                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                        which = 'g2',
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
@@ -132,23 +152,24 @@ if __name__ == '__main__':
                 ),
             ]
 
-        specs.append(
-            ion.SphericalHarmonicSpecification(
-                name,
-                electric_potential = efield,
-                time_initial = -t_bound * pw,
-                time_final = t_bound * pw,
-                time_step = dt * asec,
-                r_points = r_points,
-                r_bound = r_bound * bohr_radius,
-                l_bound = l_bound,
-                initial_state = initial_state,
-                mask = mask,
-                use_numeric_eigenstates = True,
-                numeric_eigenstate_max_energy = 100 * eV,
-                numeric_eigenstate_max_angular_momentum = 20,
-                animators = deepcopy(animators),
+            specs.append(
+                ion.SphericalHarmonicSpecification(
+                    name,
+                    electric_potential = efield,
+                    time_initial = -t_bound * pw,
+                    time_final = t_bound * pw,
+                    time_step = dt * asec,
+                    r_points = r_points,
+                    r_bound = r_bound * bohr_radius,
+                    l_bound = l_bound,
+                    initial_state = initial_state,
+                    mask = mask,
+                    use_numeric_eigenstates = True,
+                    numeric_eigenstate_max_energy = 50 * eV,
+                    numeric_eigenstate_max_angular_momentum = 20,
+                    animators = deepcopy(animators),
+                    # store_data_every = 5,
+                )
             )
-        )
 
-    si.utils.multi_map(run, specs, processes = 6)
+        si.utils.multi_map(run, specs, processes = 4)

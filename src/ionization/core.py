@@ -1130,7 +1130,7 @@ class ElectricFieldSpecification(si.Specification):
         info_evolution = si.Info(header = 'Time Evolution')
         info_evolution.add_field('Initial State', self.initial_state)
         info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as | {uround(self.time_initial, fsec, 3)} fs | {uround(self.time_initial, atomic_time, 3)} a.u.')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as | {uround(self.time_final, fsec, 3)} as | {uround(self.time_final, atomic_time, 3)} a.u.')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as | {uround(self.time_final, fsec, 3)} fs | {uround(self.time_final, atomic_time, 3)} a.u.')
         if not callable(self.time_step):
             info_evolution.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as | {uround(self.time_step, atomic_time, 3)} a.u.')
         else:
@@ -2753,7 +2753,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.inner_product_multiplier = self.delta_r
 
         self.l = np.array(range(self.spec.l_bound), dtype = int)
-        self.theta_points = min(self.spec.l_bound * 5, 360)
+        self.theta_points = 360
         self.phi_points = self.theta_points
 
         self.mesh_points = len(self.r) * len(self.l)

@@ -29,7 +29,7 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         state_a = ion.HydrogenBoundState(1, 0)
-        state_b = ion.HydrogenBoundState(2, 1)
+        state_b = ion.HydrogenBoundState(3, 1)
 
         amplitudes = [.005, .01, .1]
         cycles = [1, 3]
@@ -153,4 +153,4 @@ if __name__ == '__main__':
                 **spec_kwargs
             ))
 
-        si.utils.multi_map(run, specs, processes = 6)
+        si.utils.multi_map(run, specs, processes = 2)

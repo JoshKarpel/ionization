@@ -56,16 +56,16 @@ if __name__ == '__main__':
 
         parameters.append(clu.Parameter(name = 'delta_r',
                                         value = bohr_radius * np.array(clu.ask_for_eval('Radial Mesh Spacings (in Bohr radii)?',
-                                                                                        default = 'np.logspace(0, -2, 50)')),
+                                                                                        default = 'np.geomspace(.1, 1, 10')),
                                         expandable = True))
 
         parameters.append(clu.Parameter(name = 'l_bound',
                                         value = clu.ask_for_eval('L Bound?',
-                                                                 default = range(20, 50)),
+                                                                 default = 'range(100, 501, 25)'),
                                         expandable = True))
 
         parameters.append(clu.Parameter(name = 'time_step',
-                                        value = asec * np.array(clu.ask_for_eval('Time Steps (in asec)?', default = 'np.logspace(0, -2, 50)')),
+                                        value = asec * np.array(clu.ask_for_eval('Time Steps (in asec)?', default = 'np.geomspace(5, .1, 20)')),
                                         expandable = True))
 
         time_initial_in_pw = clu.Parameter(name = 'initial_time_in_pw',
@@ -109,30 +109,29 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'evolution_gauge',
                                         value = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN')))
 
+        # PULSE PARAMETERS
         pulse_parameters = []
 
         pulse_type_q = clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')
-        if pulse_type_q == 'sinc':
-            pulse_type = ion.SincPulse
-        elif pulse_type_q == 'gaussian':
-            pulse_type = ion.GaussianPulse
-        elif pulse_type_q == 'sech':
-            pulse_type = ion.SechPulse
-        else:
-            raise ValueError("Pulse type ({}) was not one of 'sinc', 'gaussian', or 'sech'".format(pulse_type_q))
+        pulse_names_to_types = {
+            'sinc': ion.SincPulse,
+            'gaussian': ion.GaussianPulse,
+            'sech': ion.SechPulse,
+        }
+        pulse_type = pulse_names_to_types[pulse_type_q]
 
         pulse_width = clu.Parameter(name = 'pulse_width',
-                                    value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 300, 400, 500]')),
+                                    value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
                                     expandable = True)
         pulse_parameters.append(pulse_width)
 
         fluence = clu.Parameter(name = 'fluence',
-                                value = (J / (cm ** 2)) * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.1, 1, 5, 10, 20]')),
+                                value = (J / (cm ** 2)) * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.01, .1, 1, 10, 20]')),
                                 expandable = True)
         pulse_parameters.append(fluence)
 
         phases = clu.Parameter(name = 'phase',
-                               value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 50)')),
+                               value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = 'np.linspace(0, pi, 100)')),
                                expandable = True)
         pulse_parameters.append(phases)
 
@@ -143,24 +142,24 @@ if __name__ == '__main__':
         parameters.append(window_time_in_pw)
         parameters.append(window_width_in_pw)
 
-        pulses = tuple(ion.SincPulse(**d,
-                                     window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
-                                                                                 window_width = d['pulse_width'] * window_width_in_pw.value))
+        omega_min = clu.Parameter(name = 'omega_min',
+                                  value = twopi * THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)',
+                                                                                  default = '[30]')),
+                                  expandable = True)
+        pulse_parameters.append(omega_min)
+
+        pulses = tuple(pulse_type.from_omega_min(**d,
+                                                 window = ion.SymmetricExponentialTimeWindow(window_time = d['pulse_width'] * window_time_in_pw.value,
+                                                                                             window_width = d['pulse_width'] * window_width_in_pw.value))
                        for d in clu.expand_parameters_to_dicts(pulse_parameters))
-
-        if pulse_type != ion.SincPulse:
-            pulses = tuple(pulse_type(pulse_width = p.pulse_width, fluence = p.fluence, phase = p.phase,
-                                      omega_carrier = p.omega_carrier,
-                                      pulse_center = p.pulse_center,
-                                      window = p.window)
-                           for p in pulses)
-
-        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
-                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
         parameters.append(clu.Parameter(name = 'electric_potential',
                                         value = pulses,
                                         expandable = True))
+
+        # MISCELLANEOUS
+        parameters.append(clu.Parameter(name = 'electric_potential_dc_correction',
+                                        value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)))
 
         checkpoints = clu.ask_for_bool('Checkpoints?', default = True)
         parameters.append(clu.Parameter(name = 'checkpoints',
