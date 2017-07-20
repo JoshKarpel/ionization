@@ -19,7 +19,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO, file_logs = False, file_dir = OUT_DIR, file_level = logging.DEBUG)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -56,7 +56,7 @@ def tunneling_rate_plot(electric_field_amplitude_min, electric_field_amplitude_m
         x_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}$', x_unit = 'atomic_electric_field',
         y_label = r'Tunneling Rate ($\mathrm{as}^{-1}$)',
         title = 'Tunneling Rate in a Static Electric Field',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -117,7 +117,7 @@ if __name__ == '__main__':
 
         sim.plot_wavefunction_vs_time(
             show_vector_potential = False,
-            **PLT_KWARGS
+            **PLOT_KWARGS
         )
 
         pot = sim.spec.electric_potential
@@ -136,7 +136,7 @@ if __name__ == '__main__':
             tunneling_rate_vs_time * asec,
             x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Tunneling Rate ($\mathrm{as}^{-1}$)',
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         si.vis.xxyy_plot(
@@ -158,5 +158,5 @@ if __name__ == '__main__':
             y_label = 'Wavefunction Remaining',
             # y_lower_limit = 0, y_upper_limit = 1, y_pad = 0,
             # y_log_axis = True, y_lower_limit = .98, y_upper_limit = 1, y_log_pad = 1,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )

@@ -18,7 +18,7 @@ logman = si.utils.LogManager(
     stdout_level = logging.INFO
 )
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -70,7 +70,7 @@ if __name__ == '__main__':
             title = fr'Electric Fields at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
             # hlines = (gaussian_max, gaussian_max / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_time, gaussian_hwhm_time), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         freqs = nfft.fftshift(nfft.fftfreq(len(times), dt))
@@ -86,7 +86,7 @@ if __name__ == '__main__':
             x_lower_limit = -freq_window, x_upper_limit = freq_window,
             y_label = fr'$ {ion.LATEX_EFIELD}(f) $',
             title = fr'Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
         si.vis.xy_plot(
             'amplitude_spectra_imag',
@@ -97,7 +97,7 @@ if __name__ == '__main__':
             x_lower_limit = -freq_window, x_upper_limit = freq_window,
             y_label = fr'$ {ion.LATEX_EFIELD}(f) $',
             title = fr'Imaginary Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
         si.vis.xy_plot(
             'amplitude_spectra_real_zoom',
@@ -110,7 +110,7 @@ if __name__ == '__main__':
             title = fr'Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
             x_lower_limit = 2450 * THz,
             x_upper_limit = 2550 * THz,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         # gaussian_max_freq = np.nanmax(np.abs(ffts[1]))
@@ -130,7 +130,7 @@ if __name__ == '__main__':
             title = fr'Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
             # hlines = (gaussian_max_freq, gaussian_max_freq / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_freq + gaussian_center_freq, gaussian_hwhm_freq + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         # gaussian_max_power = np.nanmax(np.abs(epsilon_0 * c * (np.abs(ffts[1]) ** 2) / len(times)))
@@ -147,7 +147,7 @@ if __name__ == '__main__':
             title = fr'Power Density Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
             # hlines = (gaussian_max_power, gaussian_max_power / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq, gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         for pulse, f in zip(pulses, ffts):

@@ -12,7 +12,7 @@ from ionization import integrodiff as ide
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
         target_dir = OUT_DIR,
         # img_format = 'png',
         # fig_dpi_scale = 3,
@@ -34,7 +34,7 @@ PLT_KWARGS = dict(
 #     ax.grid(True, **si.vis.GRID_KWARGS)
 #
 #     si.vis.save_current_figure('{}__comparison'.format(title),
-#                                **PLT_KWARGS)
+#                                **PLOT_KWARGS)
 #
 #     plt.close()
 #
@@ -64,7 +64,7 @@ PLT_KWARGS = dict(
 #     ax.grid(True, **si.vis.GRID_KWARGS)
 #
 #     si.vis.save_current_figure('{}__error'.format(title),
-#                                **PLT_KWARGS)
+#                                **PLOT_KWARGS)
 #
 #     plt.close()
 #
@@ -99,7 +99,7 @@ PLT_KWARGS = dict(
 #     # ax.set_ylim(bottom = 1e-10, top = 1)
 #
 #     si.vis.save_current_figure('{}__error_log'.format(title),
-#                                **PLT_KWARGS)
+#                                **PLOT_KWARGS)
 #
 #     plt.close()
 #
@@ -127,7 +127,7 @@ PLT_KWARGS = dict(
 #     # ax.set_ylim(bottom = .01 * np.nanmin(final), top = 1)
 #
 #     si.vis.save_current_figure('{}__convergence'.format(title),
-#                                **PLT_KWARGS)
+#                                **PLOT_KWARGS)
 #
 #     plt.close()
 #
@@ -154,7 +154,7 @@ PLT_KWARGS = dict(
 #     # ax.set_ylim(bottom = .01 * np.nanmin(final), top = 1)
 #
 #     si.vis.save_current_figure('{}__convergence_squared'.format(title),
-#                                **PLT_KWARGS)
+#                                **PLOT_KWARGS)
 #
 #     plt.close()
 
@@ -172,7 +172,7 @@ def run(spec):
         sim.plot_a2_vs_time(y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
                             field_axis_label = r'${}(t)$'.format(ion.LATEX_EFIELD),
                             field_scale = 'AEF',
-                            **PLT_KWARGS)
+                            **PLOT_KWARGS)
 
         logger.info(sim.info())
 
@@ -232,7 +232,7 @@ if __name__ == '__main__':
                 line_labels = (f'${uround(r.spec.time_step, asec, 3)}$ as' for r in results),
                 x_label = r'Time $t$', x_unit = 'asec',
                 y_label = r'$\left| a(t) \right|^2$',
-                **PLT_KWARGS
+                **PLOT_KWARGS
         )
 
         # comparison_plot(dt_list, t_by_dt, a_by_dt, title)

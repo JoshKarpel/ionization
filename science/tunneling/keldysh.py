@@ -17,7 +17,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO, file_logs = False, file_dir = OUT_DIR, file_level = logging.DEBUG)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -42,7 +42,7 @@ def monochromatic_keldysh_1d(photon_energy_min, photon_energy_max, electric_fiel
         y_label = r'Keldysh Parameter $\gamma$', y_lower_limit = 0, y_upper_limit = 10, y_pad = 0,
         hlines = [1], hline_kwargs = [{'linestyle': '--', 'color': 'black'}],
         title = 'Keldysh Parameter vs. Photon Energy',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -65,7 +65,7 @@ def monochromatic_keldysh_2d(photon_energy_min, photon_energy_max, electric_fiel
         z_log_axis = True, z_lower_limit = .01, z_upper_limit = 10,
         z_label = fr'Keldysh Parameter $\gamma$ vs. $E$ and ${ion.LATEX_EFIELD}_0$',
         contours = (.01, 0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -91,7 +91,7 @@ def pulse_keldysh_2d(pulse_width_min, pulse_width_max, fluence_min, fluence_max,
         z_log_axis = True, z_lower_limit = .01, z_upper_limit = 10,
         z_label = fr'Keldysh Parameter $\gamma$ vs. $\tau$ and $H$ for {pulse_type.__name__}',
         contours = (.01, 0.1, 0.5, 1), contour_kwargs = {'colors': 'white', 'linewidths': .5},
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 

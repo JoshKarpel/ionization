@@ -65,7 +65,6 @@ def process_jobs(jobs_dir):
             total_sim_count += sim_count
         except Exception as e:
             logger.exception('Encountered exception while processing job {}'.format(job_name))
-            raise e
 
     logger.info(f'Processed {jobs_processed} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
 

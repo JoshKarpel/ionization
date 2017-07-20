@@ -1,4 +1,5 @@
 import logging
+import collections
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -585,6 +586,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             figman.name += postfix
 
 
+delta_kick = collections.namedtuple('delta_kick', ['time', 'amplitude'])
+
+
 class IntegroDifferentialEquationSpecification(si.Specification):
     """
     A Specification for an :class:`IntegroDifferentialEquationSimulation`.
@@ -741,6 +745,486 @@ class IntegroDifferentialEquationSpecification(si.Specification):
             info_algorithm.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as')
             info_algorithm.add_field('Minimum Time Step', f'{uround(self.minimum_time_step, asec, 3)} as')
             info_algorithm.add_field('Maximum Time Step', f'{uround(self.maximum_time_step, asec, 3)} as')
+
+        info.add_info(info_algorithm)
+
+        info_ide = si.Info(header = 'IDE Parameters')
+        info_ide.add_field('Initial State', f'a = {self.a_initial}')
+        info_ide.add_field('Prefactor', self.prefactor)
+        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+
+        info_potential = self.electric_potential.info()
+        info_potential.header = 'Electric Potential: ' + info_potential.header
+        info_ide.add_info(info_potential)
+
+        info.add_info(info_ide)
+
+        return info
+
+
+class DeltaKickSimulation(si.Simulation):
+    """
+
+    """
+
+    def __init__(self, spec):
+        super().__init__(spec)
+
+        total_time = self.spec.time_final - self.spec.time_initial
+        self.times = np.linspace(self.spec.time_initial, self.spec.time_final, int(total_time / self.spec.time_step) + 1)
+        self.time_index = 0
+        self.time_step = self.spec.time_step
+
+        if self.spec.electric_potential_dc_correction:
+            dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, self.times)
+            old_pot = self.spec.electric_potential
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
+
+            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+
+        if self.spec.evolution_gauge == 'LEN':
+            self.f = self.spec.electric_potential.get_electric_field_amplitude
+        elif self.spec.evolution_gauge == 'VEL':
+            self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
+
+        self.kicks = getattr(self, f'decompose_potential_into_kicks__{self.spec.decomposition_strategy}')()
+
+        self.a = np.empty_like(self.kicks) * np.NaN
+
+    @property
+    def time_steps(self):
+        return len(self.times)
+
+    @property
+    def time(self):
+        return self.times[self.time_index]
+
+    @property
+    def a2(self):
+        return np.abs(self.a) ** 2
+
+    def eval_kernel(self, time_difference, *, quiver_difference = None):
+        """
+        Calculate the values of the IDE kernel as a function of the time difference.
+
+        Parameters
+        ----------
+        time_difference
+            The time differences to evaluate the kernel at.
+        quiver_difference
+            The quiver motion differences to evaluate the kernel at. Only used for velocity-gauge kernels.
+
+        Returns
+        -------
+        kernel :
+            The value of the kernel at the time differences.
+        """
+        if self.spec.evolution_gauge == 'LEN':
+            return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
+        elif self.spec.evolution_gauge == 'VEL':  # if we're on velocity, f is the vector potential
+            return self.spec.kernel(time_difference, quiver_difference = quiver_difference, **self.spec.kernel_kwargs)
+
+    def eval_quiver_motion(self, vector_potential_vs_time, times, time_step):
+        """
+        Calculate the quiver motion as a function of time using cumulative trapezoid-rule integration.
+
+        Parameters
+        ----------
+        vector_potential_vs_time
+            The vector potential at each of the `times`.
+        times
+            The times to get the quiver motion at.
+        time_step
+            The time step (only used if `times` is a single time).
+
+        Returns
+        -------
+        quiver_motion_vs_time :
+            The quiver motion at each of the `times`.
+        """
+        if len(times) != 1:
+            integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
+        else:
+            integral = vector_potential_vs_time * time_step
+        return -(self.spec.test_charge / self.spec.test_mass) * integral
+
+    def decompose_potential_into_kicks__amplitude(self):
+        efield_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
+        signs = np.sign(efield_vs_time)
+
+        # state machine
+        kicks = []
+        current_sign = signs[0]
+        efield_accumulator = 0
+        prev_time = self.times[0]
+        max_field = 0
+        max_field_time = 0
+        for efield, sign, time in zip(efield_vs_time, signs, self.times):
+            if sign == current_sign:
+                efield_accumulator += efield * (time - prev_time)
+                if max_field < np.abs(efield):
+                    max_field = np.abs(efield)
+                    max_field_time = time
+            else:
+                kicks.append(delta_kick(time = max_field_time, amplitude = efield_accumulator))
+
+                # reset
+                current_sign = sign
+                efield_accumulator = 0
+                max_field = 0
+            prev_time = time
+
+        return kicks
+
+    def decompose_potential_into_kicks__fluence(self):
+        efield_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
+        signs = np.sign(efield_vs_time)
+
+        # state machine
+        kicks = []
+        current_sign = signs[0]
+        fluence_accumulator = 0
+        start_time = self.times[0]
+        prev_time = self.times[0]
+        last_time = self.times[-1]
+        for efield, sign, time in zip(efield_vs_time, signs, self.times):
+            if sign == current_sign and time != last_time:
+                fluence_accumulator += (np.abs(efield) ** 2) * (time - prev_time)
+            else:
+                time_diff = time - start_time
+                kick_time = (time + start_time) / 2
+
+                kicks.append(delta_kick(time = kick_time, amplitude = current_sign * np.sqrt(fluence_accumulator * time_diff)))
+
+                # reset
+                current_sign = sign
+                start_time = time
+                fluence_accumulator = 0
+            prev_time = time
+
+        return kicks
+
+    def recursive_kicks(self):
+        abs_prefactor = np.abs(self.spec.prefactor)
+
+        times = list(k.time for k in self.kicks)
+        amplitudes = list(k.amplitude for k in self.kicks)
+
+        @si.utils.memoize
+        def time_diff(i, j):
+            return times[i] - times[j]
+
+        @si.utils.memoize
+        def b(i, j):
+            return abs_prefactor * amplitudes[i] * amplitudes[j]
+
+        @si.utils.memoize
+        def a(n):
+            if n < 0:
+                return self.spec.a_initial
+            else:
+                first_term = np.exp(-1j * np.abs(self.spec.test_omega) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
+                second_term = sum(a(i) * b(n, i) * self.eval_kernel(time_diff(n, i)) for i in range(n))  # all but current kick
+
+                return first_term - second_term
+
+        return np.array(list(a(i) for i in range(len(self.kicks))))
+
+    def run_simulation(self, callback = None):
+        """
+        Run the IDE simulation by repeatedly evolving it forward in time.
+
+
+        Parameters
+        ----------
+        callback : callable
+            A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
+        """
+        logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
+        self.status = si.STATUS_RUN
+
+        self.a = self.recursive_kicks()
+        self.data_times = np.array(list(k.time for k in self.kicks))
+
+        if callback is not None:
+            callback(self)
+
+        self.status = si.STATUS_FIN
+        logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
+
+    def attach_electric_potential_plot_to_axis(self,
+                                               axis,
+                                               time_unit = 'asec',
+                                               legend_kwargs = None,
+                                               show_y_label = False,
+                                               show_electric_field = True,
+                                               show_vector_potential = True,
+                                               overlay_kicks = True):
+        time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
+
+        if legend_kwargs is None:
+            legend_kwargs = dict()
+        legend_defaults = dict(
+            loc = 'lower left',
+            fontsize = 10,
+            fancybox = True,
+            framealpha = .3,
+        )
+        legend_kwargs = {**legend_defaults, **legend_kwargs}
+
+        y_labels = []
+        if show_electric_field:
+            e_label = fr'$ {core.LATEX_EFIELD}(t) $'
+            axis.plot(self.times / time_unit_value, self.spec.electric_potential.get_electric_field_amplitude(self.times) / atomic_electric_field,
+                      color = core.COLOR_ELECTRIC_FIELD,
+                      linewidth = 1.5,
+                      label = e_label)
+            y_labels.append(e_label)
+        if show_vector_potential:
+            a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
+            axis.plot(self.times / time_unit_value, proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / atomic_momentum,
+                      color = core.COLOR_VECTOR_POTENTIAL,
+                      linewidth = 1.5,
+                      label = a_label)
+            y_labels.append(a_label)
+
+        if show_y_label:
+            axis.set_ylabel(', '.join(y_labels), fontsize = 13)
+
+        if overlay_kicks:
+            for kick in self.kicks:
+                axis.plot(
+                    [kick.time / time_unit_value, kick.time / time_unit_value],
+                    [0, self.spec.electric_potential.get_electric_field_amplitude(kick.time) / atomic_electric_field],
+                    color = 'C2',
+                    linewidth = 1.5,
+                )
+
+        axis.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
+
+        axis.tick_params(labelright = True)
+
+        axis.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
+
+        axis.legend(**legend_kwargs)
+
+        axis.grid(True, **si.vis.GRID_KWARGS)
+
+    def plot_wavefunction_vs_time(self, *args, **kwargs):
+        """Alias for plot_a2_vs_time."""
+        self.plot_a2_vs_time(*args, **kwargs)
+
+    def plot_a2_vs_time(self,
+                        log = False,
+                        time_unit = 'asec',
+                        show_vector_potential = False,
+                        show_title = False,
+                        **kwargs):
+        with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
+            fig = figman.fig
+
+            t_scale_unit, t_scale_name = get_unit_value_and_latex_from_unit(time_unit)
+
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            ax_a = plt.subplot(grid_spec[0])
+            ax_pot = plt.subplot(grid_spec[1], sharex = ax_a)
+
+            self.attach_electric_potential_plot_to_axis(ax_pot,
+                                                        show_vector_potential = show_vector_potential,
+                                                        time_unit = time_unit)
+
+            ax_a.plot(self.data_times / t_scale_unit,
+                      self.a2,
+                      marker = 'o',
+                      markersize = 2,
+                      linestyle = ':',
+                      color = 'black',
+                      linewidth = 1)
+
+            if log:
+                ax_a.set_yscale('log')
+                min_overlap = np.min(self.a2)
+                ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
+            else:
+                ax_a.set_ylim(0.0, 1.0)
+                ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_a.grid(True, **si.vis.GRID_KWARGS)
+
+            ax_a.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
+
+            ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
+
+            # Find at most n+1 ticks on the y-axis at 'nice' locations
+            max_yticks = 4
+            yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+            ax_pot.yaxis.set_major_locator(yloc)
+
+            max_xticks = 6
+            xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+            ax_pot.xaxis.set_major_locator(xloc)
+
+            ax_pot.tick_params(axis = 'x', which = 'major', labelsize = 10)
+            ax_pot.tick_params(axis = 'y', which = 'major', labelsize = 10)
+            ax_a.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+            ax_a.tick_params(labelleft = True,
+                             labelright = True,
+                             labeltop = True,
+                             labelbottom = False,
+                             bottom = True,
+                             top = True,
+                             left = True,
+                             right = True)
+            ax_pot.tick_params(labelleft = True,
+                               labelright = True,
+                               labeltop = False,
+                               labelbottom = True,
+                               bottom = True,
+                               top = True,
+                               left = True,
+                               right = True)
+
+            if show_title:
+                title = ax_a.set_title(self.name)
+                title.set_y(1.15)
+
+            postfix = ''
+            if log:
+                postfix += '__log'
+
+            figman.name += postfix
+
+
+class DeltaKickSpecification(si.Specification):
+    """
+    A Specification for an :class:`IntegroDifferentialEquationSimulation`.
+    """
+    simulation_type = DeltaKickSimulation
+
+    integration_method = si.utils.RestrictedValues('integration_method', ['simpson', 'trapezoid'])
+    pulse_decomposition_strategy = si.utils.RestrictedValues('pulse_decomposition_strategy', ['amplitude', 'fluence'])
+
+    def __init__(self, name,
+                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
+                 test_mass = electron_mass, test_charge = electron_charge, test_energy = -rydberg,
+                 a_initial = 1,
+                 prefactor = 1,
+                 electric_potential = potentials.NoElectricPotential(),
+                 electric_potential_dc_correction = False,
+                 kernel = return_one, kernel_kwargs = None,
+                 evolution_gauge = 'LEN',
+                 decomposition_strategy = 'amplitude',
+                 **kwargs):
+        """
+        The differential equation should be of the form
+        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
+
+        Parameters
+        ----------
+        name : :class:`str`
+            The name for the simulation.
+        time_initial : :class:`float`
+            The initial time.
+        time_final : :class:`float`
+            The final time.
+        time_step : :class:`float`
+            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
+        test_mass : :class:`float`
+            The mass of the test particle.
+        test_charge : :class:`float`
+            The charge of the test particle.
+        a_initial
+            The initial value of a, the bound state probability amplitude.
+        prefactor
+            The overall prefactor of the IDE.
+        electric_potential
+            The electric potential that provides ``f`` (either as the electric field or the vector potential).
+        electric_potential_dc_correction
+            If True, DC correction is performed on the electric field.
+        kernel
+            The kernel function of the IDE.
+        kernel_kwargs
+            Additional keyword arguments to pass to `kernel`.
+        integration_method : {``'trapz'``, ``'simps'``}
+            Which integration method to use, when applicable.
+        evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
+            Which evolution algorithm/method to use.
+        evolution_gauge : {``'LEN'``, ``'VEL'``}
+            Which gauge to perform time evolution in.
+        checkpoints
+        checkpoint_every
+        checkpoint_dir
+        store_data_every
+        time_step_minimum : :class:`float`
+            The minimum time step that can be used by an adaptive algorithm.
+        time_step_maximum : :class:`float`
+            the maximum time step that can be used by an adaptive algorithm.
+        epsilon : :class:`float`
+            The acceptable fractional error in the quantity specified by `error_on`.
+        error_on : {``'a'``, ``'da/dt'``}
+            Which quantity to control the fractional error in.
+        safety_factor : :class:`float`
+            The safety factor that new time steps are multiplicatively fudged by.
+        kwargs
+        """
+        super().__init__(name, **kwargs)
+
+        self.time_initial = time_initial
+        self.time_final = time_final
+        self.time_step = time_step
+
+        self.test_mass = test_mass
+        self.test_charge = test_charge
+        self.test_energy = test_energy
+
+        self.a_initial = a_initial
+
+        self.prefactor = prefactor
+
+        self.electric_potential = electric_potential
+        self.electric_potential_dc_correction = electric_potential_dc_correction
+
+        self.kernel = kernel
+        self.kernel_kwargs = dict()
+        if kernel_kwargs is not None:
+            self.kernel_kwargs.update(kernel_kwargs)
+
+        self.evolution_gauge = evolution_gauge
+
+        self.decomposition_strategy = decomposition_strategy
+
+    @property
+    def test_omega(self):
+        return self.test_energy / hbar
+
+    @property
+    def test_frequency(self):
+        return self.test_omega / twopi
+
+    def info(self):
+        info = super().info()
+
+        info_checkpoint = si.Info(header = 'Checkpointing')
+        if self.checkpoints:
+            if self.checkpoint_dir is not None:
+                working_in = self.checkpoint_dir
+            else:
+                working_in = 'cwd'
+            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+        else:
+            info_checkpoint.header += ': disabled'
+
+        info.add_info(info_checkpoint)
+
+        info_evolution = si.Info(header = 'Time Evolution')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
+
+        info.add_info(info_evolution)
+
+        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
 
         info.add_info(info_algorithm)
 

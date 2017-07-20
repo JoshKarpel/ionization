@@ -46,9 +46,25 @@ matplotlib.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
 
-FULL_SLIDE_FIGMAN_KWARGS = dict(
+FULL_PAGE_KWARGS = dict(
     fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
     fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
+    img_format = 'png',
+    fig_dpi_scale = 6,
+)
+
+QUARTER_PAGE_KWARGS = dict(
+    fig_width = 13 / 2,
+    fig_height = 6.5 / 2,
+    # img_format = 'svg',
+    img_format = 'png',
+    fig_dpi_scale = 6,
+)
+
+STILL_FIGMAN_KWARGS_SVG = dict(
+    fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
+    fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
+    # img_format = 'svg',
     img_format = 'png',
     fig_dpi_scale = 6,
 )
@@ -67,6 +83,8 @@ BETTER_GRID_KWARGS = {
     **si.vis.GRID_KWARGS,
     'linewidth': 1,
 }
+
+BIG_LINEWIDTH = 4
 
 BIG_SINE_WAVE = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field)
 
@@ -105,7 +123,7 @@ def title_bg():
         axis_label_size = 35,
         show_title = False,
         grid_kwargs = {'linewidth': 2},
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS
     )
     sim.mesh.plot_g2(
@@ -115,14 +133,14 @@ def title_bg():
         show_title = False,
         show_colorbar = False,
         grid_kwargs = {'linewidth': 2},
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS
     )
 
     for which in ('g', 'g2'):
         with si.vis.FigureManager(f'title_bg__{which}',
                                   tight_layout = False,
-                                  **FULL_SLIDE_FIGMAN_KWARGS,
+                                  **FULL_PAGE_KWARGS,
                                   **PLOT_KWARGS) as figman:
             fig = figman.fig
             ax = fig.add_axes([0, 0, 1, 1])
@@ -149,7 +167,7 @@ def spherical_harmonic_mesh():
         axis_label_size = 35,
         title = '',
         grid_kwargs = {'linewidth': 2},
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
     sim.mesh.plot_g(
@@ -157,7 +175,7 @@ def spherical_harmonic_mesh():
         tick_label_size = 20,
         title_size = 30,
         grid_kwargs = {'linewidth': 2},
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS
     )
     sim.mesh.plot_g2(
@@ -166,7 +184,7 @@ def spherical_harmonic_mesh():
         title_size = 30,
         show_colorbar = False,
         grid_kwargs = {'linewidth': 2},
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS
     )
 
@@ -183,7 +201,7 @@ def efield_and_afield():
         bsw.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * bsw.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         y_lower_limit = -1.6, y_upper_limit = 1,
@@ -194,7 +212,7 @@ def efield_and_afield():
         font_size_title = 35,
         legend_kwargs = {'loc': 'lower left'},
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
         **PLOT_KWARGS,
     )
 
@@ -203,7 +221,7 @@ def efield_and_afield():
         times,
         bsw.get_electric_field_amplitude(times) / atomic_electric_field,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $'],
-        line_kwargs = [{'linewidth': 3}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
         x_label = r'$t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         y_lower_limit = -1.6, y_upper_limit = 1,
@@ -214,7 +232,7 @@ def efield_and_afield():
         font_size_title = 35,
         legend_kwargs = {'loc': 'lower left'},
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
         **PLOT_KWARGS,
     )
 
@@ -236,7 +254,7 @@ def sinc_pulse():
         pulse.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         title = fr'Windowed Sinc Pulse w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
         font_size_axis_labels = 35,
@@ -244,7 +262,7 @@ def sinc_pulse():
         font_size_legend = 25,
         font_size_title = 35,
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -266,7 +284,7 @@ def gaussian_pulse():
         pulse.get_electric_field_amplitude(times) / atomic_electric_field,
         proton_charge * pulse.get_vector_potential_amplitude_numeric_cumulative(times) / atomic_momentum,
         line_labels = [f'$ {ion.LATEX_EFIELD}(t) $', f'$ q \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3, 'linestyle': '--'}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH, 'linestyle': '--'}],
         x_label = r'$t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         title = fr'Gaussian Pulse w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
@@ -275,7 +293,7 @@ def gaussian_pulse():
         font_size_legend = 25,
         font_size_title = 35,
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
         **PLOT_KWARGS,
     )
 
@@ -313,7 +331,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         phases,
         efield, afield,
         line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ q \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [{'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linestyle': '--', 'linewidth': BIG_LINEWIDTH}],
         x_label = r'Time', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
@@ -335,7 +353,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         times,
         phases,
         efield_intensity,
-        line_kwargs = [{'linewidth': 3}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
         x_label = r'Time', x_unit = 'asec',
         y_label = r'$ P(t) $', y_unit = 'atomic_intensity',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
@@ -386,7 +404,7 @@ def pulse_cep_movie_zoom(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Puls
     #     phases,
     #     efield, afield,
     #     line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ q \, {ion.LATEX_AFIELD}(t) $'],
-    #     line_kwargs = [{'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}],
+    #     line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linestyle': '--', 'linewidth': BIG_LINEWIDTH}],
     #     x_label = r'Time', x_unit = 'asec',
     #     y_label = r'Amplitude (a.u.)',
     #     t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
@@ -407,7 +425,7 @@ def pulse_cep_movie_zoom(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Puls
         times,
         phases,
         efield_intensity,
-        line_kwargs = [{'linewidth': 3}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
         x_label = r'Time', x_unit = 'asec',
         y_label = r'Intensity', y_unit = 'atomic_intensity',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
@@ -440,7 +458,7 @@ def tunneling_ionization_animation():
         coul_pot,
         elec_pot,
         line_labels = [r'$ V_{\mathrm{Coul}} + V_{\mathrm{Field}} $', r'$ V_{\mathrm{Coul}} $', r'$ V_{\mathrm{Field}} $'],
-        line_kwargs = [{'animated': True, 'linewidth': 3}, {'linestyle': '--', 'linewidth': 3}, {'linestyle': '--', 'animated': True, 'linewidth': 3}],
+        line_kwargs = [{'animated': True, 'linewidth': BIG_LINEWIDTH}, {'linestyle': '--', 'linewidth': BIG_LINEWIDTH}, {'linestyle': '--', 'animated': True, 'linewidth': BIG_LINEWIDTH}],
         hlines = [ion.HydrogenBoundState(1, 0).energy], hline_kwargs = [{'linestyle': ':', 'color': 'black'}],
         y_lower_limit = -2 * hartree,
         y_upper_limit = 0,
@@ -583,16 +601,16 @@ def length_ide_kernel_gaussian():
         line_labels = [r"$\left| K(t-t') \right|$",
                        r"$\mathrm{Re} \left\lbrace K(t-t') \right\rbrace$",
                        r"$\mathrm{Im} \left\lbrace K(t-t') \right\rbrace$"],
-        line_kwargs = [{'color': 'black', 'linewidth': 3},
-                       {'color': 'C0', 'linewidth': 3},
-                       {'color': 'C1', 'linewidth': 3}],
+        line_kwargs = [{'color': 'black', 'linewidth': BIG_LINEWIDTH},
+                       {'color': 'C0', 'linewidth': BIG_LINEWIDTH},
+                       {'color': 'C1', 'linewidth': BIG_LINEWIDTH}],
         x_label = r"$t-t'$ ($\mathrm{\tau_{\alpha}}$)", x_unit = tau,
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
         font_size_legend = 25,
         font_size_title = 35,
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
         **PLOT_KWARGS,
     )
     # with si.vis.FigureManager(get_func_name(), **FIGMAN_KWARGS, **PLOT_KWARGS) as figman:
@@ -688,11 +706,6 @@ def delta_kick_decomposition_plot():
     pulses = [ion.GaussianPulse(), ion.GaussianPulse(phase = pi / 2)]
     names = [r'Gaussian Pulse, $\varphi = 0$', r'Gaussian Pulse, $\varphi = \pi / 2$']
 
-    quarter_page_kwargs = dict(
-        fig_width = 13 / 2,
-        fig_height = 6.5 / 2
-    )
-
     for pulse, name, times in zip(pulses, names, timess):
         kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
         kick_times = np.array(list(k.time for k in kicks))
@@ -709,14 +722,16 @@ def delta_kick_decomposition_plot():
             line_labels = ['Original', 'Decomposed'],
             x_label = r'$t$', x_unit = 'asec',
             y_label = fr'${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
-            line_kwargs = [{'linewidth': 3}, {'linestyle': '', 'marker': 'o'}, *[{'color': 'C1', 'linestyle': '-'} for _ in kick_times]],
+            line_kwargs = [{'linewidth': BIG_LINEWIDTH},
+                           {'linestyle': '', 'marker': 'o', },
+                           *[{'color': 'C1', 'linestyle': '-', 'linewidth': BIG_LINEWIDTH * .75} for _ in kick_times]],
             font_size_axis_labels = 22,
             font_size_tick_labels = 14,
             font_size_legend = 16,
             font_size_title = 22,
             title = f'{name}',
             grid_kwargs = BETTER_GRID_KWARGS,
-            **{**FULL_SLIDE_FIGMAN_KWARGS, **quarter_page_kwargs},
+            **{**FULL_PAGE_KWARGS, **QUARTER_PAGE_KWARGS},
             **PLOT_KWARGS,
         )
 
@@ -813,7 +828,7 @@ def delta_kicks_eta_plot():
         periods,
         *[curve(periods, eta) for eta in etas],
         line_labels = [fr'$\eta = {uround(eta, time_field_unit)}$ a.u.' for eta in etas],
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}, {'linewidth': 3}, ],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}, ],
         x_label = r'Sine Wave Period $T$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,
         y_label = r'$\left|\left\langle a | a \right\rangle\right|^2$',
         # vlines = [tau_alpha / 2, tau_alpha], vline_kwargs = [{'linestyle': ':', 'color': 'black'}, {'linestyle': ':', 'color': 'black'}],
@@ -827,7 +842,7 @@ def delta_kicks_eta_plot():
         font_size_title = 35,
         grid_kwargs = BETTER_GRID_KWARGS,
         **PLOT_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
     )
 
 
@@ -867,7 +882,7 @@ def pulse_ffts():
         freqs,
         *(epsilon_0 * c * (np.abs(f) ** 2) / len(times) for f in ffts),
         line_labels = names,
-        line_kwargs = [{'linewidth': 3}, {'linewidth': 3}],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
         x_label = r'$ f $', x_unit = 'THz',
         x_lower_limit = -freq_plot_limit, x_upper_limit = freq_plot_limit,
         y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)',
@@ -878,7 +893,90 @@ def pulse_ffts():
         font_size_legend = 25,
         font_size_title = 35,
         grid_kwargs = BETTER_GRID_KWARGS,
-        **FULL_SLIDE_FIGMAN_KWARGS,
+        **STILL_FIGMAN_KWARGS_SVG,
+        **PLOT_KWARGS,
+    )
+
+
+def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
+    alpha = .7
+
+    pulse_width = 1000 * asec
+    fluence = 1 * Jcm2
+
+    times = np.linspace(-4 * pulse_width, 4 * pulse_width, 1000)
+
+    cos_pulse = pulse_type.from_omega_min(pulse_width = pulse_width, fluence = fluence, phase = 0, omega_min = omega_min)
+    sin_pulse_aligned = pulse_type.from_omega_min(pulse_width = pulse_width, fluence = fluence, phase = pi / 2, omega_min = omega_min)
+
+    shift = (pi / 2) / cos_pulse.omega_carrier
+    sin_pulse_shifted = pulse_type.from_omega_min(pulse_width = pulse_width, fluence = fluence, phase = pi / 2, pulse_center = shift, omega_min = omega_min)
+
+    ylim = 1.05 * cos_pulse.amplitude_time
+
+    si.vis.xy_plot(
+        get_func_name() + f'__{pulse_type.__name__}__aligned_envelopes__omega_min={uround(omega_min, twopi * THz)}THz',
+        times,
+        cos_pulse.get_electric_field_amplitude(times),
+        sin_pulse_aligned.get_electric_field_amplitude(times),
+        sin_pulse_aligned.get_electric_field_envelope(times) * sin_pulse_aligned.amplitude_time,
+        cos_pulse.get_electric_field_envelope(times) * cos_pulse.amplitude_time,
+        line_labels = [r"$\varphi = 0$", r"$\varphi = \pi / 2$"],
+        line_kwargs = [
+            {'color': 'C0', 'linewidth': BIG_LINEWIDTH},
+            {'color': 'C1', 'linewidth': BIG_LINEWIDTH},
+            {'color': 'C0', 'linewidth': BIG_LINEWIDTH - 1, 'linestyle': '--', 'alpha': alpha},
+            {'color': 'C1', 'linewidth': BIG_LINEWIDTH - 1, 'linestyle': '--', 'alpha': alpha},
+        ],
+        x_label = r"$t$", x_unit = asec,
+        y_label = fr'${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
+        title = 'Aligned Envelopes' + postfix,
+        # font_size_axis_labels = 22,
+        # font_size_tick_labels = 14,
+        # font_size_legend = 16,
+        # font_size_title = 22,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
+        y_lower_limit = -ylim,
+        y_upper_limit = ylim,
+        **FULL_PAGE_KWARGS,
+        # **QUARTER_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xy_plot(
+        get_func_name() + f'__{pulse_type.__name__}__aligned_zeros__omega_min={uround(omega_min, twopi * THz)}THz',
+        times,
+        cos_pulse.get_electric_field_amplitude(times),
+        sin_pulse_shifted.get_electric_field_amplitude(times),
+        cos_pulse.get_electric_field_envelope(times) * cos_pulse.amplitude_time,
+        sin_pulse_shifted.get_electric_field_envelope(times) * sin_pulse_aligned.amplitude_time,
+        line_labels = [r"$\varphi = 0$", r"$\varphi = \pi / 2$"],
+        line_kwargs = [
+            {'color': 'C0', 'linewidth': BIG_LINEWIDTH},
+            {'color': 'C1', 'linewidth': BIG_LINEWIDTH},
+            {'color': 'C0', 'linewidth': BIG_LINEWIDTH - 1, 'linestyle': '--', 'alpha': alpha},
+            {'color': 'C1', 'linewidth': BIG_LINEWIDTH - 1, 'linestyle': '--', 'alpha': alpha},
+        ],
+        x_label = r"$t$", x_unit = asec,
+        y_label = fr'${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
+        title = 'Aligned Zeros' + postfix,
+        # font_size_axis_labels = 22,
+        # font_size_tick_labels = 14,
+        # font_size_legend = 16,
+        # font_size_title = 22,
+        font_size_axis_labels = 35,
+        font_size_tick_labels = 20,
+        font_size_legend = 25,
+        font_size_title = 35,
+        grid_kwargs = BETTER_GRID_KWARGS,
+        y_lower_limit = -ylim,
+        y_upper_limit = ylim,
+        **FULL_PAGE_KWARGS,
+        # **QUARTER_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -886,6 +984,10 @@ def pulse_ffts():
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
+            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
+            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
+            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Multicycle'),
             pulse_ffts,
             delta_kicks_eta_plot,
             delta_kick_decomposition_plot,

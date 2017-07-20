@@ -18,7 +18,7 @@ logman = si.utils.LogManager(
     stdout_level = logging.INFO
 )
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -71,7 +71,7 @@ if __name__ == '__main__':
             line_labels = (pulse.__name__ for pulse in fluences),
             x_label = r'$ \varphi $', x_unit = 'rad',
             y_label = r'$ H $', y_unit = 'Jcm2',
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         si.vis.xy_plot(
@@ -81,5 +81,5 @@ if __name__ == '__main__':
             line_labels = (pulse.__name__ for pulse in fluences),
             x_label = r'$ \varphi $', x_unit = 'rad',
             y_label = r'$ H $', y_log_axis = True,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )

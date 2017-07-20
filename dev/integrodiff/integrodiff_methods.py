@@ -14,7 +14,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 logman = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG)
 
-PLT_KWARGS = (
+PLOT_KWARGS = (
     dict(
         target_dir = OUT_DIR,
         img_format = 'png',
@@ -34,7 +34,7 @@ def run(spec):
         sim.run_simulation()
         logger.debug(sim.info())
 
-        for kwargs in PLT_KWARGS:
+        for kwargs in PLOT_KWARGS:
             sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
 
         return sim
@@ -116,7 +116,7 @@ if __name__ == '__main__':
                 # results = si.utils.multi_map(run, specs)
                 results = si.utils.multi_map(run, specs, processes = 3)
 
-                for kwargs in PLT_KWARGS:
+                for kwargs in PLOT_KWARGS:
                     si.vis.xxyy_plot(
                         f'{gauge}__method_comparison__pw={uround(pw, asec, 3)}_dt={uround(dt, asec, 3)}',
                         (r.times for r in results),

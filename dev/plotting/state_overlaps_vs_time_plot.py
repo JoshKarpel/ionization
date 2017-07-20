@@ -27,18 +27,18 @@ if __name__ == '__main__':
         sim.run_simulation(progress_bar = True)
         logger.info(sim.info())
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
         )
 
         sim.plot_state_overlaps_vs_time(name_postfix = 'None',
                                         states = None,
-                                        **plt_kwargs)
+                                        **PLOT_KWARGS)
 
         sim.plot_state_overlaps_vs_time(name_postfix = 'Lambda',
                                         states = lambda state: state.bound,
-                                        **plt_kwargs)
+                                        **PLOT_KWARGS)
 
         sim.plot_state_overlaps_vs_time(name_postfix = 'List',
                                         states = set(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
-                                        **plt_kwargs)
+                                        **PLOT_KWARGS)

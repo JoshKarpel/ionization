@@ -20,7 +20,7 @@ SIM_LIB = os.path.join(OUT_DIR, 'simlib')
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.INFO)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 5,
@@ -111,7 +111,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
 
     sim.save(target_dir = SIM_LIB)
 
-    sim.plot_wavefunction_vs_time(**PLT_KWARGS)
+    sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 
     times = np.linspace(time_initial, time_final, 1e3)
 
@@ -121,7 +121,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
         efield.get_electric_field_amplitude(times),
         x_label = r'Time $t$', x_unit = 'asec',
         y_label = fr'$ {ion.LATEX_EFIELD}(t) $)', y_unit = 'atomic_electric_field',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
     tunneling_rate_vs_time = instantaneous_tunneling_rate(efield.get_electric_field_amplitude(times), sim.spec.initial_state.energy)
@@ -132,7 +132,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
         tunneling_rate_vs_time * asec,
         x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Tunneling Rate ($\mathrm{as}^{-1}$)',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
     wavefunction_remaining = np.empty_like(times)
@@ -164,7 +164,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
             y_label = 'Remaining Wavefunction', y_log_axis = log,
             hlines = [cycle_avg_norm_remaining_plat, cycle_avg_norm_remaining_all],
             hline_kwargs = [{'linestyle': '--'}, {'linestyle': ':'}],
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
 
@@ -182,7 +182,7 @@ if __name__ == '__main__':
             x_label = fr'Electric Field $ {ion.LATEX_EFIELD}_0 $', x_unit = 'atomic_electric_field',
             y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
             y_log_axis = True,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         si.vis.xy_plot(
@@ -192,7 +192,7 @@ if __name__ == '__main__':
             x_label = 'Intensity $P$', x_unit = 'atomic_intensity',
             y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
             y_log_axis = True,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         si.vis.xy_plot(
@@ -202,7 +202,7 @@ if __name__ == '__main__':
             x_label = '$ 1 / \sqrt{P / P_{\mathrm{atomic}}} $',
             y_label = fr'Tunneling Rate ($\mathrm{{s^{{-1}}}}$)',
             y_log_axis = True,
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         # compare_quasistatic_to_tdse(atomic_intensity / (10 ** 2), .5 * eV)

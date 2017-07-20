@@ -17,7 +17,7 @@ import ionization.integrodiff as ide
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 5,
@@ -105,7 +105,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
         ],
         legend_on_right = True,
         x_label = 'Half Pulse Delay', x_unit = 'asec',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
     si.vis.xy_plot(
@@ -128,7 +128,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
         vlines = [tau_alpha], vline_kwargs = [{'linestyle': ':'}],
         # x_extra_ticks = [tau_alpha, classical_orbit_time],
         # x_extra_tick_labels = [r'$ \tau_{\alpha} $', r'$ \tau_{\mathrm{orb}} $'],
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -222,7 +222,7 @@ def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
         pulse.get_electric_field_amplitude(times),
         x_label = '$t$', x_unit = 'asec',
         y_label = r'$ \mathcal{E}(t) $', y_unit = 'atomic_electric_field',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
     kick_times = [k.time for k in kicks]
@@ -236,7 +236,7 @@ def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
         x_label = 'Kick Times', x_unit = 'asec',
         y_label = r'Amplitudes (au * au)', y_unit = time_field_unit,
         y_lower_limit = -1 * time_field_unit, y_upper_limit = 1 * time_field_unit,
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
     return kicks
@@ -327,7 +327,7 @@ if __name__ == '__main__':
         sim.run_simulation()
         sim.plot_wavefunction_vs_time(
             show_vector_potential = False,
-            **PLT_KWARGS
+            **PLOT_KWARGS
         )
 
         kicks_amp = decompose_pulse_into_kicks__amplitude(
@@ -367,7 +367,7 @@ if __name__ == '__main__':
             line_labels = ['IDE Simulation', r'$\delta$-kick Model (Amp.)', r'$\delta$-kick Model (Flu.)'],
             x_label = r'$ t $', x_unit = 'asec',
             y_label = 'Bound State Overlap',
-            **PLT_KWARGS
+            **PLOT_KWARGS
         )
 
 
@@ -403,7 +403,7 @@ if __name__ == '__main__':
             line_labels = ['cos', 'sin'],
             x_label = r'$ \tau $', x_unit = 'asec',
             y_label = 'Bound State Overlap',
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         # consistency

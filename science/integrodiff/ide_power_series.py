@@ -92,11 +92,11 @@ if __name__ == '__main__':
         sim.run_simulation()
         logger.info(sim.info())
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
         )
 
-        sim.plot_a2_vs_time(**plt_kwargs)
+        sim.plot_a2_vs_time(**PLOT_KWARGS)
 
         t_lower = -t_bound_per_pw * pw * asec
         t_upper = t_bound_per_pw * pw * asec

@@ -56,7 +56,7 @@ if __name__ == '__main__':
 
         parameters.append(clu.Parameter(name = 'delta_r',
                                         value = bohr_radius * np.array(clu.ask_for_eval('Radial Mesh Spacings (in Bohr radii)?',
-                                                                                        default = 'np.geomspace(.1, 1, 10')),
+                                                                                        default = 'np.geomspace(.1, 1, 10)')),
                                         expandable = True))
 
         parameters.append(clu.Parameter(name = 'l_bound',

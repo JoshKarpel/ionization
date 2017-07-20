@@ -20,7 +20,7 @@ SIM_LIB = os.path.join(OUT_DIR, 'simlib')
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.INFO)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 5,
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                     x_label = r'$\varphi$', x_unit = 'rad',
                     y_label = 'Remaining Wavefunction',
                     y_log_axis = True, y_log_pad = 2,
-                    **PLT_KWARGS,
+                    **PLOT_KWARGS,
                 )
 
                 cosine = list(wavefunction_vs_time.values())[0]
@@ -111,5 +111,5 @@ if __name__ == '__main__':
                     x_label = r'$\varphi$', x_unit = 'rad',
                     y_label = r'Remaining Wavefunction (Rel. to $\varphi = 0$)',
                     y_log_axis = True, y_log_pad = 2,
-                    **PLT_KWARGS,
+                    **PLOT_KWARGS,
                 )

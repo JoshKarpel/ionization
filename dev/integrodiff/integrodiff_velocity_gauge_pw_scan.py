@@ -58,7 +58,7 @@ if __name__ == '__main__':
                                                                                    flu = flu
                                                                                    ))
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
         )
 
@@ -70,4 +70,4 @@ if __name__ == '__main__':
                              [np.abs(r.a[-1]) ** 2 for r in results],
                              x_label = r'Pulse Width $  \tau  $', x_unit = 'asec',
                              y_label = r'$  \left| a_{\mathrm{final}} \right|^2  $', y_log_axis = log, y_upper_limit = 1,
-                             **plt_kwargs)
+                             **PLOT_KWARGS)

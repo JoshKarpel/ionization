@@ -19,7 +19,7 @@ import delta_pulse_model as dpm
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 5,
@@ -80,7 +80,7 @@ def make_eta_plot(etas):
         y_log_pad = 1,
         legend_kwargs = {'loc': 'upper right'},
         # y_lower_limit = 1e-9, y_upper_limit = 1,
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -131,7 +131,7 @@ def make_eta_movie():
         y_log_axis = True, y_log_pad = 1,
         y_lower_limit = 1e-9, y_upper_limit = 1,
         length = length,
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 
@@ -175,7 +175,7 @@ if __name__ == '__main__':
         #         x_label = r'Sine Wave Period $T$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,
         #         y_label = 'Bound State Amplitude',
         #         vlines = [tau_alpha / 2, tau_alpha], vline_kwargs = [{'linestyle': ':', 'color': 'black'}, {'linestyle': ':', 'color': 'black'}],
-        #         **PLT_KWARGS,
+        #         **PLOT_KWARGS,
         #     )
         #
 

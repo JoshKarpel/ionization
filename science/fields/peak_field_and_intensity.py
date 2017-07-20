@@ -16,7 +16,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO, file_logs = False, file_dir = OUT_DIR, file_level = logging.DEBUG)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -69,7 +69,7 @@ def pulse_peaks_values_2d(pulse_width_min, pulse_width_max, fluence_min, fluence
         ],
         contour_kwargs = {'colors': 'white', 'linewidths': .5},
         **common_kwargs,
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
     si.vis.xyz_plot(
         f'2d_pulse_intensity__{postfix}',
@@ -87,7 +87,7 @@ def pulse_peaks_values_2d(pulse_width_min, pulse_width_max, fluence_min, fluence
         ],
         contour_kwargs = {'colors': 'white', 'linewidths': .5},
         **common_kwargs,
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )
 
 

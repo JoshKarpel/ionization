@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
             sim.save(target_dir = OUT_DIR, save_mesh = True)
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
                 img_format = 'png',
                 fig_dpi_scale = 3,
@@ -51,14 +51,14 @@ if __name__ == '__main__':
                 name_postfix = '__collapsed__grouped_by_energy',
                 collapse_bound_state_angular_momenta = True,
                 grouped_free_states = e_states, group_free_states_labels = e_labels,
-                **plt_kwargs,
+                **PLOT_KWARGS,
         )
 
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__grouped_by_energy',
                 collapse_bound_state_angular_momenta = False,
                 grouped_free_states = e_states, group_free_states_labels = e_labels,
-                **plt_kwargs,
+                **PLOT_KWARGS,
         )
 
         l_states, l_labels = sim.group_free_states_by_discrete_attr('l', cutoff_value = 20)
@@ -67,14 +67,14 @@ if __name__ == '__main__':
                 name_postfix = '__collapsed_grouped_by_L',
                 collapse_bound_state_angular_momenta = True,
                 grouped_free_states = l_states, group_free_states_labels = l_labels,
-                **plt_kwargs,
+                **PLOT_KWARGS,
         )
 
         sim.plot_wavefunction_vs_time(
                 name_postfix = '__grouped_by_L',
                 collapse_bound_state_angular_momenta = False,
                 grouped_free_states = l_states, group_free_states_labels = l_labels,
-                **plt_kwargs,
+                **PLOT_KWARGS,
         )
 
         gs = (None, sim.mesh.get_g_with_states_removed(sim.bound_states))
@@ -91,7 +91,7 @@ if __name__ == '__main__':
                         r_type = 'wavenumber', r_unit = 'per_nm',
                         log = log,
                         g = g,
-                        **plt_kwargs,
+                        **PLOT_KWARGS,
                 )
 
                 sim.mesh.plot_electron_momentum_spectrum(
@@ -100,7 +100,7 @@ if __name__ == '__main__':
                         r_lower_lim = .1 * eV, r_upper_lim = 50 * eV,
                         log = log,
                         g = g,
-                        **plt_kwargs,
+                        **PLOT_KWARGS,
                 )
 
                 sim.mesh.plot_electron_momentum_spectrum(
@@ -109,5 +109,5 @@ if __name__ == '__main__':
                         r_lower_lim = .01 * atomic_momentum, r_upper_lim = 10 * atomic_momentum,
                         log = log,
                         g = g,
-                        **plt_kwargs,
+                        **PLOT_KWARGS,
                 )

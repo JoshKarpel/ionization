@@ -13,7 +13,7 @@ import ionization.integrodiff as ide
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 5,
@@ -44,5 +44,5 @@ if __name__ == '__main__':
             ],
             x_label = r"$ t - t' $", x_unit = 'asec',
             y_label = r"$ f(t-t') $",
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )

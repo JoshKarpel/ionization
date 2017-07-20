@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
             power_fractions_by_pulse_type[pulse_type] = power_fraction_vs_cep / power_fraction_vs_cep[0]  # normalize to cep = 0
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
                 img_format = 'png',
                 fig_dpi_scale = 3,
@@ -67,5 +67,5 @@ if __name__ == '__main__':
                 x_label = r'Carrier-Envelope Phase $\varphi$', x_unit = 'rad',
                 y_label = r'Rel. Fraction of Time at $>\frac{1}{2}$ Power',
                 title = fr'Rel. Time-Power Fraction for T = ${bound}\tau$',
-                **plt_kwargs
+                **PLOT_KWARGS
         )

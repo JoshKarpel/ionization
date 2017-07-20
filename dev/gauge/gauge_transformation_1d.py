@@ -23,7 +23,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 logman = si.utils.LogManager('simulacra', 'ionization',
                              stdout_level = logging.INFO)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
     img_format = 'png',
     fig_dpi_scale = 3,
@@ -55,8 +55,8 @@ GAUGE_TO_OPP = {
 def wrapped_plot_g_1d(sim):
     if sim.time_index % (sim.time_steps // 6) == 0 or sim.time_index == sim.time_steps - 1:
         print(f'index {sim.time_index}')
-        plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}', sim.mesh.g, sim.mesh.x_mesh, **PLT_KWARGS)
-        plot_g_1d(f'{sim.time_index}_g__{GAUGE_TO_OPP[sim.spec.evolution_gauge]}_from_{sim.spec.evolution_gauge}', sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge), sim.mesh.x_mesh, **PLT_KWARGS)
+        plot_g_1d(f'{sim.time_index}_g__{sim.spec.evolution_gauge}', sim.mesh.g, sim.mesh.x_mesh, **PLOT_KWARGS)
+        plot_g_1d(f'{sim.time_index}_g__{GAUGE_TO_OPP[sim.spec.evolution_gauge]}_from_{sim.spec.evolution_gauge}', sim.mesh.gauge_transformation(leaving_gauge = sim.spec.evolution_gauge), sim.mesh.x_mesh, **PLOT_KWARGS)
 
 
 def run_sim(spec):
@@ -68,7 +68,7 @@ def run_sim(spec):
         logger.info(sim.info())
 
         sim.plot_state_overlaps_vs_time(
-            **PLT_KWARGS,
+            **PLOT_KWARGS,
         )
 
         return sim
@@ -141,5 +141,5 @@ if __name__ == '__main__':
         line_kwargs = ({'linestyle': '-'}, {'linestyle': '--'}),
         x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Dipole Moment $d$', y_unit = 'atomic_electric_dipole_moment',
-        **PLT_KWARGS,
+        **PLOT_KWARGS,
     )

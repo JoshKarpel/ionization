@@ -53,7 +53,7 @@ if __name__ == '__main__':
                                                                                    evolution_method = method,
                                                                                    ))
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,
         )
 
@@ -61,8 +61,8 @@ if __name__ == '__main__':
 
         for r in results:
             print(r.info())
-            r.plot_fields_vs_time(**plt_kwargs)
-            r.plot_a2_vs_time(**plt_kwargs)
+            r.plot_fields_vs_time(**PLOT_KWARGS)
+            r.plot_a2_vs_time(**PLOT_KWARGS)
 
         for log, rel in it.product((True, False), repeat = 2):
             plot_name = 'comparison'
@@ -84,4 +84,4 @@ if __name__ == '__main__':
                              x_label = r'Time $t$', x_unit = 'asec',
                              y_label = y_lab,
                              y_log_axis = log,
-                             **plt_kwargs)
+                             **PLOT_KWARGS)

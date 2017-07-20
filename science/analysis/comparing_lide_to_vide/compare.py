@@ -15,7 +15,7 @@ if __name__ == '__main__':
         results_lide = list(jp_lide.data.values())
         results_vide = list(jp_vide.data.values())
 
-        plt_kwargs = dict(
+        PLOT_KWARGS = dict(
                 x_unit = 'rad',
                 target_dir = OUT_DIR,
         )
@@ -30,7 +30,7 @@ if __name__ == '__main__':
                     [r.phase for r in results_lide],
                     [r.final_bound_state_overlap for r in results_lide],
                     y_log_axis = log,
-                    **plt_kwargs,
+                    **PLOT_KWARGS,
             )
 
             si.vis.xy_plot(
@@ -38,7 +38,7 @@ if __name__ == '__main__':
                     [r.phase for r in results_vide],
                     [r.final_bound_state_overlap for r in results_vide],
                     y_log_axis = log,
-                    **plt_kwargs,
+                    **PLOT_KWARGS,
             )
 
             si.vis.xy_plot(
@@ -48,7 +48,7 @@ if __name__ == '__main__':
                     [r.final_bound_state_overlap for r in results_vide],
                     line_labels = ('Length', 'Velocity'),
                     y_log_axis = log,
-                    **plt_kwargs,
+                    **PLOT_KWARGS,
             )
 
             rel_lide = results_lide[0].final_bound_state_overlap
@@ -61,5 +61,5 @@ if __name__ == '__main__':
                     [r.final_bound_state_overlap / rel_vide for r in results_vide],
                     line_labels = ('Length (Rel.)', 'Velocity (Rel.)'),
                     y_log_axis = log,
-                    **plt_kwargs,
+                    **PLOT_KWARGS,
             )

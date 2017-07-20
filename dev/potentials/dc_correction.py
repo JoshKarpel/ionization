@@ -12,20 +12,20 @@ import ionization as ion
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-PLT_KWARGS = dict(
+PLOT_KWARGS = dict(
         target_dir = OUT_DIR,
         img_format = 'png',
         fig_dpi_scale = 3,
 )
 
-EA_FIELD_PLT_KWARGS = dict(
+EA_FIELD_PLOT_KWARGS = dict(
         line_labels = (fr'${str_efield}(t)$', fr'$q{str_afield}(t)$'),
         x_label = r'$t$',
         x_unit = 'asec',
         y_label = fr'${str_efield}(t), \, q{str_afield}(t)$',
 )
 
-EA_LOG_PLT_KWARGS = dict(
+EA_LOG_PLOT_KWARGS = dict(
         y_log_axis = True,
         y_upper_limit = 2,
         y_lower_limit = 1e-20,
@@ -59,16 +59,16 @@ if __name__ == '__main__':
                          t,
                          uncorrected_pulse_amp / atomic_electric_field,
                          uncorrected_pulse_vpot / atomic_momentum,
-                         **EA_FIELD_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **PLOT_KWARGS)
 
         si.vis.xy_plot(f'uncorrected_pulse__log',
                          t,
                          np.abs(uncorrected_pulse_amp / atomic_electric_field),
                          np.abs(uncorrected_pulse_vpot / atomic_momentum),
-                         **EA_FIELD_PLT_KWARGS,
-                         **EA_LOG_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **EA_LOG_PLOT_KWARGS,
+                         **PLOT_KWARGS)
 
         ### CORRECTION 1 ###
 
@@ -87,16 +87,16 @@ if __name__ == '__main__':
                          t,
                          corrected_pulse_amp / atomic_electric_field,
                          corrected_pulse_vpot / atomic_momentum,
-                         **EA_FIELD_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **PLOT_KWARGS)
 
         si.vis.xy_plot(f'rect-corrected_pulse__log',
                          t,
                          np.abs(corrected_pulse_amp / atomic_electric_field),
                          np.abs(corrected_pulse_vpot / atomic_momentum),
-                         **EA_FIELD_PLT_KWARGS,
-                         **EA_LOG_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **EA_LOG_PLOT_KWARGS,
+                         **PLOT_KWARGS)
 
 
         ### CORRECTION 2 ###
@@ -127,13 +127,13 @@ if __name__ == '__main__':
                          t,
                          corrected_pulse_amp / atomic_electric_field,
                          corrected_pulse_vpot / atomic_momentum,
-                         **EA_FIELD_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **PLOT_KWARGS)
 
         si.vis.xy_plot(f'opt-rect-corrected_pulse__log',
                          t,
                          np.abs(corrected_pulse_amp / atomic_electric_field),
                          np.abs(corrected_pulse_vpot / atomic_momentum),
-                         **EA_FIELD_PLT_KWARGS,
-                         **EA_LOG_PLT_KWARGS,
-                         **PLT_KWARGS)
+                         **EA_FIELD_PLOT_KWARGS,
+                         **EA_LOG_PLOT_KWARGS,
+                         **PLOT_KWARGS)
