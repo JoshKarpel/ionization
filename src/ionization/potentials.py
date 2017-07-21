@@ -1068,6 +1068,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
         info.add_field('Photon Energy Range', f'{uround(self.photon_energy_min, eV)} eV to {uround(self.photon_energy_max, eV)} eV')
         info.add_field('Photon Energy Bandwidth', f'{uround(self.photon_energy_bandwidth, eV)} eV')
@@ -1140,7 +1141,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         """
         dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
 
-        return cls(
+        pulse = cls(
             pulse_width = pulse_width,
             omega_carrier = dummy.omega_carrier,
             fluence = fluence,
@@ -1148,6 +1149,10 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_center = pulse_center,
             **kwargs
         )
+
+        pulse.omega_min = omega_min
+
+        return pulse
 
     @classmethod
     def from_omega_carrier(cls, *args, **kwargs):
@@ -1163,7 +1168,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
             ionization_potential = rydberg,
             test_charge = electron_charge,
-            test_mass = electron_mass_reduced,
+            test_mass = electron_mass,
             keldysh_omega_selector = 'carrier',
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
@@ -1289,6 +1294,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec)} fs | {uround(self.pulse_width, atomic_time)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
         info.add_field('Photon Energy FWHM (Amplitude)', f'{uround(self.photon_energy_fwhm, eV)} eV')
         info.add_field('Photon Energy FWHM (Power)', f'{uround(self.photon_energy_fwhm_power, eV)} eV')
@@ -1360,7 +1366,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         """
         dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
 
-        return cls(
+        pulse = cls(
             pulse_width = pulse_width,
             omega_carrier = dummy.omega_carrier,
             fluence = fluence,
@@ -1368,6 +1374,10 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_center = pulse_center,
             **kwargs
         )
+
+        pulse.omega_min = omega_min
+
+        return pulse
 
     @classmethod
     def from_omega_carrier(cls, *args, **kwargs):
@@ -1383,7 +1393,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
             ionization_potential = rydberg,
             test_charge = electron_charge,
-            test_mass = electron_mass_reduced,
+            test_mass = electron_mass,
             keldysh_omega_selector = 'carrier',
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
@@ -1489,6 +1499,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
         info.add_field('Photon Energy FWHM', f'{uround(self.photon_energy_fwhm, eV)} eV')
         info.add_field('Carrier Frequency', f'{uround(self.frequency_carrier, THz)} THz')
