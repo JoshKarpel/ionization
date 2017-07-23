@@ -22,7 +22,7 @@ if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         pulse_width = 200 * asec
         fluence = .2 * Jcm2
-        phase = pi / 2
+        phase = pi / 4
 
         test_width = 1 * bohr_radius
         test_charge = 1 * electron_charge
@@ -64,3 +64,5 @@ if __name__ == '__main__':
         # print(sim.a2)
 
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
+
+        logger.info(sim.info())

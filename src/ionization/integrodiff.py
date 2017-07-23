@@ -586,9 +586,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             figman.name += postfix
 
 
-delta_kick = collections.namedtuple('delta_kick', ['time', 'amplitude'])
-
-
 class IntegroDifferentialEquationSpecification(si.Specification):
     """
     A Specification for an :class:`IntegroDifferentialEquationSimulation`.
@@ -762,11 +759,36 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         return info
 
 
+delta_kick = collections.namedtuple('delta_kick', ['time', 'amplitude'])
+
+
+class DeltaKicks(potentials.PotentialEnergy):
+    def __init__(self, kicks):
+        super().__init__()
+
+        self.kicks = kicks
+
+    def __iter__(self):
+        yield from self.kicks
+
+    def __getitem__(self, item):
+        return self.kicks[item]
+
+    def __len__(self):
+        return len(self.kicks)
+
+    def __call__(self, *args, **kwargs):
+        raise ValueError('DeltaKicks potential cannot be evaluated')
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Number of Kicks', len(self))
+
+        return info
+
+
 class DeltaKickSimulation(si.Simulation):
-    """
-
-    """
-
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -775,7 +797,7 @@ class DeltaKickSimulation(si.Simulation):
         self.time_index = 0
         self.time_step = self.spec.time_step
 
-        if self.spec.electric_potential_dc_correction:
+        if self.spec.electric_potential_dc_correction and not isinstance(self.spec.electric_potential, DeltaKicks):
             dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, self.times)
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
@@ -787,9 +809,12 @@ class DeltaKickSimulation(si.Simulation):
         elif self.spec.evolution_gauge == 'VEL':
             self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
 
-        self.kicks = getattr(self, f'decompose_potential_into_kicks__{self.spec.decomposition_strategy}')()
+        if not isinstance(self.spec.electric_potential, DeltaKicks):
+            self.kicks = DeltaKicks(getattr(self, f'decompose_potential_into_kicks__{self.spec.decomposition_strategy}')())
+        else:
+            self.kicks = self.spec.electric_potential
 
-        self.a = np.empty_like(self.kicks) * np.NaN
+        self.a = np.empty(len(self.kicks)) * np.NaN
 
     @property
     def time_steps(self):
@@ -944,7 +969,7 @@ class DeltaKickSimulation(si.Simulation):
         self.status = si.STATUS_RUN
 
         self.a = self.recursive_kicks()
-        self.data_times = np.array(list(k.time for k in self.kicks))
+        self.data_times = np.array(list(k.time for k in self.kicks))  # for consistency with other simulations
 
         if callback is not None:
             callback(self)
@@ -1095,6 +1120,14 @@ class DeltaKickSimulation(si.Simulation):
 
             figman.name += postfix
 
+    def info(self):
+        info = super().info()
+
+        if self.kicks != self.spec.electric_potential:
+            info.add_info(self.kicks.info())
+
+        return info
+
 
 class DeltaKickSpecification(si.Specification):
     """
@@ -1204,18 +1237,6 @@ class DeltaKickSpecification(si.Specification):
 
     def info(self):
         info = super().info()
-
-        info_checkpoint = si.Info(header = 'Checkpointing')
-        if self.checkpoints:
-            if self.checkpoint_dir is not None:
-                working_in = self.checkpoint_dir
-            else:
-                working_in = 'cwd'
-            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
-        else:
-            info_checkpoint.header += ': disabled'
-
-        info.add_info(info_checkpoint)
 
         info_evolution = si.Info(header = 'Time Evolution')
         info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
