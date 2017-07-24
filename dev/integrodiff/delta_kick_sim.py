@@ -20,9 +20,9 @@ PLOT_KWARGS = dict(
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
-        pulse_width = 200 * asec
-        fluence = .2 * Jcm2
-        phase = pi / 4
+        pulse_width = 1000 * asec
+        fluence = 20 * Jcm2
+        phase = 0
 
         test_width = 1 * bohr_radius
         test_charge = 1 * electron_charge

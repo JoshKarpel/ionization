@@ -3098,7 +3098,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _get_interaction_hamiltonian_matrix_operators_LEN(self):
         """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
-        return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time)
+        return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time + (self.spec.time_step / 2))
 
     @si.utils.memoize
     def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
