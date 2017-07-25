@@ -1,5 +1,6 @@
 import functools
 import logging
+import itertools
 import os
 import sys
 from copy import deepcopy
@@ -14,8 +15,10 @@ from tqdm import tqdm
 matplotlib.use('pgf')
 
 import simulacra as si
+import simulacra.cluster as clu
 import ionization as ion
 import ionization.integrodiff as ide
+import ionization.cluster as iclu
 from simulacra.units import *
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
@@ -45,6 +48,8 @@ pgf_with_latex = {  # setup matplotlib to use latex for output
 matplotlib.rcParams.update(pgf_with_latex)
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 
 FULL_PAGE_KWARGS = dict(
     fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
@@ -981,27 +986,92 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
     )
 
 
+def pulse_width_scan__hyd():
+    jp = clu.JobProcessor.load('job_processors/hyd__pw_scan_v2__50-1000as_3flus_3phis__sinc.job')
+
+    phases = sorted(jp.parameter_set('phase'))
+    fluences = sorted(jp.parameter_set('fluence'))
+
+    styles = ['-', ':', '--']
+    colors = ['C0', 'C1', 'C2']
+
+    phase_to_style = dict(zip(phases, styles))
+    fluence_to_color = dict(zip(fluences, colors))
+    color_patches = [mpatches.Patch(color = color, label = fr'$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $')
+                     for fluence, color in fluence_to_color.items()]
+
+    phases_latex = [r'0', r'\pi / 4', r'\pi / 2']
+    style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 3, label = fr'$ \varphi = {phase_latex} $')
+                     for phase, style, phase_latex in zip(phases, styles, phases_latex)]
+
+    legend_handles = color_patches + style_patches
+
+    results_by_phase_and_fluence = {(phase, fluence): jp.select_by_kwargs(phase = phase, fluence = fluence)
+                                    for phase in phases for fluence in fluences}
+
+    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+    extra_line_kwargs = dict(
+        linewidth = 3,
+    )
+
+    for log in [True, False]:
+        if log:
+            postfix = '__log'
+        else:
+            postfix = ''
+
+        for metric in metrics:
+            si.vis.xxyy_plot(
+                f'pulse_width_scan__hyd__{metric}' + postfix,
+                [
+                    *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
+                x_label = r'Pulse Width $\tau$',
+                x_unit = 'asec',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log, y_log_pad = 2,
+                legend_kwargs = {
+                    'loc': 'upper right',
+                    'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 20,
+                font_size_legend = 20,
+                font_size_title = 35,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+            )
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Multicycle'),
-            pulse_ffts,
-            delta_kicks_eta_plot,
-            delta_kick_decomposition_plot,
-            length_ide_kernel_gaussian,
-            tunneling_ionization_animation__pulse,
-            tunneling_ionization_animation,
-            sinc_pulse,
-            gaussian_pulse,
-            efield_and_afield,
-            title_bg,
-            spherical_harmonic_mesh,
-            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
-            functools.partial(pulse_cep_movie_zoom, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
-            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
+            pulse_width_scan__hyd,
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Multicycle'),
+            # pulse_ffts,
+            # delta_kicks_eta_plot,
+            # delta_kick_decomposition_plot,
+            # length_ide_kernel_gaussian,
+            # tunneling_ionization_animation__pulse,
+            # tunneling_ionization_animation,
+            # sinc_pulse,
+            # gaussian_pulse,
+            # efield_and_afield,
+            # title_bg,
+            # spherical_harmonic_mesh,
+            # functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            # functools.partial(pulse_cep_movie_zoom, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            # functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
         ]
 
         for fig in tqdm(figures):

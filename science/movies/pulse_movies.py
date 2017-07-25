@@ -40,13 +40,15 @@ if __name__ == '__main__':
 
         # test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(n_max + 1) for l in range(n))
         # pulse_types = [ion.SincPulse]
-        pulse_types = [ion.SincPulse, ion.GaussianPulse]
-        pulse_widths = [50, 200]
+        pulse_types = [ion.SincPulse]
+        # pulse_types = [ion.SincPulse, ion.GaussianPulse]
+        pulse_widths = [70, 80, 90, 100]
         # pulse_widths = [50, 100, 200, 400, 800]
         # fluences = [1]
-        fluences = [.1, 1, 10]
+        fluences = [.1, 1, 5, 10]
         # phases = [0]
-        phases = [0, pi / 4, pi / 2]
+        # phases = [0, pi / 4, pi / 2]
+        phases = [0, pi / 2]
 
         # used by all sims
         mask = ion.RadialCosineMask(inner_radius = (r_bound - 25) * bohr_radius, outer_radius = r_bound * bohr_radius)
@@ -56,7 +58,7 @@ if __name__ == '__main__':
         animator_kwargs = dict(
             target_dir = out_dir_mod,
             fig_dpi_scale = 2,
-            length = 60,
+            length = 30,
             fps = 30,
         )
 
@@ -101,7 +103,7 @@ if __name__ == '__main__':
                         which = 'g',
                         colormap = plt.get_cmap('richardson'),
                         norm = si.vis.RichardsonNormalization(),
-                        plot_limit = 50 * bohr_radius,
+                        plot_limit = 30 * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
@@ -114,7 +116,7 @@ if __name__ == '__main__':
                         which = 'g',
                         colormap = plt.get_cmap('richardson'),
                         norm = si.vis.RichardsonNormalization(),
-                        plot_limit = 50 * bohr_radius,
+                        plot_limit = 30 * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
@@ -125,7 +127,7 @@ if __name__ == '__main__':
                     postfix = '__g2_wavefunction',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g2',
-                        plot_limit = 50 * bohr_radius,
+                        plot_limit = 30 * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
@@ -144,7 +146,7 @@ if __name__ == '__main__':
                     postfix = 'g2_angular_momentum',
                     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g2',
-                        plot_limit = 50 * bohr_radius,
+                        plot_limit = 30 * bohr_radius,
                     ),
                     axman_lower_right = deepcopy(epot_axman),
                     axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
@@ -168,7 +170,7 @@ if __name__ == '__main__':
                     numeric_eigenstate_max_energy = 50 * eV,
                     numeric_eigenstate_max_angular_momentum = 20,
                     animators = deepcopy(animators),
-                    # store_data_every = 5,
+                    store_data_every = 5,
                 )
             )
 
