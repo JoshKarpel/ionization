@@ -1014,11 +1014,14 @@ def pulse_width_scan__hyd():
         linewidth = 3,
     )
 
-    for log in [True, False]:
-        if log:
-            postfix = '__log'
-        else:
-            postfix = ''
+    for log_x, log_y in itertools.product([True, False], repeat = 2):
+        postfix = ''
+        if any([log_x, log_y]):
+            postfix += '__log'
+        if log_x:
+            postfix += 'X'
+        if log_y:
+            postfix += 'Y'
 
         for metric in metrics:
             si.vis.xxyy_plot(
@@ -1034,7 +1037,8 @@ def pulse_width_scan__hyd():
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
                 y_label = metric.replace('_', ' ').title(),
-                y_log_axis = log, y_log_pad = 2,
+                y_log_axis = log_y, y_log_pad = 2,
+                x_log_axis = log_x,
                 legend_kwargs = {
                     'loc': 'upper right',
                     'bbox_to_anchor': (.99, .875),
@@ -1049,11 +1053,112 @@ def pulse_width_scan__hyd():
                 **PLOT_KWARGS,
             )
 
+            si.vis.xxyy_plot(
+                f'pulse_width_scan__hyd__zoom__{metric}' + postfix,
+                [
+                    *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
+                x_label = r'Pulse Width $\tau$',
+                x_unit = 'asec',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log_y, y_log_pad = 2,
+                x_log_axis = log_x,
+                legend_kwargs = {
+                    'loc': 'upper right',
+                    'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                x_lower_limit = 80 * asec,
+                x_upper_limit = 100 * asec,
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 20,
+                font_size_legend = 20,
+                font_size_title = 35,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+            )
+
+
+def fluence_scan__hyd():
+    jp = clu.JobProcessor.load('job_processors/hyd__flu_scan_v2__5pws_.01-30jcm2_3phis__sinc.job')
+
+    phases = sorted(jp.parameter_set('phase'))
+    pulse_widths = sorted(jp.parameter_set('pulse_width'))[::2]
+
+    styles = ['-', ':', '--']
+    colors = ['C0', 'C1', 'C2', 'C3', 'C4']
+
+    phase_to_style = dict(zip(phases, styles))
+    pulse_width_to_color = dict(zip(pulse_widths, colors))
+    color_patches = [mpatches.Patch(color = color, label = fr'$ \tau = {uround(pulse_width, asec)} \, \mathrm{{as}} $')
+                     for pulse_width, color in pulse_width_to_color.items()]
+
+    phases_latex = [r'0', r'\pi / 4', r'\pi / 2']
+    style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 3, label = fr'$ \varphi = {phase_latex} $')
+                     for phase, style, phase_latex in zip(phases, styles, phases_latex)]
+
+    legend_handles = color_patches + style_patches
+
+    results_by_phase_and_pulse_width = {(phase, pulse_width): jp.select_by_kwargs(phase = phase, pulse_width = pulse_width)
+                                        for phase in phases for pulse_width in pulse_widths}
+
+    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+    extra_line_kwargs = dict(
+        linewidth = 3,
+    )
+
+    for log_x, log_y in itertools.product([True, False], repeat = 2):
+        postfix = ''
+        if any([log_x, log_y]):
+            postfix += '__log'
+        if log_x:
+            postfix += 'X'
+        if log_y:
+            postfix += 'Y'
+
+        for metric in metrics:
+            si.vis.xxyy_plot(
+                f'fluence_scan__hyd__{metric}' + postfix,
+                [
+                    *[[r.fluence for r in results] for results in results_by_phase_and_pulse_width.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_pulse_width.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': pulse_width_to_color[pulse_width], **extra_line_kwargs} for phase, pulse_width in results_by_phase_and_pulse_width.keys()],
+                title = 'Fluence Scan: Sinc Pulse', title_offset = 1.075,
+                x_label = r'Fluence $H$',
+                x_unit = 'Jcm2',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log_y, y_log_pad = 2,
+                x_log_axis = log_x,
+                legend_kwargs = {
+                    'loc': 'best',
+                    # 'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 20,
+                font_size_legend = 20,
+                font_size_title = 35,
+                x_upper_limit = 15 * Jcm2,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+            )
+
 
 if __name__ == '__main__':
     with logman as logger:
         figures = [
             pulse_width_scan__hyd,
+            fluence_scan__hyd,
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
