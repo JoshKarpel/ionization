@@ -165,14 +165,18 @@ class ElectricFieldSimulation(si.Simulation):
         if 'l' in self.mesh.mesh_storage_method and self.spec.store_norm_by_l:
             self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
 
+        if self.spec.store_radial_position_expectation_value:
+            self.radial_position_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
         if self.spec.store_electric_dipole_moment_expectation_value:
             self.electric_dipole_moment_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
+        if self.spec.store_energy_expectation_value:
+            self.internal_energy_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+            self.total_energy_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
+
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        if self.spec.store_internal_energy_expectation_value:
-            self.energy_expectation_value_vs_time_internal = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
@@ -198,15 +202,18 @@ class ElectricFieldSimulation(si.Simulation):
         mem_other_time_data = sum(x.nbytes for x in (
             self.electric_field_amplitude_vs_time,
             self.vector_potential_amplitude_vs_time,
-            self.electric_dipole_moment_expectation_value_vs_time,
             self.norm_vs_time,
         ))
 
-        for attr in ('internal_energy_expectation_value_vs_time_internal',
-                     'norm_diff_mask_vs_time'):
+        for attr in (
+                'radial_position_expectation_value_vs_time',
+                'internal_energy_expectation_value_vs_time',
+                'total_energy_expectation_value_vs_time',
+                'electric_dipole_moment_expectation_value_vs_time'
+                'norm_diff_mask_vs_time'):
             try:
                 mem_other_time_data += getattr(self, attr).nbytes
-            except AttributeError:
+            except AttributeError:  # apparently we're not storing that data
                 pass
 
         try:
@@ -296,12 +303,18 @@ class ElectricFieldSimulation(si.Simulation):
             logger.warning('Wavefunction norm ({}) has exceeded initial norm ({}) by more than .1% for {} {}'.format(norm, self.norm_vs_time[0], self.__class__.__name__, self.name))
         try:
             if norm > 1.001 * self.norm_vs_time[self.data_time_index - 1]:
-                logger.warning('Wavefunction norm ({}) at time_index = {} has exceeded norm from previous time step ({}) by more than .1% for {} {}'.format(norm, self.data_time_index, self.norm_vs_time[self.data_time_index - 1], self.__class__.__name__, self.name))
+                logger.warning('Wavefunction norm ({}) at time_index = {} has exceeded norm from previous time step ({}) by more than .1% for {} {}'.format(norm, self.data_time_index,
+                                                                                                                                                            self.norm_vs_time[self.data_time_index - 1],
+                                                                                                                                                            self.__class__.__name__, self.name))
         except IndexError:
             pass
 
-        if self.spec.store_internal_energy_expectation_value:
-            self.energy_expectation_value_vs_time_internal[self.data_time_index] = self.mesh.energy_expectation_value
+        if self.spec.store_radial_position_expectation_value:
+            self.radial_position_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.inner_product(b = self.mesh.r_mesh * self.mesh.g))
+
+        if self.spec.store_energy_expectation_value:
+            self.internal_energy_expectation_value_vs_time[self.data_time_index] = self.mesh.energy_expectation_value(include_interaction = False)
+            self.total_energy_expectation_value_vs_time[self.data_time_index] = self.mesh.energy_expectation_value(include_interaction = True)
 
         if self.spec.store_electric_dipole_moment_expectation_value:
             self.electric_dipole_moment_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.dipole_moment_inner_product())
@@ -324,7 +337,8 @@ class ElectricFieldSimulation(si.Simulation):
                 norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
-                logger.warning(f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
+                logger.warning(
+                    f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
 
         logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
 
@@ -570,7 +584,11 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.legend(
+                bbox_to_anchor = (1.1, 1.1),
+                loc = 'upper left', borderaxespad = 0.075,
+                fontsize = 9,
+                ncol = 1 + (len(overlaps) // 10))
 
             ax_overlaps.tick_params(labelright = True)
 
@@ -687,7 +705,12 @@ class ElectricFieldSimulation(si.Simulation):
 
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
 
-            ax_overlaps.legend(bbox_to_anchor = (1.1, 1.1), loc = 'upper left', borderaxespad = 0.075, fontsize = 9, ncol = 1 + (len(overlaps) // 17))
+            ax_overlaps.legend(
+                bbox_to_anchor = (1.1, 1.1),
+                loc = 'upper left',
+                borderaxespad = 0.075,
+                fontsize = 9,
+                ncol = 1 + (len(overlaps) // 8))
 
             ax_overlaps.tick_params(labelleft = True,
                                     labelright = True,
@@ -906,16 +929,52 @@ class ElectricFieldSimulation(si.Simulation):
 
         plt.close()
 
-    def plot_dipole_moment_vs_time(self, gauge = 'length', use_name = False, **kwargs):
+    def plot_radial_position_expectation_value_vs_time(self, use_name = False, **kwargs):
         if not use_name:
             prefix = self.file_name
         else:
             prefix = self.name
-        si.vis.xy_plot(prefix + '__dipole_moment_vs_time',
-                       self.times, np.real(self.electric_dipole_moment_vs_time[gauge]),
-                       x_unit_value = 'as', y_unit_value = 'atomic_electric_dipole_moment',
-                       x_label = 'Time $t$', y_label = 'Dipole Moment $d(t)$',
-                       **kwargs)
+
+        si.vis.xy_plot(
+            prefix + '__radial_position_vs_time',
+            self.data_times,
+            self.radial_position_expectation_value_vs_time,
+            x_label = r'Time $t$', x_unit = 'asec',
+            y_label = r'Radial Position $\left\langle r(t) \right\rangle$', y_unit = 'bohr_radius',
+            **kwargs
+        )
+
+    def plot_dipole_moment_expectation_value_vs_time(self, use_name = False, **kwargs):
+        if not use_name:
+            prefix = self.file_name
+        else:
+            prefix = self.name
+
+        si.vis.xy_plot(
+            prefix + '__dipole_moment_vs_time',
+            self.data_times,
+            self.electric_dipole_moment_expectation_value_vs_time,
+            x_label = r'Time $t$', x_unit = 'asec',
+            y_label = r'Dipole Moment $\left\langle d(t) \right\rangle$', y_unit = 'atomic_electric_dipole_moment',
+            **kwargs
+        )
+
+    def plot_energy_expectation_value_vs_time(self, use_name = False, **kwargs):
+        if not use_name:
+            prefix = self.file_name
+        else:
+            prefix = self.name
+
+        si.vis.xy_plot(
+            prefix + '__energy_vs_time',
+            self.data_times,
+            self.internal_energy_expectation_value_vs_time,
+            self.total_energy_expectation_value_vs_time,
+            line_labels = [r'$\mathcal{H}_0$', r'$\mathcal{H}_0 + \mathcal{H}_{\mathrm{int}}$'],
+            x_label = r'Time $t$', x_unit = 'asec',
+            y_label = r'Energy $\left\langle E(t) \right\rangle$', y_unit = 'eV',
+            **kwargs
+        )
 
     def dipole_moment_vs_frequency(self, gauge = 'length', first_time = None, last_time = None):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
@@ -1014,9 +1073,10 @@ class ElectricFieldSpecification(si.Specification):
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
                  checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
                  animators = tuple(),
+                 store_radial_position_expectation_value = True,
                  store_electric_dipole_moment_expectation_value = True,
+                 store_energy_expectation_value = True,
                  store_norm_diff_mask = False,
-                 store_internal_energy_expectation_value = False,
                  store_data_every = 1,
                  snapshot_times = (), snapshot_indices = (), snapshot_type = None, snapshot_kwargs = None,
                  **kwargs):
@@ -1088,9 +1148,10 @@ class ElectricFieldSpecification(si.Specification):
 
         self.animators = deepcopy(tuple(animators))
 
+        self.store_radial_position_expectation_value = store_radial_position_expectation_value
         self.store_electric_dipole_moment_expectation_value = store_electric_dipole_moment_expectation_value
+        self.store_energy_expectation_value = store_energy_expectation_value
         self.store_norm_diff_mask = store_norm_diff_mask
-        self.store_internal_energy_expectation_value = store_internal_energy_expectation_value
 
         self.store_data_every = int(store_data_every)
 
@@ -1128,7 +1189,7 @@ class ElectricFieldSpecification(si.Specification):
         info.add_info(info_animation)
 
         info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial State', self.initial_state)
+        info_evolution.add_field('Initial State', str(self.initial_state))
         info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as | {uround(self.time_initial, fsec, 3)} fs | {uround(self.time_initial, atomic_time, 3)} a.u.')
         info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as | {uround(self.time_final, fsec, 3)} fs | {uround(self.time_final, atomic_time, 3)} a.u.')
         if not callable(self.time_step):
@@ -1158,7 +1219,9 @@ class ElectricFieldSpecification(si.Specification):
             info_analysis.add_field(f'Test States (first 5 of {len(self.test_states)})', ', '.join(str(s) for s in sorted(self.test_states)[:5]))
         else:
             info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
+        info_analysis.add_field('Store Radial Position EV', self.store_radial_position_expectation_value)
         info_analysis.add_field('Store Dipole Moment EV', self.store_electric_dipole_moment_expectation_value)
+        info_analysis.add_field('Store Energy EV', self.store_energy_expectation_value)
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
         info_analysis.add_field('Snapshot Times', (f'{uround(st, asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
@@ -1332,7 +1395,6 @@ class QuantumMesh:
     def norm(self, state = None):
         return np.abs(self.inner_product(a = state, b = state))
 
-    @property
     def energy_expectation_value(self):
         raise NotImplementedError
 
@@ -1632,12 +1694,14 @@ class LineMesh(QuantumMesh):
 
         return g
 
-    @property
-    def energy_expectation_value(self):
+    def energy_expectation_value(self, include_interaction = False):
         potential = self.inner_product(b = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
 
         power_spectrum = np.abs(self.fft(self.g)) ** 2
         kinetic = np.sum((((hbar * self.wavenumbers) ** 2) / (2 * self.spec.test_mass)) * power_spectrum) / np.sum(power_spectrum)
+
+        raise NotImplementedError
+        # TODO: not including interaction correctly here
 
         return np.real(potential + kinetic)
 
@@ -1801,7 +1865,8 @@ class LineMesh(QuantumMesh):
             if np.max(eigenvalues) > max_energy or number_of_eigenvectors == max_eigenvectors:
                 break
 
-            number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
+            number_of_eigenvectors = int(
+                number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
 
         for nn, (eigenvalue, eigenvector) in enumerate(zip(eigenvalues, eigenvectors.T)):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
@@ -2081,7 +2146,7 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return hg_mesh_z + hg_mesh_rho
 
-    def hg_mesh(self):
+    def hg_mesh(self, include_interaction = False):
         hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
 
         g_vector_z = self.flatten_mesh(self.g, 'z')
@@ -2092,10 +2157,12 @@ class CylindricalSliceMesh(QuantumMesh):
         hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
         hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
 
+        raise NotImplementedError
+        # TODO: not including interaction yet
+
         return hg_mesh_z + hg_mesh_rho
 
-    @property
-    def energy_expectation_value(self):
+    def energy_expectation_value(self, include_interaction = False):
         return np.real(self.inner_product(b = self.hg_mesh()))
 
     @si.utils.memoize
@@ -2529,9 +2596,11 @@ class SphericalSliceMesh(QuantumMesh):
         hg_vector_theta = hamiltonian_theta.dot(g_vector_theta)
         hg_mesh_theta = self.wrap_vector(hg_vector_theta, 'theta')
 
+        raise NotImplementedError
+        # TODO: not including interaction yet
+
         return hg_mesh_r + hg_mesh_theta
 
-    @property
     def energy_expectation_value(self):
         return np.real(self.inner_product(b = self.hg_mesh()))
 
@@ -2812,15 +2881,6 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
-    @property
-    def norm_by_l(self):
-        return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
-
-    def dipole_moment_inner_product(self, a = None, b = None):
-        operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
-        b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
-        return -self.inner_product(a = a, b = b)
-
     def get_g_for_state(self, state):
         """
 
@@ -2873,6 +2933,15 @@ class SphericalHarmonicMesh(QuantumMesh):
             return ip * self.inner_product_multiplier
         else:
             return super().inner_product(a, b)
+
+    @property
+    def norm_by_l(self):
+        return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
+
+    def dipole_moment_inner_product(self, a = None, b = None):
+        operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
+        b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
+        return -self.inner_product(a = a, b = b)
 
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):
         """
@@ -3045,7 +3114,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_kinetic
 
-    def _get_kinetic_energy_matrix_operators_LAG(self):
+    def _get_kinetic_energy_matrix_operators_LAG(self, include_effective_potential = True):
         """Get the radial kinetic energy matrix operator."""
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
 
@@ -3065,8 +3134,9 @@ class SphericalHarmonicMesh(QuantumMesh):
         r_diagonal *= -2 * r_prefactor
         r_offdiagonal *= r_prefactor
 
-        effective_potential_mesh = ((hbar ** 2) / (2 * electron_mass_reduced)) * self.l_mesh * (self.l_mesh + 1) / (self.r_mesh ** 2)
-        r_diagonal += self.flatten_mesh(effective_potential_mesh, 'r')
+        if include_effective_potential:
+            effective_potential_mesh = ((hbar ** 2) / (2 * electron_mass_reduced)) * self.l_mesh * (self.l_mesh + 1) / (self.r_mesh ** 2)
+            r_diagonal += self.flatten_mesh(effective_potential_mesh, 'r')
 
         r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
 
@@ -3150,7 +3220,8 @@ class SphericalHarmonicMesh(QuantumMesh):
                 if np.max(eigenvalues) > max_energy or number_of_eigenvectors == max_eigenvectors:
                     break
 
-                number_of_eigenvectors = int(number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
+                number_of_eigenvectors = int(
+                    number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
                 eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
@@ -3179,40 +3250,36 @@ class SphericalHarmonicMesh(QuantumMesh):
         return analytic_to_numeric
 
     def tg_mesh(self, use_abs_g = False):
-        hamiltonian_r, hamiltonian_l = self.get_kinetic_energy_matrix_operators()
-
         if use_abs_g:
             g = np.abs(self.g)
         else:
             g = self.g
 
-        g_vector_r = self.flatten_mesh(g, 'r')
-        hg_vector_r = hamiltonian_r.dot(g_vector_r)
-        hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
+        hamiltonian_r = self.get_kinetic_energy_matrix_operators()
 
-        g_vector_l = self.flatten_mesh(g, 'l')
-        hg_vector_l = hamiltonian_l.dot(g_vector_l)
-        hg_mesh_l = self.wrap_vector(hg_vector_l, 'l')
+        return self.wrap_vector(hamiltonian_r.dot(self.flatten_mesh(g, 'r')), 'r')
 
-        return hg_mesh_r + hg_mesh_l
+        # g_vector_r = self.flatten_mesh(g, 'r')
+        # tg_vector_r = hamiltonian_r.dot(g_vector_r)
+        # tg_mesh = self.wrap_vector(tg_vector_r, 'r')
 
-    def hg_mesh(self):
+        # return tg_mesh
+
+    def hg_mesh(self, include_interaction = False):
         hamiltonian_r = self.get_internal_hamiltonian_matrix_operators()
 
-        g_vector_r = self.flatten_mesh(self.g, 'r')
-        hg_vector_r = hamiltonian_r.dot(g_vector_r)
-        hg_mesh_r = self.wrap_vector(hg_vector_r, 'r')
+        hg = self.wrap_vector(hamiltonian_r.dot(self.flatten_mesh(self.g, 'r')), 'r')
 
-        # g_vector_l = self.flatten_mesh(self.g, 'l')
-        # hg_vector_l = hamiltonian_l.dot(g_vector_l)
-        # hg_mesh_l = self.wrap_vector(hg_vector_l, 'l')
+        if include_interaction:
+            hamiltonian_l = self.get_interaction_hamiltonian_matrix_operators()
+            wrapping_direction = 'l' if self.spec.evolution_gauge == 'LEN' else 'r'
 
-        # return hg_mesh_r + hg_mesh_l
-        return hg_mesh_r
+            hg += self.wrap_vector(hamiltonian_l.dot(self.flatten_mesh(self.g, wrapping_direction)), wrapping_direction)
 
-    @property
-    def energy_expectation_value(self):
-        return np.real(self.inner_product(b = self.hg_mesh()))
+        return hg
+
+    def energy_expectation_value(self, include_interaction = False):
+        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction)))
 
     # @si.utils.memoize
     # def get_probability_current_matrix_operators(self):
