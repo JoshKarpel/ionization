@@ -747,6 +747,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         info_ide = si.Info(header = 'IDE Parameters')
         info_ide.add_field('Initial State', f'a = {self.a_initial}')
+        info_ide.add_field('Bound State Energy', f'{uround(self.test_energy, eV)} eV')
         info_ide.add_field('Prefactor', self.prefactor)
         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
 
