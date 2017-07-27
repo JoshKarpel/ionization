@@ -7,9 +7,26 @@ import platform
 
 import simulacra as si
 
+import ionization as ion
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+def ensure_compatibility(spec):
+    new_storage = [
+        'store_radial_position_expectation_value',
+        'store_electric_dipole_moment_expectation_value'
+        'store_energy_expectation_value',
+        'store_norm_diff_mask',
+    ]
+    for stor in new_storage:
+        if not hasattr(spec, stor):
+            setattr(spec, stor, True)
+
+    if isinstance(spec, ion.SphericalHarmonicSpecification) and not hasattr(spec, 'hydrogen_zero_angular_momentum_correction'):
+        setattr(spec, 'hydrogen_zero_angular_momentum_correction', True)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Run a simulation.')
@@ -38,7 +55,10 @@ if __name__ == '__main__':
                 log.info('Checkpoint found at {}, recovered simulation {}'.format(sim_path, sim))
                 log.info('Checkpoint size is {}'.format(si.utils.get_file_size_as_string(sim_path)))
             except (FileNotFoundError, EOFError):
-                sim = si.Specification.load(os.path.join(os.getcwd(), '{}.spec'.format(args.sim_name))).to_simulation()
+                # sim = si.Specification.load(os.path.join(os.getcwd(), '{}.spec'.format(args.sim_name))).to_simulation()
+                spec = si.Specification.load(os.path.join(os.getcwd(), '{}.spec'.format(args.sim_name)))
+                ensure_compatibility(spec)
+                sim = spec.to_simulation()
                 log.info('Checkpoint not found, started simulation {}'.format(sim))
 
             # run the simulation and save it

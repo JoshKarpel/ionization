@@ -61,6 +61,7 @@ if __name__ == '__main__':
         test_charge = electron_charge * clu.ask_for_input('Test Particle Electric Charge (in electron charges)?', default = 1, cast_to = float)
         test_mass = electron_mass * clu.ask_for_input('Test Particle Mass (in electron masses)?', default = 1, cast_to = float)
         test_width = bohr_radius * clu.ask_for_input('Gaussian Test Wavefunction Width (in Bohr radii)?', default = 1, cast_to = float)
+        test_energy = -(hbar ** 2) / (2 * test_mass * (test_width ** 2))
 
         if evolution_gauge.value == 'LEN':
             prefactor = -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
@@ -80,6 +81,9 @@ if __name__ == '__main__':
 
         parameters.append(clu.Parameter(name = 'prefactor',
                                         value = prefactor))
+
+        parameters.append(clu.Parameter(name = 'test_energy',
+                                        value = test_energy))
 
         if evolution_gauge.value == 'LEN':
             parameters.append(clu.Parameter(name = 'kernel',
