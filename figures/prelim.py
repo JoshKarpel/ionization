@@ -91,6 +91,13 @@ BETTER_GRID_KWARGS = {
 
 BIG_LINEWIDTH = 4
 
+BIG_FONTS = dict(
+    font_size_axis_labels = 35,
+    font_size_tick_labels = 25,
+    font_size_legend = 30,
+    font_size_title = 35,
+)
+
 BIG_SINE_WAVE = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field)
 
 
@@ -947,6 +954,7 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         grid_kwargs = BETTER_GRID_KWARGS,
         y_lower_limit = -ylim,
         y_upper_limit = ylim,
+        title_offset = 1.2,
         **FULL_PAGE_KWARGS,
         # **QUARTER_PAGE_KWARGS,
         **PLOT_KWARGS,
@@ -973,10 +981,7 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         # font_size_tick_labels = 14,
         # font_size_legend = 16,
         # font_size_title = 22,
-        font_size_axis_labels = 35,
-        font_size_tick_labels = 20,
-        font_size_legend = 25,
-        font_size_title = 35,
+        **BIG_FONTS,
         grid_kwargs = BETTER_GRID_KWARGS,
         y_lower_limit = -ylim,
         y_upper_limit = ylim,
@@ -986,7 +991,7 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
     )
 
 
-def pulse_width_scan__hyd():
+def pulse_width_scan__hyd__sinc():
     jp = clu.JobProcessor.load('job_processors/hyd__pw_scan_v2__50-1000as_3flus_3phis__sinc.job')
 
     phases = sorted(jp.parameter_set('phase'))
@@ -1025,7 +1030,7 @@ def pulse_width_scan__hyd():
 
         for metric in metrics:
             si.vis.xxyy_plot(
-                f'pulse_width_scan__hyd__{metric}' + postfix,
+                f'pulse_width_scan__sinc__hyd__{metric}' + postfix,
                 [
                     *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
@@ -1053,39 +1058,39 @@ def pulse_width_scan__hyd():
                 **PLOT_KWARGS,
             )
 
-            si.vis.xxyy_plot(
-                f'pulse_width_scan__hyd__zoom__{metric}' + postfix,
-                [
-                    *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
-                ],
-                [
-                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
-                ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
-                title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
-                x_label = r'Pulse Width $\tau$',
-                x_unit = 'asec',
-                y_label = metric.replace('_', ' ').title(),
-                y_log_axis = log_y, y_log_pad = 2,
-                x_log_axis = log_x,
-                legend_kwargs = {
-                    'loc': 'upper right',
-                    'bbox_to_anchor': (.99, .875),
-                    'handles': legend_handles,
-                },
-                x_lower_limit = 80 * asec,
-                x_upper_limit = 100 * asec,
-                grid_kwargs = BETTER_GRID_KWARGS,
-                font_size_axis_labels = 35,
-                font_size_tick_labels = 20,
-                font_size_legend = 20,
-                font_size_title = 35,
-                **FULL_PAGE_KWARGS,
-                **PLOT_KWARGS,
-            )
+            # si.vis.xxyy_plot(
+            #     f'pulse_width_scan__sinc__hyd__zoom__{metric}' + postfix,
+            #     [
+            #         *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+            #     ],
+            #     [
+            #         *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+            #     ],
+            #     line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+            #     title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
+            #     x_label = r'Pulse Width $\tau$',
+            #     x_unit = 'asec',
+            #     y_label = metric.replace('_', ' ').title(),
+            #     y_log_axis = log_y, y_log_pad = 2,
+            #     x_log_axis = log_x,
+            #     legend_kwargs = {
+            #         'loc': 'upper right',
+            #         'bbox_to_anchor': (.99, .875),
+            #         'handles': legend_handles,
+            #     },
+            #     x_lower_limit = 80 * asec,
+            #     x_upper_limit = 100 * asec,
+            #     grid_kwargs = BETTER_GRID_KWARGS,
+            #     font_size_axis_labels = 35,
+            #     font_size_tick_labels = 20,
+            #     font_size_legend = 20,
+            #     font_size_title = 35,
+            #     **FULL_PAGE_KWARGS,
+            #     **PLOT_KWARGS,
+            # )
 
 
-def fluence_scan__hyd():
+def fluence_scan__hyd__sinc():
     jp = clu.JobProcessor.load('job_processors/hyd__flu_scan_v2__5pws_.01-30jcm2_3phis__sinc.job')
 
     phases = sorted(jp.parameter_set('phase'))
@@ -1124,7 +1129,7 @@ def fluence_scan__hyd():
 
         for metric in metrics:
             si.vis.xxyy_plot(
-                f'fluence_scan__hyd__{metric}' + postfix,
+                f'fluence_scan__sinc__hyd__{metric}' + postfix,
                 [
                     *[[r.fluence for r in results] for results in results_by_phase_and_pulse_width.values()]
                 ],
@@ -1154,11 +1159,394 @@ def fluence_scan__hyd():
             )
 
 
+def pulse_width_scan__hyd__gaussian():
+    jp = clu.JobProcessor.load('job_processors/hyd__pw_scan_v2__50-1000as_3flus_3phis__gaussian__fixed_bounds.job')
+
+    phases = sorted(jp.parameter_set('phase'))
+    fluences = sorted(jp.parameter_set('fluence'))
+
+    styles = ['-', ':', '--']
+    colors = ['C0', 'C1', 'C2']
+
+    phase_to_style = dict(zip(phases, styles))
+    fluence_to_color = dict(zip(fluences, colors))
+    color_patches = [mpatches.Patch(color = color, label = fr'$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $')
+                     for fluence, color in fluence_to_color.items()]
+
+    phases_latex = [r'0', r'\pi / 4', r'\pi / 2']
+    style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 3, label = fr'$ \varphi = {phase_latex} $')
+                     for phase, style, phase_latex in zip(phases, styles, phases_latex)]
+
+    legend_handles = color_patches + style_patches
+
+    results_by_phase_and_fluence = {(phase, fluence): jp.select_by_kwargs(phase = phase, fluence = fluence)
+                                    for phase in phases for fluence in fluences}
+
+    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+    extra_line_kwargs = dict(
+        linewidth = 3,
+    )
+
+    for log_x, log_y in itertools.product([True, False], repeat = 2):
+        postfix = ''
+        if any([log_x, log_y]):
+            postfix += '__log'
+        if log_x:
+            postfix += 'X'
+        if log_y:
+            postfix += 'Y'
+
+        for metric in metrics:
+            si.vis.xxyy_plot(
+                f'pulse_width_scan__gaussian__hyd__{metric}' + postfix,
+                [
+                    *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                title = 'Pulse Width Scan: Gaussian Pulse', title_offset = 1.075,
+                x_label = r'Pulse Width $\tau$',
+                x_unit = 'asec',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log_y, y_log_pad = 2,
+                x_log_axis = log_x,
+                legend_kwargs = {
+                    'loc': 'upper right',
+                    'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 20,
+                font_size_legend = 20,
+                font_size_title = 35,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+                )
+
+            # si.vis.xxyy_plot(
+            #     f'pulse_width_scan__gaussian__hyd__zoom__{metric}' + postfix,
+            #     [
+            #         *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+            #     ],
+            #     [
+            #         *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+            #     ],
+            #     line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+            #     title = 'Pulse Width Scan: Gaussian Pulse', title_offset = 1.075,
+            #     x_label = r'Pulse Width $\tau$',
+            #     x_unit = 'asec',
+            #     y_label = metric.replace('_', ' ').title(),
+            #     y_log_axis = log_y, y_log_pad = 2,
+            #     x_log_axis = log_x,
+            #     legend_kwargs = {
+            #         'loc': 'upper right',
+            #         'bbox_to_anchor': (.99, .875),
+            #         'handles': legend_handles,
+            #     },
+            #     x_lower_limit = 80 * asec,
+            #     x_upper_limit = 100 * asec,
+            #     grid_kwargs = BETTER_GRID_KWARGS,
+            #     font_size_axis_labels = 35,
+            #     font_size_tick_labels = 20,
+            #     font_size_legend = 20,
+            #     font_size_title = 35,
+            #     **FULL_PAGE_KWARGS,
+            #     **PLOT_KWARGS,
+            #     )
+
+
+def fluence_scan__hyd__gaussian():
+    jp = clu.JobProcessor.load('job_processors/hyd__flu_scan_v2__5pws_.01-30jcm2_3phis__gaussian__fixed_bounds.job')
+
+    phases = sorted(jp.parameter_set('phase'))
+    pulse_widths = sorted(jp.parameter_set('pulse_width'))[::2]
+
+    styles = ['-', ':', '--']
+    colors = ['C0', 'C1', 'C2', 'C3', 'C4']
+
+    phase_to_style = dict(zip(phases, styles))
+    pulse_width_to_color = dict(zip(pulse_widths, colors))
+    color_patches = [mpatches.Patch(color = color, label = fr'$ \tau = {uround(pulse_width, asec)} \, \mathrm{{as}} $')
+                     for pulse_width, color in pulse_width_to_color.items()]
+
+    phases_latex = [r'0', r'\pi / 4', r'\pi / 2']
+    style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 3, label = fr'$ \varphi = {phase_latex} $')
+                     for phase, style, phase_latex in zip(phases, styles, phases_latex)]
+
+    legend_handles = color_patches + style_patches
+
+    results_by_phase_and_pulse_width = {(phase, pulse_width): jp.select_by_kwargs(phase = phase, pulse_width = pulse_width)
+                                        for phase in phases for pulse_width in pulse_widths}
+
+    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+    extra_line_kwargs = dict(
+        linewidth = 3,
+    )
+
+    for log_x, log_y in itertools.product([True, False], repeat = 2):
+        postfix = ''
+        if any([log_x, log_y]):
+            postfix += '__log'
+        if log_x:
+            postfix += 'X'
+        if log_y:
+            postfix += 'Y'
+
+        for metric in metrics:
+            si.vis.xxyy_plot(
+                f'fluence_scan__gaussian__hyd__{metric}' + postfix,
+                [
+                    *[[r.fluence for r in results] for results in results_by_phase_and_pulse_width.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_pulse_width.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': pulse_width_to_color[pulse_width], **extra_line_kwargs} for phase, pulse_width in results_by_phase_and_pulse_width.keys()],
+                title = 'Fluence Scan: Gaussian Pulse', title_offset = 1.075,
+                x_label = r'Fluence $H$',
+                x_unit = 'Jcm2',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log_y, y_log_pad = 2,
+                x_log_axis = log_x,
+                legend_kwargs = {
+                    'loc': 'best',
+                    # 'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 20,
+                font_size_legend = 20,
+                font_size_title = 35,
+                x_upper_limit = 15 * Jcm2,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+                )
+
+
+def vector_potential_vs_phase():
+    t_bound = 35
+    p_bound = 30
+
+    pulse_types = (
+        ion.SincPulse,
+        ion.GaussianPulse,
+        # ion.SechPulse,
+    )
+
+    labels = [
+        'Sinc',
+        'Gaussian',
+    ]
+    line_kwargs = [
+        {'linewidth': BIG_LINEWIDTH},
+        {'linewidth': BIG_LINEWIDTH},
+    ]
+
+    pw = 200 * asec
+    flu = 1 * Jcm2
+    phases = np.linspace(0, pi, 1e3)
+
+    times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 14)
+    dt = np.abs(times[1] - times[0])
+
+    window = ion.SymmetricExponentialTimeWindow(window_time = p_bound * pw, window_width = .2 * pw)
+
+    max_vector_potential = {pulse_type: np.empty_like(phases) for pulse_type in pulse_types}
+    avg_abs_vector_potential = {pulse_type: np.empty_like(phases) for pulse_type in pulse_types}
+    rms_vector_potential = {pulse_type: np.empty_like(phases) for pulse_type in pulse_types}
+
+    for pulse_type in pulse_types:
+        for ii, phase in enumerate(tqdm(phases)):
+            pulse = pulse_type.from_omega_min(pulse_width = pw, fluence = flu, phase = phase,
+                                              window = window)
+            pulse = ion.DC_correct_electric_potential(pulse, times)
+
+            vp = pulse.get_vector_potential_amplitude_numeric_cumulative(times)
+            max_vector_potential[pulse_type][ii] = np.max(np.abs(vp))
+            avg_abs_vector_potential[pulse_type][ii] = np.mean(np.abs(vp))
+            rms_vector_potential[pulse_type][ii] = np.sqrt(np.mean(vp ** 2))
+
+    # MAX ABS
+
+    si.vis.xy_plot(
+        'max_vector_potential_vs_phase',
+        phases,
+        *(proton_charge * max_vp for pulse, max_vp in max_vector_potential.items()),
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_label = r'$ \varphi $', x_unit = 'rad',
+        y_label = rf'$ \max_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_momentum',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xy_plot(
+        'max_vector_potential_vs_phase__rel',
+        phases,
+        *(max_vp / max_vector_potential[pulse][0] for pulse, max_vp in max_vector_potential.items()),
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_label = r'$ \varphi $', x_unit = 'rad',
+        y_label = rf'$ \max_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    # # AVG ABS
+    #
+    # si.vis.xy_plot(
+    #     'avg_abs_vector_potential_vs_phase',
+    #     phases,
+    #     *(proton_charge * avg_abs_vp for pulse, avg_abs_vp in avg_abs_vector_potential.items()),
+    #     line_labels = labels,
+    #     line_kwargs = line_kwargs,
+    #     x_label = r'$ \varphi $', x_unit = 'rad',
+    #     y_label = rf'$ \mathrm{{avg}}_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_momentum',
+    #     grid_kwargs = BETTER_GRID_KWARGS,
+    #     font_size_axis_labels = 35,
+    #     font_size_tick_labels = 20,
+    #     font_size_legend = 20,
+    #     font_size_title = 35,
+    #     **FULL_PAGE_KWARGS,
+    #     **PLOT_KWARGS,
+    # )
+    #
+    # si.vis.xy_plot(
+    #     'avg_abs_vector_potential_vs_phase__rel',
+    #     phases,
+    #     *(avg_abs_vp / avg_abs_vector_potential[pulse][0] for pulse, avg_abs_vp in avg_abs_vector_potential.items()),
+    #     line_labels = labels,
+    #     line_kwargs = line_kwargs,
+    #     x_label = r'$ \varphi $', x_unit = 'rad',
+    #     y_label = rf'$ \mathrm{{avg}}_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| / \mathrm{{avg}}_t \left|{ion.LATEX_AFIELD}_{{\varphi = 0}}(t)\right| $',
+    #     grid_kwargs = BETTER_GRID_KWARGS,
+    #     font_size_axis_labels = 35,
+    #     font_size_tick_labels = 20,
+    #     font_size_legend = 20,
+    #     font_size_title = 35,
+    #     **FULL_PAGE_KWARGS,
+    #     **PLOT_KWARGS,
+    # )
+
+    # RMS
+
+    si.vis.xy_plot(
+        'rms_vector_potential_vs_phase',
+        phases,
+        *(proton_charge * rms_vp for pulse, rms_vp in rms_vector_potential.items()),
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_label = r'$ \varphi $', x_unit = 'rad',
+        y_label = rf'$ \mathrm{{RMS}}_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_momentum',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xy_plot(
+        'rms_vector_potential_vs_phase__rel',
+        phases,
+        *(rms_vp / rms_vector_potential[pulse][0] for pulse, rms_vp in rms_vector_potential.items()),
+        line_labels = labels,
+        line_kwargs = line_kwargs,
+        x_label = r'$ \varphi $', x_unit = 'rad',
+        y_label = rf'$ \mathrm{{RMS}}_t \; \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
+def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential = -rydberg):
+    # f = np.abs(electric_field_amplitude / atomic_electric_field)
+    #
+    # return (4 / f) * (electron_mass_reduced * (proton_charge ** 4) / (hbar ** 3)) * np.exp(-(2 / 3) / f)
+
+    amplitude_scaled = np.abs(electric_field_amplitude / atomic_electric_field)
+    potential_scaled = np.abs(ionization_potential / hartree)
+
+    f = amplitude_scaled / ((2 * potential_scaled) ** 1.5)
+
+    return (4 / f) * np.exp(-2 / (3 * f)) / atomic_time
+
+
+def instantaneous_tunneling_rate_plot():
+    amplitudes = np.linspace(0, .2, 1e4) * atomic_electric_field
+    tunneling_rates = instantaneous_tunneling_rate(amplitudes, -rydberg)
+
+    si.vis.xy_plot(
+        f'tunneling_rate_vs_field_amplitude',
+        amplitudes,
+        tunneling_rates * asec,
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
+        x_label = fr'${ion.LATEX_EFIELD}$', x_unit = 'atomic_electric_field',
+        y_label = r'$\Gamma$ ($\mathrm{as}^{-1}$)',
+        # title = 'Tunneling Ionization Rate',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
+def richardson_colormap():
+    colormap = plt.get_cmap('richardson')
+    norm = si.vis.RichardsonNormalization()
+    shading = 'gouraud'
+
+    r = np.linspace(0, 10, 200)
+    theta = np.linspace(0, twopi, 200)
+
+    theta_mesh, r_mesh = np.meshgrid(r, theta, indexing = 'ij')
+    plot_mesh = .25 * r_mesh * np.exp(1j * theta_mesh)
+
+    fig = si.vis.get_figure(fig_width = 6, aspect_ratio = 1, fig_dpi_scale = 6)
+    axis = fig.add_axes([.05, .05, .9, .9], projection = 'polar')
+
+    color_mesh = axis.pcolormesh(theta_mesh,
+                                 r_mesh,
+                                 plot_mesh,
+                                 shading = shading,
+                                 cmap = colormap,
+                                 norm = norm)
+
+    axis.set_theta_zero_location('E')
+    axis.set_theta_direction('counterclockwise')
+    axis.set_rlabel_position(80)
+
+    axis.grid(True, color = 'black', linewidth = 2, alpha = 0.4,)  # change grid color to make it show up against the colormesh
+    angle_labels = [r'0', r'$\pi/4$', r'$\pi/2$', r'$3\pi/4$', r'$\pi$', r'$5\pi/4$', r'$3\pi/2$', r'$7\pi/4$']  # \u00b0 is unicode degree symbol
+    axis.set_thetagrids(np.arange(0, 359, 45), frac = 1.2, labels = angle_labels)
+
+    axis.tick_params(axis = 'both', which = 'major', labelsize = 30)  # increase size of tick labels
+    # axis.tick_params(axis = 'y', which = 'major', colors = 'black', pad = 3)
+    axis.set_yticklabels([])
+
+    axis.axis('tight')
+
+    si.vis.save_current_figure(get_func_name(), img_format = 'png', target_dir = OUT_DIR, transparent = False)
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            pulse_width_scan__hyd,
-            fluence_scan__hyd,
+            # richardson_colormap,
+            # instantaneous_tunneling_rate_plot,
+            # vector_potential_vs_phase,
+            pulse_width_scan__hyd__sinc,
+            pulse_width_scan__hyd__gaussian,
+            fluence_scan__hyd__sinc,
+            fluence_scan__hyd__gaussian,
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
