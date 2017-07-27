@@ -62,9 +62,9 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             legend_kwargs = dict()
         legend_defaults = dict(
             loc = 'lower left',
-            fontsize = 20,
+            fontsize = 30,
             fancybox = True,
-            framealpha = .1,
+            framealpha = 0,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -97,12 +97,12 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **si.vis.GRID_KWARGS)
+        self.axis.grid(True, **{'linewidth': 1, **si.vis.GRID_KWARGS})
 
-        self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 24)
+        self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 26)
 
         if self.show_y_label:
-            self.axis.set_ylabel('Wavefunction Metric', fontsize = 24)
+            self.axis.set_ylabel('Wavefunction Metric', fontsize = 26)
 
         self.axis.tick_params(labelbottom = self.show_ticks_bottom, labeltop = self.show_ticks_top, labelright = self.show_ticks_right, labelleft = self.show_ticks_left)
 
@@ -120,7 +120,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
                                                               direction = 'y',
                                                               )
 
-        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 14)
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]
 
@@ -175,9 +175,9 @@ class StackplotAxis(si.vis.AxisManager):
             legend_kwargs = dict()
         legend_defaults = dict(
             loc = 'lower left',
-            fontsize = 20,
+            fontsize = 30,
             fancybox = True,
-            framealpha = .1,
+            framealpha = 0,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
@@ -189,7 +189,7 @@ class StackplotAxis(si.vis.AxisManager):
                                              self.sim.norm_vs_time,
                                              label = r'$\left\langle \Psi|\psi \right\rangle$',
                                              color = 'black',
-                                             linewidth = 2)
+                                             linewidth = 3)
 
             self.redraw.append(self.norm_line)
 
@@ -197,25 +197,26 @@ class StackplotAxis(si.vis.AxisManager):
 
         self.time_line = self.axis.axvline(x = self.sim.time / self.time_unit_value,
                                            color = 'gray',
+                                           linewidth = 1,
                                            animated = True)
         self.redraw.append(self.time_line)
 
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **si.vis.GRID_KWARGS)
+        self.axis.grid(True, **{'linewidth': 1, **si.vis.GRID_KWARGS})
 
-        self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 24)
+        self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 26)
 
         if self.y_label is not None:
-            self.axis.set_ylabel(self.y_label, fontsize = 24)
+            self.axis.set_ylabel(self.y_label, fontsize = 26)
 
         self.axis.tick_params(labelbottom = self.show_ticks_bottom, labeltop = self.show_ticks_top, labelright = self.show_ticks_right, labelleft = self.show_ticks_left)
 
         self.axis.set_xlim(self.sim.data_times[0] / self.time_unit_value, self.sim.data_times[-1] / self.time_unit_value)
         self.axis.set_ylim(0, 1)
 
-        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 14)
+        self.axis.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
         self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]
 

@@ -29,16 +29,16 @@ def run(spec):
 if __name__ == '__main__':
     with logman as logger:
         state_a = ion.HydrogenBoundState(1, 0)
-        state_b = ion.HydrogenBoundState(3, 1)
+        state_b = ion.HydrogenBoundState(2, 1)
 
         amplitudes = [.005, .01, .1]
-        cycles = [1, 3]
+        cycles = [1]
         gauges = ['LEN']
         # gauges = ['LEN', 'VEL']
 
         dt = 1
         bound = 100
-        ppbr = 10
+        ppbr = 5
 
         inner = 20
         outer = 50
@@ -55,12 +55,12 @@ if __name__ == '__main__':
             show_vector_potential = False,
             show_y_label = False,
             show_ticks_right = True,
-            legend_kwargs = {'fontsize': 20}
+            legend_kwargs = {'fontsize': 30}
         )
         axman_upper_right = ion.animators.WavefunctionStackplotAxis(
             states = [state_a, state_b],
             show_norm = False,
-            legend_kwargs = {'fontsize': 20, 'borderaxespad': .1},
+            legend_kwargs = {'fontsize': 30, 'borderaxespad': .15},
         )
 
         animators = [
@@ -119,8 +119,8 @@ if __name__ == '__main__':
             time_step = dt * asec,
             mask = ion.RadialCosineMask(inner_radius = .8 * bound * bohr_radius, outer_radius = bound * bohr_radius),
             use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 20 * eV,
-            numeric_eigenstate_max_angular_momentum = 10,
+            numeric_eigenstate_max_energy = 30 * eV,
+            numeric_eigenstate_max_angular_momentum = 20,
         )
 
         dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_simulation()
@@ -153,4 +153,4 @@ if __name__ == '__main__':
                 **spec_kwargs
             ))
 
-        si.utils.multi_map(run, specs, processes = 2)
+        si.utils.multi_map(run, specs, processes = 1)
