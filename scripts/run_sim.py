@@ -52,6 +52,7 @@ if __name__ == '__main__':
             try:
                 sim_path = os.path.join(os.getcwd(), '{}.sim'.format(args.sim_name))
                 sim = si.Simulation.load(sim_path)
+                ensure_compatibility(sim.spec)
                 log.info('Checkpoint found at {}, recovered simulation {}'.format(sim_path, sim))
                 log.info('Checkpoint size is {}'.format(si.utils.get_file_size_as_string(sim_path)))
             except (FileNotFoundError, EOFError):

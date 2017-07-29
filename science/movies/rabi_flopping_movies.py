@@ -31,7 +31,7 @@ if __name__ == '__main__':
         state_a = ion.HydrogenBoundState(1, 0)
         state_b = ion.HydrogenBoundState(2, 1)
 
-        amplitudes = [.005, .01, .1]
+        amplitudes = [.005]
         cycles = [1]
         gauges = ['LEN']
         # gauges = ['LEN', 'VEL']
@@ -45,9 +45,9 @@ if __name__ == '__main__':
 
         animator_kwargs = dict(
             target_dir = OUT_DIR,
-            length = 60,
+            length = 30,
             fps = 30,
-            fig_dpi_scale = 2,
+            fig_dpi_scale = 1,
         )
 
         axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
@@ -55,12 +55,14 @@ if __name__ == '__main__':
             show_vector_potential = False,
             show_y_label = False,
             show_ticks_right = True,
-            legend_kwargs = {'fontsize': 30}
+            legend_kwargs = {'fontsize': 30},
+            grid_kwargs = {'linewidth': 1},
         )
         axman_upper_right = ion.animators.WavefunctionStackplotAxis(
             states = [state_a, state_b],
             show_norm = False,
             legend_kwargs = {'fontsize': 30, 'borderaxespad': .15},
+            grid_kwargs = {'linewidth': 1},
         )
 
         animators = [

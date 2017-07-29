@@ -36,6 +36,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
                  show_ticks_top = False,
                  show_ticks_right = True,
                  show_ticks_left = True,
+                 grid_kwargs = None,
                  legend_kwargs = None):
         self.show_electric_field = show_electric_field
         self.show_vector_potential = show_vector_potential
@@ -68,6 +69,10 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
 
+        if grid_kwargs is None:
+            grid_kwargs = {}
+        self.grid_kwargs = {**si.vis.GRID_KWARGS, **grid_kwargs}
+
         super().__init__()
 
     def initialize_axis(self):
@@ -97,7 +102,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **{'linewidth': 1, **si.vis.GRID_KWARGS})
+        self.axis.grid(True, **self.grid_kwargs)
 
         self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 26)
 
@@ -159,6 +164,7 @@ class StackplotAxis(si.vis.AxisManager):
                  show_ticks_top = False,
                  show_ticks_right = True,
                  show_ticks_left = True,
+                 grid_kwargs = None,
                  legend_kwargs = None):
         self.show_norm = show_norm
 
@@ -172,7 +178,7 @@ class StackplotAxis(si.vis.AxisManager):
         self.show_ticks_left = show_ticks_left
 
         if legend_kwargs is None:
-            legend_kwargs = dict()
+            legend_kwargs = {}
         legend_defaults = dict(
             loc = 'lower left',
             fontsize = 30,
@@ -180,6 +186,10 @@ class StackplotAxis(si.vis.AxisManager):
             framealpha = 0,
         )
         self.legend_kwargs = {**legend_defaults, **legend_kwargs}
+
+        if grid_kwargs is None:
+            grid_kwargs = {}
+        self.grid_kwargs = {**si.vis.GRID_KWARGS, **grid_kwargs}
 
         super().__init__()
 
@@ -204,7 +214,7 @@ class StackplotAxis(si.vis.AxisManager):
         self.legend = self.axis.legend(**self.legend_kwargs)
         self.redraw.append(self.legend)
 
-        self.axis.grid(True, **{'linewidth': 1, **si.vis.GRID_KWARGS})
+        self.axis.grid(True, **self.grid_kwargs)
 
         self.axis.set_xlabel(fr'Time $t$ (${self.time_unit_latex}$)', fontsize = 26)
 
@@ -401,7 +411,8 @@ class QuantumMeshAxis(si.vis.AxisManager):
                  plot_limit = None,
                  distance_unit = 'bohr_radius',
                  shading = 'gouraud',
-                 slicer = 'get_mesh_slicer'):
+                 slicer = 'get_mesh_slicer',
+                 grid_kwargs = None):
         self.which = which
         self.colormap = colormap
         self.norm = norm
@@ -409,6 +420,10 @@ class QuantumMeshAxis(si.vis.AxisManager):
         self.distance_unit = distance_unit
         self.shading = shading
         self.slicer = slicer
+
+        if grid_kwargs is None:
+            grid_kwargs = {}
+        self.grid_kwargs = {**COLORMESH_GRID_KWARGS, 'color': si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **grid_kwargs}
 
         super().__init__()
 
@@ -464,7 +479,7 @@ class LineMeshAxis(QuantumMeshAxis):
 
         # TODO: code for show_potential
 
-        self.axis.grid(True, **si.vis.GRID_KWARGS)
+        self.axis.grid(True, **self.grid_kwargs)
 
         self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
         plot_labels = {
@@ -511,7 +526,7 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
                                        animated = True)
         self.redraw.append(self.mesh)
 
-        self.axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
 
         self.axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
         self.axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = 24)
@@ -561,7 +576,7 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
         self.axis.set_theta_direction('clockwise')
         self.axis.set_rlabel_position(80)
 
-        self.axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
+        self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
         angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
         self.axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
@@ -705,7 +720,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
 
         if self.axman_colorbar is not None:
             if self.axman_wavefunction.which not in ('g', 'psi'):
-                self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colobar can see the colormesh
+                self.axman_wavefunction.initialize(self.sim)  # must pre-initialize so that the colorbar can see the colormesh
                 self.axman_colorbar.assign_colorable(self.axman_wavefunction.mesh)
                 self.ax_colobar = self.fig.add_axes([.65, .35, .02, .35])
                 self.axman_colorbar.assign_axis(self.ax_colobar)

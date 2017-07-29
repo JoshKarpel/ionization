@@ -45,12 +45,12 @@ if __name__ == '__main__':
             # pulse_types = [ion.SincPulse]
             pulse_types = [ion.SincPulse]
             # pulse_types = [ion.SincPulse, ion.GaussianPulse]
-            pulse_widths = [80, 85, 90]
+            pulse_widths = [200]
             # pulse_widths = [80, 85, 90, 95, 100]
             # pulse_widths = [50, 100, 200, 400, 800]
             # fluences = [1]
             # fluences = [.1, 1, 10]
-            fluences = [.1, 1, 5, 10]
+            fluences = [1, 5, 10]
             # fluences = [5]
             # phases = [0]
             # phases = [0, pi / 4, pi / 2]
@@ -65,7 +65,7 @@ if __name__ == '__main__':
             # used by all animators
             animator_kwargs = dict(
                 target_dir = out_dir_mod,
-                fig_dpi_scale = 2,
+                fig_dpi_scale = 1,
                 length = 30,
                 fps = 30,
             )
@@ -120,16 +120,16 @@ if __name__ == '__main__':
                     #     axman_colorbar = None,
                     #     **animator_kwargs,
                     # ),
-                    # ion.animators.PolarAnimator(
-                    #     postfix = '__g2_wavefunction',
-                    #     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
-                    #         which = 'g2',
-                    #         plot_limit = 30 * bohr_radius,
-                    #     ),
-                    #     axman_lower_right = deepcopy(axman_lower_right),
-                    #     axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
-                    #     **animator_kwargs,
-                    # ),
+                    ion.animators.PolarAnimator(
+                        postfix = '__g2_wavefunction',
+                        axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                            which = 'g2',
+                            plot_limit = 30 * bohr_radius,
+                        ),
+                        axman_lower_right = deepcopy(axman_lower_right),
+                        axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
+                        **animator_kwargs,
+                    ),
                     # ion.animators.PolarAnimator(
                     #     postfix = 'g2_angular_momentum',
                     #     axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
