@@ -77,7 +77,7 @@ STILL_FIGMAN_KWARGS_SVG = dict(
 ANIMATED_FIGURE_KWARGS = dict(
     fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
     fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
-    fig_dpi_scale = 2,
+    fig_dpi_scale = 1,
 )
 
 PLOT_KWARGS = dict(
@@ -896,14 +896,12 @@ def pulse_ffts():
         line_labels = names,
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
         x_label = r'$ f $', x_unit = 'THz',
-        x_lower_limit = -freq_plot_limit, x_upper_limit = freq_plot_limit,
+        x_lower_limit = 0, x_upper_limit = freq_plot_limit,
         y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)',
         y_unit = Jcm2 / THz,
         title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
-        font_size_axis_labels = 35,
-        font_size_tick_labels = 20,
-        font_size_legend = 25,
-        font_size_title = 35,
+        vlines = [2530 * THz], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
+        **BIG_FONTS,
         grid_kwargs = BETTER_GRID_KWARGS,
         **STILL_FIGMAN_KWARGS_SVG,
         **PLOT_KWARGS,
@@ -1887,10 +1885,114 @@ def omega_min_scan():
     )
 
 
+def ide_symmetry():
+    pulse_width = 200
+    fluence = .3
+    phase = pi / 4
+
+    time_bound = 10
+    plot_bound = 4
+
+    efields = [ion.SincPulse(pulse_width = pulse_width * asec, fluence = fluence * Jcm2, phase = phase),
+               ion.SincPulse(pulse_width = pulse_width * asec, fluence = fluence * Jcm2, phase = pi - phase)]
+
+    test_charge = electron_charge
+    test_mass = electron_mass_reduced
+    test_width = bohr_radius
+    # tau_alpha = 4 * m * (L ** 2) / hbar
+    # prefactor = -np.sqrt(pi) * (L ** 2) * ((q / hbar) ** 2)
+
+    spec_kwargs = dict(
+        time_initial = -time_bound * pulse_width * asec, time_final = time_bound * pulse_width * asec,
+        time_step = 1 * asec,
+        prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+        kernel = ide.gaussian_kernel_LEN,
+        kernel_kwargs = dict(tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)),
+        evolution_gauge = 'LEN',
+        evolution_method = 'RK4',
+        electric_potential_DC_correction = True,
+    )
+
+    specs = []
+    for efield in efields:
+        specs.append(ide.IntegroDifferentialEquationSpecification(efield.phase,
+                                                                  electric_potential = efield,
+                                                                  **spec_kwargs,
+                                                                  ))
+    results = si.utils.multi_map(run, specs, processes = 2)
+
+    fig = si.vis.get_figure(fig_width = si.vis.PPT_WIDESCREEN_WIDTH, fig_height = si.vis.PPT_WIDESCREEN_HEIGHT, fig_dpi_scale = 6,)
+
+    grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [2.5, 1], hspace = 0.07)
+    ax_upper = plt.subplot(grid_spec[0])
+    ax_lower = plt.subplot(grid_spec[1], sharex = ax_upper)
+
+    # font_size_axis_labels = 35,
+    # font_size_tick_labels = 25,
+    # font_size_legend = 30,
+    # font_size_title = 35,
+
+    for result, cep, color, style in zip(results, (r'$\varphi = \pi / 4$', r'$\varphi = - \pi / 4$'), ('C0', 'C1'), ('-', '-')):
+        ax_lower.plot(result.times / asec, result.spec.electric_potential.get_electric_field_amplitude(result.times) / atomic_electric_field, color = color, linewidth = BIG_LINEWIDTH, label = cep, linestyle = style)
+        ax_upper.plot(result.times / asec, result.a2, color = color, linewidth = BIG_LINEWIDTH, label = cep, linestyle = style)
+
+    efield_1 = results[0].spec.electric_potential.get_electric_field_amplitude(results[0].times)
+    field_max = np.max(efield_1)
+    field_min = np.min(efield_1)
+    field_range = np.abs(field_max - field_min)
+
+    ax_lower.set_xlabel(r'Time $t$ ($\mathrm{as}$)', fontsize = 35)
+    ax_lower.set_ylabel(r'$   \mathcal{E}(t) $ ($\mathrm{a.u.}$)   ', fontsize = 35)
+    # ax_lower.yaxis.set_label_coords(-.125, .5)
+
+    ax_upper.set_ylabel(r'$ \left| a_{\alpha}(t) \right|^2 $', fontsize = 35)
+
+    # ax_lower.set_xticks([i * pulse_width * asec for i in range(-10, 11)])
+    # # ax_lower.set_xticklabels([r'$0$'] + [r'$ {} \tau $'.format(i) for i in range(-10, 11) if i != 0])
+    # x_tick_labels = []
+    # for i in range(-10, 11):
+    #     if i == 0:
+    #         x_tick_labels.append(r'$0$')
+    #     elif i == 1:
+    #         x_tick_labels.append(r'$\tau$')
+    #     elif i == -1:
+    #         x_tick_labels.append(r'$-\tau$')
+    #     else:
+    #         x_tick_labels.append(r'$ {} \tau $'.format(i))
+    # ax_lower.set_xticklabels(x_tick_labels)
+
+    # ax_lower.set_yticks([0, field_max, field_max / np.sqrt(2), -field_max, -field_max / np.sqrt(2)])
+    # ax_lower.set_yticklabels([
+    #     r'$0$',
+    #     r'$\mathcal{E}_{t} $',
+    #     r'$\mathcal{E}_{t} / \sqrt{2} $',
+    #     r'$-\mathcal{E}_{t} $',
+    #     r'$-\mathcal{E}_{t} / \sqrt{2} $',
+    # ])
+
+    ax_upper.tick_params(labelright = True, labelsize = 25)
+    ax_lower.tick_params(labelright = True, labelsize = 25)
+    ax_upper.xaxis.tick_top()
+
+    ax_lower.grid(True, **BETTER_GRID_KWARGS)
+    ax_upper.grid(True, **BETTER_GRID_KWARGS)
+
+    ax_lower.set_xlim(-plot_bound * pulse_width, plot_bound * pulse_width)
+    # ax_lower.set_ylim(field_min - (.125 * field_range), field_max + (.125 * field_range))
+    ax_upper.set_ylim(.55, 1)
+
+    ax_upper.legend(loc = 'best', fontsize = 30)
+    fig.set_tight_layout(True)
+
+    # save_figure(get_func_name())
+    si.vis.save_current_figure(get_func_name(), target_dir = OUT_DIR, img_format = 'png')
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            omega_min_scan,
+            ide_symmetry,
+            # omega_min_scan,
             # cep__ionization_scan__sinc,
             # ionization_scan__ionization_vs_vector_potential,
             # richardson_colormap,
@@ -1900,10 +2002,12 @@ if __name__ == '__main__':
             # pulse_width_scan__hyd__gaussian,
             # fluence_scan__hyd__sinc,
             # fluence_scan__hyd__gaussian,
-            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Subcycle'),
-            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Subcycle'),
-            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Multicycle'),
-            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Multicycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Many-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Many-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
             # pulse_ffts,
             # delta_kicks_eta_plot,
             # delta_kick_decomposition_plot,
