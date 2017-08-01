@@ -518,6 +518,11 @@ class IDESimulationResult(clu.SimulationResult):
         self.fluence = copy(sim.spec.fluence)
         self.phase = copy(sim.spec.phase)
 
+        self.test_width = copy(sim.spec.test_width)
+        self.test_charge = copy(sim.spec.test_charge)
+        self.test_mass = copy(sim.spec.test_mass)
+        self.test_energy = copy(sim.spec.test_energy)
+
         self.final_bound_state_overlap = np.abs(sim.a[-1]) ** 2
 
         if len(sim.data_times):

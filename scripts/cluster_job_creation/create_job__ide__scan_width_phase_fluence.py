@@ -61,7 +61,7 @@ if __name__ == '__main__':
         test_charge = electron_charge * clu.ask_for_input('Test Particle Electric Charge (in electron charges)?', default = 1, cast_to = float)
         test_mass = electron_mass * clu.ask_for_input('Test Particle Mass (in electron masses)?', default = 1, cast_to = float)
         test_width = bohr_radius * clu.ask_for_input('Gaussian Test Wavefunction Width (in Bohr radii)?', default = 1, cast_to = float)
-        test_energy = -(hbar ** 2) / (2 * test_mass * (test_width ** 2))  # negative of the kinetic, via virial thm
+        test_energy = -(hbar ** 2) / (8 * test_mass * (test_width ** 2))  # negative of the kinetic, via virial thm
 
         if evolution_gauge.value == 'LEN':
             prefactor = -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)

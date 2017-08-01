@@ -33,7 +33,35 @@ def find_time_between_maxima(pulse):
 
 if __name__ == '__main__':
     with logman as logger:
-        pulse_widths = np.linspace(50, 500, 1000) * asec
+        p = ion.SincPulse(pulse_width = 200 * asec, phase = pi / 2)
+        times = np.linspace(-100 * asec, 100 * asec, 1000)
+        si.vis.xy_plot(
+            'test',
+            times,
+            p.get_electric_field_amplitude(times),
+            x_unit = 'asec',
+            **PLOT_KWARGS,
+        )
+
+        tau_alpha = ide.gaussian_tau_alpha_LEN(test_width = 1 * bohr_radius, test_mass = electron_mass)
+        dt = np.linspace(0, 3 * tau_alpha, 1000)
+        k = ide.gaussian_kernel_LEN(time_difference = dt, tau_alpha = tau_alpha)
+
+        si.vis.xy_plot(
+            'kernel',
+            dt,
+            np.abs(k),
+            np.real(k),
+            np.imag(k),
+            x_unit = 'asec',
+            **PLOT_KWARGS,
+        )
+        imag_min_t = dt[np.argmin(np.imag(k))]
+        print(tau_alpha / asec)
+        print(imag_min_t / asec)
+        print(imag_min_t / tau_alpha)
+
+        pulse_widths = np.linspace(50, 200, 1000) * asec
         time_between_maxima = np.empty_like(pulse_widths)
 
         for ii, pulse_width in enumerate(tqdm(pulse_widths)):
@@ -52,12 +80,12 @@ if __name__ == '__main__':
                 {'linestyle': '--', 'color': 'black'}
             ],
             hlines = [
-                ide.gaussian_tau_alpha_LEN(test_width = 1 * bohr_radius, test_mass = electron_mass),
-                ide.gaussian_tau_alpha_LEN(test_width = 2 * bohr_radius, test_mass = electron_mass),
+                tau_alpha,
+                imag_min_t,
             ],
             hline_kwargs = [
                 {'linestyle': '--', 'color': 'C3'},
-                {'linestyle': '--', 'color': 'C3'}
+                {'linestyle': '--', 'color': 'C4'},
             ],
             x_label = r'$\tau$', x_unit = 'asec',
             y_label = r'$\Delta t$', y_unit = 'asec',
