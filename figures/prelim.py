@@ -331,6 +331,14 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
     def efield(times, phase):
         return get_pulse_by_phase(phase).get_electric_field_amplitude(times) / atomic_electric_field
 
+    def efield_envelope(times, phase):
+        pulse = get_pulse_by_phase(phase)[0]
+        return pulse.get_electric_field_envelope(times) * pulse.amplitude_time / atomic_electric_field
+
+    def efield_envelope_negated(times, phase):
+        pulse = get_pulse_by_phase(phase)[0]
+        return -pulse.get_electric_field_envelope(times) * pulse.amplitude_time / atomic_electric_field
+
     def efield_intensity(times, phase):
         return epsilon_0 * c * (np.abs(efield(times, phase) * atomic_electric_field) ** 2)
 
@@ -341,10 +349,22 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         f'cep_movie__{pulse_type.__name__}_efield',
         times,
         phases,
+        # efield_envelope,
+        # efield_envelope_negated,
         efield,
         afield,
-        line_labels = [fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ e \, {ion.LATEX_AFIELD}(t) $'],
-        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linestyle': '--', 'linewidth': BIG_LINEWIDTH}],
+        line_labels = [
+            # None,
+            # fr'$ {ion.LATEX_EFIELD} Envelope $',
+            fr'$ {ion.LATEX_EFIELD}(t) $',
+            fr'$ e \, {ion.LATEX_AFIELD}(t) $'
+        ],
+        line_kwargs = [
+            # {'linestyle': '-', 'linewidth': BIG_LINEWIDTH, 'color': 'black'},
+            # {'linestyle': '-', 'linewidth': BIG_LINEWIDTH, 'color': 'black'},
+            {'linewidth': BIG_LINEWIDTH},
+            {'linestyle': '--', 'linewidth': BIG_LINEWIDTH},
+        ],
         x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Amplitude (a.u.)',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
@@ -365,7 +385,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         phases,
         efield_intensity,
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
-        x_label = r'Time', x_unit = 'asec',
+        x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Intensity $ P(t) $', y_unit = 'atomic_intensity',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
@@ -435,7 +455,7 @@ def pulse_cep_movie_zoom(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Puls
         phases,
         efield_intensity,
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
-        x_label = r'Time', x_unit = 'asec',
+        x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Intensity $P(t)$', y_unit = 'atomic_intensity',
         t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
         title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
@@ -1849,6 +1869,62 @@ def instantaneous_tunneling_rate_plot():
     )
 
 
+def tunneling_ionization():
+    z = np.linspace(-5, 50, 1000) * bohr_radius
+    amplitude = .02 * atomic_electric_field
+
+    coul_pot = -coulomb_constant * (proton_charge ** 2) / np.abs(z)
+    elec_pot = -proton_charge * amplitude * z
+
+    fm = si.vis.xy_plot(
+        get_func_name() + f'__amp={uround(amplitude, atomic_electric_field, 5)}aef',
+        z,
+        coul_pot + elec_pot,
+        coul_pot,
+        elec_pot,
+        line_labels = [r'$ V_{\mathrm{Coul}} + V_{\mathrm{Field}} $',
+                       r'$ V_{\mathrm{Coul}} $',
+                       r'$ V_{\mathrm{Field}} $'],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH},
+                       {'linewidth': BIG_LINEWIDTH, 'linestyle': '--'},
+                       {'linewidth': BIG_LINEWIDTH, 'linestyle': '--'}],
+        hlines = [ion.HydrogenBoundState(1, 0).energy],
+        hline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': ':', 'color': 'black'}],
+        y_lower_limit = -2 * hartree,
+        y_upper_limit = 0 * hartree,
+        y_unit = 'eV',
+        y_label = 'Potential Energy $ V(z) $',
+        x_unit = 'bohr_radius',
+        x_label = r'Distance $ z $',
+        title = r'Effective Potential Along $z$-axis',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+        close_after_exit = False,
+        save_on_exit = False,
+    )
+
+    ax = fm.fig.get_axes()[0]
+    y1 = ion.HydrogenBoundState(1, 0).energy
+    y2 = (coul_pot + elec_pot)
+    ax.fill_between(
+        z / bohr_radius,
+        y1 / eV,
+        y2 / eV,
+        where = y1 > y2,
+        # facecolor = 'none',
+        # edgecolor = 'purple',
+        interpolate = True,
+        # hatch = 'X'
+        facecolor = 'black',
+        alpha = 0.5,
+    )
+
+    fm.save()
+    fm.cleanup()
+
+
 def richardson_colormap():
     colormap = plt.get_cmap('richardson')
     norm = si.vis.RichardsonNormalization()
@@ -1888,44 +1964,60 @@ def richardson_colormap():
 
 
 def cep__ionization_scan__sinc():
-    jp = clu.JobProcessor.load('job_processors/hyd__cep_scan__200as_1jcm2__fast.job')
-
-    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
-    styles = ['-', '--']
-
-    labels = [
-        r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{initial}} \right\rangle \right|^2 $',
-        r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{bound}} \right\rangle \right|^2 $',
+    jp_names = [
+        'job_processors/hyd__cep_scan__200as_1jcm2__fast.job',
+        'job_processors/hyd__cep_scan__800as_1jcm2__fast.job',
     ]
+    pws = [200, 800]
 
-    metric_to_style = dict(zip(metrics, styles))
+    for jp_name, pw in zip(jp_names, pws):
+        jp = clu.JobProcessor.load(jp_name)
 
-    results = jp.data.values()
+        metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+        styles = ['-', '--']
 
-    extra_line_kwargs = dict(
-        linewidth = BIG_LINEWIDTH,
-    )
+        labels = [
+            r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{initial}} \right\rangle \right|^2 $',
+            r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{bound}} \right\rangle \right|^2 $',
+        ]
 
-    si.vis.xxyy_plot(
-        f'cep_scan__sinc__hyd',
-        [
-            *[[r.phase for r in results] for metric in metrics]
-        ],
-        [
-            *[[getattr(r, metric) for r in results] for metric in metrics]
-        ],
-        line_labels = labels,
-        line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
-        title = r'CEP Scan: Sinc Pulse w/ $\tau = 200 \, \mathrm{as}, \; H = 1 \, \mathrm{J/cm^2}$',
-        # title_offset = 1.075,
-        x_label = r'Carrier-Envelope Phase $\varphi$',
-        x_unit = 'rad',
-        y_label = 'Final State Projection',
-        grid_kwargs = BETTER_GRID_KWARGS,
-        **BIG_FONTS,
-        **FULL_PAGE_KWARGS,
-        **PLOT_KWARGS,
-    )
+        metric_to_style = dict(zip(metrics, styles))
+
+        results = jp.data.values()
+
+        extra_line_kwargs = dict(
+            linewidth = BIG_LINEWIDTH,
+        )
+
+        si.vis.xxyy_plot(
+            f'cep_scan__sinc__hyd__pw={pw}as',
+            [
+                *[[r.phase for r in results] for metric in metrics]
+            ],
+            [
+                *[[getattr(r, metric) for r in results] for metric in metrics]
+            ],
+            line_labels = labels,
+            line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
+            title = fr'CEP Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
+            # title_offset = 1.075,
+            x_label = r'Carrier-Envelope Phase $\varphi$',
+            x_unit = 'rad',
+            y_label = 'Final State Projection',
+            grid_kwargs = BETTER_GRID_KWARGS,
+            **BIG_FONTS,
+            **FULL_PAGE_KWARGS,
+            **PLOT_KWARGS,
+        )
+
+
+def get_max_or_rms_electric_field(pulse, times, which = 'max'):
+    ef = pulse.get_electric_field_amplitude(times)
+
+    if which == 'max':
+        return np.max(np.abs(ef))
+    elif which == 'rms':
+        return np.sqrt(np.mean(ef ** 2))
 
 
 def get_max_or_rms_vector_potential(pulse, times, which = 'max'):
@@ -1981,93 +2073,139 @@ def add_arrow(line, position = None, index = None, direction = 'right', size = 1
     )
 
 
-def ionization_scan__ionization_vs_vector_potential():
-    jp = clu.JobProcessor.load('job_processors/hyd__cep_scan__200as_1jcm2__fast.job')
-
-    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
-    styles = ['-', '--']
-
-    labels = [
-        r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{initial}} \right\rangle \right|^2 $',
-        r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{bound}} \right\rangle \right|^2 $',
+def ionization_vs_field_properties():
+    jp_names = [
+        'job_processors/hyd__cep_scan__200as_1jcm2__fast.job',
+        'job_processors/hyd__cep_scan__800as_1jcm2__fast.job',
     ]
+    pws = [200, 800]
 
-    metric_to_style = dict(zip(metrics, styles))
+    for jp_name, pw in zip(jp_names, pws):
+        jp = clu.JobProcessor.load(jp_name)
 
-    results = jp.data.values()
+        metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+        styles = ['-', '--']
 
-    extra_line_kwargs = dict(
-        linewidth = BIG_LINEWIDTH,
-    )
+        labels = [
+            r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{initial}} \right\rangle \right|^2 $',
+            r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{bound}} \right\rangle \right|^2 $',
+        ]
 
-    tb = (200 * asec) * 35
-    times = np.linspace(-tb, tb, 1e4)
+        metric_to_style = dict(zip(metrics, styles))
 
-    # MAX
-    fm = si.vis.xxyy_plot(
-        f'vp_scan__sinc__hyd__max_vp',
-        [
-            *[[proton_charge * get_max_or_rms_vector_potential(r.electric_potential, times, which = 'max') for r in results] for metric in metrics]
-        ],
-        [
-            *[[getattr(r, metric) for r in results] for metric in metrics]
-        ],
-        line_labels = labels,
-        line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
-        title = r'VP Scan: Sinc Pulse w/ $\tau = 200 \, \mathrm{as}, \; H = 1 \, \mathrm{J/cm^2}$',
-        # title_offset = 1.075,
-        x_label = rf'$ \max \; e \, \left| {ion.LATEX_AFIELD}_{{\varphi}}(t) \right| $',
-        x_unit = 'atomic_momentum',
-        y_label = 'Final State Projection',
-        grid_kwargs = BETTER_GRID_KWARGS,
-        **BIG_FONTS,
-        **FULL_PAGE_KWARGS,
-        **PLOT_KWARGS,
-        save_after_exit = False,
-        close_after_exit = False,
-    )
+        results = jp.data.values()
 
-    second_line = fm.elements['lines'][-1]
-    props = dict(
-        linewidth = 5,
-    )
-    arrow_size = 40
+        extra_line_kwargs = dict(
+            linewidth = BIG_LINEWIDTH,
+        )
 
-    for index in [10, 20, 30, 70, 80, 90]:
-        add_arrow(second_line, size = arrow_size, index = index, arrowprops = props)
+        tb = (pw * asec) * 35
+        times = np.linspace(-tb, tb, 1e4)
 
-    fm.save()
+        # MAX AFIELD
 
-    # # RMS
-    # fm = si.vis.xxyy_plot(
-    #     f'vp_scan__sinc__hyd__rms_vp',
-    #     [
-    #         *[[proton_charge * get_max_or_rms_vector_potential(r.electric_potential, times, which = 'rms') for r in results] for metric in metrics]
-    #     ],
-    #     [
-    #         *[[getattr(r, metric) for r in results] for metric in metrics]
-    #     ],
-    #     line_labels = labels,
-    #     line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
-    #     title = r'VP Scan: Sinc Pulse w/ $\tau = 200 \, \mathrm{as}, \; H = 1 \, \mathrm{J/cm^2}$',
-    #     # title_offset = 1.075,
-    #     x_label = rf'$ \mathrm{{RMS}}_t \; e \, {ion.LATEX_AFIELD}_{{\varphi}}(t) $',
-    #     x_unit = 'atomic_momentum',
-    #     # y_label = 'Ionization Metric',
-    #     grid_kwargs = BETTER_GRID_KWARGS,
-    #     **BIG_FONTS,
-    #     **FULL_PAGE_KWARGS,
-    #     **PLOT_KWARGS,
-    #     save_after_exit = False,
-    #     close_after_exit = False,
-    # )
-    #
-    # second_line = fm.elements['lines'][-1]
-    #
-    # for index in [10, 20, 30, 70, 80, 90]:
-    #     add_arrow(second_line, size = arrow_size, index = index, arrowprops = props)
-    #
-    # fm.save()
+        fm = si.vis.xxyy_plot(
+            f'vp_scan__sinc__hyd__max_vp__pw={pw}as',
+            [
+                *[[proton_charge * get_max_or_rms_vector_potential(r.electric_potential, times, which = 'max') for r in results] for metric in metrics]
+            ],
+            [
+                *[[getattr(r, metric) for r in results] for metric in metrics]
+            ],
+            line_labels = labels,
+            line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
+            title = fr'VP Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
+            # title_offset = 1.075,
+            x_label = rf'$ \max \; e \, \left| {ion.LATEX_AFIELD}_{{\varphi}}(t) \right| $',
+            x_unit = 'atomic_momentum',
+            y_label = 'Final State Projection',
+            grid_kwargs = BETTER_GRID_KWARGS,
+            **BIG_FONTS,
+            **FULL_PAGE_KWARGS,
+            **PLOT_KWARGS,
+            save_after_exit = False,
+            close_after_exit = False,
+        )
+
+        second_line = fm.elements['lines'][-1]
+        props = dict(
+            linewidth = 5,
+        )
+        arrow_size = 40
+
+        for index in [10, 20, 30, 70, 80, 90]:
+            add_arrow(second_line, size = arrow_size, index = index, arrowprops = props)
+
+        fm.save()
+        fm.cleanup()
+
+        ## MAX EFIELD
+
+        fm = si.vis.xxyy_plot(
+            f'ef_scan__sinc__hyd__max_ef__pw={pw}as',
+            [
+                *[[get_max_or_rms_electric_field(r.electric_potential, times, which = 'max') for r in results] for metric in metrics]
+            ],
+            [
+                *[[getattr(r, metric) for r in results] for metric in metrics]
+            ],
+            line_labels = labels,
+            line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
+            title = fr'EF Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
+            # title_offset = 1.075,
+            x_label = rf'$ \max \; \left| {ion.LATEX_EFIELD}_{{\varphi}}(t) \right| $',
+            x_unit = 'atomic_electric_field',
+            y_label = 'Final State Projection',
+            grid_kwargs = BETTER_GRID_KWARGS,
+            **BIG_FONTS,
+            **FULL_PAGE_KWARGS,
+            **PLOT_KWARGS,
+            save_after_exit = False,
+            close_after_exit = False,
+        )
+
+        second_line = fm.elements['lines'][-1]
+        props = dict(
+            linewidth = 5,
+        )
+        arrow_size = 40
+
+        for index in [10, 20, 30, 70, 80, 90]:
+            add_arrow(second_line, size = arrow_size, index = index, arrowprops = props)
+
+        fm.save()
+        fm.cleanup()
+
+        # # RMS
+        # fm = si.vis.xxyy_plot(
+        #     f'vp_scan__sinc__hyd__rms_vp',
+        #     [
+        #         *[[proton_charge * get_max_or_rms_vector_potential(r.electric_potential, times, which = 'rms') for r in results] for metric in metrics]
+        #     ],
+        #     [
+        #         *[[getattr(r, metric) for r in results] for metric in metrics]
+        #     ],
+        #     line_labels = labels,
+        #     line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
+        #     title = r'VP Scan: Sinc Pulse w/ $\tau = 200 \, \mathrm{as}, \; H = 1 \, \mathrm{J/cm^2}$',
+        #     # title_offset = 1.075,
+        #     x_label = rf'$ \mathrm{{RMS}}_t \; e \, {ion.LATEX_AFIELD}_{{\varphi}}(t) $',
+        #     x_unit = 'atomic_momentum',
+        #     # y_label = 'Ionization Metric',
+        #     grid_kwargs = BETTER_GRID_KWARGS,
+        #     **BIG_FONTS,
+        #     **FULL_PAGE_KWARGS,
+        #     **PLOT_KWARGS,
+        #     save_after_exit = False,
+        #     close_after_exit = False,
+        # )
+        #
+        # second_line = fm.elements['lines'][-1]
+        #
+        # for index in [10, 20, 30, 70, 80, 90]:
+        #     add_arrow(second_line, size = arrow_size, index = index, arrowprops = props)
+        #
+        # fm.save()
 
 
 def get_omega_carrier(sim_result):
@@ -2214,15 +2352,16 @@ def ide_symmetry():
 if __name__ == '__main__':
     with logman as logger:
         figures = [
+            tunneling_ionization,
             # ide_symmetry,
             # omega_min_scan,
             # cep__ionization_scan__sinc,
-            # ionization_scan__ionization_vs_vector_potential,
+            # ionization_vs_field_properties,
             # richardson_colormap,
             # instantaneous_tunneling_rate_plot,
             # field_properties_vs_phase_v2,
             # pulse_width_scan__hyd__sinc,
-            pulse_width_scan__ide__sinc,
+            # pulse_width_scan__ide__sinc,
             # pulse_width_scan__hyd__gaussian,
             # fluence_scan__hyd__sinc,
             # fluence_scan__hyd__gaussian,
