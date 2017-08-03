@@ -1030,7 +1030,7 @@ def pulse_width_scan__hyd__sinc():
     results_by_phase_and_fluence = {(phase, fluence): jp.select_by_kwargs(phase = phase, fluence = fluence)
                                     for phase in phases for fluence in fluences}
 
-    metrics = ['final_initial_state_overlap']
+    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
     extra_line_kwargs = dict(
         linewidth = 3,
     )
@@ -1039,8 +1039,8 @@ def pulse_width_scan__hyd__sinc():
         postfix = ''
         if any([log_x, log_y]):
             postfix += '__log'
-        if log_x:
-            postfix += 'X'
+        # if log_x:
+        #     postfix += 'X'
         if log_y:
             postfix += 'Y'
 
@@ -1059,7 +1059,7 @@ def pulse_width_scan__hyd__sinc():
                 x_unit = 'asec',
                 y_label = metric.replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
-                x_log_axis = log_x,
+                # x_log_axis = log_x,
                 legend_kwargs = {
                     'loc': 'upper right',
                     'bbox_to_anchor': (.99, .875),
@@ -1067,43 +1067,42 @@ def pulse_width_scan__hyd__sinc():
                 },
                 grid_kwargs = BETTER_GRID_KWARGS,
                 font_size_axis_labels = 35,
-                font_size_tick_labels = 20,
+                font_size_tick_labels = 25,
                 font_size_legend = 20,
                 font_size_title = 35,
                 **FULL_PAGE_KWARGS,
                 **PLOT_KWARGS,
             )
 
-            # si.vis.xxyy_plot(
-            #     f'pulse_width_scan__sinc__hyd__zoom__{metric}' + postfix,
-            #     [
-            #         *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
-            #     ],
-            #     [
-            #         *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
-            #     ],
-            #     line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
-            #     title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
-            #     x_label = r'Pulse Width $\tau$',
-            #     x_unit = 'asec',
-            #     y_label = metric.replace('_', ' ').title(),
-            #     y_log_axis = log_y, y_log_pad = 2,
-            #     x_log_axis = log_x,
-            #     legend_kwargs = {
-            #         'loc': 'upper right',
-            #         'bbox_to_anchor': (.99, .875),
-            #         'handles': legend_handles,
-            #     },
-            #     x_lower_limit = 80 * asec,
-            #     x_upper_limit = 100 * asec,
-            #     grid_kwargs = BETTER_GRID_KWARGS,
-            #     font_size_axis_labels = 35,
-            #     font_size_tick_labels = 20,
-            #     font_size_legend = 20,
-            #     font_size_title = 35,
-            #     **FULL_PAGE_KWARGS,
-            #     **PLOT_KWARGS,
-            # )
+            si.vis.xxyy_plot(
+                f'pulse_width_scan__sinc__hyd__{metric}' + postfix + '__zoom',
+                [
+                    *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                [
+                    *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
+                ],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
+                x_label = r'Pulse Width $\tau$',
+                x_unit = 'asec',
+                y_label = metric.replace('_', ' ').title(),
+                y_log_axis = log_y, y_log_pad = 2, y_lower_limit = 1e-5,
+                # x_log_axis = log_x,
+                legend_kwargs = {
+                    'loc': 'upper right',
+                    'bbox_to_anchor': (.99, .875),
+                    'handles': legend_handles,
+                },
+                x_upper_limit = 350 * asec,
+                grid_kwargs = BETTER_GRID_KWARGS,
+                font_size_axis_labels = 35,
+                font_size_tick_labels = 25,
+                font_size_legend = 20,
+                font_size_title = 35,
+                **FULL_PAGE_KWARGS,
+                **PLOT_KWARGS,
+            )
 
 
 def pulse_width_scan__ide__sinc():
@@ -1131,7 +1130,7 @@ def pulse_width_scan__ide__sinc():
     results_by_phase_and_fluence = {(phase, fluence): jp.select_by_kwargs(phase = phase, fluence = fluence)
                                     for phase in phases for fluence in fluences}
 
-    metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+    metrics = ['final_initial_state_overlap']
     extra_line_kwargs = dict(
         linewidth = 3,
     )
@@ -1140,8 +1139,8 @@ def pulse_width_scan__ide__sinc():
         postfix = ''
         if any([log_x, log_y]):
             postfix += '__log'
-        if log_x:
-            postfix += 'X'
+        # if log_x:
+        #     postfix += 'X'
         if log_y:
             postfix += 'Y'
 
@@ -1160,18 +1159,18 @@ def pulse_width_scan__ide__sinc():
                 x_unit = 'asec',
                 y_label = metric.replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
-                x_log_axis = log_x,
+                # x_log_axis = log_x,
                 legend_kwargs = {
                     'loc': 'upper right',
                     'bbox_to_anchor': (.99, .875),
                     'handles': legend_handles,
                 },
                 grid_kwargs = BETTER_GRID_KWARGS,
+                x_upper_limit = 350 * asec,
                 font_size_axis_labels = 35,
-                font_size_tick_labels = 20,
+                font_size_tick_labels = 25,
                 font_size_legend = 20,
                 font_size_title = 35,
-                x_upper_limit = 350 * asec,
                 **FULL_PAGE_KWARGS,
                 **PLOT_KWARGS,
             )
@@ -2292,7 +2291,7 @@ def ide_symmetry():
     # font_size_legend = 30,
     # font_size_title = 35,
 
-    for result, cep, color, style in zip(results, (r'$\varphi = \pi / 4$', r'$\varphi = - \pi / 4$'), ('C0', 'C1'), ('-', '-')):
+    for result, cep, color, style in zip(results, (r'$\varphi = \pi / 4$', r'$\varphi = 3 \pi / 4$'), ('C0', 'C1'), ('-', '-')):
         ax_lower.plot(result.times / asec, result.spec.electric_potential.get_electric_field_amplitude(result.times) / atomic_electric_field, color = color, linewidth = BIG_LINEWIDTH, label = cep,
                       linestyle = style)
         ax_upper.plot(result.times / asec, result.a2, color = color, linewidth = BIG_LINEWIDTH, label = cep, linestyle = style)
@@ -2302,11 +2301,13 @@ def ide_symmetry():
     field_min = np.min(efield_1)
     field_range = np.abs(field_max - field_min)
 
-    ax_lower.set_xlabel(r'Time Time $t$ ($\mathrm{as}$)', fontsize = 35)
+    ax_lower.set_xlabel(r'Time $t$ ($\mathrm{as}$)', fontsize = 35)
     ax_lower.set_ylabel(r'$   \mathcal{E}(t) $ ($\mathrm{a.u.}$)   ', fontsize = 35)
     # ax_lower.yaxis.set_label_coords(-.125, .5)
 
     ax_upper.set_ylabel(r'$ \left| a_{\alpha}(t) \right|^2 $', fontsize = 35)
+    title = ax_upper.set_title(r'IDE CEP Comparison: $\tau = 200 \, \mathrm{as}, \; H = .3 \, \mathrm{J/cm^2}$', fontsize = 35)
+    title.set_y(1.15)
 
     # ax_lower.set_xticks([i * pulse_width * asec for i in range(-10, 11)])
     # # ax_lower.set_xticklabels([r'$0$'] + [r'$ {} \tau $'.format(i) for i in range(-10, 11) if i != 0])
@@ -2349,13 +2350,163 @@ def ide_symmetry():
     si.vis.save_current_figure(get_func_name(), target_dir = OUT_DIR, img_format = 'png')
 
 
+def get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = 1 * Jcm2):
+    cos_pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = 0)
+    sin_pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = pi / 2)
+
+    times = np.linspace(-35 * pulse_width, 35 * pulse_width, 10000)
+    cos_pulse = ion.DC_correct_electric_potential(cos_pulse, times)
+    sin_pulse = ion.DC_correct_electric_potential(sin_pulse, times)
+
+    cos_kicks = ide.decompose_potential_into_kicks__amplitude(cos_pulse, times)
+    sin_kicks = ide.decompose_potential_into_kicks__amplitude(sin_pulse, times)
+
+    max_cos_kick = max(k.amplitude for k in cos_kicks)
+    max_sin_kick = max(k.amplitude for k in sin_kicks)
+
+    return max_cos_kick, max_sin_kick
+
+
+def single_kick(beta):
+    return (1 + beta) ** 2
+
+
+def double_kick__isolated(beta):
+    return (1 + beta) ** 4
+
+
+def double_kick__kernel(beta, delta_t, tau_alpha):
+    kernel = ide.gaussian_kernel_LEN(delta_t, tau_alpha = tau_alpha)
+
+    return ((1 + beta) ** 2) * (beta * np.abs(kernel)) ** 2
+
+
+def double_kick__interference(beta, delta_t, omega_alpha, tau_alpha):
+    kernel = ide.gaussian_kernel_LEN(delta_t, tau_alpha = tau_alpha)
+
+    return -2 * beta * (1 + beta) * np.real(kernel * np.exp(1j * omega_alpha * delta_t))
+
+
+def double_kick(beta, delta_t, omega_alpha, tau_alpha):
+    """previous a is 1 + beta"""
+    isolated = double_kick__isolated(beta)
+    kernel = double_kick__kernel(beta, delta_t, tau_alpha)
+    interference = double_kick__interference(beta, delta_t, omega_alpha, tau_alpha)
+
+    return isolated + kernel + interference
+
+
+def delta_kick_cosine_sine_comparison():
+    delta_t = np.linspace(0, 500, 500) * asec
+    omega_alpha = ion.HydrogenBoundState(1).energy / hbar
+
+    tau_alpha = ide.gaussian_tau_alpha_LEN(bohr_radius, electron_mass)
+    B = ide.gaussian_prefactor_LEN(bohr_radius, electron_charge)
+
+    cos_eta, sin_eta = get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = .05 * Jcm2)
+
+    cos_beta = B * (cos_eta ** 2)
+    sin_beta = B * (sin_eta ** 2)
+
+    si.vis.xy_plot(
+        get_func_name(),
+        delta_t,
+        np.ones_like(delta_t) * double_kick__isolated(sin_beta),
+        np.ones_like(delta_t) * double_kick__kernel(sin_beta, delta_t, tau_alpha),
+        np.ones_like(delta_t) * double_kick__interference(sin_beta, delta_t, omega_alpha, tau_alpha),
+        double_kick(sin_beta, delta_t, omega_alpha, tau_alpha),
+        np.ones_like(delta_t) * single_kick(cos_beta),
+        line_labels = [
+            'Isolated Kicks',
+            'Kernel',
+            'Interference',
+            'Sine Kick',
+            'Cosine Kick',
+        ],
+        line_kwargs = [
+            {'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'C2'},
+            {'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'C3'},
+            {'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'C4'},
+            {'linewidth': BIG_LINEWIDTH, 'color': 'C0'},
+            {'linewidth': BIG_LINEWIDTH, 'color': 'C1'},
+        ],
+        x_label = r'Kick Delay $\delta$', x_unit = 'asec',
+        y_label = r'Initial State Overlap $ \left| a_{\alpha} \right|^2 $',
+        title = r'Delta Kick Model: Kick Delay Scan',
+        vlines = [tau_alpha], vline_kwargs = [{'linestyle': '--', 'color': 'black', 'linewidth': BIG_LINEWIDTH}],
+        # legend_on_right = True,
+        legend_kwargs = {'loc': 'lower right'},
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
+def ide_cep_scan():
+    time_bound = 10
+
+    pulse_width = 100
+    fluence = 1
+    phases = np.linspace(0, pi, 100)
+
+    efields = [ion.SincPulse(pulse_width = pulse_width * asec, fluence = fluence * Jcm2, phase = phase)
+               for phase in phases]
+
+    test_charge = electron_charge
+    test_mass = electron_mass_reduced
+    test_width = bohr_radius
+    test_energy = ion.HydrogenBoundState(1).energy
+    spec_kwargs = dict(
+        test_charge = test_charge,
+        test_mass = test_mass,
+        test_width = test_width,
+        test_energy = test_energy,
+        time_initial = -time_bound * pulse_width * asec,
+        time_final = time_bound * pulse_width * asec,
+        time_step = 1 * asec,
+        prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+        kernel = ide.gaussian_kernel_LEN,
+        kernel_kwargs = dict(tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)),
+        evolution_gauge = 'LEN',
+        evolution_method = 'RK4',
+        electric_potential_DC_correction = True,
+    )
+
+    specs = []
+    for efield in efields:
+        specs.append(ide.IntegroDifferentialEquationSpecification(
+            efield.phase,
+            electric_potential = efield,
+            **spec_kwargs,
+        ))
+
+    results = si.utils.multi_map(run, specs, processes = 3)
+
+    si.vis.xy_plot(
+        get_func_name(),
+        phases,
+        [r.a2[-1] for r in results],
+        line_labels = [r'$ \left| \left\langle \Psi_{\mathrm{final}} | \Psi_{\mathrm{initial}} \right\rangle \right|^2 $'],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
+        title = fr'CEP Scan: Sinc Pulse w/ $\tau = {pulse_width} \, \mathrm{{as}}, \; H = {fluence} \, \mathrm{{J/cm^2}}$',
+        # title_offset = 1.075,
+        x_label = r'Carrier-Envelope Phase $\varphi$',
+        x_unit = 'rad',
+        y_label = 'Final State Projection',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            tunneling_ionization,
-            # ide_symmetry,
+            # tunneling_ionization,
+            ide_symmetry,
             # omega_min_scan,
-            # cep__ionization_scan__sinc,
             # ionization_vs_field_properties,
             # richardson_colormap,
             # instantaneous_tunneling_rate_plot,
@@ -2365,6 +2516,8 @@ if __name__ == '__main__':
             # pulse_width_scan__hyd__gaussian,
             # fluence_scan__hyd__sinc,
             # fluence_scan__hyd__gaussian,
+            # cep__ionization_scan__sinc,
+            # ide_cep_scan,
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Many-cycle'),
@@ -2374,6 +2527,7 @@ if __name__ == '__main__':
             # pulse_ffts,
             # delta_kicks_eta_plot,
             # delta_kick_decomposition_plot,
+            # delta_kick_cosine_sine_comparison,
             # length_ide_kernel_gaussian,
             # tunneling_ionization_animation__pulse,
             # tunneling_ionization_animation,

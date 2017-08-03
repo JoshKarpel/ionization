@@ -789,6 +789,35 @@ class DeltaKicks(potentials.PotentialEnergy):
         return info
 
 
+def decompose_potential_into_kicks__amplitude(electric_potential, times):
+    efield_vs_time = electric_potential.get_electric_field_amplitude(times)
+    signs = np.sign(efield_vs_time)
+
+    # state machine
+    kicks = []
+    current_sign = signs[0]
+    efield_accumulator = 0
+    prev_time = times[0]
+    max_field = 0
+    max_field_time = 0
+    for efield, sign, time in zip(efield_vs_time, signs, times):
+        if sign == current_sign:
+            efield_accumulator += efield * (time - prev_time)
+            if max_field < np.abs(efield):
+                max_field = np.abs(efield)
+                max_field_time = time
+        else:
+            kicks.append(delta_kick(time = max_field_time, amplitude = efield_accumulator))
+
+            # reset
+            current_sign = sign
+            efield_accumulator = 0
+            max_field = 0
+        prev_time = time
+
+    return kicks
+
+
 class DeltaKickSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)

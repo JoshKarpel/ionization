@@ -55,6 +55,7 @@ def double_kick_v2(beta, delta_t, omega_alpha, tau_alpha):
 
     return first + second - third
 
+
 def double_kick_v3(beta, delta_t, omega_alpha, tau_alpha):
     """previous a is 1"""
     kernel = ide.gaussian_kernel_LEN(delta_t, tau_alpha = tau_alpha)
@@ -66,6 +67,23 @@ def double_kick_v3(beta, delta_t, omega_alpha, tau_alpha):
     return first + second - third
 
 
+def get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = 1 * Jcm2):
+    cos_pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = 0)
+    sin_pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = pi / 2)
+
+    times = np.linspace(-35 * pulse_width, 35 * pulse_width, 10000)
+    cos_pulse = ion.DC_correct_electric_potential(cos_pulse, times)
+    sin_pulse = ion.DC_correct_electric_potential(sin_pulse, times)
+
+    cos_kicks = ide.decompose_potential_into_kicks__amplitude(cos_pulse, times)
+    sin_kicks = ide.decompose_potential_into_kicks__amplitude(sin_pulse, times)
+
+    max_cos_kick = max(k.amplitude for k in cos_kicks)
+    max_sin_kick = max(k.amplitude for k in sin_kicks)
+
+    return max_cos_kick, max_sin_kick
+
+
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
         delta_t = np.linspace(0, 500, 500) * asec
@@ -74,26 +92,30 @@ if __name__ == '__main__':
 
         tau_alpha = ide.gaussian_tau_alpha_LEN(bohr_radius, electron_mass)
         B = ide.gaussian_prefactor_LEN(bohr_radius, electron_charge)
-        beta = B * (eta ** 2)
 
-        dbk = double_kick(beta, delta_t, omega_alpha, tau_alpha)
+        cos_eta, sin_eta = get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = .001 * Jcm2)
+
+        print(cos_eta / time_field_unit, sin_eta / time_field_unit)
+
+        cos_beta = B * (cos_eta ** 2)
+        sin_beta = B * (sin_eta ** 2)
 
         si.vis.xy_plot(
             'delta_t_scan',
             delta_t,
-            np.ones_like(delta_t) * double_kick_no_interference(beta),
-            np.ones_like(delta_t) * single_kick(beta),
-            double_kick(beta, delta_t, omega_alpha, tau_alpha),
-            double_kick_v2(beta, delta_t, omega_alpha, tau_alpha),
-            double_kick_v3(beta, delta_t, omega_alpha, tau_alpha),
-            np.ones_like(delta_t) * single_kick(beta * (1.5 ** 2)),
+            np.ones_like(delta_t) * double_kick_no_interference(sin_beta),
+            np.ones_like(delta_t) * single_kick(sin_beta),
+            double_kick(sin_beta, delta_t, omega_alpha, tau_alpha),
+            double_kick_v2(sin_beta, delta_t, omega_alpha, tau_alpha),
+            double_kick_v3(sin_beta, delta_t, omega_alpha, tau_alpha),
+            np.ones_like(delta_t) * single_kick(cos_beta),
             line_labels = [
-                'double kick (no int.)',
-                'single kick',
-                'double kick',
-                'double kick v2',
-                'double kick v3',
-                'single stronger kick'
+                'double sine kick (no int.)',
+                'single sine kick',
+                'sine kick',
+                'sine kick v2',
+                'sine kick v3',
+                'cosine kick'
             ],
             x_label = r'$\Delta t$', x_unit = 'asec',
             y_label = r'$ \left| a_{\alpha} \right|^2 $',
@@ -102,6 +124,6 @@ if __name__ == '__main__':
         )
 
         # find minimum
+        dbk = double_kick(sin_beta, delta_t, omega_alpha, tau_alpha)
         min_delta_t = delta_t[np.argmin(dbk)]
         print(min_delta_t / asec)
-
