@@ -618,8 +618,8 @@ def tunneling_ionization_animation__pulse():
 
 
 def length_ide_kernel_gaussian():
-    dt = np.linspace(0, 3, 1000)
-    tau = .5
+    dt = np.linspace(0, 5, 1000)
+    tau = 1
     y = (1 + 1j * (dt / tau)) ** (-3 / 2)
 
     si.vis.xy_plot(
@@ -635,12 +635,11 @@ def length_ide_kernel_gaussian():
                        {'color': 'C0', 'linewidth': BIG_LINEWIDTH},
                        {'color': 'C1', 'linewidth': BIG_LINEWIDTH}],
         x_label = r"$t-t'$ ($\mathrm{\tau_{\alpha}}$)", x_unit = tau,
-        font_size_axis_labels = 35,
-        font_size_tick_labels = 20,
-        font_size_legend = 25,
-        font_size_title = 35,
+        y_label = 'Kernel Values',
+        title = 'Gaussian IDE Kernel',
         grid_kwargs = BETTER_GRID_KWARGS,
-        **STILL_FIGMAN_KWARGS_SVG,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
     # with si.vis.FigureManager(get_func_name(), **FIGMAN_KWARGS, **PLOT_KWARGS) as figman:
@@ -876,6 +875,14 @@ def delta_kicks_eta_plot():
     )
 
 
+def photon_energy_to_wavelength(energy):
+    return c / (energy / h)
+
+
+def photon_wavelength_to_energy(wavelength):
+    return (c / wavelength) * h
+
+
 def pulse_ffts():
     t_bound = 500
     freq_plot_limit = 6000 * THz
@@ -908,7 +915,7 @@ def pulse_ffts():
     ffts = tuple(nfft.fftshift(nfft.fft(nfft.fftshift(field), norm = 'ortho') / df) for field in fields)
 
     si.vis.xy_plot(
-        'pulse_power_spectra',
+        'pulse_power_spectra__vs_frequency',
         freqs,
         *(epsilon_0 * c * (np.abs(f) ** 2) / len(times) for f in ffts),
         line_labels = names,
@@ -919,9 +926,63 @@ def pulse_ffts():
         y_unit = Jcm2 / THz,
         title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
         vlines = [2530 * THz], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
-        **BIG_FONTS,
         grid_kwargs = BETTER_GRID_KWARGS,
-        **STILL_FIGMAN_KWARGS_SVG,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    fm = si.vis.xy_plot(
+        'pulse_power_spectra__vs_energy',
+        freqs * h,
+        *(epsilon_0 * c * (np.abs(f) ** 2) / len(times) / h for f in ffts),
+        line_labels = names,
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
+        x_label = r'Photon Energy $ E $', x_unit = 'eV',
+        x_lower_limit = 0, x_upper_limit = freq_plot_limit * h,
+        y_label = fr'$ \left| {ion.LATEX_EFIELD}(E) \right|^2 $  ($\mathrm{{J / cm^2 / eV}}$)',
+        y_unit = Jcm2 / eV,
+        title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+        vlines = [2530 * THz * h], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
+        grid_kwargs = BETTER_GRID_KWARGS,
+        title_offset = 1.2,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+        ticks_on_top = False,
+        save_on_exit = False,
+        close_after_exit = False,
+    )
+
+    ax = fm.fig.get_axes()[0]
+    twin = ax.twiny()
+
+    wavelengths = np.array([10000, 532, 266, 157, 100, 60]) * nm
+    twin.set_xticks([photon_wavelength_to_energy(wavelength) / eV for wavelength in wavelengths])
+    twin.set_xticklabels([int(uround(wavelength, nm)) for wavelength in wavelengths])
+    twin.tick_params(labelsize = BIG_FONTS['font_size_tick_labels'])
+    twin.set_xlabel('Photon Wavelength $\lambda$ ($\mathrm{nm}$)', fontsize = BIG_FONTS['font_size_axis_labels'])
+    twin.set_xlim(0, freq_plot_limit * h / eV)
+    twin.grid(True, **{**BETTER_GRID_KWARGS, 'linestyle': '--'})
+
+    fm.save()
+    fm.cleanup()
+
+    si.vis.xy_plot(
+        'pulse_power_spectra__vs_wavelength',
+        c / freqs,
+        *((epsilon_0 * c * (np.abs(f) ** 2) / len(times)) * ((freqs ** 2) / c) for f in ffts),
+        line_labels = names,
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
+        x_label = r'Wavelength $ \lambda $', x_unit = 'um',
+        x_lower_limit = c / freq_plot_limit, x_upper_limit = 1 * um,
+        y_label = fr'$ \left| {ion.LATEX_EFIELD}(\lambda) \right|^2 $  ($\mathrm{{J / cm^2 / um}}$)',
+        y_unit = Jcm2 / um,
+        title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
+        vlines = [c / 2530 * THz], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -2505,7 +2566,7 @@ if __name__ == '__main__':
     with logman as logger:
         figures = [
             # tunneling_ionization,
-            ide_symmetry,
+            # ide_symmetry,
             # omega_min_scan,
             # ionization_vs_field_properties,
             # richardson_colormap,
@@ -2524,7 +2585,7 @@ if __name__ == '__main__':
             # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Many-cycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
             # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
-            # pulse_ffts,
+            pulse_ffts,
             # delta_kicks_eta_plot,
             # delta_kick_decomposition_plot,
             # delta_kick_cosine_sine_comparison,
