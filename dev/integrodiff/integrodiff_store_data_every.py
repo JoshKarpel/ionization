@@ -38,9 +38,9 @@ if __name__ == '__main__':
                                                                store_data_every = sde,
                                                                ).to_simulation()
 
-            logger.info(sim.info())
+            sim.info().log()
             sim.run_simulation(progress_bar = True)
-            logger.info(sim.info())
+            sim.info().log()
 
             sim.save(target_dir = OUT_DIR)
 
@@ -55,9 +55,9 @@ if __name__ == '__main__':
                                                                        store_data_every = sde,
                                                                        ).to_simulation()
 
-            logger.info(sim.info())
+            sim.info().log()
             sim.run_simulation(progress_bar = True)
-            logger.info(sim.info())
+            sim.info().log()
 
             sim.save(target_dir = OUT_DIR)
 

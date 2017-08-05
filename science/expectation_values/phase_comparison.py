@@ -27,9 +27,9 @@ def run(spec):
     with LOGMAN as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_wavefunction_vs_time(show_vector_potential = False, **PLOT_KWARGS)
         sim.plot_radial_position_expectation_value_vs_time(**PLOT_KWARGS)

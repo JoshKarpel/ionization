@@ -32,10 +32,10 @@ if __name__ == '__main__':
                     checkpoint_every = 50,
             ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         if sim.status != si.STATUS_FIN:
             sim.run_simulation(progress_bar = True)
-            logger.info(sim.info())
+            sim.info().log()
 
             sim.save(target_dir = OUT_DIR, save_mesh = True)
 

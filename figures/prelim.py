@@ -2518,6 +2518,7 @@ def ide_cep_scan():
     test_mass = electron_mass_reduced
     test_width = bohr_radius
     test_energy = ion.HydrogenBoundState(1).energy
+
     spec_kwargs = dict(
         test_charge = test_charge,
         test_mass = test_mass,

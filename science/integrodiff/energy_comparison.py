@@ -33,10 +33,10 @@ def run(spec):
         # sim = spec.to_simulation()
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
-        logger.info(sim.info())
+        sim.info().log()
         if not sim.status == si.STATUS_FIN:
             sim.run_simulation()
-            logger.info(sim.info())
+            sim.info().log()
 
         sim.save(target_dir = SIM_LIB)
 

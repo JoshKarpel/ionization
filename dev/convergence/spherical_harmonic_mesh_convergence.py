@@ -24,10 +24,10 @@ def run_spec(spec):
         except FileNotFoundError:
             sim = spec.to_simulation()
 
-            logger.info(sim.info())
+            sim.info().log()
             sim.run_simulation()
             sim.save(target_dir = LIB_DIR)
-            logger.info(sim.info())
+            sim.info().log()
 
         if 'reference' in sim.name:
             sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)

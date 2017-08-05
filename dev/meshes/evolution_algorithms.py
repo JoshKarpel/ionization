@@ -25,9 +25,9 @@ def run_spec(spec):
         try:
             sim = spec.to_simulation()
 
-            # logger.info(sim.info())
+            # sim.info().log()
             sim.run_simulation()
-            logger.info(sim.info())
+            sim.info().log()
 
             sim.plot_state_overlaps_vs_time(target_dir = OUT_DIR,
                                             img_format = 'png',

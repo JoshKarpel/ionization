@@ -32,10 +32,10 @@ if __name__ == '__main__':
                                                   numeric_eigenstate_max_energy = 10 * eV,
                                                   numeric_eigenstate_max_angular_momentum = 5)
         print()
-        logger.info(spec.info())
+        spec.info().log()
         print()
 
         sim = spec.to_simulation()
 
         print()
-        logger.info(sim.info())
+        sim.info().log()

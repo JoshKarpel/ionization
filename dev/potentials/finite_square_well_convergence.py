@@ -31,10 +31,10 @@ def run(spec):
                          x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
                          target_dir = OUT_DIR)
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
         # sim.save(target_dir = OUT_DIR)
-        logger.info(sim.info())
+        sim.info().log()
 
         si.vis.xy_plot(sim.name + '__fft_post_k',
                          sim.mesh.wavenumbers / twopi, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,

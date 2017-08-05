@@ -61,7 +61,7 @@ if __name__ == '__main__':
                                     animators = animators,
                                     ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         si.vis.xy_plot(
             'truncated_qho_potential',
@@ -88,4 +88,4 @@ if __name__ == '__main__':
 
         sim.plot_state_overlaps_vs_time(time_unit = 'fsec', show_vector_potential = False, **PLOT_KWARGS)
 
-        logger.info(sim.info())
+        sim.info().log()

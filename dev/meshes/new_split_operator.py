@@ -40,9 +40,9 @@ if __name__ == '__main__':
         #
         # sim = si.Simulation.load(path)
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation(progress_bar = False)
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_wavefunction_vs_time(collapse_bound_state_angular_momenta = False, target_dir = OUT_DIR)
         # sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)

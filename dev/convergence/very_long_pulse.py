@@ -41,7 +41,7 @@ if __name__ == '__main__':
             store_data_every = 20,
         ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         si.vis.xy_plot(
             'efield_vs_time',
@@ -65,4 +65,4 @@ if __name__ == '__main__':
         sim.run_simulation(progress_bar = True)
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 
-        logger.info(sim.info())
+        sim.info().log()

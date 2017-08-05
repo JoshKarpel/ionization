@@ -24,7 +24,7 @@ if __name__ == '__main__':
                                                  mask = mask).to_simulation()
 
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
         print(sim.info())
 
         print(sim.mesh.norm)

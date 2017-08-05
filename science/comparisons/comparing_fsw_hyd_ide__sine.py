@@ -27,11 +27,11 @@ def run(spec):
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
         sim.spec.hydrogen_zero_angular_momentum_correction = True
 
-        logger.info(sim.info())
+        sim.info().log()
         if not sim.status == si.STATUS_FIN:
             sim.run_simulation()
             sim.save(target_dir = SIM_LIB)
-            logger.info(sim.info())
+            sim.info().log()
 
         sim.plot_wavefunction_vs_time(show_vector_potential = 'vel' in sim.name, **PLOT_KWARGS)
 

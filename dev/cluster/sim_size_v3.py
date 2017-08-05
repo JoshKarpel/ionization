@@ -24,7 +24,7 @@ if __name__ == '__main__':
                                                  ).to_simulation()
 
         sim.file_name = 'pre'
-        logger.info(sim.info())
+        sim.info().log()
 
         print()
 
@@ -34,7 +34,7 @@ if __name__ == '__main__':
         print()
 
         sim.file_name = 'post'
-        logger.info(sim.info())
+        sim.info().log()
 
         print()
 

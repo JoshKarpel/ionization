@@ -65,4 +65,4 @@ if __name__ == '__main__':
 
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 
-        logger.info(sim.info())
+        sim.info().log()

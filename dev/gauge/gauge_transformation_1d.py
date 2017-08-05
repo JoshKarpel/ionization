@@ -63,9 +63,9 @@ def run_sim(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation(callback = wrapped_plot_g_1d, progress_bar = True)
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_state_overlaps_vs_time(
             **PLOT_KWARGS,

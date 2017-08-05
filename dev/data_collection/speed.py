@@ -23,11 +23,11 @@ if __name__ == '__main__':
                                                  # evolution_gauge = 'VEL',
                                                  ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         with si.utils.BlockTimer() as timer:
             sim.run_simulation()
             # sim.run_simulation(progress_bar = True)
-        logger.info(sim.info())
+        sim.info().log()
 
         mesh_points = sim.mesh.mesh_points
         time_points = sim.time_steps - 1

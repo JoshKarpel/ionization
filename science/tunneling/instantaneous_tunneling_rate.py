@@ -111,9 +111,9 @@ if __name__ == '__main__':
             store_data_every = 50,
         ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation(progress_bar = True)
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_wavefunction_vs_time(
             show_vector_potential = False,

@@ -23,9 +23,9 @@ if __name__ == '__main__':
                 electric_potential = ion.Rectangle(start_time = -200 * asec, end_time = 200 * asec, amplitude = .1 * atomic_electric_field)
         ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation(progress_bar = True)
-        logger.info(sim.info())
+        sim.info().log()
 
         PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,

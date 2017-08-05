@@ -118,6 +118,6 @@ if __name__ == '__main__':
                                                  numeric_eigenstate_max_angular_momentum = 5,
                                                  animators = animators).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()

@@ -24,9 +24,9 @@ def run_sim(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         # sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR,

@@ -16,11 +16,11 @@ def run_sim(spec):
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w') as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.run_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
 
 if __name__ == '__main__':
@@ -43,8 +43,8 @@ if __name__ == '__main__':
 
         sim = sph_spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.run_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()

@@ -22,9 +22,9 @@ def run(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
 
 if __name__ == '__main__':

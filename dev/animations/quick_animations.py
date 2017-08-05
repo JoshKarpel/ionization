@@ -16,9 +16,9 @@ def make_movie(spec):
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.DEBUG) as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
 
 if __name__ == '__main__':

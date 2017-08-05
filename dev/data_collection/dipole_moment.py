@@ -37,7 +37,7 @@ def run_sim(spec):
             logger.info(sim.mesh.state_overlap(ion.HydrogenBoundState(3, 2)))
         ###
 
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.run_simulation()
 
@@ -59,7 +59,7 @@ def run_sim(spec):
 
         sim.save(target_dir = OUT_DIR, save_mesh = False)
 
-        logger.info(sim.info())
+        sim.info().log()
 
 
 if __name__ == '__main__':

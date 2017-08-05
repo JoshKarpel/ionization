@@ -24,9 +24,9 @@ def run(spec):
     with LOGMAN as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         if 'msh' in sim.name:
             sim.plot_state_overlaps_vs_time(

@@ -16,9 +16,9 @@ def make_movie(spec):
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.INFO) as logger:
         sim = ion.ElectricFieldSimulation(spec)
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
 

@@ -26,11 +26,11 @@ def run(spec):
     with logman as logger:
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
-        logger.info(sim.info())
+        sim.info().log()
         if not sim.status == si.STATUS_FIN:
             sim.run_simulation()
             sim.save(target_dir = SIM_LIB)
-            logger.info(sim.info())
+            sim.info().log()
 
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 

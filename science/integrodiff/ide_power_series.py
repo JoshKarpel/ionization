@@ -90,7 +90,7 @@ if __name__ == '__main__':
                                                                    ).to_simulation()
 
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         PLOT_KWARGS = dict(
                 target_dir = OUT_DIR,

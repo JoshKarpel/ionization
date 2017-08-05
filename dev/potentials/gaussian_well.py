@@ -54,7 +54,7 @@ if __name__ == '__main__':
             ],
         ).to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         numeric_ground_state = sim.spec.test_states[0]
 
@@ -91,4 +91,4 @@ if __name__ == '__main__':
 
         sim.run_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()

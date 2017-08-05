@@ -16,7 +16,7 @@ def run_sim(spec):
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w') as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.run_simulation()
 
@@ -32,7 +32,7 @@ def run_sim(spec):
 
         sim.save(target_dir = OUT_DIR, save_mesh = False)
 
-        logger.info(sim.info())
+        sim.info().log()
 
 
 if __name__ == '__main__':

@@ -19,7 +19,7 @@ def run(spec):
     with log as logger:
         sim = spec.to_simulation()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_a2_vs_time(target_dir = OUT_DIR)
 

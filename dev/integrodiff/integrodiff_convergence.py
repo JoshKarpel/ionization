@@ -165,7 +165,7 @@ def run(spec):
     with logman as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.run_simulation()
 
@@ -174,7 +174,7 @@ def run(spec):
                             field_scale = 'AEF',
                             **PLOT_KWARGS)
 
-        logger.info(sim.info())
+        sim.info().log()
 
         return sim
 

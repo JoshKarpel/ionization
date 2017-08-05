@@ -18,9 +18,9 @@ def run(spec):
                              file_logs = True, file_dir = spec.out_dir_mod, file_name = spec.name, file_level = logging.DEBUG, file_mode = 'w') as logger:
         sim = spec.to_simulation()
 
-        logger.info(sim.info())
+        sim.info().log()
         sim.run_simulation()
-        logger.info(sim.info())
+        sim.info().log()
 
         sim.plot_wavefunction_vs_time(target_dir = spec.out_dir_mod)
         sim.plot_wavefunction_vs_time(target_dir = spec.out_dir_mod, log = True, name_postfix = '_log')
