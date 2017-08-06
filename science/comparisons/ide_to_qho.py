@@ -27,7 +27,7 @@ def run(spec):
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
         sim.info().log()
-        if not sim.status == si.STATUS_FIN:
+        if not sim.status == si.Status.FINISHED:
             sim.run_simulation()
             sim.save(target_dir = SIM_LIB)
             sim.info().log()

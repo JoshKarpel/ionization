@@ -421,7 +421,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
         """
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        self.status = si.STATUS_RUN
+        self.status = si.Status.RUNNING
 
         while self.time < self.spec.time_final:
             new_a, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.a, self.times, self.time_step)
@@ -439,7 +439,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 if (self.time_index + 1) % self.spec.checkpoint_every == 0:
                     self.save(target_dir = self.spec.checkpoint_dir)
                     logger.info(f'Checkpointed {self} at time index {self.time_index}')
-                    self.status = si.STATUS_RUN
+                    self.status = si.Status.RUNNING
 
         self.a = np.array(self.a)
         self.times = np.array(self.times)
@@ -452,7 +452,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.times = self.times[self.data_mask]
         self.a = self.a[self.data_mask]
 
-        self.status = si.STATUS_FIN
+        self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
     def attach_electric_potential_plot_to_axis(self,
@@ -996,7 +996,7 @@ class DeltaKickSimulation(si.Simulation):
             A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
         """
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
-        self.status = si.STATUS_RUN
+        self.status = si.Status.RUNNING
 
         self.a = self.recursive_kicks()
         self.data_times = np.array(list(k.time for k in self.kicks))  # for consistency with other simulations
@@ -1004,7 +1004,7 @@ class DeltaKickSimulation(si.Simulation):
         if callback is not None:
             callback(self)
 
-        self.status = si.STATUS_FIN
+        self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
     def attach_electric_potential_plot_to_axis(self,

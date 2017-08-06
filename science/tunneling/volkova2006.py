@@ -105,7 +105,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
     sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
     sim.info().log()
-    if not sim.status == si.STATUS_FIN:
+    if not sim.status == si.Status.FINISHED:
         sim.run_simulation(progress_bar = True)
         sim.info().log()
 

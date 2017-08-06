@@ -357,7 +357,7 @@ class ElectricFieldSimulation(si.Simulation):
         """
         logger.info(f'Performing time evolution on {self}, starting from time index {self.time_index}')
         try:
-            self.status = si.STATUS_RUN
+            self.status = si.Status.RUNNING
 
             for animator in self.spec.animators:
                 animator.initialize(self)
@@ -397,7 +397,7 @@ class ElectricFieldSimulation(si.Simulation):
                 if self.spec.checkpoints:
                     if (self.time_index + 1) % self.spec.checkpoint_every == 0:
                         self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
-                        self.status = si.STATUS_RUN
+                        self.status = si.Status.RUNNING
                         logger.info('Checkpointed {} {} ({}) at time step {} / {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1, self.time_steps))
 
                 try:
@@ -410,7 +410,7 @@ class ElectricFieldSimulation(si.Simulation):
             except NameError:
                 pass
 
-            self.status = si.STATUS_FIN
+            self.status = si.Status.FINISHED
 
             logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
         except Exception as e:

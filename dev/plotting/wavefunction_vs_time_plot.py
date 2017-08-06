@@ -33,7 +33,7 @@ if __name__ == '__main__':
             ).to_simulation()
 
         sim.info().log()
-        if sim.status != si.STATUS_FIN:
+        if sim.status != si.Status.FINISHED:
             sim.run_simulation(progress_bar = True)
             sim.info().log()
 

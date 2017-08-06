@@ -28,7 +28,7 @@ def run(spec):
         sim.spec.hydrogen_zero_angular_momentum_correction = True
 
         sim.info().log()
-        if not sim.status == si.STATUS_FIN:
+        if not sim.status == si.Status.FINISHED:
             sim.run_simulation()
             sim.save(target_dir = SIM_LIB)
             sim.info().log()
