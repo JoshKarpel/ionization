@@ -228,7 +228,14 @@ class ElectricFieldSimulation(si.Simulation):
             self.data_indices,
         ))
 
-        mem_total = mem_mesh + mem_matrix_operators + mem_numeric_eigenstates + mem_inner_products + mem_other_time_data + mem_misc
+        mem_total = sum((
+            mem_mesh,
+            mem_matrix_operators,
+            mem_numeric_eigenstates,
+            mem_inner_products,
+            mem_other_time_data,
+            mem_misc,
+        ))
 
         info_mem = si.Info(header = f'Memory Usage (approx.): {si.utils.bytes_to_str(mem_total)}')
         info_mem.add_field('g', si.utils.bytes_to_str(mem_mesh))
@@ -1207,6 +1214,7 @@ class ElectricFieldSpecification(si.Specification):
         info.add_info(info_algorithm)
 
         info_potentials = si.Info(header = 'Potentials and Masks')
+        info_potentials.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
         for x in it.chain(self.internal_potential, self.electric_potential, self.mask):
             info_potentials.add_info(x.info())
 
