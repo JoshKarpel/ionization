@@ -31,12 +31,14 @@ if __name__ == '__main__':
     with logman as logger:
         with si.utils.BlockTimer() as timer:
             r_bound = 100
-            points_per_r = 4
+            points_per_r = 8
             r_points = r_bound * points_per_r
-            l_bound = 200
+            l_bound = 300
             dt = 1
             t_bound = 10
             n_max = 3
+
+            shading = 'flat'
 
             # initial_states = [ion.HydrogenBoundState(1, 0), ion.HydrogenBoundState(2, 0), ion.HydrogenBoundState(2, 1)]
             initial_states = [ion.HydrogenBoundState(1, 0)]
@@ -45,7 +47,7 @@ if __name__ == '__main__':
             # pulse_types = [ion.SincPulse]
             pulse_types = [ion.SincPulse]
             # pulse_types = [ion.SincPulse, ion.GaussianPulse]
-            pulse_widths = [200]
+            pulse_widths = [93, 200]
             # pulse_widths = [80, 85, 90, 95, 100]
             # pulse_widths = [50, 100, 200, 400, 800]
             # fluences = [1]
@@ -101,6 +103,7 @@ if __name__ == '__main__':
                             colormap = plt.get_cmap('richardson'),
                             norm = si.vis.RichardsonNormalization(),
                             plot_limit = 30 * bohr_radius,
+                            shading = shading,
                         ),
                         axman_lower_right = deepcopy(axman_lower_right),
                         axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),
@@ -125,6 +128,7 @@ if __name__ == '__main__':
                         axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                             which = 'g2',
                             plot_limit = 30 * bohr_radius,
+                            shading = shading,
                         ),
                         axman_lower_right = deepcopy(axman_lower_right),
                         axman_upper_right = ion.animators.WavefunctionStackplotAxis(states = [initial_state]),

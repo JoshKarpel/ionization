@@ -224,7 +224,7 @@ class StackplotAxis(si.vis.AxisManager):
         self.axis.tick_params(labelbottom = self.show_ticks_bottom, labeltop = self.show_ticks_top, labelright = self.show_ticks_right, labelleft = self.show_ticks_left)
 
         self.axis.set_xlim(self.sim.data_times[0] / self.time_unit_value, self.sim.data_times[-1] / self.time_unit_value)
-        self.axis.set_ylim(0, 1)
+        self.axis.set_ylim(0, 1.05)
 
         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 16)
 

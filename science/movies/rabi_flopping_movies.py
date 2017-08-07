@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
-logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG, )
+logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
 
 
 def run(spec):
@@ -34,20 +34,21 @@ if __name__ == '__main__':
         amplitudes = [.005]
         cycles = [1]
         gauges = ['LEN']
-        # gauges = ['LEN', 'VEL']
 
         dt = 1
-        bound = 100
-        ppbr = 5
+        bound = 70
+        ppbr = 10
 
         inner = 20
         outer = 50
+
+        shading = 'flat'
 
         animator_kwargs = dict(
             target_dir = OUT_DIR,
             length = 30,
             fps = 30,
-            fig_dpi_scale = 1,
+            fig_dpi_scale = 2,
         )
 
         axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
@@ -71,6 +72,7 @@ if __name__ == '__main__':
                 axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g2',
                     plot_limit = outer * bohr_radius,
+                    shading = shading,
                 ),
                 axman_lower_right = deepcopy(axman_lower_right),
                 axman_upper_right = deepcopy(axman_upper_right),
@@ -81,6 +83,7 @@ if __name__ == '__main__':
                 axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g2',
                     plot_limit = inner * bohr_radius,
+                    shading = shading,
                 ),
                 axman_lower_right = deepcopy(axman_lower_right),
                 axman_upper_right = deepcopy(axman_upper_right),
@@ -93,6 +96,7 @@ if __name__ == '__main__':
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
                     plot_limit = outer * bohr_radius,
+                    shading = shading,
                 ),
                 axman_lower_right = deepcopy(axman_lower_right),
                 axman_upper_right = deepcopy(axman_upper_right),
@@ -105,6 +109,7 @@ if __name__ == '__main__':
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
                     plot_limit = inner * bohr_radius,
+                    shading = shading,
                 ),
                 axman_lower_right = deepcopy(axman_lower_right),
                 axman_upper_right = deepcopy(axman_upper_right),
@@ -115,14 +120,14 @@ if __name__ == '__main__':
         spec_kwargs = dict(
             r_bound = bound * bohr_radius,
             r_points = bound * ppbr,
-            l_bound = 50,
+            l_bound = 30,
             initial_state = state_a,
             time_initial = 0 * asec,
             time_step = dt * asec,
             mask = ion.RadialCosineMask(inner_radius = .8 * bound * bohr_radius, outer_radius = bound * bohr_radius),
             use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 30 * eV,
-            numeric_eigenstate_max_angular_momentum = 20,
+            numeric_eigenstate_max_energy = 20 * eV,
+            numeric_eigenstate_max_angular_momentum = 10,
         )
 
         dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_simulation()
@@ -144,7 +149,7 @@ if __name__ == '__main__':
             rabi_time = 1 / rabi_frequency
 
             specs.append(ion.SphericalHarmonicSpecification(
-                f'rabi__{state_a.n}_{state_a.l}_to_{state_b.n}_{state_b.l}__gauge={gauge}__amp={amplitude}aef_{cycle}cycles__len={animator_kwargs["length"]}_fps={animator_kwargs["fps"]}',
+                f'rabi__{state_a.n}_{state_a.l}_to_{state_b.n}_{state_b.l}__amp={amplitude}aef_{cycle}cycles__gauge={gauge}',
                 time_final = cycle * rabi_time,
                 electric_potential = electric_field,
                 evolution_gauge = gauge,
@@ -155,4 +160,11 @@ if __name__ == '__main__':
                 **spec_kwargs
             ))
 
-        si.utils.multi_map(run, specs, processes = 1)
+        if len(specs) > 1:
+            si.utils.multi_map(run, specs, processes = 1)
+        else:
+            with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
+                sim = specs[0].to_simulation()
+                sim.info().log()
+                sim.run_simulation(progress_bar = True)
+                sim.info().log()
