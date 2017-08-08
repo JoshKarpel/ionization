@@ -51,6 +51,11 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.lines as mlines
 
+BETTER_GRID_KWARGS = {
+    **si.vis.GRID_KWARGS,
+    'linewidth': 1,
+}
+
 FULL_PAGE_KWARGS = dict(
     fig_width = si.vis.PPT_WIDESCREEN_WIDTH,
     fig_height = si.vis.PPT_WIDESCREEN_HEIGHT,
@@ -82,11 +87,6 @@ PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
 )
 
-BETTER_GRID_KWARGS = {
-    **si.vis.GRID_KWARGS,
-    'linewidth': 1,
-}
-
 BIG_LINEWIDTH = 4
 
 BIG_FONTS = dict(
@@ -98,7 +98,6 @@ BIG_FONTS = dict(
 
 BIG_SINE_WAVE = ion.SineWave.from_photon_energy(20 * eV, 1 * atomic_electric_field)
 
-
 FAST_SIM_OPTIONS = dict(
     store_data_every = -1,
     store_electric_dipole_moment_expectation_value = False,
@@ -106,6 +105,7 @@ FAST_SIM_OPTIONS = dict(
     store_norm_diff_mask = False,
     store_radial_position_expectation_value = False,
 )
+
 
 def run(spec):
     sim = spec.to_simulation()
@@ -257,7 +257,7 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
     phases = np.linspace(0, twopi, 600)
 
     time_bound = 35
-    times = np.linspace(-time_bound * pw, time_bound * pw, 1e6)
+    times = np.linspace(-time_bound * pw, time_bound * pw, int(2 * time_bound * pw / asec))
 
     plot_bounds = [10, 4]
     postfixes = ['', '__zoomed']
@@ -294,6 +294,21 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
         def afield(times, phase):
             return get_pulse_by_phase(phase).get_vector_potential_amplitude_numeric_cumulative(times) * proton_charge / atomic_momentum
 
+        shared_kwargs = dict(
+            x_label = r'Time $t$',
+            x_unit = 'asec',
+            x_lower_limit = -plot_bound * pw,
+            x_upper_limit = plot_bound * pw,
+            t_fmt_string = r'$ \varphi = {} \; {} $',
+            t_unit = 'rad',
+            t_text_kwargs = {'fontsize': 25},
+            title_offset = 1.1,
+            length = 10,
+            progress_bar = True,
+        )
+
+        # FIELDS
+
         si.vis.xyt_plot(
             f'cep_scan_movie__{pulse_type.__name__}__fields' + postfix,
             times,
@@ -308,18 +323,11 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
                 {'linewidth': BIG_LINEWIDTH},
                 {'linestyle': '--', 'linewidth': BIG_LINEWIDTH},
             ],
-            x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Amplitude (a.u.)',
-            t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
             title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
-            x_lower_limit = -time_bound * pw,
-            x_upper_limit = time_bound * pw,
-            progress_bar = True,
-            title_offset = 1.1,
-            length = 10,
-            **BIG_FONTS,
-            t_text_kwargs = {'fontsize': 25},
             grid_kwargs = BETTER_GRID_KWARGS,
+            **shared_kwargs,
+            **BIG_FONTS,
             **ANIMATED_FIGURE_KWARGS,
             **PLOT_KWARGS,
         )
@@ -344,21 +352,16 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
                 {'linewidth': BIG_LINEWIDTH},
                 {'linestyle': '--', 'linewidth': BIG_LINEWIDTH},
             ],
-            x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Amplitude (a.u.)',
-            t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
             title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
-            x_lower_limit = -time_bound * pw,
-            x_upper_limit = time_bound * pw,
-            progress_bar = True,
-            title_offset = 1.1,
-            length = 10,
-            t_text_kwargs = {'fontsize': 25},
             grid_kwargs = BETTER_GRID_KWARGS,
+            **shared_kwargs,
             **BIG_FONTS,
             **ANIMATED_FIGURE_KWARGS,
             **PLOT_KWARGS,
         )
+
+        # INTENSITY
 
         si.vis.xyt_plot(
             f'cep_scan_movie__{pulse_type.__name__}__intensity' + postfix,
@@ -366,18 +369,11 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
             phases,
             efield_intensity,
             line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
-            x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Intensity $ P(t) $', y_unit = 'atomic_intensity',
-            t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
             title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
-            x_lower_limit = -time_bound * pw,
-            x_upper_limit = time_bound * pw,
-            progress_bar = True,
-            title_offset = 1.1,
-            length = 10,
-            **BIG_FONTS,
-            t_text_kwargs = {'fontsize': 25},
             grid_kwargs = BETTER_GRID_KWARGS,
+            **shared_kwargs,
+            **BIG_FONTS,
             **ANIMATED_FIGURE_KWARGS,
             **PLOT_KWARGS,
         )
@@ -396,18 +392,11 @@ def pulse_cep_movie(pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'):
                 {'linewidth': BIG_LINEWIDTH},
                 {'linewidth': BIG_LINEWIDTH - 2, 'color': 'black'},
             ],
-            x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Intensity $ P(t) $', y_unit = 'atomic_intensity',
-            t_fmt_string = r'$ \varphi = {} \; {} $', t_unit = 'rad',
             title = fr'{prefix} w/ $\tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}} $',
-            x_lower_limit = -time_bound * pw,
-            x_upper_limit = time_bound * pw,
-            progress_bar = True,
-            title_offset = 1.1,
-            length = 10,
-            **BIG_FONTS,
-            t_text_kwargs = {'fontsize': 25},
             grid_kwargs = BETTER_GRID_KWARGS,
+            **shared_kwargs,
+            **BIG_FONTS,
             **ANIMATED_FIGURE_KWARGS,
             **PLOT_KWARGS,
         )
@@ -917,10 +906,6 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         x_label = r"Time $t$", x_unit = 'asec',
         y_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
         title = 'Aligned Envelopes' + postfix,
-        # font_size_axis_labels = 22,
-        # font_size_tick_labels = 14,
-        # font_size_legend = 16,
-        # font_size_title = 22,
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
         font_size_legend = 25,
@@ -930,7 +915,6 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         y_upper_limit = ylim,
         title_offset = 1.2,
         **FULL_PAGE_KWARGS,
-        # **QUARTER_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -951,16 +935,11 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         x_label = r"Time $t$", x_unit = 'asec',
         y_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
         title = 'Aligned Zeros' + postfix,
-        # font_size_axis_labels = 22,
-        # font_size_tick_labels = 14,
-        # font_size_legend = 16,
-        # font_size_title = 22,
         **BIG_FONTS,
         grid_kwargs = BETTER_GRID_KWARGS,
         y_lower_limit = -ylim,
         y_upper_limit = ylim,
         **FULL_PAGE_KWARGS,
-        # **QUARTER_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
 
@@ -2065,8 +2044,6 @@ if __name__ == '__main__':
             title_bg,
             efield_and_afield,
             ionization_vs_field_properties,
-            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
-            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
             functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
             functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
             functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
@@ -2079,22 +2056,36 @@ if __name__ == '__main__':
             hyd__fluence_scan__sinc,
             hyd__fluence_scan__gaussian,
             hyd__cep_scan,
-            ide__cep_scan,
             field_properties_vs_phase,
             pulse_ffts,
+            ide_symmetry,
             tunneling_ionization,
             instantaneous_tunneling_rate_plot,
-            tunneling_ionization_animation,
             length_ide_kernel_gaussian,
-            ide_symmetry,
             # tunneling_ionization_animation__pulse,
             # delta_kicks_eta_plot,
             # delta_kick_decomposition_plot,
             # delta_kick_cosine_sine_comparison,
-            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 500 * THz, ', Many-cycle'),
-            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 500 * THz, ', Many-cycle'),
             # omega_min_scan,
         ]
 
-        for fig in tqdm(figures):
-            fig()
+        movies = [
+            functools.partial(pulse_cep_movie, pulse_type = ion.GaussianPulse, prefix = 'Gaussian Pulse'),
+            functools.partial(pulse_cep_movie, pulse_type = ion.SincPulse, prefix = 'Sinc Pulse'),
+            tunneling_ionization_animation,
+        ]
+
+        long_computation = [
+            ide__cep_scan,
+        ]
+
+        fns = list(itertools.chain(
+            figures,
+            movies,
+            long_computation,
+        ))
+
+        with si.utils.BlockTimer() as timer:
+            for fn in tqdm(fns):
+                fn()
+        print(timer)

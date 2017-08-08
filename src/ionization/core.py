@@ -3633,22 +3633,17 @@ class SphericalHarmonicMesh(QuantumMesh):
         return np.meshgrid(self.r, self.theta, indexing = 'ij')[0]
 
     @property
-    # @si.utils.memoize
-    def theta_l_r_meshes(self):
-        return np.meshgrid(self.theta, self.l, self.r, indexing = 'ij')
-
-    @property
     @si.utils.memoize
-    def _sph_harm_l_theta_r_mesh(self):
-        theta_mesh, l_mesh, _ = self.theta_l_r_meshes
+    def _sph_harm_l_theta_mesh(self):
+        l_mesh, theta_mesh = np.meshgrid(self.l, self.theta, indexing = 'ij')
         return special.sph_harm(0, l_mesh, 0, theta_mesh)
 
     def _reconstruct_spatial_mesh(self, mesh):
         """Reconstruct the spatial (r, theta) representation of a mesh from the (r, l) representation."""
-        # l: angular momentum index
-        # r: radial position index
-        # t: polar angle index
-        return np.einsum('lr,tlr->rt', mesh, self._sph_harm_l_theta_r_mesh)
+        # l: l, angular momentum index
+        # r: r, radial position index
+        # t: theta, polar angle index
+        return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_mesh)
 
     @property
     @si.utils.watcher(lambda s: s.sim.time)
