@@ -650,24 +650,6 @@ def delta_kick_decomposition_plot():
             **PLOT_KWARGS,
         )
 
-        # si.vis.xy_plot(
-        #     f'decomposition__{name}_decomposed',
-        #     kick_times,
-        #     kick_products,
-        #     line_kwargs = [{'linestyle': ':', 'marker': 'o'}],
-        #     x_label = r'Time $t$', x_unit = 'asec',
-        #     y_label = fr'$\eta_i$ (a.u.$\,\times\,$a.u.)', y_unit = time_field_unit,
-        #     font_size_axis_labels = 25,
-        #     font_size_tick_labels = 15,
-        #     font_size_legend = 20,
-        #     font_size_title = 25,
-        #     title = f'Decomposed {name} Pulse',
-        #     grid_kwargs = BETTER_GRID_KWARGS,
-        #     x_lower_limit = times[0], x_upper_limit = times[-1],
-        #     **{**FULL_SLIDE_FIGMAN_KWARGS, **quarter_page_kwargs},
-        #     **PLOT_KWARGS,
-        # )
-
 
 def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency):
     abs_prefactor = np.abs(abs_prefactor)
@@ -750,7 +732,6 @@ def delta_kicks_eta_plot():
         y_log_axis = True,
         y_log_pad = 1,
         legend_kwargs = {'loc': 'upper right'},
-        # y_lower_limit = 1e-9, y_upper_limit = 1,
         font_size_axis_labels = 35,
         font_size_tick_labels = 20,
         font_size_legend = 25,
@@ -979,7 +960,7 @@ def hyd__pulse_width_scan__sinc():
 
         for metric in metrics:
             si.vis.xxyy_plot(
-                f'pulse_width_scan__sinc__hyd__{metric}' + postfix,
+                f'hyd__pulse_width_scan__sinc__{metric}' + postfix,
                 [
                     *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
@@ -990,7 +971,7 @@ def hyd__pulse_width_scan__sinc():
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
                 # x_log_axis = log_x,
                 legend_kwargs = {
@@ -1008,7 +989,7 @@ def hyd__pulse_width_scan__sinc():
             )
 
             si.vis.xxyy_plot(
-                f'pulse_width_scan__sinc__hyd__{metric}' + postfix + '__zoom',
+                f'hyd__pulse_width_scan__sinc__{metric}' + postfix + '__zoom',
                 [
                     *[[r.pulse_width for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
@@ -1019,7 +1000,7 @@ def hyd__pulse_width_scan__sinc():
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2, y_lower_limit = 1e-5,
                 legend_kwargs = {
                     'loc': 'upper right',
@@ -1085,7 +1066,7 @@ def ide__pulse_width_scan__sinc():
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
                 legend_kwargs = {
                     'loc': 'upper right',
@@ -1153,7 +1134,7 @@ def hyd__fluence_scan__sinc():
                 title = 'Fluence Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Fluence $H$',
                 x_unit = 'Jcm2',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
                 x_log_axis = log_x,
                 legend_kwargs = {
@@ -1222,7 +1203,7 @@ def hyd__pulse_width_scan__gaussian():
                 title = 'Pulse Width Scan: Gaussian Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
                 x_log_axis = log_x,
                 legend_kwargs = {
@@ -1290,7 +1271,7 @@ def hyd__fluence_scan__gaussian():
                 title = 'Fluence Scan: Gaussian Pulse', title_offset = 1.075,
                 x_label = r'Fluence $H$',
                 x_unit = 'Jcm2',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 y_log_axis = log_y, y_log_pad = 2,
                 x_log_axis = log_x,
                 legend_kwargs = {
@@ -1594,7 +1575,7 @@ def hyd__cep_scan():
 
         for metric in metrics:
             si.vis.xxyy_plot(
-                f'hyd__cep_scan__pw={pw}as__both_metrics',
+                f'hyd__cep_scan__pw={pw}as__{metric}',
                 [
                     [r.phase for r in results]
                 ],
@@ -1605,7 +1586,7 @@ def hyd__cep_scan():
                 title = fr'CEP Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
                 x_label = r'Carrier-Envelope Phase $\varphi$',
                 x_unit = 'rad',
-                y_label = metric.lstrip('final_').replace('_', ' ').title(),
+                y_label = metric.replace('final_', '').replace('_', ' ').title(),
                 grid_kwargs = BETTER_GRID_KWARGS,
                 **BIG_FONTS,
                 **FULL_PAGE_KWARGS,
@@ -2062,11 +2043,6 @@ if __name__ == '__main__':
             tunneling_ionization,
             instantaneous_tunneling_rate_plot,
             length_ide_kernel_gaussian,
-            # tunneling_ionization_animation__pulse,
-            # delta_kicks_eta_plot,
-            # delta_kick_decomposition_plot,
-            # delta_kick_cosine_sine_comparison,
-            # omega_min_scan,
         ]
 
         movies = [
@@ -2079,10 +2055,19 @@ if __name__ == '__main__':
             ide__cep_scan,
         ]
 
+        deprecated = [
+            # tunneling_ionization_animation__pulse,
+            delta_kicks_eta_plot,
+            delta_kick_decomposition_plot,
+            delta_kick_cosine_sine_comparison,
+            # omega_min_scan,
+        ]
+
         fns = list(itertools.chain(
-            figures,
-            movies,
-            long_computation,
+            # figures,
+            # movies,
+            # long_computation,
+            deprecated,
         ))
 
         with si.utils.BlockTimer() as timer:

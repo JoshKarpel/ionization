@@ -1703,15 +1703,18 @@ class LineMesh(QuantumMesh):
         return g
 
     def energy_expectation_value(self, include_interaction = False):
-        potential = self.inner_product(b = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
+        potential = self.inner_product(b = self.spec.internal_potential(r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
 
         power_spectrum = np.abs(self.fft(self.g)) ** 2
         kinetic = np.sum((((hbar * self.wavenumbers) ** 2) / (2 * self.spec.test_mass)) * power_spectrum) / np.sum(power_spectrum)
 
-        raise NotImplementedError
-        # TODO: not including interaction correctly here
+        energy = potential + kinetic
 
-        return np.real(potential + kinetic)
+        if include_interaction:
+            energy += self.inner_product(
+                b = self.spec.electric_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
+
+        return np.real(energy)
 
     def dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
@@ -2165,8 +2168,8 @@ class CylindricalSliceMesh(QuantumMesh):
         hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
         hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
 
-        raise NotImplementedError
-        # TODO: not including interaction yet
+        if include_interaction:
+            raise NotImplementedError
 
         return hg_mesh_z + hg_mesh_rho
 
@@ -3639,7 +3642,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return special.sph_harm(0, l_mesh, 0, theta_mesh)
 
     def _reconstruct_spatial_mesh(self, mesh):
-        """Reconstruct the spatial (r, theta) representation of a mesh from the (r, l) representation."""
+        """Reconstruct the spatial (r, theta) representation of a mesh from the (l, r) representation."""
         # l: l, angular momentum index
         # r: r, radial position index
         # t: theta, polar angle index

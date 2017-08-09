@@ -76,26 +76,32 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         super().__init__()
 
     def initialize_axis(self):
-        self.time_line = self.axis.axvline(x = self.sim.time / self.time_unit_value,
-                                           color = 'gray',
-                                           animated = True)
+        self.time_line = self.axis.axvline(
+            x = self.sim.time / self.time_unit_value,
+            color = 'gray',
+            animated = True
+        )
         self.redraw.append(self.time_line)
 
         if self.show_electric_field:
-            self.electric_field_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
-                                                       self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
-                                                       label = fr'${core.LATEX_EFIELD}(t)$',
-                                                       color = core.COLOR_ELECTRIC_FIELD, linewidth = self.linewidth,
-                                                       animated = True)
+            self.electric_field_line, = self.axis.plot(
+                self.sim.data_times / self.time_unit_value,
+                self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
+                label = fr'${core.LATEX_EFIELD}(t)$',
+                color = core.COLOR_ELECTRIC_FIELD, linewidth = self.linewidth,
+                animated = True,
+            )
 
             self.redraw.append(self.electric_field_line)
 
         if self.show_vector_potential:
-            self.vector_potential_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
-                                                         proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
-                                                         label = fr'$q \, {core.LATEX_AFIELD}(t)$',
-                                                         color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
-                                                         animated = True)
+            self.vector_potential_line, = self.axis.plot(
+                self.sim.data_times / self.time_unit_value,
+                proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
+                label = fr'$q \, {core.LATEX_AFIELD}(t)$',
+                color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
+                animated = True,
+            )
 
             self.redraw.append(self.vector_potential_line)
 
@@ -109,7 +115,12 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_y_label:
             self.axis.set_ylabel('Wavefunction Metric', fontsize = 26)
 
-        self.axis.tick_params(labelbottom = self.show_ticks_bottom, labeltop = self.show_ticks_top, labelright = self.show_ticks_right, labelleft = self.show_ticks_left)
+        self.axis.tick_params(
+            labelbottom = self.show_ticks_bottom,
+            labeltop = self.show_ticks_top,
+            labelright = self.show_ticks_right,
+            labelleft = self.show_ticks_left
+        )
 
         self.axis.set_xlim(self.sim.data_times[0] / self.time_unit_value, self.sim.data_times[-1] / self.time_unit_value)
 
@@ -195,11 +206,13 @@ class StackplotAxis(si.vis.AxisManager):
 
     def initialize_axis(self):
         if self.show_norm:
-            self.norm_line, = self.axis.plot(self.sim.data_times / self.time_unit_value,
-                                             self.sim.norm_vs_time,
-                                             label = r'$\left\langle \Psi|\psi \right\rangle$',
-                                             color = 'black',
-                                             linewidth = 3)
+            self.norm_line, = self.axis.plot(
+                self.sim.data_times / self.time_unit_value,
+                self.sim.norm_vs_time,
+                label = r'$\left\langle \Psi|\psi \right\rangle$',
+                color = 'black',
+                linewidth = 3
+            )
 
             self.redraw.append(self.norm_line)
 
@@ -254,10 +267,12 @@ class StackplotAxis(si.vis.AxisManager):
 
         data, labels = self._get_stackplot_data_and_labels()
 
-        self.overlaps_stackplot = self.axis.stackplot(self.sim.data_times / self.time_unit_value,
-                                                      *data,
-                                                      labels = labels,
-                                                      animated = True)
+        self.overlaps_stackplot = self.axis.stackplot(
+            self.sim.data_times / self.time_unit_value,
+            *data,
+            labels = labels,
+            animated = True
+        )
 
         self.redraw = [*self.overlaps_stackplot] + self.redraw
 
@@ -326,8 +341,10 @@ class WavefunctionStackplotAxis(StackplotAxis):
 
         data = [
             *(overlap for state, overlap in sorted(selected_state_overlaps.items())),
-            sum((overlap for state, overlap in state_overlaps.items() if state.bound and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))), np.zeros(overlap_len)),
-            sum((overlap for state, overlap in state_overlaps.items() if state.free and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))), np.zeros(overlap_len)),
+            sum((overlap for state, overlap in state_overlaps.items() if state.bound and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))),
+                np.zeros(overlap_len)),
+            sum((overlap for state, overlap in state_overlaps.items() if state.free and (state not in self.states and (not state.numeric or state.analytic_state not in self.states))),
+                np.zeros(overlap_len)),
         ]
 
         labels = (
@@ -351,10 +368,13 @@ class AngularMomentumDecompositionAxis(si.vis.AxisManager):
         l_plot = self.sim.mesh.norm_by_l
         if self.renormalize_l_decomposition:
             l_plot /= self.sim.mesh.norm()
-        self.ang_mom_bar = self.axis.bar(self.sim.mesh.l[self.slice],
-                                         l_plot[self.slice],
-                                         align = 'center', color = '.5',
-                                         animated = True)
+        self.ang_mom_bar = self.axis.bar(
+            self.sim.mesh.l[self.slice],
+            l_plot[self.slice],
+            align = 'center',
+            color = '.5',
+            animated = True
+        )
 
         self.redraw += [*self.ang_mom_bar]
 
@@ -434,11 +454,13 @@ class QuantumMeshAxis(si.vis.AxisManager):
         super().initialize(simulation)
 
     def update_axis(self):
-        self.update_method(self.mesh,
-                           shading = self.shading,
-                           plot_limit = self.plot_limit,
-                           slicer = self.slicer,
-                           norm = self.norm)
+        self.update_method(
+            self.mesh,
+            shading = self.shading,
+            plot_limit = self.plot_limit,
+            slicer = self.slicer,
+            norm = self.norm
+        )
 
         super().update_axis()
 
@@ -467,14 +489,17 @@ class LineMeshAxis(QuantumMeshAxis):
     def initialize_axis(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
 
-        self.mesh = self.attach_method(self.axis,
-                                       colormap = self.colormap,
-                                       norm = self.norm,
-                                       shading = self.shading,
-                                       plot_limit = self.plot_limit,
-                                       distance_unit = self.distance_unit,
-                                       slicer = self.slicer,
-                                       animated = True)
+        self.mesh = self.attach_method(
+            self.axis,
+            colormap = self.colormap,
+            norm = self.norm,
+            shading = self.shading,
+            plot_limit = self.plot_limit,
+            distance_unit = self.distance_unit,
+            slicer = self.slicer,
+            animated = True,
+            linewidth = 3,
+        )
         self.redraw.append(self.mesh)
 
         # TODO: code for show_potential
@@ -500,7 +525,8 @@ class LineMeshAxis(QuantumMeshAxis):
 
         # self.axis.axis('tight')
 
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+        self.redraw += [*self.axis.xaxis.get_gridlines(),
+                        *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
         super().initialize_axis()
 
@@ -516,14 +542,16 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
         if self.which == 'g':
             self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
 
-        self.mesh = self.attach_method(self.axis,
-                                       colormap = self.colormap,
-                                       norm = self.norm,
-                                       shading = self.shading,
-                                       plot_limit = self.plot_limit,
-                                       distance_unit = self.distance_unit,
-                                       slicer = self.slicer,
-                                       animated = True)
+        self.mesh = self.attach_method(
+            self.axis,
+            colormap = self.colormap,
+            norm = self.norm,
+            shading = self.shading,
+            plot_limit = self.plot_limit,
+            distance_unit = self.distance_unit,
+            slicer = self.slicer,
+            animated = True,
+        )
         self.redraw.append(self.mesh)
 
         self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
@@ -537,7 +565,8 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
 
         super().initialize_axis()
 
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(),
+                        *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
         if self.which not in ('g', 'psi'):
             divider = make_axes_locatable(self.axis)
@@ -603,7 +632,8 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
 
         super().initialize_axis()
 
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(), *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(),
+                        *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
 
 class WavefunctionSimulationAnimator(si.vis.Animator):
