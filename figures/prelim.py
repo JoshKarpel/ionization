@@ -581,7 +581,6 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
-    # state machine
     kicks = []
     current_sign = signs[0]
     efield_accumulator = 0
@@ -598,11 +597,7 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
                 max_field = np.abs(efield)
                 max_field_time = time
         else:
-            # time_diff = time - start_time
-            # kick_time = (time + start_time) / 2
-
             kicks.append(kick(time = max_field_time, time_field_product = efield_accumulator))
-            # kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(efield_accumulator)))
 
             # reset
             current_sign = sign
@@ -624,7 +619,6 @@ def delta_kick_decomposition_plot():
     for pulse, name, times in zip(pulses, names, timess):
         kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
         kick_times = np.array(list(k.time for k in kicks))
-        # kick_products = np.array(list(k.time_field_product for k in kicks))
 
         si.vis.xxyy_plot(
             f'decomposition__{name.replace("$", "").replace(" ", "").lower()}_original',
@@ -635,8 +629,10 @@ def delta_kick_decomposition_plot():
                 *zip(np.zeros_like(kick_times), pulse.get_electric_field_amplitude(kick_times)),
             ],
             line_labels = ['Original', 'Decomposed'],
-            x_label = r'Time $t$', x_unit = 'asec',
-            y_label = fr'${ion.LATEX_EFIELD}(t)$', y_unit = 'atomic_electric_field',
+            x_label = r'Time $t$',
+            x_unit = 'asec',
+            y_label = fr'${ion.LATEX_EFIELD}(t)$',
+            y_unit = 'atomic_electric_field',
             line_kwargs = [{'linewidth': BIG_LINEWIDTH},
                            {'linestyle': '', 'marker': 'o', },
                            *[{'color': 'C1', 'linestyle': '-', 'linewidth': BIG_LINEWIDTH * .75} for _ in kick_times]],
@@ -665,13 +661,11 @@ def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency)
 
     @si.utils.memoize
     def a(n):
-        # print(f'calling a({n})')
         if n < 0:
             return 1
         else:
             first_term = np.exp(-1j * np.abs(bound_state_frequency) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
             second_term = sum(a(i) * b(n, i) * kernel_func(time_diff(n, i)) for i in range(n))  # all but current kick
-            # print(second_term)
 
             return first_term - second_term
 
@@ -728,7 +722,6 @@ def delta_kicks_eta_plot():
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}, ],
         x_label = r'Sine Wave Period Time $t$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,
         y_label = r'$\left|\left\langle a | a \right\rangle\right|^2$',
-        # vlines = [tau_alpha / 2, tau_alpha], vline_kwargs = [{'linestyle': ':', 'color': 'black'}, {'linestyle': ':', 'color': 'black'}],
         y_log_axis = True,
         y_log_pad = 1,
         legend_kwargs = {'loc': 'upper right'},
@@ -894,7 +887,6 @@ def multicycle_sine_cosine_comparison(pulse_type, omega_min, postfix):
         grid_kwargs = BETTER_GRID_KWARGS,
         y_lower_limit = -ylim,
         y_upper_limit = ylim,
-        title_offset = 1.2,
         **FULL_PAGE_KWARGS,
         **PLOT_KWARGS,
     )
@@ -967,7 +959,8 @@ def hyd__pulse_width_scan__sinc():
                 [
                     *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs}
+                               for phase, fluence in results_by_phase_and_fluence.keys()],
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
@@ -996,7 +989,8 @@ def hyd__pulse_width_scan__sinc():
                 [
                     *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs}
+                               for phase, fluence in results_by_phase_and_fluence.keys()],
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
@@ -1062,7 +1056,8 @@ def ide__pulse_width_scan__sinc():
                 [
                     *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs}
+                               for phase, fluence in results_by_phase_and_fluence.keys()],
                 title = 'Pulse Width Scan: Sinc Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
@@ -1199,7 +1194,8 @@ def hyd__pulse_width_scan__gaussian():
                 [
                     *[[getattr(r, metric) for r in results] for results in results_by_phase_and_fluence.values()]
                 ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs} for phase, fluence in results_by_phase_and_fluence.keys()],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': fluence_to_color[fluence], **extra_line_kwargs}
+                               for phase, fluence in results_by_phase_and_fluence.keys()],
                 title = 'Pulse Width Scan: Gaussian Pulse', title_offset = 1.075,
                 x_label = r'Pulse Width $\tau$',
                 x_unit = 'asec',
@@ -1267,7 +1263,8 @@ def hyd__fluence_scan__gaussian():
                 [
                     *[[getattr(r, metric) for r in results] for results in results_by_phase_and_pulse_width.values()]
                 ],
-                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': pulse_width_to_color[pulse_width], **extra_line_kwargs} for phase, pulse_width in results_by_phase_and_pulse_width.keys()],
+                line_kwargs = [{'linestyle': phase_to_style[phase], 'color': pulse_width_to_color[pulse_width], **extra_line_kwargs}
+                               for phase, pulse_width in results_by_phase_and_pulse_width.keys()],
                 title = 'Fluence Scan: Gaussian Pulse', title_offset = 1.075,
                 x_label = r'Fluence $H$',
                 x_unit = 'Jcm2',
@@ -1276,7 +1273,6 @@ def hyd__fluence_scan__gaussian():
                 x_log_axis = log_x,
                 legend_kwargs = {
                     'loc': 'best',
-                    # 'bbox_to_anchor': (.99, .875),
                     'handles': legend_handles,
                 },
                 grid_kwargs = BETTER_GRID_KWARGS,
@@ -1332,7 +1328,7 @@ def field_properties_vs_phase():
         'max_electric_field_vs_phase',
         phases,
         max_electric_field,
-        y_label = rf'$ \max \; \left|{ion.LATEX_EFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_electric_field',
+        y_label = rf'$ \max \, \left|{ion.LATEX_EFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_electric_field',
         title = 'Max. Electric Field vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1345,7 +1341,7 @@ def field_properties_vs_phase():
         'max_electric_field_vs_phase__rel',
         phases,
         max_electric_field / max_electric_field[0],
-        y_label = rf'$ \max \; \left|{ion.LATEX_EFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
+        y_label = rf'$ \max \, \left|{ion.LATEX_EFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
         title = 'Max. Electric Field vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1358,7 +1354,7 @@ def field_properties_vs_phase():
         'max_vector_potential_vs_phase',
         phases,
         proton_charge * max_vector_potential,
-        y_label = rf'$ \max \; e \, \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_momentum',
+        y_label = rf'$ \max \, e \, \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $', y_unit = 'atomic_momentum',
         title = 'Max. Vector Potential vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1371,7 +1367,7 @@ def field_properties_vs_phase():
         'max_vector_potential_vs_phase__rel',
         phases,
         max_vector_potential / max_vector_potential[0],
-        y_label = rf'$ \max \; e \, \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
+        y_label = rf'$ \max \, e \, \left|{ion.LATEX_AFIELD}_{{\varphi}}(t)\right| $ (Normalized)',
         title = 'Max. Vector Potential vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1384,7 +1380,7 @@ def field_properties_vs_phase():
         'max_intensity_vs_phase',
         phases,
         max_intensity,
-        y_label = rf'$ \max \; P(t) $', y_unit = 'atomic_intensity',
+        y_label = rf'$ \max \, P(t) $', y_unit = 'atomic_intensity',
         title = 'Max. Intensity vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1397,7 +1393,7 @@ def field_properties_vs_phase():
         'max_intensity_vs_phase__rel',
         phases,
         max_intensity / max_intensity[0],
-        y_label = rf'$ \max \; P(t) $ (Normalized)',
+        y_label = rf'$ \max \, P(t) $ (Normalized)',
         title = 'Max. Intensity vs. CEP',
         grid_kwargs = BETTER_GRID_KWARGS,
         **common,
@@ -1699,7 +1695,7 @@ def ionization_vs_field_properties():
             line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
             title = fr'VP Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
             # title_offset = 1.075,
-            x_label = rf'$ \max \; e \, \left| {ion.LATEX_AFIELD}_{{\varphi}}(t) \right| $',
+            x_label = rf'$ \max \, e \, \left| {ion.LATEX_AFIELD}_{{\varphi}}(t) \right| $',
             x_unit = 'atomic_momentum',
             y_label = 'Final State Projection',
             grid_kwargs = BETTER_GRID_KWARGS,
@@ -1736,7 +1732,7 @@ def ionization_vs_field_properties():
             line_kwargs = [{'linestyle': metric_to_style[metric], **extra_line_kwargs} for metric in metrics],
             title = fr'EF Scan: Sinc Pulse w/ $\tau = {pw} \, \mathrm{{as}}, \; H = 1 \, \mathrm{{J/cm^2}}$',
             # title_offset = 1.075,
-            x_label = rf'$ \max \; \left| {ion.LATEX_EFIELD}_{{\varphi}}(t) \right| $',
+            x_label = rf'$ \max \, \left| {ion.LATEX_EFIELD}_{{\varphi}}(t) \right| $',
             x_unit = 'atomic_electric_field',
             y_label = 'Final State Projection',
             grid_kwargs = BETTER_GRID_KWARGS,
@@ -1784,7 +1780,9 @@ def omega_min_scan():
         [
             *[[r.final_bound_state_overlap for r in jp.select_by_kwargs(phase = phase, **selectors)] for phase in phases],
         ],
-        line_labels = [r'$ \varphi = 0 $', r'$ \varphi = \pi / 4 $', r'$ \varphi = \pi / 2 $'],
+        line_labels = [r'$ \varphi = 0 $',
+                       r'$ \varphi = \pi / 4 $',
+                       r'$ \varphi = \pi / 2 $'],
         line_kwargs = [{'linewidth': BIG_LINEWIDTH, 'color': color} for color in colors],
         grid_kwargs = BETTER_GRID_KWARGS,
         x_label = '$ f_{\mathrm{carrier}} $', x_unit = 'THz',
@@ -1838,9 +1836,22 @@ def ide_symmetry():
     ax_lower = plt.subplot(grid_spec[1], sharex = ax_upper)
 
     for result, cep, color, style in zip(results, (r'$\varphi = \pi / 4$', r'$\varphi = 3 \pi / 4$'), ('C0', 'C1'), ('-', '-')):
-        ax_lower.plot(result.times / asec, result.spec.electric_potential.get_electric_field_amplitude(result.times) / atomic_electric_field, color = color, linewidth = BIG_LINEWIDTH, label = cep,
-                      linestyle = style)
-        ax_upper.plot(result.times / asec, result.a2, color = color, linewidth = BIG_LINEWIDTH, label = cep, linestyle = style)
+        ax_lower.plot(
+            result.times / asec,
+            result.spec.electric_potential.get_electric_field_amplitude(result.times) / atomic_electric_field,
+            color = color,
+            linewidth = BIG_LINEWIDTH,
+            label = cep,
+            linestyle = style,
+        )
+        ax_upper.plot(
+            result.times / asec,
+            result.a2,
+            color = color,
+            linewidth = BIG_LINEWIDTH,
+            label = cep,
+            linestyle = style,
+        )
 
     efield_1 = results[0].spec.electric_potential.get_electric_field_amplitude(results[0].times)
     field_max = np.max(efield_1)
@@ -1868,6 +1879,29 @@ def ide_symmetry():
     fig.set_tight_layout(True)
 
     si.vis.save_current_figure(get_func_name(), target_dir = OUT_DIR, img_format = 'png')
+
+    si.vis.xxyy_plot(
+        'efield_symmetry_comparison',
+        [
+            *[r.times for r in results],
+        ],
+        [
+            *[r.spec.electric_potential.get_electric_field_amplitude(r.times) for r in results],
+        ],
+        line_labels = [r'$\varphi = \pi / 4$',
+                       r'$\varphi = 3 \pi / 4$'],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH, 'color': si.vis.GREEN},
+                       {'linewidth': BIG_LINEWIDTH, 'color': si.vis.PURPLE, 'linestyle': '--'}],
+        x_label = r'Time $t$',
+        x_unit = 'asec',
+        y_label = rf'Electric Field Amplitude ${ion.LATEX_EFIELD}(t)$',
+        y_unit = 'atomic_electric_field',
+        x_lower_limit = -500 * asec, x_upper_limit = 500 * asec,
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
 
 
 def get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = 1 * Jcm2):
@@ -2024,13 +2058,15 @@ if __name__ == '__main__':
         figures = [
             title_bg,
             efield_and_afield,
-            ionization_vs_field_properties,
             functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
             functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
             functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
             functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
+            pulse_ffts,
             spherical_harmonic_mesh,
             richardson_colormap,
+            tunneling_ionization,
+            instantaneous_tunneling_rate_plot,
             hyd__pulse_width_scan__sinc,
             ide__pulse_width_scan__sinc,
             hyd__pulse_width_scan__gaussian,
@@ -2038,11 +2074,9 @@ if __name__ == '__main__':
             hyd__fluence_scan__gaussian,
             hyd__cep_scan,
             field_properties_vs_phase,
-            pulse_ffts,
-            ide_symmetry,
-            tunneling_ionization,
-            instantaneous_tunneling_rate_plot,
+            ionization_vs_field_properties,
             length_ide_kernel_gaussian,
+            ide_symmetry,
         ]
 
         movies = [
@@ -2056,18 +2090,18 @@ if __name__ == '__main__':
         ]
 
         deprecated = [
-            # tunneling_ionization_animation__pulse,
+            tunneling_ionization_animation__pulse,
             delta_kicks_eta_plot,
             delta_kick_decomposition_plot,
             delta_kick_cosine_sine_comparison,
-            # omega_min_scan,
+            omega_min_scan,
         ]
 
         fns = list(itertools.chain(
-            # figures,
-            # movies,
-            # long_computation,
-            deprecated,
+            figures,
+            movies,
+            long_computation,
+            # deprecated,
         ))
 
         with si.utils.BlockTimer() as timer:

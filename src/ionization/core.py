@@ -418,7 +418,6 @@ class ElectricFieldSimulation(si.Simulation):
                 pass
 
             self.status = si.Status.FINISHED
-
             logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
         except Exception as e:
             raise e
@@ -735,10 +734,6 @@ class ElectricFieldSimulation(si.Simulation):
                                  top = True,
                                  left = True,
                                  right = True)
-            # ax_overlaps.xaxis.tick_top()
-
-            # plt.rcParams['xtick.major.pad'] = 5
-            # plt.rcParams['ytick.major.pad'] = 5
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -2757,6 +2752,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
                  r_bound = 100 * bohr_radius,
                  r_points = 400,
                  l_bound = 100,
+                 theta_points = 360,
                  evolution_equations = 'LAG',
                  evolution_method = 'SO',
                  evolution_gauge = 'LEN',
@@ -2788,6 +2784,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.r_bound = r_bound
         self.r_points = int(r_points)
         self.l_bound = l_bound
+        self.theta_points = theta_points
         self.spherical_harmonics = tuple(si.math.SphericalHarmonic(l, 0) for l in range(self.l_bound))
 
         self.store_norm_by_l = store_norm_by_l
@@ -2833,8 +2830,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.inner_product_multiplier = self.delta_r
 
         self.l = np.array(range(self.spec.l_bound), dtype = int)
-        self.theta_points = 360
-        self.phi_points = self.theta_points
+        self.theta_points = self.phi_points = self.spec.theta_points
 
         self.mesh_points = len(self.r) * len(self.l)
         self.mesh_shape = np.shape(self.r_mesh)

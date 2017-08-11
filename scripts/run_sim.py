@@ -11,7 +11,7 @@ import ionization as ion
 
 
 def ensure_compatibility(spec):
-    pass
+    spec.theta_points = 360
 
 
 if __name__ == '__main__':

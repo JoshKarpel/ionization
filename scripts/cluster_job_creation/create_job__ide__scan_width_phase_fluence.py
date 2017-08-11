@@ -61,14 +61,16 @@ if __name__ == '__main__':
         test_charge = electron_charge * clu.ask_for_input('Test Particle Electric Charge (in electron charges)?', default = 1, cast_to = float)
         test_mass = electron_mass * clu.ask_for_input('Test Particle Mass (in electron masses)?', default = 1, cast_to = float)
         test_width = bohr_radius * clu.ask_for_input('Gaussian Test Wavefunction Width (in Bohr radii)?', default = 1, cast_to = float)
-        test_energy = -(hbar ** 2) / (8 * test_mass * (test_width ** 2))  # negative of the kinetic, via virial thm
+        # test_energy = -(hbar ** 2) / (8 * test_mass * (test_width ** 2))  # negative of the kinetic, via virial thm
+        # test_energy = clu.ask_for_eval('Bound State Energy?', default = ion.HydrogenBoundState(1, 0).energy)
+        test_energy = ion.HydrogenBoundState(1, 0).energy
 
         if evolution_gauge.value == 'LEN':
-            prefactor = -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
-            tau_alpha = 4 * test_mass * (test_width ** 2) / hbar
+            prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge)
+            tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)
         elif evolution_gauge.value == 'VEL':
-            prefactor = -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
-            tau_alpha = 2 * test_mass * (test_width ** 2) / hbar
+            prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass)
+            tau_alpha = ide.gaussian_tau_alpha_VEL(test_width, test_mass)
         else:
             raise ValueError('Unknown evolution gauge')
 
