@@ -621,7 +621,7 @@ def delta_kick_decomposition_plot():
         kick_times = np.array(list(k.time for k in kicks))
 
         si.vis.xxyy_plot(
-            f'decomposition__{name.replace("$", "").replace(" ", "").lower()}_original',
+            f'delta_decomposition__{name.replace("$", "").replace(" ", "").lower()}_original',
             [times, kick_times, *si.utils.grouper(np.repeat(kick_times, 2), 2)],
             [
                 pulse.get_electric_field_amplitude(times),
@@ -681,7 +681,7 @@ def make_sine_wave_kicks(number_of_periods, period, eta):
     return kicks
 
 
-def delta_kicks_eta_plot():
+def delta_kick_eta_plot():
     etas = np.array([.2, .4, .5]) * time_field_unit
 
     number_of_periods = 10
@@ -1988,7 +1988,11 @@ def delta_kick_cosine_sine_comparison():
         y_label = r'Initial State Overlap $ \left| a_{\alpha} \right|^2 $',
         title = r'Delta Kick Model: Kick Delay Scan',
         vlines = [tau_alpha], vline_kwargs = [{'linestyle': '--', 'color': 'black', 'linewidth': BIG_LINEWIDTH}],
-        legend_kwargs = {'loc': 'lower right'},
+        legend_kwargs = {
+            'loc': 'upper right',
+            'bbox_to_anchor': (-.125, .4),
+            'borderaxespad': 0.
+        },
         grid_kwargs = BETTER_GRID_KWARGS,
         **BIG_FONTS,
         **FULL_PAGE_KWARGS,
@@ -2056,27 +2060,29 @@ def ide__cep_scan():
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            title_bg,
-            efield_and_afield,
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
-            pulse_ffts,
-            spherical_harmonic_mesh,
-            richardson_colormap,
-            tunneling_ionization,
-            instantaneous_tunneling_rate_plot,
-            hyd__pulse_width_scan__sinc,
-            ide__pulse_width_scan__sinc,
-            hyd__pulse_width_scan__gaussian,
-            hyd__fluence_scan__sinc,
-            hyd__fluence_scan__gaussian,
-            hyd__cep_scan,
-            field_properties_vs_phase,
-            ionization_vs_field_properties,
-            length_ide_kernel_gaussian,
-            ide_symmetry,
+            # title_bg,
+            # efield_and_afield,
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
+            # pulse_ffts,
+            # spherical_harmonic_mesh,
+            # richardson_colormap,
+            # tunneling_ionization,
+            # instantaneous_tunneling_rate_plot,
+            # hyd__pulse_width_scan__sinc,
+            # ide__pulse_width_scan__sinc,
+            # hyd__pulse_width_scan__gaussian,
+            # hyd__fluence_scan__sinc,
+            # hyd__fluence_scan__gaussian,
+            # hyd__cep_scan,
+            # field_properties_vs_phase,
+            # ionization_vs_field_properties,
+            # length_ide_kernel_gaussian,
+            # ide_symmetry,
+            # delta_kick_decomposition_plot,
+            delta_kick_cosine_sine_comparison,
         ]
 
         movies = [
@@ -2090,17 +2096,15 @@ if __name__ == '__main__':
         ]
 
         deprecated = [
+            delta_kick_eta_plot,
             tunneling_ionization_animation__pulse,
-            delta_kicks_eta_plot,
-            delta_kick_decomposition_plot,
-            delta_kick_cosine_sine_comparison,
             omega_min_scan,
         ]
 
         fns = list(itertools.chain(
             figures,
-            movies,
-            long_computation,
+            # movies,
+            # long_computation,
             # deprecated,
         ))
 
