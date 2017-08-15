@@ -8,7 +8,6 @@ from simulacra.units import *
 import ionization as ion
 import ionization.classical as cla
 
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
@@ -20,12 +19,20 @@ PLOT_KWARGS = dict(
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
-        initial_position = [(0, bohr_radius)]
-        initial_velocity = [(alpha * c, 0)]
+        initial_position = [
+            (0, bohr_radius, 0),
+            (0, 0, bohr_radius),
+            (bohr_radius, 0, 0),
+        ]
+        initial_velocity = [
+            (alpha * c, 0, 0),
+            (0, alpha * c, 0),
+            (0, 0, alpha * c),
+        ]
         test_mass = electron_mass_reduced
         test_charge = electron_charge
 
-        force = cla.CoulombForce(position = [0, 0], charge = proton_charge)
+        force = cla.CoulombForce(position = [0, 0, 0], charge = proton_charge)
         # force = cla.NoForce()
 
         spec = cla.ClassicalSpecification(
@@ -36,7 +43,7 @@ if __name__ == '__main__':
             test_charge = test_charge,
             force = force,
             time_initial = 0,
-            time_final = 1000 * asec,
+            time_final = 100 * asec,
             time_step = .1 * asec,
             evolution_method = 'VV',
         )
@@ -50,4 +57,5 @@ if __name__ == '__main__':
         sim.run_simulation(progress_bar = True)
         print(sim.info())
 
-        sim.plot_particle_paths_2d(**PLOT_KWARGS)
+        # sim.plot_particle_path_2d(**PLOT_KWARGS)
+        sim.plot_particle_paths_3d(**PLOT_KWARGS)

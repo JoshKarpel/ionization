@@ -6,6 +6,7 @@ from copy import copy, deepcopy
 
 import matplotlib
 import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
 from cycler import cycler
 import numpy as np
 import numpy.fft as nfft
@@ -49,7 +50,7 @@ class CoulombForce(Force):
     def __call__(self, t, *, position, test_charge, **kwargs):
         r_vec = position - self.position
         denom = np.sum(r_vec ** 2, axis = 1) ** 1.5
-        return coulomb_constant * self.charge * test_charge * r_vec / denom
+        return coulomb_constant * self.charge * test_charge * r_vec / denom[:, np.newaxis]
 
 
 class ClassicalSimulation(si.Simulation):
@@ -73,7 +74,6 @@ class ClassicalSimulation(si.Simulation):
     def time(self):
         return self.times[self.time_index]
 
-    @si.utils.memoize
     def eval_force(self, time_index):
         return self.spec.force(
             self.time,
@@ -149,20 +149,42 @@ class ClassicalSimulation(si.Simulation):
 
             self.spec.animators = ()
 
-    def plot_particle_paths_2d(self, particle_slice = None, **kwargs):
-        if particle_slice is None:
-            particle_slice = slice(None)
-
+    def plot_particle_path_2d(self, **kwargs):
         si.vis.xy_plot(
-            f'{self.name}__particle_paths',
-            self.positions[:, particle_slice, 0],
-            self.positions[:, particle_slice, 1],
+            f'{self.name}__particle_path_2d',
+            self.positions[:, 0, 0],
+            self.positions[:, 0, 1],
             x_lower_limit = -2 * bohr_radius, x_upper_limit = 2 * bohr_radius,
             y_lower_limit = -2 * bohr_radius, y_upper_limit = 2 * bohr_radius,
             x_unit = 'bohr_radius', y_unit = 'bohr_radius',
             square_axis = True,
             **kwargs,
         )
+
+    def plot_particle_paths_3d(self, particle_numbers = None, position_unit = 'bohr_radius', **kwargs):
+        with si.vis.FigureManager(f'{self.name}__particle_paths_3d', **kwargs) as fm:
+            fig = fm.fig
+            ax = fig.add_subplot(111, projection = '3d')
+
+            position_unit_value, position_unit_latex = get_unit_value_and_latex_from_unit(position_unit)
+
+            pos = self.positions / position_unit_value
+
+            if particle_numbers is None:
+                particle_numbers = range(self.positions.shape[1])
+
+            for particle_number in particle_numbers:
+                ax.plot(
+                    pos[:, particle_number, 0],
+                    pos[:, particle_number, 1],
+                    pos[:, particle_number, 2],
+                )
+
+            ax.set_xlabel(r'$x$')
+            ax.set_xlabel(r'$y$')
+            ax.set_xlabel(r'$z$')
+
+            plt.show()
 
     def info(self):
         info = super().info()
@@ -200,6 +222,8 @@ class ClassicalSpecification(si.Specification):
 
         self.initial_positions = np.array(initial_positions)
         self.initial_velocities = np.array(initial_velocities)
+        if self.initial_positions.shape != self.initial_velocities.shape:
+            raise si.SimulacraException(f'Initial positions and velocities must have the same shape, but have shapes {self.initial_positions.shape} and {self.initial_velocities.shape}')
 
         self.test_mass = test_mass
         self.test_charge = test_charge
