@@ -611,10 +611,11 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
 
 def delta_kick_decomposition_plot():
     pulse_width = 200 * asec
-    timess = [np.linspace(-5 * pulse_width, 5 * pulse_width, 1000), np.linspace(-5 * pulse_width, 5 * pulse_width, 1000)]
+    tb = 3
+    timess = [np.linspace(-tb * pulse_width, tb * pulse_width, 1000), np.linspace(-tb * pulse_width, tb * pulse_width, 1000)]
 
-    pulses = [ion.GaussianPulse(), ion.GaussianPulse(phase = pi / 2)]
-    names = [r'Gaussian Pulse, $\varphi = 0$', r'Gaussian Pulse, $\varphi = \pi / 2$']
+    pulses = [ion.SincPulse(), ion.SincPulse(phase = pi / 2)]
+    names = [r'Sinc Pulse, $\varphi = 0$', r'Sinc Pulse, $\varphi = \pi / 2$']
 
     for pulse, name, times in zip(pulses, names, timess):
         kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
@@ -2081,7 +2082,7 @@ if __name__ == '__main__':
             # ionization_vs_field_properties,
             # length_ide_kernel_gaussian,
             # ide_symmetry,
-            # delta_kick_decomposition_plot,
+            delta_kick_decomposition_plot,
             delta_kick_cosine_sine_comparison,
         ]
 
