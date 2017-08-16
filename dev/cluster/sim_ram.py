@@ -30,21 +30,23 @@ def run_sim_in_proc(R, ppR, L, T):
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        R = 250
-        ppR = 8
-        L = 500
+        R = 100
+        ppR = 4
+        L = 100
         T = 50
 
         times = []
         rss = []
+        vms = []
         proc = run_sim_in_proc(R, ppR, L, T)
         ps_proc = psutil.Process(proc.pid)
 
         while proc.poll() is None:
             try:
-                t, mem = time.time(), ps_proc.memory_info().rss
+                t, mem_info = time.time(), ps_proc.memory_info()
                 times.append(t)
-                rss.append(mem)
+                rss.append(mem_info.rss)
+                vms.append(mem_info.vms)
             except psutil.NoSuchProcess:
                 pass
 
@@ -56,7 +58,9 @@ if __name__ == '__main__':
             f'rss_vs_time__R={R}_ppR={ppR}_L={L}_T={T}',
             times,
             rss,
+            vms,
+            line_labels = ['RSS', 'VMS'],
             x_label = 'Time', x_unit = 's',
-            y_label = 'RSS (MB)', y_unit = (1024 ** 2),
+            y_label = 'Memory Usage (MB)', y_unit = (1024 ** 2),
             **PLOT_KWARGS,
         )

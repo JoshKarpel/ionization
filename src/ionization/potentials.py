@@ -976,6 +976,27 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             **kwargs
         )
 
+    @classmethod
+    def from_amplitude_prefactor(
+            cls,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_min = DEFAULT_OMEGA_MIN,
+            amplitude_prefactor = 1 * atomic_electric_field,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
+        delta_omega = twopi / pulse_width
+        fluence = pi * epsilon_0 * c * (amplitude_prefactor ** 2) / delta_omega
+
+        return cls(
+            pulse_width = pulse_width,
+            omega_min = omega_min,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
+
     @property
     def photon_energy_min(self):
         return hbar * self.omega_min
@@ -1067,6 +1088,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
@@ -1199,6 +1221,26 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             **kwargs
         )
 
+    @classmethod
+    def from_amplitude_prefactor(
+            cls,
+            pulse_width = DEFAULT_PULSE_WIDTH,
+            omega_min = DEFAULT_OMEGA_MIN,
+            amplitude_prefactor = 1 * atomic_electric_field,
+            phase = DEFAULT_PHASE,
+            pulse_center = DEFAULT_PULSE_CENTER,
+            **kwargs):
+        fluence = np.sqrt(pi) * epsilon_0 * c * pulse_width * (amplitude_prefactor ** 2) / 2
+
+        return cls.from_omega_min(
+            pulse_width = pulse_width,
+            omega_min = omega_min,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
+
     @property
     def photon_energy_carrier(self):
         return hbar * self.omega_carrier
@@ -1293,6 +1335,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec)} fs | {uround(self.pulse_width, atomic_time)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
@@ -1498,6 +1541,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
