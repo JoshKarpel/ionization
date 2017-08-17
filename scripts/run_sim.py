@@ -1,9 +1,19 @@
 import os
+import sys
+import socket
+import datetime as dt
+import platform
+
+print(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {dt.datetime.now()}.', file = sys.stderr)
+print(f'Execute node operating system: {os.uname()}', file = sys.stderr)
+try:
+    print(f'Distribution: {platform.linux_distribution()}', file = sys.stderr)
+except Exception:
+    pass
+print(f'Local directory contents: {os.listdir(os.getcwd())}', file = sys.stderr)
+
 import argparse
 import logging
-import datetime as dt
-import socket
-import platform
 
 import simulacra as si
 

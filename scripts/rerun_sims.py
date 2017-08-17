@@ -9,8 +9,8 @@ import simulacra.cluster as clu
 
 
 def get_missing_sim_names():
-    input_names = set(os.listdir('inputs/'))
-    output_names = set(os.listdir('outputs/'))
+    input_names = set(f.rstrip('.spec') for f in os.listdir('inputs/'))
+    output_names = set(f.rstrip('.sim') for f in os.listdir('outputs/'))
 
     return input_names - output_names
 
@@ -50,8 +50,6 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print(args)
-
     os.chdir(args.job_name)
 
     rerun_identifier = f'rerun_{si.utils.get_now_str()}'
@@ -62,7 +60,7 @@ if __name__ == '__main__':
 
     sim_names = set(args.sim_names)
     if args.missing:
-        sim_names += get_missing_sim_names()
+        sim_names = sim_names.union(get_missing_sim_names())
 
     generate_sim_names_file(sim_name_file_name, sim_names)
 
@@ -71,7 +69,7 @@ if __name__ == '__main__':
         print(sim_name)
     print('-' * 50)
 
-    if clu.ask_for_bool('Rerunning above sim names (total {len(sim_names)}. Ok?', default = 'n'):
+    if clu.ask_for_bool(f'Rerunning above sim names (total {len(sim_names)}. Ok?', default = 'n'):
         cmds = [
             'condor_submit',
             rerun_submit_file_name,

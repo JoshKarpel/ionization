@@ -30,9 +30,9 @@ def run_sim_in_proc(R, ppR, L, T):
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        R = 100
-        ppR = 4
-        L = 100
+        R = 300
+        ppR = 8
+        L = 1000
         T = 50
 
         times = []
