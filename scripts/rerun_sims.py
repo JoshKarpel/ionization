@@ -17,7 +17,7 @@ def get_missing_sim_names():
 
 def generate_sim_names_file(sim_name_file_name, sim_names):
     with open(sim_name_file_name, mode = 'w') as sim_name_file:
-        sim_name_file.writelines(sorted(sim_names))
+        sim_name_file.write('\n'.join(sorted(sim_names)))
 
 
 def generate_rerun_submit_file(submit_file_name, sim_name_file_name):
@@ -62,14 +62,13 @@ if __name__ == '__main__':
     if args.missing:
         sim_names = sim_names.union(get_missing_sim_names())
 
-    generate_sim_names_file(sim_name_file_name, sim_names)
-
     print('-' * 50)
     for sim_name in sorted(sim_names):
         print(sim_name)
     print('-' * 50)
 
     if clu.ask_for_bool(f'Rerunning above sim names (total {len(sim_names)}. Ok?', default = 'n'):
+        generate_sim_names_file(sim_name_file_name, sim_names)
         cmds = [
             'condor_submit',
             rerun_submit_file_name,
