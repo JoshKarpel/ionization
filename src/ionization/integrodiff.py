@@ -1,11 +1,14 @@
 import logging
 import collections
+import functools
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integrate
+import scipy.special as special
 from tqdm import tqdm
+import sympy as sym
 
 import simulacra as si
 from simulacra.units import *
@@ -49,6 +52,39 @@ def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width,
     diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
 
     return exp * diff * inv
+
+
+@si.utils.memoize
+def _hydrogen_kernel_LEN_factory():
+    k = sym.Symbol('k', real = True)
+    a = sym.Symbol('a', real = True, positive = True)
+    m = sym.Symbol('m', real = True, positive = True)
+    t = sym.Symbol('t', real = True, positive = True)
+    hb = sym.Symbol('hb', real = True, positive = True)
+
+    integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * t / (2 * m)))
+
+    kernel = sym.integrate(integrand, (k, -sym.oo, sym.oo))
+
+    kernel_func = sym.lambdify((a, m, hb, t), kernel, modules = ['numpy', {'erfc': special.erfc}])
+    kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
+
+    return kernel_func
+
+
+def hydrogen_kernel_LEN(time_difference, *, kernel_prefactor, **kwargs):
+    kernel_func = _hydrogen_kernel_LEN_factory()
+    nonzero = kernel_func(time_difference)
+    zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
+    return kernel_prefactor * np.where(time_difference != 0, nonzero, zero)
+
+
+def hydrogen_kernel_prefactor_LEN():
+    return 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
+
+
+def hydrogen_prefactor_LEN(test_charge):
+    return -(test_charge / hbar) ** 2
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -750,6 +786,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info_ide.add_field('Bound State Energy', f'{uround(self.test_energy, eV)} eV')
         info_ide.add_field('Prefactor', self.prefactor)
         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+        info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
 
         info_potential = self.electric_potential.info()
         info_potential.header = 'Electric Potential: ' + info_potential.header
@@ -1283,6 +1320,7 @@ class DeltaKickSpecification(si.Specification):
         info_ide.add_field('Initial State', f'a = {self.a_initial}')
         info_ide.add_field('Prefactor', self.prefactor)
         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+        info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
 
         info_potential = self.electric_potential.info()
         info_potential.header = 'Electric Potential: ' + info_potential.header
