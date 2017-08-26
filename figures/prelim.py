@@ -783,8 +783,8 @@ def pulse_ffts():
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
         x_label = r'Frequency $ f $', x_unit = 'THz',
         x_lower_limit = 0, x_upper_limit = freq_plot_limit,
-        y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)',
-        y_unit = Jcm2 / THz,
+        y_label = fr'$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{mJ / cm^2 / THz}}$)',
+        y_unit = (mJ / (cm ** 2)) / THz,
         title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
         vlines = [2530 * THz], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
         grid_kwargs = BETTER_GRID_KWARGS,
@@ -801,8 +801,8 @@ def pulse_ffts():
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}, {'linewidth': BIG_LINEWIDTH}],
         x_label = r'Photon Energy $ E $', x_unit = 'eV',
         x_lower_limit = 0, x_upper_limit = freq_plot_limit * h,
-        y_label = fr'$ \left| {ion.LATEX_EFIELD}(E) \right|^2 $  ($\mathrm{{J / cm^2 / eV}}$)',
-        y_unit = Jcm2 / eV,
+        y_label = fr'$ \left| {ion.LATEX_EFIELD}(E) \right|^2 $  ($\mathrm{{mJ / cm^2 / eV}}$)',
+        y_unit = (mJ / (cm ** 2)) / eV,
         title = fr'Power Spectral Density for $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$',
         vlines = [2530 * THz * h], vline_kwargs = [{'linewidth': BIG_LINEWIDTH, 'linestyle': '--', 'color': 'black'}],
         grid_kwargs = BETTER_GRID_KWARGS,
@@ -1420,10 +1420,10 @@ def instantaneous_tunneling_rate_plot():
     si.vis.xy_plot(
         f'tunneling_rate_vs_field_amplitude',
         amplitudes,
-        tunneling_rates * asec,
+        tunneling_rates * fsec,
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
         x_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}$', x_unit = 'atomic_electric_field',
-        y_label = r'Tunneling Rate $\Gamma$ ($\mathrm{as}^{-1}$)',
+        y_label = r'Tunneling Rate $\Gamma$ ($\mathrm{fs}^{-1}$)',
         title = 'Tunneling Ionization Rate',
         grid_kwargs = BETTER_GRID_KWARGS,
         **BIG_FONTS,
@@ -2103,8 +2103,8 @@ if __name__ == '__main__':
         ]
 
         fns = list(itertools.chain(
-            # figures,
-            # movies,
+            figures,
+            movies,
             long_computation,
             # deprecated,
         ))

@@ -88,7 +88,7 @@ if __name__ == '__main__':
         shared_kwargs = dict(
             time_initial = -pulse.pulse_width * 10,
             time_final = pulse.pulse_width * 10,
-            time_step = 1 * asec,
+            time_step = .1 * asec,
             electric_potential = pulse,
             electric_potential_dc_correction = True,
         )
@@ -110,4 +110,4 @@ if __name__ == '__main__':
             )
         ]
 
-        results = list(run(spec) for spec in specs)
+        results = si.utils.multi_map(run, specs, processes = 2)
