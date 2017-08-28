@@ -3,16 +3,28 @@
 import os
 import argparse
 import subprocess
+from tqdm import tqdm
 
 import simulacra as si
 import simulacra.cluster as clu
 
 
 def get_missing_sim_names():
-    input_names = set(f.rstrip('.spec') for f in os.listdir('inputs/'))
-    output_names = set(f.rstrip('.sim') for f in os.listdir('outputs/'))
+    input_specs = set(f.rstrip('.spec') for f in os.listdir('inputs/'))
+    completed_sims = set(f.rstrip('.sim') for f in os.listdir('outputs/'))
 
-    return input_names - output_names
+    print('Checking existing outputs...')
+    for sim_name in tqdm(os.listdir('outputs/'), ascii = True):
+        sim_path = os.path.join(os.path.abspath('outputs'), sim_name)
+
+        try:
+            sim = si.Simulation.load(sim_path)
+            if sim.status != si.Status.FINISHED:
+                completed_sims.remove(sim_name.rstrip('.sim'))
+        except Exception:
+            pass
+
+    return input_specs - completed_sims
 
 
 def generate_sim_names_file(sim_name_file_name, sim_names):
