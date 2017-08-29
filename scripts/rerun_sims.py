@@ -22,7 +22,7 @@ def get_missing_sim_names():
             if sim.status != si.Status.FINISHED:
                 completed_sims.remove(sim_name.rstrip('.sim'))
         except Exception:
-            pass
+            completed_sims.remove(sim_name.rstrip('.sim'))
 
     return input_specs - completed_sims
 

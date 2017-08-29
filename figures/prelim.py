@@ -2058,32 +2058,94 @@ def ide__cep_scan():
     )
 
 
+def pulse_prefactors_vs_properties():
+    pulse_widths_sparse = np.array([50, 100, 200, 400, 800]) * asec
+    fluences_sparse = np.array([.1, 1, 5, 10, 20]) * Jcm2
+
+    pulse_widths_dense = np.linspace(50, 1000, 1e3) * asec
+    fluences_dense = np.linspace(0, 20, 1e3) * Jcm2
+
+    si.vis.xy_plot(
+        'prefactor_vs_pulse_width_scan',
+        pulse_widths_dense,
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for pw in pulse_widths_dense]
+          for flu in fluences_sparse],
+        line_labels = [rf'$ H = {uround(flu, Jcm2, 1)} \, \mathrm{{J/cm^2}} $' for flu in fluences_sparse],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in fluences_sparse],
+        x_label = r'Pulse Width $ \tau $', x_unit = 'asec',
+        y_label = rf'Field Prefactor $ {ion.LATEX_EFIELD}_0 $', y_unit = 'atomic_electric_field',
+        y_lower_limit = 0, y_upper_limit = 3.5 * atomic_electric_field, y_pad = 0,
+        title = 'Electric Field Prefactor vs. Pulse Width',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    si.vis.xy_plot(
+        'prefactor_vs_fluence_scan',
+        fluences_dense,
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for flu in fluences_dense]
+          for pw in pulse_widths_sparse],
+        line_labels = [rf'$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $' for pw in pulse_widths_sparse],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in pulse_widths_sparse],
+        x_label = r'Fluence $ H $', x_unit = 'Jcm2',
+        y_label = rf'Field Prefactor $ {ion.LATEX_EFIELD}_0 $', y_unit = 'atomic_electric_field',
+        y_lower_limit = 0, y_upper_limit = 3.5 * atomic_electric_field, y_pad = 0,
+        title = 'Electric Field Prefactor vs. Fluence',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+    fluences_log = np.geomspace(.01, 20, 1e3) * Jcm2
+    si.vis.xy_plot(
+        'prefactor_vs_fluence_scan_log',
+        fluences_log,
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for flu in fluences_log]
+          for pw in pulse_widths_sparse],
+        line_labels = [rf'$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $' for pw in pulse_widths_sparse],
+        line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in pulse_widths_sparse],
+        x_label = r'Fluence $ H $', x_unit = 'Jcm2',
+        x_log_axis = True,
+        y_label = rf'Field Prefactor $ {ion.LATEX_EFIELD}_0 $', y_unit = 'atomic_electric_field',
+        y_lower_limit = 0, y_upper_limit = 3.5 * atomic_electric_field, y_pad = 0,
+        title = 'Electric Field Prefactor vs. Fluence',
+        grid_kwargs = BETTER_GRID_KWARGS,
+        **BIG_FONTS,
+        **FULL_PAGE_KWARGS,
+        **PLOT_KWARGS,
+    )
+
+
 if __name__ == '__main__':
     with logman as logger:
         figures = [
-            title_bg,
-            efield_and_afield,
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
-            functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
-            pulse_ffts,
-            spherical_harmonic_mesh,
-            richardson_colormap,
-            tunneling_ionization,
-            instantaneous_tunneling_rate_plot,
-            hyd__pulse_width_scan__sinc,
-            ide__pulse_width_scan__sinc,
-            hyd__pulse_width_scan__gaussian,
-            hyd__fluence_scan__sinc,
-            hyd__fluence_scan__gaussian,
-            hyd__cep_scan,
-            field_properties_vs_phase,
-            ionization_vs_field_properties,
-            length_ide_kernel_gaussian,
-            ide_symmetry,
-            delta_kick_decomposition_plot,
-            delta_kick_cosine_sine_comparison,
+            # title_bg,
+            # efield_and_afield,
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 30 * THz, ', Few-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.GaussianPulse, twopi * 2000 * THz, ', Many-cycle'),
+            # functools.partial(multicycle_sine_cosine_comparison, ion.SincPulse, twopi * 2000 * THz, ', Many-cycle'),
+            # pulse_ffts,
+            # spherical_harmonic_mesh,
+            # richardson_colormap,
+            # tunneling_ionization,
+            # instantaneous_tunneling_rate_plot,
+            # hyd__pulse_width_scan__sinc,
+            # ide__pulse_width_scan__sinc,
+            # hyd__pulse_width_scan__gaussian,
+            # hyd__fluence_scan__sinc,
+            # hyd__fluence_scan__gaussian,
+            # hyd__cep_scan,
+            # field_properties_vs_phase,
+            # ionization_vs_field_properties,
+            # length_ide_kernel_gaussian,
+            # ide_symmetry,
+            # delta_kick_decomposition_plot,
+            # delta_kick_cosine_sine_comparison,
+            pulse_prefactors_vs_properties,
         ]
 
         movies = [
@@ -2104,8 +2166,8 @@ if __name__ == '__main__':
 
         fns = list(itertools.chain(
             figures,
-            movies,
-            long_computation,
+            # movies,
+            # long_computation,
             # deprecated,
         ))
 
