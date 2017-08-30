@@ -94,11 +94,11 @@ def test_hyd():
         r_points = 400,
         l_bound = 200,
         theta_points = 360,
-        initial_state = ion.HydrogenBoundState(1, 0),
+        initial_state = ion.HydrogenBoundState(5, 3),
         electric_potential = ion.Rectangle(20 * asec, 80 * asec, 1 * atomic_electric_field),
         time_final = 100 * asec,
     ).to_simulation()
-    sim.run_simulation(progress_bar = True)
+    # sim.run_simulation(progress_bar = True)
 
     r, theta = sim.mesh.r, sim.mesh.theta
 
@@ -113,9 +113,9 @@ def test_hyd():
         print(si.utils.bytes_to_str(theta_mesh.nbytes))
         return g_func.ev(r_mesh, theta_mesh)
 
-    # x_max = sim.spec.r_bound
-    x_max = 20 * bohr_radius
-    x = np.linspace(-x_max, x_max, 100)
+    x_max = sim.spec.r_bound
+    # x_max = 20 * bohr_radius
+    x = np.linspace(-x_max, x_max, 200)
     x_mesh, y_mesh, z_mesh = np.meshgrid(x, x, x, indexing = 'ij')
 
     g_mesh = g_func_func(x_mesh, y_mesh, z_mesh)
@@ -125,9 +125,28 @@ def test_hyd():
     maxi = g_mesh.max()
     # rng = maxi - mini
 
+    source = mlab.pipeline.scalar_field(g_mesh)
+
     # mlab.contour3d(x_mesh, y_mesh, z_mesh, g_mesh)
     # mlab.pipeline.volume(mlab.pipeline.scalar_field(g_mesh))
-    mlab.pipeline.volume(mlab.pipeline.scalar_field(g_mesh), vmin = .05 * maxi, vmax = .5 * maxi)
+    # mlab.pipeline.volume(s, vmin = .05 * maxi, vmax = .5 * maxi)
+
+    mlab.pipeline.iso_surface(source, contours = [g_mesh.max() - 0.95 * g_mesh.ptp(), ], opacity = 0.1)
+    mlab.pipeline.iso_surface(source, contours = [g_mesh.max() - 0.8 * g_mesh.ptp(), ], opacity = 0.3)
+    mlab.pipeline.iso_surface(source, contours = [g_mesh.max() - 0.5 * g_mesh.ptp(), ], opacity = 0.5)
+    mlab.pipeline.iso_surface(source, contours = [g_mesh.max() - 0.3 * g_mesh.ptp(), ], opacity = 0.7)
+    mlab.pipeline.iso_surface(source, contours = [g_mesh.max() - 0.1 * g_mesh.ptp(), ], opacity = 1.0)
+
+    mlab.pipeline.image_plane_widget(
+        source,
+        plane_orientation = 'x_axes',
+        slice_index = 100,
+    )
+    mlab.pipeline.image_plane_widget(
+        source,
+        plane_orientation = 'y_axes',
+        slice_index = 100,
+    )
 
     mlab.show()
 
@@ -173,7 +192,7 @@ def test_hyd_anim():
         l_bound = 200,
         theta_points = 360,
         initial_state = ion.HydrogenBoundState(1, 0),
-        electric_potential = ion.Rectangle(20 * asec, 80 * asec, 1 * atomic_electric_field),
+        electric_potential = ion.Rectangle(20 * asec, 80 * asec, 2 * atomic_electric_field),
         time_final = 100 * asec,
     ).to_simulation()
 
@@ -214,15 +233,15 @@ def test_hyd_anim():
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
-        test_anim()
-        # while True:
-        #     try:
-        #         pass
-        #         # test_rect()
-        #         # test_sph()
-        #         # test_hyd()
-        #     except traits.trait_errors.TraitError:
-        #         pass
+        # test_anim()
+        while True:
+            try:
+                pass
+                # test_rect()
+                # test_sph()
+                test_hyd()
+            except traits.trait_errors.TraitError:
+                pass
 
 # sim = ion.SphericalHarmonicSpecification(
 #     'test',
