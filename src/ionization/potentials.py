@@ -608,7 +608,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         -------
         :class:`SineWave`
         """
-        return cls(c / wavelength, amplitude = amplitude, phase = phase, **kwargs)
+        return cls.from_frequency(c / wavelength, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
     def from_photon_energy(cls, photon_energy, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):

@@ -1,7 +1,6 @@
 import logging
 import os
 import psutil
-import functools
 import subprocess
 import time
 
@@ -10,7 +9,6 @@ import numpy as np
 import simulacra as si
 from simulacra.units import *
 
-import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -24,15 +22,15 @@ PLOT_KWARGS = dict(
 
 
 def run_sim_in_proc(R, ppR, L, T):
-    process = subprocess.Popen(['python', 'sim_ram_runner.py', str(R), str(ppR), str(L), str(T)])
+    process = subprocess.Popen(['python', 'sim_ram_runner_tdse.py', str(R), str(ppR), str(L), str(T)])
     return process
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        R = 300
+        R = 250
         ppR = 8
-        L = 1000
+        L = 500
         T = 50
 
         times = []

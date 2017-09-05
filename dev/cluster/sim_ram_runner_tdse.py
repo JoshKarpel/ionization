@@ -36,6 +36,7 @@ if __name__ == '__main__':
             # electric_potential = ion.SineWave.from_photon_energy(10 * eV, amplitude = 1 * atomic_electric_field),
             store_data_every = 1,
         ).to_simulation()
+        sim.info().log()
 
         time.sleep(5)
 

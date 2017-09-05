@@ -6,30 +6,30 @@ from simulacra.units import *
 
 import ionization as ion
 
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        sim = ion.SphericalHarmonicSpecification('info_test',
-                                                 r_bound = 250 * bohr_radius,
-                                                 r_points = 1000, l_bound = 500,
-                                                 use_numeric_eigenstates = True,
-                                                 numeric_eigenstate_max_angular_momentum = 20,
-                                                 numeric_eigenstate_max_energy = 100 * eV,
-                                                 time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
-                                                 electric_potential = ion.SineWave.from_photon_energy(10 * eV, amplitude = 1 * atomic_electric_field),
-                                                 store_data_every = 1,
-                                                 ).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(
+            'info_test',
+            r_bound = 250 * bohr_radius,
+            r_points = 250 * 8, l_bound = 500,
+            use_numeric_eigenstates = True,
+            numeric_eigenstate_max_angular_momentum = 20,
+            numeric_eigenstate_max_energy = 50 * eV,
+            time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
+            electric_potential = ion.SineWave.from_photon_energy(10 * eV, amplitude = 1 * atomic_electric_field),
+            store_data_every = -1,
+        ).to_simulation()
 
         sim.file_name = 'pre'
         sim.info().log()
 
         print()
 
-        sim.run_simulation(progress_bar = True)
-        sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
+        # sim.run_simulation(progress_bar = True)
+        # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
 
         print()
 

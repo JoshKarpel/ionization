@@ -370,7 +370,7 @@ class ElectricFieldSimulation(si.Simulation):
                 animator.initialize(self)
 
             if progress_bar:
-                pbar = tqdm(total = self.time_steps - 1)
+                pbar = tqdm(total = self.time_steps - 1, ascii = True)
 
             while True:
                 if self.time in self.data_times:
