@@ -20,11 +20,16 @@ import simulacra as si
 import ionization as ion
 
 
-def ensure_compatibility(spec):
+def ensure_compatibility_spec(spec):
     if not hasattr(spec, 'theta_points'):
         spec.theta_points = 360
     if type(spec.checkpoint_every) == int:
         spec.checkpoint_every = datetime.timedelta(minutes = 60)
+
+
+def ensure_compatibility_sim(sim):
+    if not hasattr(sim, 'latest_checkpoint_time'):
+        sim.latest_checkpoint_time = datetime.datetime.utcnow()
 
 
 if __name__ == '__main__':
@@ -55,12 +60,13 @@ if __name__ == '__main__':
             try:
                 sim_path = os.path.join(os.getcwd(), '{}.sim'.format(args.sim_name))
                 sim = si.Simulation.load(sim_path)
-                ensure_compatibility(sim.spec)
+                ensure_compatibility_spec(sim.spec)
+                ensure_compatibility_sim(sim)
                 logger.info(f'Checkpoint found at {sim_path}, recovered simulation {sim}')
                 logger.info(f'Checkpoint size is {si.utils.get_file_size_as_string(sim_path)}')
             except (FileNotFoundError, EOFError):
                 spec = si.Specification.load(os.path.join(os.getcwd(), f'{args.sim_name}.spec'))
-                ensure_compatibility(spec)
+                ensure_compatibility_spec(spec)
                 sim = spec.to_simulation()
                 logger.info(f'Checkpoint not found, started simulation {sim}')
 
