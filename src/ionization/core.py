@@ -320,7 +320,7 @@ class ElectricFieldSimulation(si.Simulation):
             pass
 
         if self.spec.store_radial_position_expectation_value:
-            self.radial_position_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.inner_product(b = self.mesh.r_mesh * self.mesh.g))
+            self.radial_position_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.inner_product(b = self.mesh.r_mesh * self.mesh.g)) / self.mesh.norm()
 
         if self.spec.store_energy_expectation_value:
             self.internal_energy_expectation_value_vs_time[self.data_time_index] = self.mesh.energy_expectation_value(include_interaction = False)
@@ -1713,7 +1713,7 @@ class LineMesh(QuantumMesh):
             energy += self.inner_product(
                 b = self.spec.electric_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
 
-        return np.real(energy)
+        return np.real(energy) / self.norm()
 
     def dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
@@ -2173,7 +2173,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return hg_mesh_z + hg_mesh_rho
 
     def energy_expectation_value(self, include_interaction = False):
-        return np.real(self.inner_product(b = self.hg_mesh()))
+        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
 
     @si.utils.memoize
     def _get_probability_current_matrix_operators(self):
@@ -2612,7 +2612,7 @@ class SphericalSliceMesh(QuantumMesh):
         return hg_mesh_r + hg_mesh_theta
 
     def energy_expectation_value(self):
-        return np.real(self.inner_product(b = self.hg_mesh()))
+        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
 
     @si.utils.memoize
     def get_probability_current_matrix_operators(self):
@@ -3290,7 +3290,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return hg
 
     def energy_expectation_value(self, include_interaction = False):
-        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction)))
+        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     # @si.utils.memoize
     # def get_probability_current_matrix_operators(self):
