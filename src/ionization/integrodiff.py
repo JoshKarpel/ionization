@@ -475,18 +475,12 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 callback(self)
 
             if self.spec.checkpoints:
-                if (self.time_index + 1) % self.spec.checkpoint_every == 0:
-                    self.save(target_dir = self.spec.checkpoint_dir)
-                    logger.info(f'Checkpointed {self} at time index {self.time_index}')
-                    self.status = si.Status.RUNNING
-
-            if self.spec.checkpoints:
                 now = datetime.datetime.utcnow()
                 if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                    self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
+                    self.save(target_dir = self.spec.checkpoint_dir)
                     self.latest_checkpoint_time = now
+                    logger.info(f'Checkpointed {self} at time index {self.time_index}')
                     self.status = si.Status.RUNNING
-                    logger.info(f'{self.__class__.__name__} {self.name} ({self.file_name}) checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
 
         self.a = np.array(self.a)
         self.times = np.array(self.times)
