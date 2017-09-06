@@ -1,6 +1,7 @@
 import collections
 import functools as ft
 import itertools as it
+import datetime
 import logging
 from copy import copy, deepcopy
 
@@ -129,6 +130,8 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
+
+        self.latest_checkpoint_time = datetime.datetime.utcnow()
 
         self.times = self.get_times()
 
@@ -398,14 +401,15 @@ class ElectricFieldSimulation(si.Simulation):
                 if self.spec.store_norm_diff_mask:
                     self.norm_diff_mask_vs_time[self.data_time_index] = norm_diff_mask  # move to store data so it has the right index?
 
-                logger.debug('{} {} ({}) evolved to time index {} / {} ({}%)'.format(self.__class__.__name__, self.name, self.file_name, self.time_index, self.time_steps - 1,
-                                                                                     np.around(100 * (self.time_index + 1) / self.time_steps, 2)))
+                logger.debug(f'{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
 
                 if self.spec.checkpoints:
-                    if (self.time_index + 1) % self.spec.checkpoint_every == 0:
+                    now = datetime.datetime.utcnow()
+                    if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
+                        self.latest_checkpoint_time = now
                         self.status = si.Status.RUNNING
-                        logger.info('Checkpointed {} {} ({}) at time step {} / {}'.format(self.__class__.__name__, self.name, self.file_name, self.time_index + 1, self.time_steps))
+                        logger.info(f'{self.__class__.__name__} {self.name} ({self.file_name}) checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
 
                 try:
                     pbar.update(1)
@@ -1073,7 +1077,7 @@ class ElectricFieldSpecification(si.Specification):
                  mask = potentials.NoMask(),
                  evolution_method = 'SO', evolution_equations = 'HAM', evolution_gauge = 'LEN',
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
+                 checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
                  animators = tuple(),
                  store_radial_position_expectation_value = True,
                  store_electric_dipole_moment_expectation_value = True,

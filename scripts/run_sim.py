@@ -1,10 +1,10 @@
 import os
 import sys
 import socket
-import datetime as dt
+import datetime
 import platform
 
-print(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {dt.datetime.now()}.', file = sys.stderr)
+print(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {datetime.datetime.utcnow()}.', file = sys.stderr)
 print(f'Execute node operating system: {os.uname()}', file = sys.stderr)
 try:
     print(f'Distribution: {platform.linux_distribution()}', file = sys.stderr)
@@ -21,7 +21,10 @@ import ionization as ion
 
 
 def ensure_compatibility(spec):
-    spec.theta_points = 360
+    if not hasattr(spec, 'theta_points'):
+        spec.theta_points = 360
+    if type(spec.checkpoint_every) == int:
+        spec.checkpoint_every = datetime.timedelta(minutes = 60)
 
 
 if __name__ == '__main__':
@@ -40,7 +43,7 @@ if __name__ == '__main__':
 
     with logman as logger:
         try:
-            logger.info(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {dt.datetime.now()}.')
+            logger.info(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {datetime.datetime.utcnow()}.')
             logger.info(f'Execute node operating system: {os.uname()}')
             try:
                 logger.info(f'Distribution: {platform.linux_distribution()}')

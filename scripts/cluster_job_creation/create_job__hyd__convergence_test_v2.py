@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import datetime
 
 import numpy as np
 
@@ -165,8 +166,9 @@ if __name__ == '__main__':
         parameters.append(clu.Parameter(name = 'checkpoints',
                                         value = checkpoints))
         if checkpoints:
+            time_between_checkpoints = clu.ask_for_input('How long between checkpoints (in minutes)?', default = 60, cast_to = int)
             parameters.append(clu.Parameter(name = 'checkpoint_every',
-                                            value = clu.ask_for_input('How many time steps per checkpoint?', default = 50, cast_to = int)))
+                                            value = datetime.timedelta(minutes = time_between_checkpoints)))
 
         parameters.append(clu.Parameter(name = 'store_data_every',
                                         value = clu.ask_for_input('Store Data Every?', default = 1, cast_to = int)))

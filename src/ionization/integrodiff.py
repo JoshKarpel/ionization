@@ -1,6 +1,7 @@
 import logging
 import collections
 import functools
+import datetime
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -106,6 +107,8 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def __init__(self, spec):
         super().__init__(spec)
+
+        self.latest_checkpoint_time = datetime.datetime.utcnow()
 
         self.times = [self.spec.time_initial]
         self.time_index = 0
@@ -477,6 +480,14 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                     logger.info(f'Checkpointed {self} at time index {self.time_index}')
                     self.status = si.Status.RUNNING
 
+            if self.spec.checkpoints:
+                now = datetime.datetime.utcnow()
+                if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
+                    self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
+                    self.latest_checkpoint_time = now
+                    self.status = si.Status.RUNNING
+                    logger.info(f'{self.__class__.__name__} {self.name} ({self.file_name}) checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
+
         self.a = np.array(self.a)
         self.times = np.array(self.times)
 
@@ -641,7 +652,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  integration_method = 'simpson',
                  evolution_method = 'RK4',
                  evolution_gauge = 'LEN',
-                 checkpoints = False, checkpoint_every = 20, checkpoint_dir = None,
+                 checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
                  store_data_every = 1,
                  time_step_minimum = .01 * asec, time_step_maximum = 10 * asec,
                  epsilon = 1e-3, error_on = 'da/dt', safety_factor = .98,
