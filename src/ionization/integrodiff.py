@@ -73,15 +73,12 @@ def _hydrogen_kernel_LEN_factory():
     return kernel_func
 
 
-def hydrogen_kernel_LEN(time_difference, *, kernel_prefactor, **kwargs):
+def hydrogen_kernel_LEN(time_difference, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
-    nonzero = kernel_func(time_difference)
-    zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
-    return kernel_prefactor * np.where(time_difference != 0, nonzero, zero)
-
-
-def hydrogen_kernel_prefactor_LEN():
-    return 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
+    kernel_prefactor = 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
+    td_nonzero = kernel_func(time_difference)
+    td_zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
+    return kernel_prefactor * np.where(time_difference != 0, td_nonzero, td_zero)
 
 
 def hydrogen_prefactor_LEN(test_charge):
