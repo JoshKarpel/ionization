@@ -30,27 +30,22 @@ PLOT_KWARGS = dict(
     fig_dpi_scale = 6,
 )
 
-T_BOUND_MAP = {ion.SincPulse: 12}
-P_BOUND_MAP = {ion.SincPulse: 10}
-
 
 def make_anim(args):
-    pulse_type, pw, flu, cep = args
+    amp, wavelength = args
 
-    t_bound = T_BOUND_MAP[pulse_type]
-    p_bound = P_BOUND_MAP[pulse_type]
+    t_bound = 5
+    p_bound = 4
 
-    times = np.linspace(-t_bound * pw, t_bound * pw, 1e4)
+    pulse_dummy = ion.SineWave.from_wavelength(wavelength = wavelength, amplitude = amp)
+    window = ion.SymmetricExponentialTimeWindow(window_time = p_bound * pulse_dummy.period, window_width = .2 * pulse_dummy.period)
+    pulse = ion.SineWave.from_wavelength(wavelength = wavelength, amplitude = amp, window = window)
+    times = np.linspace(-t_bound * pulse.period, t_bound * pulse.period, 1e4)
 
-    window = ion.SymmetricExponentialTimeWindow(window_time = p_bound * pw, window_width = .2 * pw)
-    pulse = pulse_type(pulse_width = pw, fluence = flu, phase = cep,
-                       window = window)
-    corrected_pulse = ion.DC_correct_electric_potential(pulse, times)
+    efield = pulse.get_electric_field_amplitude(times)
+    afield = pulse.get_vector_potential_amplitude_numeric_cumulative(times)
 
-    efield = corrected_pulse.get_electric_field_amplitude(times)
-    afield = corrected_pulse.get_vector_potential_amplitude_numeric_cumulative(times)
-
-    starts = range(0, len(times), 20)
+    starts = range(0, len(times), 10)
 
     sliced_times = list(times[start:] for start in starts)
     sliced_alphas = list((proton_charge / electron_mass) * integ.cumtrapz(y = integ.cumtrapz(y = efield[start:],
@@ -60,7 +55,7 @@ def make_anim(args):
                                                                           initial = 0)
                          for start in starts)
 
-    identifier = f'{pulse_type.__name__}__pw={uround(pw, asec, 0)}as_flu={uround(flu, Jcm2, 2)}jcm2_cep={uround(cep, pi, 2)}pi'
+    identifier = f'HHG__lambda={uround(wavelength, nm, 0)}nm_amp={uround(amp, atomic_electric_field, 5)}au'
 
     efield_color = ion.COLOR_ELECTRIC_FIELD
     trajectory_color = si.vis.BLACK
@@ -81,7 +76,6 @@ def make_anim(args):
             times,
             efield,
             color = efield_color,
-            # linewidth = 3,
         )
         ax_efield.set_xlabel(r'Time $ t $ (as)')
         ax_efield.set_ylabel(fr'$ {ion.LATEX_EFIELD}(t) $', color = efield_color)
@@ -101,7 +95,6 @@ def make_anim(args):
             [],
             [],
             color = trajectory_color,
-            # linewidth = 3,
         )
         vert_line = ax_trajectory.axvline(
             np.NaN,
@@ -124,25 +117,25 @@ def make_anim(args):
 
         def update_line(arg):
             traj_line.set_data(*arg)
-            vert_line.set_xdata(arg[0][0])
+
+            t = arg[0][0]
+            vert_line.set_xdata(t)
 
         si.vis.animate(
             figman,
             update_line,
             update_function_arguments = list(zip(sliced_times, sliced_alphas)),
             artists = [traj_line, vert_line],
-            length = 10,
+            length = 30,
         )
 
 
 if __name__ == '__main__':
     with logman as logger:
-        pulse_widths = np.array([200]) * asec
-        fluences = np.array([1]) * Jcm2
-        phases = [0, pi / 4, pi / 2]
-        pulse_types = [
-            ion.SincPulse,
-            # ion.GaussianPulse,
-        ]
-
-        si.utils.multi_map(make_anim, list(itertools.product(pulse_types, pulse_widths, fluences, phases)), processes = 4)
+        # amplitude = np.array([.1, .5, 1]) * atomic_electric_field
+        # wavelength = np.array([800]) * nm
+        #
+        # si.utils.multi_map(make_anim, list(itertools.product(amplitude, wavelength)), processes = 4)
+        make_anim((.001 * atomic_electric_field, 800 * nm))
+        make_anim((.01 * atomic_electric_field, 800 * nm))
+        make_anim((.1 * atomic_electric_field, 800 * nm))
