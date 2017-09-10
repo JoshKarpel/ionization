@@ -50,6 +50,7 @@ if __name__ == '__main__':
         peak_intensity = 1e14 * Wcm2
         wavelength = 800 * nm
         number_of_cycles = 4
+        phase = 0
 
         peak_amplitude = np.sqrt(peak_intensity / (epsilon_0 * c))
 
@@ -57,13 +58,14 @@ if __name__ == '__main__':
             amplitude = peak_amplitude,
             wavelength = wavelength,
             number_of_cycles = number_of_cycles,
+            phase = 0,
         )
 
         time_final = pulse.number_of_cycles * pulse.period
         pulse.pulse_center = time_final / 2
 
         spec = ion.LineSpecification(
-            f'LR_{num_states}',
+            f'LR__cep={uround(phase, pi)}pi_{num_states}',
             internal_potential = ion.SoftCoulomb(),
             electric_potential = pulse,
             initial_state = ion.OneDSoftCoulombState(),
@@ -75,28 +77,45 @@ if __name__ == '__main__':
             # checkpoints = True,
             # checkpoint_every = datetime.timedelta(minutes = 1),
             # checkpoint_dir = SIM_LIB,
-            animators = [
-                ion.animators.RectangleAnimator(
-                    axman_wavefunction = ion.animators.LineMeshAxis(
-                        log = True,
-                        plot_limit = 1000 * bohr_radius,
-                    ),
-                    fig_dpi_scale = 2,
-                    length = 30,
-                    target_dir = OUT_DIR,
-                ),
-            ]
+            # animators = [
+            #     ion.animators.RectangleAnimator(
+            #         axman_wavefunction = ion.animators.LineMeshAxis(
+            #             which = 'fft',
+            #             log = True,
+            #             distance_unit = 'per_nm',
+            #             # plot_limit = 1000 * per_nm,
+            #         ),
+            #         fig_dpi_scale = 2,
+            #         length = 30,
+            #         target_dir = OUT_DIR,
+            #     ),
+            # ]
         )
 
-        sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
+        # sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
+        sim = spec.to_simulation()
 
         sim.info().log()
 
+
+        def fft_plot(s):
+            if s.time_index == 0 or s.time_index % 1000 == 0:
+                si.vis.xy_plot(
+                    f'{s.name}__{s.time_index}',
+                    ((hbar * s.mesh.wavenumbers) ** 2) / (2 * electron_mass),
+                    np.abs(s.mesh.fft(s.mesh.get_g_with_states_removed(s.bound_states))) ** 2,
+                    x_unit = 'eV',
+                    x_label = r'$E$',
+                    **PLOT_KWARGS,
+                )
+
+
         # make_numeric_eigenstate_plots(sim)
 
-        if sim.status != si.Status.FINISHED:
-            sim.run_simulation()
-            sim.animators = None
-            sim.save(save_mesh = True, target_dir = SIM_LIB)
+        # if sim.status != si.Status.FINISHED:
+        #     sim.run_simulation()
+        #     sim.animators = None
+        #     sim.save(save_mesh = True, target_dir = SIM_LIB)
+        sim.run_simulation(callback = fft_plot)
 
         sim.info().log()
