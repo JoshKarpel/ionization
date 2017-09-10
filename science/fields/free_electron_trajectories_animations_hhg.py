@@ -48,7 +48,7 @@ def make_anim(args):
     starts = range(0, len(times), 10)
 
     sliced_times = list(times[start:] for start in starts)
-    sliced_alphas = list((proton_charge / electron_mass) * integ.cumtrapz(y = integ.cumtrapz(y = efield[start:],
+    sliced_alphas = list((proton_charge / electron_mass) * integ.cumtrapz(y = -integ.cumtrapz(y = efield[start:],
                                                                                              x = times[start:],
                                                                                              initial = 0),
                                                                           x = times[start:],
