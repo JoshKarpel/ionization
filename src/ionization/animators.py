@@ -481,10 +481,12 @@ class LineMeshAxis(QuantumMeshAxis):
     def __init__(self,
                  which = 'psi2',
                  # show_potential = False,
+                 log = False,
                  **kwargs):
         # self.show_potential = show_potential
 
         super().__init__(which = which, **kwargs)
+        self.log = log
 
     def initialize_axis(self):
         unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
@@ -501,6 +503,10 @@ class LineMeshAxis(QuantumMeshAxis):
             linewidth = 3,
         )
         self.redraw.append(self.mesh)
+
+        if self.log:
+            self.axis.set_yscale('log')
+            self.axis.set_ylim(bottom = 1e-15)
 
         # TODO: code for show_potential
 
@@ -522,6 +528,7 @@ class LineMeshAxis(QuantumMeshAxis):
         x = self.sim.mesh.x_mesh[slice]
         x_lower_limit, x_upper_limit = np.nanmin(x), np.nanmax(x)
         self.axis.set_xlim(x_lower_limit / unit_value, x_upper_limit / unit_value)
+
 
         # self.axis.axis('tight')
 

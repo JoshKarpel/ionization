@@ -569,7 +569,7 @@ class NumericOneDState(QuantumState):
 
     @property
     def latex(self):
-        """Return a LaTeX-formatted string for the NumericSphericalHarmonicState."""
+        """Return a LaTeX-formatted string for the state."""
         return self.analytic_state.latex
 
     @property
@@ -1026,3 +1026,35 @@ class GaussianWellState(QuantumState):
         """
 
         return np.exp(-.25 * (x / self.width) ** 2) / (np.sqrt(np.sqrt(twopi) * self.width))
+
+
+class OneDSoftCoulombState(QuantumState):
+    smallest_n = 1
+
+    bound = True
+    discrete_eigenvalues = True
+    analytic = True
+
+    def __init__(self, n = 1, amplitude = 1, dimension_label = 'x'):
+        self.n = n
+
+        super().__init__(amplitude = amplitude)
+
+    @classmethod
+    def from_potential(cls, potential, test_mass, n = 1, **kwargs):
+        return cls(n = n)
+
+    @property
+    def tuple(self):
+        return self.n,
+
+    @property
+    def ket(self):
+        return '|{}>'.format(self.n)
+
+    @property
+    def bra(self):
+        return '<{}|'.format(self.n)
+
+    def __str__(self):
+        return self.ket
