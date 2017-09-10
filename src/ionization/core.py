@@ -130,6 +130,31 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 warning_record = collections.namedtuple('warning_record', ['data_time_index', 'message'])
 
 
+class Snapshot:
+    def __init__(self, simulation, time_index):
+        self.sim = simulation
+        self.spec = self.sim.spec
+        self.time_index = time_index
+
+        self.data = dict()
+
+    @property
+    def time(self):
+        return self.sim.times[self.time_index]
+
+    def __str__(self):
+        return 'Snapshot of {} at time {} as (time index = {})'.format(self.sim.name, uround(self.sim.times[self.time_index], asec, 3), self.time_index)
+
+    def __repr__(self):
+        return si.utils.field_str(self, 'sim', 'time_index')
+
+    def take_snapshot(self):
+        self.collect_norm()
+
+    def collect_norm(self):
+        self.data['norm'] = self.sim.mesh.norm()
+
+
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
@@ -201,7 +226,7 @@ class ElectricFieldSimulation(si.Simulation):
         mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
-        mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric if state.g is not None)
+        mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric and state.g is not None)
         mem_inner_products = sum(overlap.nbytes for overlap in self.inner_products_vs_time.values())
 
         mem_other_time_data = sum(x.nbytes for x in (
@@ -436,10 +461,15 @@ class ElectricFieldSimulation(si.Simulation):
     def group_free_states_by_continuous_attr(self, attr = 'energy', divisions = 10, cutoff_value = None,
                                              label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}', attr_unit = 'eV'):
         spectrum = set(getattr(s, attr) for s in self.free_states)
+
         grouped_states = collections.defaultdict(list)
         group_labels = {}
 
-        attr_min, attr_max = min(spectrum), max(spectrum)
+        try:
+            attr_min, attr_max = min(spectrum), max(spectrum)
+        except ValueError:
+            return [], []
+
         if cutoff_value is None:
             boundaries = np.linspace(attr_min, attr_max, num = divisions + 1)
         else:
@@ -1541,7 +1571,7 @@ class LineSpecification(ElectricFieldSpecification):
                  fft_cutoff_energy = 1000 * eV,
                  analytic_eigenstate_type = None,
                  use_numeric_eigenstates = False,
-                 numeric_eigenstate_max_energy = 100 * eV,
+                 number_of_numeric_eigenstates = 100,
                  **kwargs):
         super().__init__(name,
                          mesh_type = LineMesh,
@@ -1556,7 +1586,7 @@ class LineSpecification(ElectricFieldSpecification):
 
         self.analytic_eigenstate_type = analytic_eigenstate_type
         self.use_numeric_eigenstates = use_numeric_eigenstates
-        self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
+        self.number_of_numeric_eigenstates = number_of_numeric_eigenstates
 
     def info(self):
         info = super().info()
@@ -1570,7 +1600,7 @@ class LineSpecification(ElectricFieldSpecification):
 
         info_eigenstates = si.Info(header = f'Numeric Eigenstates: {self.use_numeric_eigenstates}')
         if self.use_numeric_eigenstates:
-            info_eigenstates.add_field('Max Energy', f'{uround(self.numeric_eigenstate_max_energy, eV)} eV')
+            info_eigenstates.add_field('Number of Numeric Eigenstates', self.number_of_numeric_eigenstates)
 
         info.add_info(info_eigenstates)
 
@@ -1596,7 +1626,7 @@ class LineMesh(QuantumMesh):
         if self.spec.use_numeric_eigenstates:
             logger.debug('Calculating numeric eigenstates')
 
-            self.analytic_to_numeric = self._get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy)
+            self.analytic_to_numeric = self._get_numeric_eigenstate_basis(self.spec.number_of_numeric_eigenstates)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
@@ -1789,35 +1819,16 @@ class LineMesh(QuantumMesh):
         self._evolve_free(time_step)  # splitting order chosen for computational efficiency (only one FFT per time step)
         self._evolve_potential(time_step / 2)
 
-    def _get_numeric_eigenstate_basis(self, max_energy):
+    def _get_numeric_eigenstate_basis(self, number_of_eigenstates):
         analytic_to_numeric = {}
 
         h = self.get_internal_hamiltonian_matrix_operators()
 
-        estimated_spacing = twopi / np.max(self.x_mesh)
-        wavenumber_max = np.real(electron_wavenumber_from_energy(max_energy))
-        number_of_eigenvectors = int(wavenumber_max / estimated_spacing)  # generate an initial guess based on roughly linear wavenumber steps between eigenvalues
-
-        max_eigenvectors = h.shape[0] - 2  # can't generate more than this many eigenvectors using sparse linear algebra methods
-
-        while True:
-            if number_of_eigenvectors > max_eigenvectors:
-                number_of_eigenvectors = max_eigenvectors  # this will cause the loop to break after this attempt
-
-            eigenvalues, eigenvectors = sparsealg.eigsh(h, k = number_of_eigenvectors, which = 'SA')
-
-            if np.max(eigenvalues) > max_energy or number_of_eigenvectors == max_eigenvectors:
-                break
-
-            number_of_eigenvectors = int(
-                number_of_eigenvectors * 1.1 * np.sqrt(np.abs(max_energy / np.max(eigenvalues))))  # based on approximate sqrt scaling of energy to wavenumber, with safety factor
+        eigenvalues, eigenvectors = sparsealg.eigsh(h, k = number_of_eigenstates, which = 'SA')
 
         for nn, (eigenvalue, eigenvector) in enumerate(zip(eigenvalues, eigenvectors.T)):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
-            # eigenvector /= self.g_factor  # go to u from R
 
-            if eigenvalue > max_energy:  # ignore eigenvalues that are too large
-                continue
             try:
                 bound = True
                 analytic_state = self.spec.analytic_eigenstate_type.from_potential(self.spec.internal_potential, self.spec.test_mass,
@@ -1832,7 +1843,7 @@ class LineMesh(QuantumMesh):
 
             analytic_to_numeric[analytic_state] = numeric_state
 
-        logger.debug('Generated numerical eigenbasis for energy <= {} eV. Found {} states.'.format(uround(max_energy, 'eV', 3), len(analytic_to_numeric)))
+        logger.debug(f'Generated numerical eigenbasis with {len(analytic_to_numeric)} states')
 
         return analytic_to_numeric
 
@@ -1891,6 +1902,11 @@ class LineMesh(QuantumMesh):
 
     def plot_fft(self):
         raise NotImplementedError
+
+
+# class LineSnapshot(Snapshot):
+#     def __init__(self):
+#         pass
 
 
 class CylindricalSliceSpecification(ElectricFieldSpecification):
@@ -4423,31 +4439,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             axis.set_rmax(np.nanmax(r_mesh) / r_unit_value)
 
         return figman
-
-
-class Snapshot:
-    def __init__(self, simulation, time_index):
-        self.sim = simulation
-        self.spec = self.sim.spec
-        self.time_index = time_index
-
-        self.data = dict()
-
-    @property
-    def time(self):
-        return self.sim.times[self.time_index]
-
-    def __str__(self):
-        return 'Snapshot of {} at time {} as (time index = {})'.format(self.sim.name, uround(self.sim.times[self.time_index], asec, 3), self.time_index)
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'sim', 'time_index')
-
-    def take_snapshot(self):
-        self.collect_norm()
-
-    def collect_norm(self):
-        self.data['norm'] = self.sim.mesh.norm()
 
 
 class SphericalHarmonicSnapshot(Snapshot):
