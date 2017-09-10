@@ -1891,8 +1891,12 @@ class LineMesh(QuantumMesh):
         return line
 
     def plot_mesh(self, mesh, distance_unit = 'nm', **kwargs):
-        si.vis.xy_plot(self.sim.name + '_' + kwargs.pop('name'), self.x_mesh, mesh,
-                       x_label = 'Distance $x$', x_unit_value = distance_unit, **kwargs)
+        si.vis.xy_plot(self.sim.name + '_' + kwargs.pop('name'),
+                       self.x_mesh,
+                       mesh,
+                       x_label = 'Distance $x$',
+                       x_unit_value = distance_unit,
+                       **kwargs)
 
     def update_mesh(self, colormesh, updated_mesh, norm = None, **kwargs):
         if norm is not None:
@@ -1903,6 +1907,24 @@ class LineMesh(QuantumMesh):
     def plot_fft(self):
         raise NotImplementedError
 
+    def attach_fft_to_axis(self, axis,
+                           distance_unit = 'per_nm',
+                           colormap = plt.get_cmap('inferno'),
+                           norm = si.vis.AbsoluteRenormalize(),
+                           shading = 'gouraud',
+                           plot_limit = None,
+                           slicer = 'get_mesh_slicer',
+                           **kwargs):
+        unit_value, _ = get_unit_value_and_latex_from_unit(distance_unit)
+
+        _slice = getattr(self, slicer)(plot_limit)
+
+        line, = axis.plot(self.wavenumbers[_slice] / unit_value, norm(self.fft()[_slice]), **kwargs)
+
+        return line
+
+    def update_fft_mesh(self, colormesh, **kwargs):
+        self.update_mesh(colormesh, self.fft(), **kwargs)
 
 # class LineSnapshot(Snapshot):
 #     def __init__(self):
