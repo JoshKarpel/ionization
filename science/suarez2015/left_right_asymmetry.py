@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
         peak_amplitude = np.sqrt(peak_intensity / (epsilon_0 * c))
 
-        pulse = ion.SineSquaredPulse(
+        pulse = ion.CosSquaredPulse(
             amplitude = peak_amplitude,
             wavelength = wavelength,
             number_of_cycles = number_of_cycles,
