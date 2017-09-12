@@ -6,28 +6,29 @@ from simulacra.units import *
 
 import ionization as ion
 
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        sim = ion.SphericalHarmonicSpecification('speed_test',
-                                                 r_bound = 100 * bohr_radius,
-                                                 r_points = 400, l_bound = 100,
-                                                 test_states = (), use_numeric_eigenstates = False,
-                                                 time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
-                                                 dipole_gauges = (),
-                                                 store_data_every = -1,
-                                                 evolution_gauge = 'LEN',
-                                                 # evolution_gauge = 'VEL',
-                                                 ).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(
+            'speed_test',
+            r_bound = 100 * bohr_radius,
+            r_points = 1000, l_bound = 100,
+            test_states = (), use_numeric_eigenstates = False,
+            time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
+            store_data_every = -1,
+            evolution_gauge = 'LEN',
+            # evolution_gauge = 'VEL',
+            evolution_method = 'CN',
+            # evolution_method = 'SO',
+        ).to_simulation()
 
-        sim.info().log()
+        # sim.info().log()
         with si.utils.BlockTimer() as timer:
             sim.run_simulation()
             # sim.run_simulation(progress_bar = True)
-        sim.info().log()
+        # sim.info().log()
 
         mesh_points = sim.mesh.mesh_points
         time_points = sim.time_steps - 1
@@ -41,3 +42,6 @@ if __name__ == '__main__':
 
         logger.info(f'Space-Time Points / Runtime (according to Sim): {round(space_time_points / sim.running_time.total_seconds())}')
         logger.info(f'Space-Time Points / Runtime (according to BlockTimer): {round(space_time_points / timer.proc_time_elapsed)}')
+
+        logger.info(f'Final Norm: {sim.mesh.norm()}')
+        logger.info(f'Initial State Overlap: {sim.state_overlaps_vs_time[sim.spec.initial_state]}')

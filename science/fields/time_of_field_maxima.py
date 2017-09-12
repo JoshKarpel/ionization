@@ -18,8 +18,8 @@ logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.I
 
 PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 3,
+    # img_format = 'png',
+    # fig_dpi_scale = 3,
 )
 
 

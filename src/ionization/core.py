@@ -1244,6 +1244,12 @@ def add_to_diagonal_sparse_matrix_diagonal(dia_matrix, value = 1):
     return s
 
 
+def add_to_diagonal_sparse_matrix_diagonal_inplace(dia_matrix, value = 1):
+    # dia_matrix.setdiag(dia_matrix.diagonal() + value)
+    dia_matrix.data[1] += value
+    return dia_matrix
+
+
 class MeshOperator:
     def __init__(self, operator, *, wrapping_direction):
         self.operator = operator
@@ -1337,6 +1343,11 @@ class QuantumMesh:
 
         self.g = None
         self.inner_product_multiplier = None
+
+        try:
+            self.evolution_method = getattr(self, f'_evolve_{self.spec.evolution_method}')
+        except AttributeError:
+            raise NotImplementedError(f'Evolution method {self.spec.evolution_method} is not implemented for {self.__class__.__name__}')
 
     def __eq__(self, other):
         """
@@ -1443,27 +1454,23 @@ class QuantumMesh:
             raise NotImplementedError
 
     def evolve(self, time_step):
-        try:
-            method = getattr(self, f'_evolve_{self.spec.evolution_method}')
-        except AttributeError:
-            raise NotImplementedError
-
         if self.spec.store_norm_diff_mask:
             pre_evolve_norm = self.norm()
-            method(time_step)
+            self.evolution_method(time_step)
             norm_diff_evolve = pre_evolve_norm - self.norm()
             if norm_diff_evolve / pre_evolve_norm > .001:
                 logger.warning('Evolution may be dangerously non-unitary, norm decreased by {} ({} %) during evolution step'.format(norm_diff_evolve, norm_diff_evolve / pre_evolve_norm))
 
             pre_mask_norm = self.norm()
             self.g *= self.spec.mask(r = self.r_mesh)
-            norm_diff_mask = pre_mask_norm - self.norm()
-            logger.debug('Applied mask {} to g for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_mask))
-            return norm_diff_mask
+            norm_diff_by_mask = pre_mask_norm - self.norm()
+            logger.debug('Applied mask {} to g for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_by_mask))
+            return norm_diff_by_mask
         else:
-            method(time_step)
-            self.g *= self.spec.mask(r = self.r_mesh)
-            logger.debug('Applied mask {} to g for {} {}'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name))
+            self.evolution_method(time_step)
+            if not isinstance(self.spec.mask, potentials.NoMask):
+                self.g *= self.spec.mask(r = self.r_mesh)
+                logger.debug('Applied mask {} to g for {} {}'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name))
 
     def get_mesh_slicer(self, plot_limit):
         raise NotImplementedError
@@ -3303,15 +3310,15 @@ class SphericalHarmonicMesh(QuantumMesh):
         if self.spec.evolution_gauge == "VEL":
             raise NotImplementedError
 
-        tau = time_step / (2 * hbar)
+        tau = 1j * time_step / (2 * hbar)
 
-        hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian_l = 1j * tau * self.get_interaction_hamiltonian_matrix_operators()
+        hamiltonian_r = tau * self.get_internal_hamiltonian_matrix_operators()
+        hamiltonian_l = tau * self.get_interaction_hamiltonian_matrix_operators()
 
-        hamiltonian_l_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_l, 1)
-        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
-        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
-        hamiltonian_l_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_l, 1)
+        hamiltonian_l_explicit = add_to_diagonal_sparse_matrix_diagonal_inplace(-hamiltonian_l, 1)
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal_inplace(-hamiltonian_r, 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal_inplace(hamiltonian_r, 1)
+        hamiltonian_l_implicit = add_to_diagonal_sparse_matrix_diagonal_inplace(hamiltonian_l, 1)
 
         operators = [
             DotOperator(hamiltonian_l_explicit, wrapping_direction = 'l'),

@@ -30,8 +30,8 @@ PLOT_KWARGS = dict(
     fig_dpi_scale = 6,
 )
 
-T_BOUND_MAP = {ion.SincPulse: 12}
-P_BOUND_MAP = {ion.SincPulse: 10}
+T_BOUND_MAP = {ion.SincPulse: 12, ion.GaussianPulse: 6}
+P_BOUND_MAP = {ion.SincPulse: 10, ion.GaussianPulse: 5}
 
 
 def make_anim(args):
@@ -50,12 +50,16 @@ def make_anim(args):
     efield = corrected_pulse.get_electric_field_amplitude(times)
     afield = corrected_pulse.get_vector_potential_amplitude_numeric_cumulative(times)
 
-    starts = range(0, len(times), 20)
+    starts = range(0, len(times), 10)
 
     sliced_times = list(times[start:] for start in starts)
+    sliced_vector_potentials = list(-proton_charge * integ.cumtrapz(y = efield[start:],
+                                                                    x = times[start:],
+                                                                    initial = 0)
+                                    for start in starts)
     sliced_alphas = list((proton_charge / electron_mass) * integ.cumtrapz(y = -integ.cumtrapz(y = efield[start:],
-                                                                                             x = times[start:],
-                                                                                             initial = 0),
+                                                                                              x = times[start:],
+                                                                                              initial = 0),
                                                                           x = times[start:],
                                                                           initial = 0)
                          for start in starts)
@@ -63,13 +67,17 @@ def make_anim(args):
     identifier = f'{pulse_type.__name__}__pw={uround(pw, asec, 0)}as_flu={uround(flu, Jcm2, 2)}jcm2_cep={uround(cep, pi, 2)}pi'
 
     efield_color = ion.COLOR_ELECTRIC_FIELD
+    afield_color = ion.COLOR_VECTOR_POTENTIAL
     trajectory_color = si.vis.BLACK
 
     ### UNITS
     times = times / asec
     efield = efield / atomic_electric_field
     sliced_times = list(time / asec for time in sliced_times)
+    sliced_vector_potentials = list(vp / atomic_momentum for vp in sliced_vector_potentials)
     sliced_alphas = list(alpha / bohr_radius for alpha in sliced_alphas)
+
+    max_vp = max(np.max(np.abs(vp)) for vp in sliced_vector_potentials)
 
     with si.vis.FigureManager(identifier, fig_width = 5, fig_dpi_scale = 6, target_dir = OUT_DIR, save_on_exit = False) as figman:
         fig = figman.fig
@@ -81,18 +89,27 @@ def make_anim(args):
             times,
             efield,
             color = efield_color,
-            # linewidth = 3,
+            label = fr'$ {ion.LATEX_EFIELD}(t) $',
         )
+        vect_line, = ax_efield.plot(
+            [],
+            [],
+            color = afield_color,
+            animated = True,
+            label = fr'$ e \, {ion.LATEX_AFIELD}(t) $',
+        )
+
         ax_efield.set_xlabel(r'Time $ t $ (as)')
-        ax_efield.set_ylabel(fr'$ {ion.LATEX_EFIELD}(t) $', color = efield_color)
+        ax_efield.set_ylabel(fr'$ {ion.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $ (a.u.)', color = efield_color)
         ax_efield.set_title(r'Free Electron Trajectories')
 
         ax_efield.tick_params('y', colors = efield_color)
         ax_efield.grid(True, color = efield_color, alpha = 0.5)
 
-        max_efield = np.max(np.abs(efield))
-        ax_efield.set_ylim(-max_efield * 1.05, max_efield * 1.05)
+        ax_efield.set_ylim(-max_vp * 1.05, max_vp * 1.05)
         ax_efield.set_xlim(times[0], times[-1])
+
+        plt.legend(loc = 'upper left')
 
         # TRAJECTORIES
         ax_trajectory = ax_efield.twinx()
@@ -101,13 +118,13 @@ def make_anim(args):
             [],
             [],
             color = trajectory_color,
-            # linewidth = 3,
+            animated = True
         )
         vert_line = ax_trajectory.axvline(
             np.NaN,
             color = trajectory_color,
-            alpha = 0.75,
-            linestyle = ':',
+            alpha = 0.5,
+            animated = True,
         )
         ax_trajectory.set_ylabel(fr"$ \alpha(t, t') $", color = trajectory_color)
 
@@ -123,15 +140,17 @@ def make_anim(args):
         # ANIMATION
 
         def update_line(arg):
-            traj_line.set_data(*arg)
-            vert_line.set_xdata(arg[0][0])
+            t, vp, alpha = arg
+            vect_line.set_data(t, vp)
+            traj_line.set_data(t, alpha)
+            vert_line.set_xdata(t[0])
 
         si.vis.animate(
             figman,
             update_line,
-            update_function_arguments = list(zip(sliced_times, sliced_alphas)),
-            artists = [traj_line, vert_line],
-            length = 10,
+            update_function_arguments = list(zip(sliced_times, sliced_vector_potentials, sliced_alphas)),
+            artists = [vect_line, traj_line, vert_line],
+            length = 30,
         )
 
 
@@ -142,7 +161,7 @@ if __name__ == '__main__':
         phases = [0, pi / 4, pi / 2]
         pulse_types = [
             ion.SincPulse,
-            # ion.GaussianPulse,
+            ion.GaussianPulse,
         ]
 
-        si.utils.multi_map(make_anim, list(itertools.product(pulse_types, pulse_widths, fluences, phases)), processes = 4)
+        si.utils.multi_map(make_anim, list(itertools.product(pulse_types, pulse_widths, fluences, phases)), processes = 2)
