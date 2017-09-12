@@ -52,14 +52,17 @@ def run(spec):
 
 PLOT_KWARGS_LIST = [
     dict(
+        fig_width = si.vis.points_to_inches(498.66),
         target_dir = OUT_DIR,
         img_format = 'pdf',
     ),
     dict(
+        fig_width = si.vis.points_to_inches(498.66),
         target_dir = OUT_DIR,
         img_format = 'pgf',
     ),
     dict(
+        fig_width = si.vis.points_to_inches(498.66),
         target_dir = OUT_DIR,
         img_format = 'png',
         img_scale = 3
@@ -575,31 +578,73 @@ def photons_at_a_glance():
             )
 
 
+def sine_squared_pulse(phase = 0, number_of_cycles = 1):
+    pulse = ion.CosSquaredPulse.from_period(
+        amplitude = 1 * atomic_electric_field,
+        period = 200 * asec,
+        number_of_cycles = number_of_cycles,
+        phase = phase,
+    )
+
+    t_bound = .5 * number_of_cycles * pulse.period
+
+    times = np.linspace(-t_bound, t_bound, 1e3)
+
+    for plot_kwargs in PLOT_KWARGS_LIST:
+        si.vis.xy_plot(
+            f'sine_squared_pulse__amp={uround(pulse.amplitude, atomic_electric_field)}aef_N={number_of_cycles}_cep={uround(pulse.phase, pi)}pi',
+            times,
+            pulse.get_electric_field_envelope(times) * pulse.amplitude,
+            pulse.get_electric_field_amplitude(times),
+            line_labels = [
+                'Envelope',
+                'Pulse',
+            ],
+            line_kwargs = [
+                {'linestyle': '--', 'color': 'black', 'alpha': 0.5},
+                {'linestyle': '-', 'color': 'black', 'alpha': 1},
+            ],
+            x_unit = 'asec',
+            x_label = r'Time $t$',
+            y_unit = 'atomic_electric_field',
+            y_label = rf'${ion.LATEX_EFIELD}(t)$',
+            title = rf'$ T_c = 200 \, \mathrm{{as}}, \; N = {number_of_cycles}, \; \varphi = {uround(pulse.phase, pi)}\pi $',
+            fig_scale = .475,
+            **plot_kwargs,
+        )
+
+
 if __name__ == '__main__':
     with log as logger:
         figures = [
-            photons_at_a_glance,
-            functools.partial(tunneling_ionization, (pi * epsilon_0 / (proton_charge ** 3)) * (rydberg ** 2)),
-            functools.partial(tunneling_ionization, 1 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .5 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .1 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .05 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .03 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .025 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .02 * atomic_electric_field),
-            functools.partial(tunneling_ionization, .01 * atomic_electric_field),
-            a_alpha_v2_kernel_gaussian,
-            finite_square_well,
-            finite_square_well_energies,
-            sinc_pulse_power_spectrum_full,
-            sinc_pulse_power_spectrum_half,
-            functools.partial(sinc_pulse_electric_field, phase = 0),
-            functools.partial(sinc_pulse_electric_field, phase = 1 / 4),
-            functools.partial(sinc_pulse_electric_field, phase = 1 / 2),
-            functools.partial(sinc_pulse_electric_field, phase = 1),
-            gaussian_pulse_power_spectrum_half,
-            functools.partial(ide_solution_sinc_pulse_cep_symmetry, phase = 1 / 4),
-            functools.partial(ide_solution_sinc_pulse_cep_symmetry, phase = 1 / 3),
+            functools.partial(sine_squared_pulse, phase = 0, number_of_cycles = 1),
+            functools.partial(sine_squared_pulse, phase = pi / 4, number_of_cycles = 1),
+            functools.partial(sine_squared_pulse, phase = pi / 2, number_of_cycles = 1),
+            functools.partial(sine_squared_pulse, phase = 0, number_of_cycles = 4),
+            functools.partial(sine_squared_pulse, phase = pi / 4, number_of_cycles = 4),
+            functools.partial(sine_squared_pulse, phase = pi / 2, number_of_cycles = 4),
+            # photons_at_a_glance,
+            # functools.partial(tunneling_ionization, (pi * epsilon_0 / (proton_charge ** 3)) * (rydberg ** 2)),
+            # functools.partial(tunneling_ionization, 1 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .5 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .1 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .05 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .03 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .025 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .02 * atomic_electric_field),
+            # functools.partial(tunneling_ionization, .01 * atomic_electric_field),
+            # a_alpha_v2_kernel_gaussian,
+            # finite_square_well,
+            # finite_square_well_energies,
+            # sinc_pulse_power_spectrum_full,
+            # sinc_pulse_power_spectrum_half,
+            # functools.partial(sinc_pulse_electric_field, phase = 0),
+            # functools.partial(sinc_pulse_electric_field, phase = 1 / 4),
+            # functools.partial(sinc_pulse_electric_field, phase = 1 / 2),
+            # functools.partial(sinc_pulse_electric_field, phase = 1),
+            # gaussian_pulse_power_spectrum_half,
+            # functools.partial(ide_solution_sinc_pulse_cep_symmetry, phase = 1 / 4),
+            # functools.partial(ide_solution_sinc_pulse_cep_symmetry, phase = 1 / 3),
         ]
 
         for fig in tqdm(figures):

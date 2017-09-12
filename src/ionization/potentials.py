@@ -1555,7 +1555,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         return info
 
 
-class SineSquaredPulse(UniformLinearlyPolarizedElectricPotential):
+class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     """A sine-squared pulse, parameterized by number of cycles."""
 
     def __init__(self,
@@ -1572,6 +1572,44 @@ class SineSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         self.phase = phase
         self.pulse_center = pulse_center
 
+    @classmethod
+    def from_omega(cls,
+                   amplitude = .01 * atomic_electric_field,
+                   omega = twopi * c / (800 * nm),
+                   number_of_cycles = 4,
+                   phase = DEFAULT_PHASE,
+                   pulse_center = DEFAULT_PULSE_CENTER,
+                   **kwargs):
+        wavelength = c / (omega / twopi)
+
+        return cls(
+            amplitude = amplitude,
+            wavelength = wavelength,
+            number_of_cycles = number_of_cycles,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_period(cls,
+                    amplitude = .01 * atomic_electric_field,
+                    period = 200 * asec,
+                    number_of_cycles = 4,
+                    phase = DEFAULT_PHASE,
+                    pulse_center = DEFAULT_PULSE_CENTER,
+                    **kwargs):
+        omega = twopi / period
+
+        return cls.from_omega(
+            amplitude = amplitude,
+            omega = omega,
+            number_of_cycles = number_of_cycles,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs,
+        )
+
     @property
     def frequency(self):
         return c / self.wavelength
@@ -1586,7 +1624,7 @@ class SineSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_envelope(self, t):
         tau = t - self.pulse_center
-        return np.sin(self.omega * tau / (2 * self.number_of_cycles))
+        return np.cos(self.omega * tau / (2 * self.number_of_cycles)) ** 2
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
