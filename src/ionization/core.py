@@ -3111,6 +3111,10 @@ class SphericalHarmonicMesh(QuantumMesh):
         x = 2 * (j ** 2) + (2 * j)
         return (x + 1) / (x + 0.5)
 
+    def gamma(self, j):
+        """For radial probability current."""
+        return 1 / ((j + 0.5) * (j + 1.5))
+
     def _get_kinetic_energy_matrix_operator_single_l(self, l):
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
         effective_potential = ((hbar ** 2) / (2 * electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
@@ -3300,11 +3304,93 @@ class SphericalHarmonicMesh(QuantumMesh):
         return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     # @si.utils.memoize
-    # def get_probability_current_matrix_operators(self):
-    #     raise NotImplementedError
+    # def _get_probability_current_matrix_operators(self):
+    #     """Get the mesh probability current operators for z and rho."""
+    #     z_prefactor = hbar / (4 * pi * self.spec.test_mass * self.delta_rho * self.delta_z)
+    #     rho_prefactor = hbar / (4 * pi * self.spec.test_mass * (self.delta_rho ** 2))
+    #
+    #     # construct the diagonals of the z probability current matrix operator
+    #     z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for z_index in range(0, self.mesh_points - 1):
+    #         if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
+    #             z_offdiagonal[z_index] = 0
+    #         else:
+    #             j = z_index // self.spec.z_points
+    #             z_offdiagonal[z_index] = 1 / (j + 0.5)
+    #     z_offdiagonal *= z_prefactor
+    #
+    #     @si.utils.memoize
+    #     def d(j):
+    #         return 1 / np.sqrt((j ** 2) - 0.25)
+    #
+    #     # construct the diagonals of the rho probability current matrix operator
+    #     rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for rho_index in range(0, self.mesh_points - 1):
+    #         if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
+    #             rho_offdiagonal[rho_index] = 0
+    #         else:
+    #             j = (rho_index % self.spec.rho_points) + 1
+    #             rho_offdiagonal[rho_index] = d(j)
+    #     rho_offdiagonal *= rho_prefactor
+    #
+    #     z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
+    #     rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
+    #
+    #     return z_current, rho_current
     #
     # def get_probability_current_vector_field(self):
-    #     raise NotImplementedError
+    #     z_current, rho_current = self._get_probability_current_matrix_operators()
+    #
+    #     g_vector_z = self.flatten_mesh(self.g, 'z')
+    #     current_vector_z = z_current.dot(g_vector_z)
+    #     gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
+    #     current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
+    #
+    #     g_vector_rho = self.flatten_mesh(self.g, 'rho')
+    #     current_vector_rho = rho_current.dot(g_vector_rho)
+    #     gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
+    #     current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
+    #
+    #     return current_mesh_z, current_mesh_rho
+
+    @si.utils.memoize
+    def _get_probability_current_matrix_operators(self):
+        raise NotImplementedError
+
+        if self.spec.evolution_gauge == 'VEL':
+            # add extra term -2 q A |psi|^2
+            raise NotImplementedError('Velocity gauge probability current not yet implemented')
+
+    def get_probability_current_vector_field(self):
+        raise NotImplementedError
+
+    @si.utils.memoize
+    def _get_radial_probability_current_operator(self):
+        r_prefactor = hbar / (2 * self.spec.test_mass * (self.delta_r ** 3))  # / extra 2 from taking Im later
+
+        r_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+
+        for r_index in range(self.mesh_points - 1):
+            if (r_index + 1) % self.spec.r_points != 0:
+                j = (r_index % self.spec.r_points) - 1
+                r_offdiagonal[r_index] = self.gamma(j)
+
+        r_offdiagonal *= r_prefactor
+
+        # r_current_operator = sparse.diags([r_offdiagonal], offsets = [1])
+        r_current_operator = sparse.diags([-r_offdiagonal, r_offdiagonal], offsets = [-1, 1])
+
+        return r_current_operator
+
+    def get_radial_probability_current_mesh(self):
+        r_current_operator = self._get_radial_probability_current_operator()
+
+        g_vector_r = self.flatten_mesh(self.g, 'r')
+        current_vector_r = r_current_operator.dot(g_vector_r)
+        gradient_mesh_r = self.wrap_vector(current_vector_r, 'r')
+        current_mesh_r = np.imag(np.conj(self.g) * gradient_mesh_r)
+
+        return current_mesh_r
 
     def _evolve_CN(self, time_step):
         if self.spec.evolution_gauge == "VEL":
