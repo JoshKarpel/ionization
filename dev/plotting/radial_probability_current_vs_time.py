@@ -21,12 +21,12 @@ PLOT_KWARGS = dict(
 )
 
 if __name__ == '__main__':
-    pulse = ion.Rectangle(start_time = 100 * asec, end_time = 300 * asec, amplitude = 2 * atomic_electric_field)
+    pulse = ion.Rectangle(start_time = 50 * asec, end_time = 150 * asec, amplitude = 1 * atomic_electric_field)
 
     sim = ion.SphericalHarmonicSpecification(
         'radial_current',
         r_bound = 50 * bohr_radius, r_points = 400, l_bound = 10,
-        time_initial = 0 * asec, time_final = 500 * asec, time_step = 1 * asec,
+        time_initial = 0 * asec, time_final = 300 * asec, time_step = 1 * asec,
         electric_potential = pulse,
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 10 * eV,
@@ -59,10 +59,10 @@ if __name__ == '__main__':
         total_radial_current_vs_time,
         x_label = r'Time $t$', x_unit = 'asec',
         y_label = r'Radius $r$', y_unit = 'bohr_radius',
-        y_upper_limit = 5 * bohr_radius,
+        y_upper_limit = 10 * bohr_radius,
         z_log_axis = True,
         z_lower_limit = -z_lim, z_upper_limit = z_lim,
-        colormap = plt.get_cmap('seismic'),
+        colormap = plt.get_cmap('RdBu_r'),
         title = r'Radial Probability Current vs. Time',
         **PLOT_KWARGS,
     )
