@@ -518,6 +518,7 @@ class LineMeshAxis(QuantumMeshAxis):
             'psi2': r'$ \left| \Psi \right|^2 $',
             'g': r'$ g $',
             'psi': r'$ \Psi $',
+            'fft': r'$ \phi $',
         }
         self.axis.set_ylabel(plot_labels[self.which], fontsize = 30)
 
