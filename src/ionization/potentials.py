@@ -1241,6 +1241,69 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             **kwargs
         )
 
+    @classmethod
+    def from_power_exclusion(cls,
+                             pulse_width = DEFAULT_PULSE_WIDTH,
+                             exclusion = 3,
+                             fluence = DEFAULT_FLUENCE,
+                             phase = DEFAULT_PHASE,
+                             pulse_center = DEFAULT_PULSE_CENTER,
+                             **kwargs):
+        omega_carrier = exclusion * (pi / (np.sqrt(2) * pulse_width))
+
+        return cls(
+            pulse_width = pulse_width,
+            omega_carrier = omega_carrier,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
+
+    @classmethod
+    def from_number_of_cycles(cls,
+                              pulse_width = DEFAULT_PULSE_WIDTH,
+                              number_of_cycles = 3,
+                              number_of_pulse_widths = 3,
+                              fluence = DEFAULT_FLUENCE,
+                              phase = DEFAULT_PHASE,
+                              pulse_center = DEFAULT_PULSE_CENTER,
+                              **kwargs):
+        """
+        Construct a GaussianPulse from the number of cycles over a certain range of pulse widths.
+
+        Parameters
+        ----------
+        pulse_width
+        number_of_cycles
+            The number of cycles under the envelope (the cutoff is given by number_of_pulse_widths).
+        number_of_pulse_widths
+            The number of pulse widths on either side of the center of the pulse to consider when determining the carrier frequency from the number of cycles.
+        fluence
+        phase
+        pulse_center
+        kwargs
+
+        Returns
+        -------
+
+        """
+        omega_carrier = pi * number_of_cycles / (number_of_pulse_widths * pulse_width)
+
+        pulse = cls(
+            pulse_width = pulse_width,
+            omega_carrier = omega_carrier,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
+
+        pulse.number_of_cycles = number_of_cycles
+        pulse.number_of_pulse_widths = number_of_pulse_widths
+
+        return pulse
+
     @property
     def photon_energy_carrier(self):
         return hbar * self.omega_carrier
