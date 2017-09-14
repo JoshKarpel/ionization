@@ -25,6 +25,8 @@ def ensure_compatibility_spec(spec):
         spec.theta_points = 360
     if type(spec.checkpoint_every) == int:
         spec.checkpoint_every = datetime.timedelta(minutes = 60)
+    if not hasattr(spec, 'store_radial_probability_current'):
+        spec.store_radial_probability_current = False
 
 
 def ensure_compatibility_sim(sim):

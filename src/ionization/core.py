@@ -181,6 +181,9 @@ class ElectricFieldSimulation(si.Simulation):
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
+        if 'r' in self.mesh.mesh_storage_method and self.spec.store_radial_probability_current:
+            self.radial_probability_current_vs_time = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
+
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
 
@@ -213,7 +216,9 @@ class ElectricFieldSimulation(si.Simulation):
                 'internal_energy_expectation_value_vs_time',
                 'total_energy_expectation_value_vs_time',
                 'electric_dipole_moment_expectation_value_vs_time'
-                'norm_diff_mask_vs_time'):
+                'norm_diff_mask_vs_time',
+                'radial_probability_current_vs_time',
+        ):
             try:
                 mem_other_time_data += getattr(self, attr).nbytes
             except AttributeError:  # apparently we're not storing that data
@@ -349,6 +354,11 @@ class ElectricFieldSimulation(si.Simulation):
             if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
                 logger.warning(
                     f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
+
+        if 'r' in self.mesh.mesh_storage_method:
+            if self.spec.store_radial_probability_current:
+                total_radial_current = np.sum(self.mesh.get_radial_probability_current_mesh(), axis = 0)
+                self.radial_probability_current_vs_time[self.data_time_index] = total_radial_current
 
         logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
 
@@ -1083,6 +1093,7 @@ class ElectricFieldSpecification(si.Specification):
                  store_electric_dipole_moment_expectation_value = True,
                  store_energy_expectation_value = True,
                  store_norm_diff_mask = False,
+                 store_radial_probability_current = False,
                  store_data_every = 1,
                  snapshot_times = (), snapshot_indices = (), snapshot_type = None, snapshot_kwargs = None,
                  **kwargs):
@@ -1158,6 +1169,7 @@ class ElectricFieldSpecification(si.Specification):
         self.store_electric_dipole_moment_expectation_value = store_electric_dipole_moment_expectation_value
         self.store_energy_expectation_value = store_energy_expectation_value
         self.store_norm_diff_mask = store_norm_diff_mask
+        self.store_radial_probability_current = store_radial_probability_current
 
         self.store_data_every = int(store_data_every)
 
@@ -1229,6 +1241,7 @@ class ElectricFieldSpecification(si.Specification):
         info_analysis.add_field('Store Radial Position EV', self.store_radial_position_expectation_value)
         info_analysis.add_field('Store Dipole Moment EV', self.store_electric_dipole_moment_expectation_value)
         info_analysis.add_field('Store Energy EV', self.store_energy_expectation_value)
+        info_analysis.add_field('Store Radial Probability Current', self.store_radial_probability_current)
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
         info_analysis.add_field('Snapshot Times', (f'{uround(st, asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
