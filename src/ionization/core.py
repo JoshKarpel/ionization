@@ -182,7 +182,7 @@ class ElectricFieldSimulation(si.Simulation):
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         if 'r' in self.mesh.mesh_storage_method and self.spec.store_radial_probability_current:
-            self.radial_probability_current_vs_time = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
+            self.radial_probability_current_density_vs_time = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
 
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
@@ -357,8 +357,8 @@ class ElectricFieldSimulation(si.Simulation):
 
         if 'r' in self.mesh.mesh_storage_method:
             if self.spec.store_radial_probability_current:
-                total_radial_current = np.sum(self.mesh.get_radial_probability_current_mesh(), axis = 0)
-                self.radial_probability_current_vs_time[self.data_time_index] = total_radial_current
+                total_radial_current_density = np.sum(self.mesh.get_radial_probability_current_density_mesh(), axis = 0)
+                self.radial_probability_current_density_vs_time[self.data_time_index] = total_radial_current_density
 
         logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
 
@@ -1023,6 +1023,45 @@ class ElectricFieldSimulation(si.Simulation):
                        x_label = 'Frequency $f$', y_label = r'Dipole Moment $\left| d(\omega) \right|^2$ $\left( e^2 \, a_0^2 \right)$',
                        x_lower_limit = 0, x_upper_limit = frequency_range,
                        **kwargs)
+
+    @property
+    def radial_probability_current_vs_time(self):
+        if 'r' not in self.mesh.mesh_storage_method:
+            raise NotImplementedError
+
+        return self.radial_probability_current_density_vs_time * (4 * pi * (self.mesh.r ** 2))
+
+    def plot_radial_probability_current_vs_time(
+            self,
+            x_unit = 'asec',
+            y_unit = 'bohr_radius',
+            z_unit = 'per_asec',
+            z_limit = None,
+            use_name = False,
+            **kwargs):
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+
+        if z_limit is None:
+            z_limit = np.max(np.abs(self.radial_probability_current_vs_time))
+
+        t_mesh, r_mesh = np.meshgrid(self.data_times, self.mesh.r, indexing = 'ij')
+
+        si.vis.xyz_plot(
+            prefix + '__radial_probability_current_vs_time',
+            t_mesh,
+            r_mesh,
+            self.radial_probability_current_vs_time,
+            x_label = r'Time $t$', x_unit = x_unit,
+            y_label = r'Radius $r$', y_unit = y_unit,
+            z_unit = z_unit,
+            z_lower_limit = -z_limit, z_upper_limit = z_limit,
+            z_label = r'$J_r$',
+            colormap = plt.get_cmap('RdBu_r'),
+            title = r'Radial Probability Current vs. Time',
+            **kwargs,
+        )
 
     def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
@@ -3395,7 +3434,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_current_operator
 
-    def get_radial_probability_current_mesh(self):
+    def get_radial_probability_current_density_mesh(self):
         r_current_operator = self._get_radial_probability_current_operator()
 
         g_vector_r = self.flatten_mesh(self.g, 'r')
