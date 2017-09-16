@@ -705,11 +705,12 @@ class ElectricFieldSimulation(si.Simulation):
 
             overlaps = [overlap for overlap in overlaps]
 
-            ax_overlaps.stackplot(self.data_times / time_unit_value,
-                                  *overlaps,
-                                  labels = labels,
-                                  colors = colors,
-                                  )
+            ax_overlaps.stackplot(
+                self.data_times / time_unit_value,
+                *overlaps,
+                labels = labels,
+                colors = colors,
+            )
 
             if log:
                 ax_overlaps.set_yscale('log')
@@ -730,7 +731,7 @@ class ElectricFieldSimulation(si.Simulation):
                 loc = 'upper left',
                 borderaxespad = 0.075,
                 fontsize = 9,
-                ncol = 1 + (len(overlaps) // 8))
+                ncol = 1 + (len(overlaps) // 12))
 
             ax_overlaps.tick_params(labelleft = True,
                                     labelright = True,
@@ -1026,15 +1027,15 @@ class ElectricFieldSimulation(si.Simulation):
 
     @property
     def radial_probability_current_vs_time(self):
-        if 'r' not in self.mesh.mesh_storage_method:
-            raise NotImplementedError
-
         return self.radial_probability_current_density_vs_time * (4 * pi * (self.mesh.r ** 2))
 
     def plot_radial_probability_current_vs_time(
             self,
-            x_unit = 'asec',
-            y_unit = 'bohr_radius',
+            time_unit = 'asec',
+            time_lower_limit = None,
+            time_upper_limit = None,
+            r_limit = 20 * bohr_radius,
+            distance_unit = 'bohr_radius',
             z_unit = 'per_asec',
             z_limit = None,
             use_name = False,
@@ -1046,15 +1047,29 @@ class ElectricFieldSimulation(si.Simulation):
         if z_limit is None:
             z_limit = np.max(np.abs(self.radial_probability_current_vs_time))
 
-        t_mesh, r_mesh = np.meshgrid(self.data_times, self.mesh.r, indexing = 'ij')
+        if time_lower_limit is None:
+            time_lower_limit = self.data_times[0]
+        if time_upper_limit is None:
+            time_upper_limit = self.data_times[-1]
+
+        try:
+            r = self.mesh.r
+        except AttributeError:
+            r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
+            delta_r = r[1] - r[0]
+            r += delta_r / 2
+
+        t_mesh, r_mesh = np.meshgrid(self.data_times, r, indexing = 'ij')
 
         si.vis.xyz_plot(
             prefix + '__radial_probability_current_vs_time',
             t_mesh,
             r_mesh,
             self.radial_probability_current_vs_time,
-            x_label = r'Time $t$', x_unit = x_unit,
-            y_label = r'Radius $r$', y_unit = y_unit,
+            x_label = r'Time $t$', x_unit = time_unit,
+            x_lower_limit = time_lower_limit, x_upper_limit = time_upper_limit,
+            y_label = r'Radius $r$', y_unit = distance_unit,
+            y_lower_limit = 0, y_upper_limit = r_limit,
             z_unit = z_unit,
             z_lower_limit = -z_limit, z_upper_limit = z_limit,
             z_label = r'$J_r$',

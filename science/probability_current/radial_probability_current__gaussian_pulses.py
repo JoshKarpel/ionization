@@ -29,38 +29,51 @@ def run_spec(spec):
         sim.info().log()
         if sim.status != si.Status.FINISHED:
             sim.run_simulation()
-            sim.save(target_dir = SIM_LIB)
+            sim.save(save_mesh = True, target_dir = SIM_LIB)
         sim.info().log()
 
-        sim.plot_wavefunction_vs_time(show_vector_potential = False, **PLOT_KWARGS)
-        sim.plot_radial_probability_current_vs_time(**PLOT_KWARGS)
+        sim.plot_wavefunction_vs_time(
+            show_vector_potential = False,
+            **PLOT_KWARGS,
+        )
+
+        sim.plot_radial_probability_current_vs_time(
+            r_limit = 15 * bohr_radius,
+            time_lower_limit = -3 * sim.spec.electric_potential[0].pulse_width,
+            **PLOT_KWARGS
+        )
 
     return sim
 
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        pulse_type = ion.SincPulse
-        # pulse_widths = np.array([50, 100, 200]) * asec
-        # fluences = np.array([.1, 1, 10]) * Jcm2
-        # phases = [0, pi / 4, pi / 2]
+        pulse_type = ion.GaussianPulse
 
-        pulse_widths = np.array([50]) * asec
-        fluences = np.array([1]) * Jcm2
-        phases = [0, pi / 2]
+        pulse_widths = np.array([50, 100, 200, 800]) * asec
+        fluences = np.array([.1, 1, 10]) * Jcm2
+        phases = [0, pi / 4, pi / 2]
+        number_of_cycles = [2, 3, 4]
 
-        pulse_time_bound = 30
-        sim_time_bound = 35
+        # pulse_widths = np.array([50]) * asec
+        # fluences = np.array([1]) * Jcm2
+        # phases = [0, pi / 2]
 
-        dt = 1 * asec
+        pulse_time_bound = 5
+        sim_time_bound = 6
+        extra_end_time = 2
+
+        dt = .5 * asec
         r_bound = 100 * bohr_radius
-        r_points_per_br = 4
-        l_bound = 100
+        r_points_per_br = 10
+        l_bound = 300
 
         specs = []
-        for pw, flu, cep in itertools.product(pulse_widths, fluences, phases):
-            pulse = pulse_type(
+        for pw, flu, cep, n_cycles in itertools.product(pulse_widths, fluences, phases, number_of_cycles):
+            pulse = pulse_type.from_number_of_cycles(
                 pulse_width = pw, fluence = flu, phase = cep,
+                number_of_cycles = n_cycles,
+                number_of_pulse_widths = 3,
                 window = ion.SymmetricExponentialTimeWindow(
                     window_time = pulse_time_bound * pw,
                     window_width = .2 * pw,
@@ -69,12 +82,12 @@ if __name__ == '__main__':
 
             specs.append(
                 ion.SphericalHarmonicSpecification(
-                    f'{pulse_type.__name__}__pw={uround(pw, asec)}as_flu={uround(flu, Jcm2)}jcm2_cep={uround(cep, pi)}pi__R={uround(r_bound, bohr_radius)}br_ppbr={r_points_per_br}_L={l_bound}_dt={uround(dt, asec)}as',
+                    f'{pulse_type.__name__}__Nc={n_cycles}_pw={uround(pw, asec)}as_flu={uround(flu, Jcm2)}jcm2_cep={uround(cep, pi)}pi__R={uround(r_bound, bohr_radius)}br_ppbr={r_points_per_br}_L={l_bound}_dt={uround(dt, asec)}as',
                     r_bound = 100 * bohr_radius,
                     r_points = r_points_per_br * r_bound / bohr_radius,
                     l_bound = l_bound,
                     time_step = dt,
-                    time_initial = -sim_time_bound * pw, time_final = sim_time_bound * pw,
+                    time_initial = -sim_time_bound * pw, time_final = (sim_time_bound + extra_end_time) * pw,
                     mask = ion.RadialCosineMask(.8 * r_bound, r_bound),
                     electric_potential = pulse,
                     electric_potential_dc_correction = True,
@@ -85,8 +98,7 @@ if __name__ == '__main__':
                     checkpoint_dir = SIM_LIB,
                     checkpoint_every = datetime.timedelta(minutes = 1),
                     store_radial_probability_current = True,
-                    store_data_every = 10,
                 )
             )
 
-        si.utils.multi_map(run_spec, specs, processes = 2)
+        si.utils.multi_map(run_spec, specs, processes = 6)
