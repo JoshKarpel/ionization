@@ -3468,10 +3468,10 @@ class SphericalHarmonicMesh(QuantumMesh):
         hamiltonian_r = tau * self.get_internal_hamiltonian_matrix_operators()
         hamiltonian_l = tau * self.get_interaction_hamiltonian_matrix_operators()
 
-        hamiltonian_l_explicit = add_to_diagonal_sparse_matrix_diagonal_inplace(-hamiltonian_l, 1)
-        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal_inplace(-hamiltonian_r, 1)
-        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal_inplace(hamiltonian_r, 1)
-        hamiltonian_l_implicit = add_to_diagonal_sparse_matrix_diagonal_inplace(hamiltonian_l, 1)
+        hamiltonian_l_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_l, 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
+        hamiltonian_l_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_l, 1)
 
         operators = [
             DotOperator(hamiltonian_l_explicit, wrapping_direction = 'l'),
@@ -3712,7 +3712,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         """Evolve the mesh forward in time by using a split-operator algorithm with length-gauge evolution operators."""
         tau = time_step / (2 * hbar)
 
-        hamiltonian_r = 1j * tau * self.get_internal_hamiltonian_matrix_operators()
+        hamiltonian_r = (1j * tau) * self.get_internal_hamiltonian_matrix_operators()
 
         hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
         hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
