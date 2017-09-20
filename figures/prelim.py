@@ -2133,7 +2133,7 @@ if __name__ == '__main__':
             # richardson_colormap,
             # tunneling_ionization,
             # instantaneous_tunneling_rate_plot,
-            # hyd__pulse_width_scan__sinc,
+            hyd__pulse_width_scan__sinc,
             # ide__pulse_width_scan__sinc,
             # hyd__pulse_width_scan__gaussian,
             # hyd__fluence_scan__sinc,
