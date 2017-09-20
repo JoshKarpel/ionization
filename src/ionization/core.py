@@ -165,9 +165,6 @@ class ElectricFieldSimulation(si.Simulation):
         self.vector_potential_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         # optional data storage initialization
-        if 'l' in self.mesh.mesh_storage_method and self.spec.store_norm_by_l:
-            self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
-
         if self.spec.store_radial_position_expectation_value:
             self.radial_position_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
@@ -180,9 +177,6 @@ class ElectricFieldSimulation(si.Simulation):
 
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        if 'r' in self.mesh.mesh_storage_method and self.spec.store_radial_probability_current:
-            self.radial_probability_current_density_vs_time = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
 
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
@@ -340,25 +334,8 @@ class ElectricFieldSimulation(si.Simulation):
         self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
         self.vector_potential_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.times_to_current)
 
-        if 'l' in self.mesh.mesh_storage_method:
-            if self.spec.store_norm_by_l:
-                norm_by_l = self.mesh.norm_by_l
-                for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
-                    self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
-
-                norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
-            else:
-                largest_l_mesh = self.mesh.g[-1]
-                norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
-
-            if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e6:
-                logger.warning(
-                    f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
-
-        if 'r' in self.mesh.mesh_storage_method:
-            if self.spec.store_radial_probability_current:
-                total_radial_current_density = np.sum(self.mesh.get_radial_probability_current_density_mesh(), axis = 0)
-                self.radial_probability_current_density_vs_time[self.data_time_index] = total_radial_current_density
+        for callback in self.spec.store_data_callbacks:
+            callback(self)
 
         logger.debug('{} {} stored data for time index {} (data time index {})'.format(self.__class__.__name__, self.name, self.time_index, self.data_time_index))
 
@@ -875,77 +852,6 @@ class ElectricFieldSimulation(si.Simulation):
             if group_angular_momentum:
                 figman.name += '__grouped'
 
-    def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
-        fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
-
-        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.06)
-        ax_momentums = plt.subplot(grid_spec[0])
-        ax_field = plt.subplot(grid_spec[1], sharex = ax_momentums)
-
-        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.times / asec, self.electric_field_amplitude_vs_time / atomic_electric_field, color = 'black', linewidth = 2)
-
-        if renormalize:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
-        else:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
-        num_colors = len(overlaps)
-        ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
-        ax_momentums.stackplot(self.times / asec, *overlaps, alpha = 1, labels = l_labels)
-
-        if log:
-            ax_momentums.set_yscale('log')
-            ax_momentums.set_ylim(top = 1.0)
-            ax_momentums.grid(True, which = 'both')
-        else:
-            ax_momentums.set_ylim(0, 1.0)
-            ax_momentums.set_yticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
-            ax_momentums.grid(True)
-        ax_momentums.set_xlim(self.spec.time_initial / asec, self.spec.time_final / asec)
-
-        ax_field.grid(True)
-
-        ax_field.set_xlabel('Time $t$ (as)', fontsize = 15)
-        y_label = r'$\left| \left\langle \Psi | Y^l_0 \right\rangle \right|^2$'
-        if renormalize:
-            y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
-        ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 11)
-
-        ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
-
-        ax_momentums.tick_params(labelright = True)
-        ax_field.tick_params(labelright = True)
-        ax_momentums.xaxis.tick_top()
-
-        plt.rcParams['xtick.major.pad'] = 5
-        plt.rcParams['ytick.major.pad'] = 5
-
-        # Find at most n+1 ticks on the y-axis at 'nice' locations
-        max_yticks = 6
-        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
-        ax_field.yaxis.set_major_locator(yloc)
-
-        max_xticks = 6
-        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
-        ax_field.xaxis.set_major_locator(xloc)
-
-        ax_field.tick_params(axis = 'x', which = 'major', labelsize = 10)
-        ax_field.tick_params(axis = 'y', which = 'major', labelsize = 10)
-        ax_momentums.tick_params(axis = 'both', which = 'major', labelsize = 10)
-
-        postfix = ''
-        if renormalize:
-            postfix += '_renorm'
-        prefix = self.file_name
-        if use_name:
-            prefix = self.name
-        si.vis.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
-
-        plt.close()
-
     def plot_radial_position_expectation_value_vs_time(self, use_name = False, **kwargs):
         if not use_name:
             prefix = self.file_name
@@ -1025,59 +931,6 @@ class ElectricFieldSimulation(si.Simulation):
                        x_lower_limit = 0, x_upper_limit = frequency_range,
                        **kwargs)
 
-    @property
-    def radial_probability_current_vs_time(self):
-        return self.radial_probability_current_density_vs_time * (4 * pi * (self.mesh.r ** 2))
-
-    def plot_radial_probability_current_vs_time(
-            self,
-            time_unit = 'asec',
-            time_lower_limit = None,
-            time_upper_limit = None,
-            r_limit = 20 * bohr_radius,
-            distance_unit = 'bohr_radius',
-            z_unit = 'per_asec',
-            z_limit = None,
-            use_name = False,
-            **kwargs):
-        prefix = self.file_name
-        if use_name:
-            prefix = self.name
-
-        if z_limit is None:
-            z_limit = np.max(np.abs(self.radial_probability_current_vs_time))
-
-        if time_lower_limit is None:
-            time_lower_limit = self.data_times[0]
-        if time_upper_limit is None:
-            time_upper_limit = self.data_times[-1]
-
-        try:
-            r = self.mesh.r
-        except AttributeError:
-            r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
-            delta_r = r[1] - r[0]
-            r += delta_r / 2
-
-        t_mesh, r_mesh = np.meshgrid(self.data_times, r, indexing = 'ij')
-
-        si.vis.xyz_plot(
-            prefix + '__radial_probability_current_vs_time',
-            t_mesh,
-            r_mesh,
-            self.radial_probability_current_vs_time,
-            x_label = r'Time $t$', x_unit = time_unit,
-            x_lower_limit = time_lower_limit, x_upper_limit = time_upper_limit,
-            y_label = r'Radius $r$', y_unit = distance_unit,
-            y_lower_limit = 0, y_upper_limit = r_limit,
-            z_unit = z_unit,
-            z_lower_limit = -z_limit, z_upper_limit = z_limit,
-            z_label = r'$J_r$',
-            colormap = plt.get_cmap('RdBu_r'),
-            title = r'Radial Probability Current vs. Time',
-            **kwargs,
-        )
-
     def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
@@ -1147,7 +1000,7 @@ class ElectricFieldSpecification(si.Specification):
                  store_electric_dipole_moment_expectation_value = True,
                  store_energy_expectation_value = True,
                  store_norm_diff_mask = False,
-                 store_radial_probability_current = False,
+                 store_data_callbacks = (),
                  store_data_every = 1,
                  snapshot_times = (), snapshot_indices = (), snapshot_type = None, snapshot_kwargs = None,
                  **kwargs):
@@ -1223,7 +1076,8 @@ class ElectricFieldSpecification(si.Specification):
         self.store_electric_dipole_moment_expectation_value = store_electric_dipole_moment_expectation_value
         self.store_energy_expectation_value = store_energy_expectation_value
         self.store_norm_diff_mask = store_norm_diff_mask
-        self.store_radial_probability_current = store_radial_probability_current
+
+        self.store_data_callbacks = store_data_callbacks
 
         self.store_data_every = int(store_data_every)
 
@@ -2825,12 +2679,198 @@ class SphericalSliceMesh(QuantumMesh):
         plt.close()
 
 
+class SphericalHarmonicSimulation(ElectricFieldSimulation):
+    """Adds options and data storage that are specific to SphericalHarmonicMesh-using simulations."""
+
+    def __init__(self, spec):
+        super().__init__(spec)
+
+        if self.spec.store_norm_by_l:
+            self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
+
+        if self.spec.store_radial_probability_current:
+            self.radial_probability_current_vs_time__pos_z = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
+            self.radial_probability_current_vs_time__neg_z = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
+
+    def store_data(self):
+        super().store_data()
+
+        if self.spec.store_norm_by_l:
+            norm_by_l = self.mesh.norm_by_l
+            for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
+                self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
+
+            norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
+        else:
+            largest_l_mesh = self.mesh.g[-1]
+            norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
+
+        if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e9:
+            logger.warning(
+                f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
+
+        if self.spec.store_radial_probability_current:
+            radial_current_density = self.mesh.get_radial_probability_current_density_mesh__spatial()
+
+            theta = self.mesh.theta_calc
+            d_theta = np.abs(theta[1] - theta[0])
+            sin_theta = np.sin(theta)
+            mask = theta <= pi / 2
+
+            integrand = radial_current_density * sin_theta * d_theta * twopi  # sin(theta) d_theta from theta integral, twopi from phi integral
+
+            self.radial_probability_current_vs_time__pos_z[self.data_time_index] = np.sum(integrand[:, mask], axis = 1) * (self.mesh.r ** 2)
+            self.radial_probability_current_vs_time__neg_z[self.data_time_index] = np.sum(integrand[:, ~mask], axis = 1) * (self.mesh.r ** 2)
+
+    @property
+    def radial_probability_current_vs_time(self):
+        return self.radial_probability_current_vs_time__pos_z + self.radial_probability_current_vs_time__neg_z
+
+    def plot_radial_probability_current_vs_time(
+            self,
+            time_unit = 'asec',
+            time_lower_limit = None,
+            time_upper_limit = None,
+            r_lower_limit = None,
+            r_upper_limit = None,
+            distance_unit = 'bohr_radius',
+            z_unit = 'per_asec',
+            z_limit = None,
+            use_name = False,
+            which = 'sum',
+            **kwargs):
+        if which == 'sum':
+            z = self.radial_probability_current_vs_time
+        elif which == 'pos':
+            z = self.radial_probability_current_vs_time__pos_z
+        elif which == 'neg':
+            z = self.radial_probability_current_vs_time__neg_z
+        else:
+            raise AttributeError("which must be one of 'sum', 'pos', or 'neg'")
+
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+
+        if z_limit is None:
+            z_limit = np.nanmax(np.abs(self.radial_probability_current_vs_time))
+
+        if time_lower_limit is None:
+            time_lower_limit = self.data_times[0]
+        if time_upper_limit is None:
+            time_upper_limit = self.data_times[-1]
+
+        try:
+            r = self.mesh.r
+        except AttributeError:
+            r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
+            delta_r = r[1] - r[0]
+            r += delta_r / 2
+
+        if r_lower_limit is None:
+            r_lower_limit = r[0]
+        if r_upper_limit is None:
+            r_upper_limit = r[-1]
+
+        t_mesh, r_mesh = np.meshgrid(self.data_times, r, indexing = 'ij')
+
+        si.vis.xyz_plot(
+            prefix + f'__radial_probability_current_{which}_vs_time',
+            t_mesh,
+            r_mesh,
+            z,
+            x_label = r'Time $t$', x_unit = time_unit,
+            x_lower_limit = time_lower_limit, x_upper_limit = time_upper_limit,
+            y_label = r'Radius $r$', y_unit = distance_unit,
+            y_lower_limit = r_lower_limit, y_upper_limit = r_upper_limit,
+            z_unit = z_unit,
+            z_lower_limit = -z_limit, z_upper_limit = z_limit,
+            z_label = r'$J_r$',
+            colormap = plt.get_cmap('RdBu_r'),
+            title = rf'Radial Probability Current vs. Time ({which})',
+            **kwargs,
+        )
+
+    def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
+        fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+
+        grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.06)
+        ax_momentums = plt.subplot(grid_spec[0])
+        ax_field = plt.subplot(grid_spec[1], sharex = ax_momentums)
+
+        if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
+            ax_field.plot(self.times / asec, self.electric_field_amplitude_vs_time / atomic_electric_field, color = 'black', linewidth = 2)
+
+        if renormalize:
+            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+        else:
+            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+        num_colors = len(overlaps)
+        ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
+        ax_momentums.stackplot(self.times / asec, *overlaps, alpha = 1, labels = l_labels)
+
+        if log:
+            ax_momentums.set_yscale('log')
+            ax_momentums.set_ylim(top = 1.0)
+            ax_momentums.grid(True, which = 'both')
+        else:
+            ax_momentums.set_ylim(0, 1.0)
+            ax_momentums.set_yticks([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0])
+            ax_momentums.grid(True)
+        ax_momentums.set_xlim(self.spec.time_initial / asec, self.spec.time_final / asec)
+
+        ax_field.grid(True)
+
+        ax_field.set_xlabel('Time $t$ (as)', fontsize = 15)
+        y_label = r'$\left| \left\langle \Psi | Y^l_0 \right\rangle \right|^2$'
+        if renormalize:
+            y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
+        ax_momentums.set_ylabel(y_label, fontsize = 15)
+        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(LATEX_EFIELD), fontsize = 11)
+
+        ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
+
+        ax_momentums.tick_params(labelright = True)
+        ax_field.tick_params(labelright = True)
+        ax_momentums.xaxis.tick_top()
+
+        plt.rcParams['xtick.major.pad'] = 5
+        plt.rcParams['ytick.major.pad'] = 5
+
+        # Find at most n+1 ticks on the y-axis at 'nice' locations
+        max_yticks = 6
+        yloc = plt.MaxNLocator(max_yticks, prune = 'upper')
+        ax_field.yaxis.set_major_locator(yloc)
+
+        max_xticks = 6
+        xloc = plt.MaxNLocator(max_xticks, prune = 'both')
+        ax_field.xaxis.set_major_locator(xloc)
+
+        ax_field.tick_params(axis = 'x', which = 'major', labelsize = 10)
+        ax_field.tick_params(axis = 'y', which = 'major', labelsize = 10)
+        ax_momentums.tick_params(axis = 'both', which = 'major', labelsize = 10)
+
+        postfix = ''
+        if renormalize:
+            postfix += '_renorm'
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+        si.vis.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
+
+        plt.close()
+
+
 class SphericalHarmonicSpecification(ElectricFieldSpecification):
+    simulation_type = SphericalHarmonicSimulation
+
     def __init__(self, name,
                  r_bound = 100 * bohr_radius,
                  r_points = 400,
                  l_bound = 100,
-                 theta_points = 360,
+                 theta_points = 180,
                  evolution_equations = 'LAG',
                  evolution_method = 'SO',
                  evolution_gauge = 'LEN',
@@ -2839,6 +2879,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
                  numeric_eigenstate_max_angular_momentum = 20,
                  numeric_eigenstate_max_energy = 100 * eV,
                  hydrogen_zero_angular_momentum_correction = True,
+                 store_radial_probability_current = False,
                  **kwargs):
         """
         Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
@@ -2852,12 +2893,14 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         :param evolution_gauge: 'V' (recommended) or 'L'
         :param kwargs: passed to ElectricFieldSpecification
         """
-        super().__init__(name,
-                         mesh_type = SphericalHarmonicMesh,
-                         evolution_equations = evolution_equations,
-                         evolution_method = evolution_method,
-                         evolution_gauge = evolution_gauge,
-                         **kwargs)
+        super().__init__(
+            name,
+            mesh_type = SphericalHarmonicMesh,
+            evolution_equations = evolution_equations,
+            evolution_method = evolution_method,
+            evolution_gauge = evolution_gauge,
+            **kwargs
+        )
 
         self.r_bound = r_bound
         self.r_points = int(r_points)
@@ -2872,6 +2915,8 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
 
         self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
+
+        self.store_radial_probability_current = store_radial_probability_current
 
     def info(self):
         info = super().info()
@@ -3180,7 +3225,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def gamma(self, j):
         """For radial probability current."""
-        return 1 / ((j + 0.5) * (j + 1.5))
+        return 1 / ((j ** 2) - 0.25)
 
     def _get_kinetic_energy_matrix_operator_single_l(self, l):
         r_prefactor = -(hbar ** 2) / (2 * electron_mass_reduced * (self.delta_r ** 2))
@@ -3370,56 +3415,6 @@ class SphericalHarmonicMesh(QuantumMesh):
     def energy_expectation_value(self, include_interaction = False):
         return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
-    # @si.utils.memoize
-    # def _get_probability_current_matrix_operators(self):
-    #     """Get the mesh probability current operators for z and rho."""
-    #     z_prefactor = hbar / (4 * pi * self.spec.test_mass * self.delta_rho * self.delta_z)
-    #     rho_prefactor = hbar / (4 * pi * self.spec.test_mass * (self.delta_rho ** 2))
-    #
-    #     # construct the diagonals of the z probability current matrix operator
-    #     z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-    #     for z_index in range(0, self.mesh_points - 1):
-    #         if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
-    #             z_offdiagonal[z_index] = 0
-    #         else:
-    #             j = z_index // self.spec.z_points
-    #             z_offdiagonal[z_index] = 1 / (j + 0.5)
-    #     z_offdiagonal *= z_prefactor
-    #
-    #     @si.utils.memoize
-    #     def d(j):
-    #         return 1 / np.sqrt((j ** 2) - 0.25)
-    #
-    #     # construct the diagonals of the rho probability current matrix operator
-    #     rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-    #     for rho_index in range(0, self.mesh_points - 1):
-    #         if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
-    #             rho_offdiagonal[rho_index] = 0
-    #         else:
-    #             j = (rho_index % self.spec.rho_points) + 1
-    #             rho_offdiagonal[rho_index] = d(j)
-    #     rho_offdiagonal *= rho_prefactor
-    #
-    #     z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
-    #     rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
-    #
-    #     return z_current, rho_current
-    #
-    # def get_probability_current_vector_field(self):
-    #     z_current, rho_current = self._get_probability_current_matrix_operators()
-    #
-    #     g_vector_z = self.flatten_mesh(self.g, 'z')
-    #     current_vector_z = z_current.dot(g_vector_z)
-    #     gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
-    #     current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
-    #
-    #     g_vector_rho = self.flatten_mesh(self.g, 'rho')
-    #     current_vector_rho = rho_current.dot(g_vector_rho)
-    #     gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
-    #     current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
-    #
-    #     return current_mesh_z, current_mesh_rho
-
     @si.utils.memoize
     def _get_probability_current_matrix_operators(self):
         raise NotImplementedError
@@ -3432,30 +3427,32 @@ class SphericalHarmonicMesh(QuantumMesh):
         raise NotImplementedError
 
     @si.utils.memoize
-    def _get_radial_probability_current_operator(self):
+    def _get_radial_probability_current_operator__spatial(self):
         r_prefactor = hbar / (2 * self.spec.test_mass * (self.delta_r ** 3))  # / extra 2 from taking Im later
 
-        r_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        r_offdiagonal = np.zeros((self.spec.r_points * self.spec.theta_points) - 1, dtype = np.complex128)
 
-        for r_index in range(self.mesh_points - 1):
+        for r_index in range((self.spec.r_points * self.spec.theta_points) - 1):
             if (r_index + 1) % self.spec.r_points != 0:
-                j = (r_index % self.spec.r_points) - 1
+                j = (r_index % self.spec.r_points) + 1
                 r_offdiagonal[r_index] = self.gamma(j)
 
         r_offdiagonal *= r_prefactor
 
-        # r_current_operator = sparse.diags([r_offdiagonal], offsets = [1])
         r_current_operator = sparse.diags([-r_offdiagonal, r_offdiagonal], offsets = [-1, 1])
 
         return r_current_operator
 
-    def get_radial_probability_current_density_mesh(self):
-        r_current_operator = self._get_radial_probability_current_operator()
+    def get_radial_probability_current_density_mesh__spatial(self):
+        r_current_operator = self._get_radial_probability_current_operator__spatial()
 
-        g_vector_r = self.flatten_mesh(self.g, 'r')
-        current_vector_r = r_current_operator.dot(g_vector_r)
-        gradient_mesh_r = self.wrap_vector(current_vector_r, 'r')
-        current_mesh_r = np.imag(np.conj(self.g) * gradient_mesh_r)
+        g_spatial = self.space_g_calc
+        g_spatial_shape = g_spatial.shape
+
+        g_vector_r = g_spatial.flatten('F')
+        gradient_vector_r = r_current_operator.dot(g_vector_r)
+        gradient_mesh_r = np.reshape(gradient_vector_r, g_spatial_shape, 'F')
+        current_mesh_r = np.imag(np.conj(g_spatial) * gradient_mesh_r)
 
         return current_mesh_r
 
@@ -3782,40 +3779,73 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @property
     @si.utils.memoize
-    def theta(self):
+    def theta_plot(self):
         return np.linspace(0, twopi, self.theta_points)
 
     @property
     @si.utils.memoize
-    def theta_mesh(self):
-        return np.meshgrid(self.r, self.theta, indexing = 'ij')[1]
+    def theta_calc(self):
+        return np.linspace(0, pi, self.theta_points)
+
+    @property
+    @si.utils.memoize
+    def theta_plot_mesh(self):
+        return np.meshgrid(self.r, self.theta_plot, indexing = 'ij')[1]
 
     @property
     @si.utils.memoize
     def r_theta_mesh(self):
-        return np.meshgrid(self.r, self.theta, indexing = 'ij')[0]
+        return np.meshgrid(self.r, self.theta_plot, indexing = 'ij')[0]
 
     @property
     @si.utils.memoize
-    def _sph_harm_l_theta_mesh(self):
-        l_mesh, theta_mesh = np.meshgrid(self.l, self.theta, indexing = 'ij')
+    def theta_calc_mesh(self):
+        return np.meshgrid(self.r, self.theta_calc, indexing = 'ij')[1]
+
+    @property
+    @si.utils.memoize
+    def r_theta_calc_mesh(self):
+        return np.meshgrid(self.r, self.theta_calc, indexing = 'ij')[0]
+
+    @property
+    @si.utils.memoize
+    def _sph_harm_l_theta_plot_mesh(self):
+        l_mesh, theta_mesh = np.meshgrid(self.l, self.theta_plot, indexing = 'ij')
         return special.sph_harm(0, l_mesh, 0, theta_mesh)
 
-    def _reconstruct_spatial_mesh(self, mesh):
+    @property
+    @si.utils.memoize
+    def _sph_harm_l_theta_calc_mesh(self):
+        l_mesh, theta_mesh = np.meshgrid(self.l, self.theta_calc, indexing = 'ij')
+        return special.sph_harm(0, l_mesh, 0, theta_mesh)
+
+    def reconstruct_spatial_mesh__plot(self, mesh):
         """Reconstruct the spatial (r, theta) representation of a mesh from the (l, r) representation."""
         # l: l, angular momentum index
         # r: r, radial position index
         # t: theta, polar angle index
-        return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_mesh)
+        return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_plot_mesh)
+
+    def reconstruct_spatial_mesh__calc(self, mesh):
+        """Reconstruct the spatial (r, theta) representation of a mesh from the (l, r) representation."""
+        # l: l, angular momentum index
+        # r: r, radial position index
+        # t: theta, polar angle index
+        return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_calc_mesh)
 
     @property
     @si.utils.watcher(lambda s: s.sim.time)
     def space_g(self):
-        return self._reconstruct_spatial_mesh(self.g)
+        return self.reconstruct_spatial_mesh__plot(self.g)
 
     @property
-    def space_psi(self):
-        return self.space_g / self.g_factor
+    @si.utils.watcher(lambda s: s.sim.time)
+    def space_g_calc(self):
+        return self.reconstruct_spatial_mesh__calc(self.g)
+
+    # @property
+    # def space_psi(self):
+    #     return self.space_g / self.g_factor
 
     @property
     def space_psi(self):
@@ -3841,7 +3871,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.theta_mesh[_slice],
+        color_mesh = axis.pcolormesh(self.theta_plot_mesh[_slice],
                                      self.r_theta_mesh[_slice] / unit_value,
                                      mesh[_slice],
                                      shading = shading,
