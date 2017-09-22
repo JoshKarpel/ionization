@@ -37,7 +37,7 @@ def run_spec(spec):
             **PLOT_KWARGS,
         )
 
-        sim.plot_radial_probability_current_vs_time(
+        sim.plot_radial_probability_current_vs_time__combined(
             r_limit = 15 * bohr_radius,
             time_lower_limit = -3 * sim.spec.electric_potential[0].pulse_width,
             **PLOT_KWARGS
@@ -50,10 +50,10 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         pulse_type = ion.GaussianPulse
 
-        pulse_widths = np.array([50, 100, 200, 800]) * asec
+        pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
         fluences = np.array([.1, 1, 10]) * Jcm2
-        phases = [0, pi / 4, pi / 2]
-        number_of_cycles = [2, 3, 4]
+        phases = [0, pi / 2]
+        number_of_cycles = [2,]
 
         # pulse_widths = np.array([50]) * asec
         # fluences = np.array([1]) * Jcm2
@@ -63,7 +63,7 @@ if __name__ == '__main__':
         sim_time_bound = 6
         extra_end_time = 2
 
-        dt = .5 * asec
+        dt = 1 * asec
         r_bound = 100 * bohr_radius
         r_points_per_br = 10
         l_bound = 300
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             specs.append(
                 ion.SphericalHarmonicSpecification(
                     f'{pulse_type.__name__}__Nc={n_cycles}_pw={uround(pw, asec)}as_flu={uround(flu, Jcm2)}jcm2_cep={uround(cep, pi)}pi__R={uround(r_bound, bohr_radius)}br_ppbr={r_points_per_br}_L={l_bound}_dt={uround(dt, asec)}as',
-                    r_bound = 100 * bohr_radius,
+                    r_bound = r_bound,
                     r_points = r_points_per_br * r_bound / bohr_radius,
                     l_bound = l_bound,
                     time_step = dt,
@@ -101,4 +101,4 @@ if __name__ == '__main__':
                 )
             )
 
-        si.utils.multi_map(run_spec, specs, processes = 6)
+        si.utils.multi_map(run_spec, specs, processes = 2)

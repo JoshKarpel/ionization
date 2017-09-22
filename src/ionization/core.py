@@ -2791,6 +2791,143 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
             **kwargs,
         )
 
+    def plot_radial_probability_current_vs_time__combined(
+            self,
+            r_limit = None,
+            t_lower_limit = None,
+            t_upper_limit = None,
+            distance_unit = 'bohr_radius',
+            time_unit = 'asec',
+            current_unit = 'per_asec',
+            z_cut = .7,
+            colormap = plt.get_cmap('coolwarm'),
+            overlay_electric_field = True,
+            efield_unit = 'atomic_electric_field',
+            efield_color = 'black',
+            efield_label_fontsize = 12,
+            title_fontsize = 12,
+            y_axis_label_fontsize = 14,
+            x_axis_label_fontsize = 12,
+            cbar_label_fontsize = 12,
+            aspect_ratio = 1.2,
+            shading = 'gouraud',
+            use_name = False,
+            **kwargs):
+        prefix = self.file_name
+        if use_name:
+            prefix = self.name
+
+        distance_unit_value, distance_unit_latex = get_unit_value_and_latex_from_unit(distance_unit)
+        time_unit_value, time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
+        current_unit_value, current_unit_latex = get_unit_value_and_latex_from_unit(current_unit)
+        efield_unit_value, efield_unit_latex = get_unit_value_and_latex_from_unit(efield_unit)
+
+        if t_lower_limit is None:
+            t_lower_limit = self.data_times[0]
+        if t_upper_limit is None:
+            t_upper_limit = self.data_times[-1]
+
+        with si.vis.FigureManager(prefix + '__radial_probability_current_vs_time__combined', aspect_ratio = aspect_ratio, **kwargs) as figman:
+            fig = figman.fig
+
+            plt.set_cmap(colormap)
+
+            gridspec = plt.GridSpec(2, 1, hspace = 0.0)
+            ax_pos = fig.add_subplot(gridspec[0])
+            ax_neg = fig.add_subplot(gridspec[1], sharex = ax_pos)
+
+            # TICKS, LEGEND, LABELS, and TITLE
+            ax_pos.tick_params(labeltop = True, labelright = False, labelbottom = False, labelleft = True, bottom = False, right = False)
+            ax_neg.tick_params(labeltop = False, labelright = False, labelbottom = True, labelleft = True, top = False, right = False)
+
+            # pos_label = ax_pos.set_ylabel(f"$ r, \; z > 0 \; ({distance_unit_latex}) $", fontsize = y_axis_label_fontsize)
+            # neg_label = ax_neg.set_ylabel(f"$ -r, \; z < 0 \; ({distance_unit_latex}) $", fontsize = y_axis_label_fontsize)
+            pos_label = ax_pos.set_ylabel(f"$ z > 0 $", fontsize = y_axis_label_fontsize)
+            neg_label = ax_neg.set_ylabel(f"$ z < 0 $", fontsize = y_axis_label_fontsize)
+            ax_pos.yaxis.set_label_coords(-0.12, .65)
+            ax_neg.yaxis.set_label_coords(-0.12, .35)
+            r_label = ax_pos.text(-.22, .325, fr'Radius $ \pm r \; ({distance_unit_latex}) $', fontsize = y_axis_label_fontsize, rotation = 'vertical', transform = ax_pos.transAxes)
+            ax_neg.set_xlabel(rf"Time $ t \; ({time_unit_latex}) $", fontsize = x_axis_label_fontsize)
+            suptitle = fig.suptitle('Radial Probability Current vs. Time and Radius', fontsize = title_fontsize)
+            suptitle.set_x(.6)
+            suptitle.set_y(1.01)
+
+            # COLORMESHES
+            try:
+                r = self.mesh.r
+            except AttributeError:
+                r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
+                delta_r = r[1] - r[0]
+                r += delta_r / 2
+
+            t_mesh, r_mesh = np.meshgrid(self.data_times, r, indexing = 'ij')
+
+            z_max = max(np.nanmax(np.abs(self.radial_probability_current_vs_time__pos_z)), np.nanmax(np.abs(self.radial_probability_current_vs_time__neg_z)))
+            norm = matplotlib.colors.Normalize(vmin = -z_cut * z_max / current_unit_value, vmax = z_cut * z_max / current_unit_value)
+
+            pos_mesh = ax_pos.pcolormesh(
+                t_mesh / time_unit_value,
+                r_mesh / distance_unit_value,
+                self.radial_probability_current_vs_time__pos_z / current_unit_value,
+                norm = norm,
+                shading = shading,
+            )
+            neg_mesh = ax_neg.pcolormesh(
+                t_mesh / time_unit_value,
+                -r_mesh / distance_unit_value,
+                self.radial_probability_current_vs_time__neg_z / current_unit_value,
+                norm = norm,
+                shading = shading,
+            )
+
+            # LIMITS AND GRIDS
+            grid_kwargs = si.vis.GRID_KWARGS
+            for ax in [ax_pos, ax_neg]:
+                ax.set_xlim(t_lower_limit / time_unit_value, t_upper_limit / time_unit_value)
+                ax.grid(True, which = 'major', **grid_kwargs)
+
+            if r_limit is None:
+                r_limit = r[-1]
+            ax_pos.set_ylim(0, r_limit / distance_unit_value)
+            ax_neg.set_ylim(-r_limit / distance_unit_value, 0)
+
+            y_ticks_neg = ax_neg.yaxis.get_major_ticks()
+            y_ticks_neg[-1].label1.set_visible(False)
+
+            # COLORBAR
+            ax_pos_position = ax_pos.get_position()
+            ax_neg_position = ax_neg.get_position()
+            left, bottom, width, height = ax_neg_position.x0, ax_neg_position.y0, ax_neg_position.x1 - ax_neg_position.x0, ax_pos_position.y1 - ax_neg_position.y0
+            ax_cbar = fig.add_axes([left + width + .175, bottom, .05, height])
+            cbar = plt.colorbar(mappable = pos_mesh, cax = ax_cbar, extend = 'both')
+            z_label = cbar.set_label(rf"Radial Probability Current $ J_r \; ({current_unit_latex}) $", fontsize = cbar_label_fontsize)
+
+            # ELECTRIC FIELD OVERLAY
+            if overlay_electric_field:
+                ax_efield = fig.add_axes((left, bottom, width, height))
+
+                ax_efield.tick_params(labeltop = False, labelright = True, labelbottom = False, labelleft = False,
+                                      left = False, top = False, bottom = False, right = True)
+                ax_efield.tick_params(axis = 'y', colors = efield_color)
+                ax_efield.tick_params(axis = 'x', colors = efield_color)
+
+                efield, = ax_efield.plot(
+                    self.data_times / time_unit_value,
+                    self.electric_field_amplitude_vs_time / efield_unit_value,
+                    color = efield_color,
+                    linestyle = '--',
+                )
+
+                efield_grid_kwargs = {**si.vis.GRID_KWARGS, **{'color': efield_color, 'linestyle': '--'}}
+                ax_efield.yaxis.grid(True, **efield_grid_kwargs)
+
+                max_efield = np.nanmax(np.abs(self.electric_field_amplitude_vs_time))
+
+                ax_efield.set_xlim(t_lower_limit / time_unit_value, t_upper_limit / time_unit_value)
+                ax_efield.set_ylim(-1.05 * max_efield / efield_unit_value, 1.05 * max_efield / efield_unit_value)
+                ax_efield.set_ylabel(rf'Electric Field Amplitude $ {LATEX_EFIELD}(t) \; ({efield_unit_latex}) $', color = efield_color, fontsize = efield_label_fontsize)
+                ax_efield.yaxis.set_label_position('right')
+
     def plot_angular_momentum_vs_time(self, use_name = False, log = False, renormalize = False, **kwargs):
         fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
 
