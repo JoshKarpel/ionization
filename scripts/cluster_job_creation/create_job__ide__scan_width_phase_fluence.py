@@ -213,7 +213,7 @@ if __name__ == '__main__':
 
         clu.specification_check(specs)
 
-        submit_string = clu.generate_chtc_submit_string(args.job_name, len(specs), checkpoints = checkpoints)
+        submit_string = clu.generate_chtc_submit_string(args.job_name, len(specs), do_checkpoints = checkpoints)
         clu.submit_check(submit_string)
 
         # point of no return
