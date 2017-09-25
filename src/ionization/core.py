@@ -211,7 +211,8 @@ class ElectricFieldSimulation(si.Simulation):
                 'total_energy_expectation_value_vs_time',
                 'electric_dipole_moment_expectation_value_vs_time'
                 'norm_diff_mask_vs_time',
-                'radial_probability_current_vs_time',
+                'radial_probability_current_vs_time__pos_z',
+                'radial_probability_current_vs_time__neg_z',
         ):
             try:
                 mem_other_time_data += getattr(self, attr).nbytes
@@ -1400,7 +1401,7 @@ class QuantumMesh:
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'gouraud',
+                            shading = 'flat',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
                             **kwargs):
@@ -1438,7 +1439,7 @@ class QuantumMesh:
 
     def update_mesh(self, colormesh, updated_mesh,
                     plot_limit = None,
-                    shading = 'gouraud',
+                    shading = 'flat',
                     slicer = 'get_mesh_slicer',
                     **kwargs
                     ):
@@ -1470,7 +1471,7 @@ class QuantumMesh:
                   distance_unit = 'bohr_radius',
                   colormap = COLORMAP_WAVEFUNCTION,
                   norm = si.vis.AbsoluteRenormalize(),
-                  shading = 'gouraud',
+                  shading = 'flat',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
                   **kwargs):
@@ -1861,7 +1862,7 @@ class LineMesh(QuantumMesh):
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'gouraud',
+                            shading = 'flat',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
                             **kwargs):
@@ -2203,7 +2204,7 @@ class CylindricalSliceMesh(QuantumMesh):
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'gouraud',
+                            shading = 'flat',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
                             **kwargs):
@@ -2249,7 +2250,7 @@ class CylindricalSliceMesh(QuantumMesh):
                   distance_unit = 'bohr_radius',
                   colormap = COLORMAP_WAVEFUNCTION,
                   norm = si.vis.AbsoluteRenormalize(),
-                  shading = 'gouraud',
+                  shading = 'flat',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer',
                   show_colorbar = True,
@@ -2591,7 +2592,7 @@ class SphericalSliceMesh(QuantumMesh):
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'gouraud',
+                            shading = 'flat',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer',
                             **kwargs):
@@ -2793,7 +2794,7 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
 
     def plot_radial_probability_current_vs_time__combined(
             self,
-            r_limit = None,
+            r_upper_limit = None,
             t_lower_limit = None,
             t_upper_limit = None,
             distance_unit = 'bohr_radius',
@@ -2810,7 +2811,7 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
             x_axis_label_fontsize = 12,
             cbar_label_fontsize = 12,
             aspect_ratio = 1.2,
-            shading = 'gouraud',
+            shading = 'flat',
             use_name = False,
             **kwargs):
         prefix = self.file_name
@@ -2862,6 +2863,8 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
 
             t_mesh, r_mesh = np.meshgrid(self.data_times, r, indexing = 'ij')
 
+            # slicer = (slice(), slice(0, 50, 1))
+
             z_max = max(np.nanmax(np.abs(self.radial_probability_current_vs_time__pos_z)), np.nanmax(np.abs(self.radial_probability_current_vs_time__neg_z)))
             norm = matplotlib.colors.Normalize(vmin = -z_cut * z_max / current_unit_value, vmax = z_cut * z_max / current_unit_value)
 
@@ -2886,10 +2889,10 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
                 ax.set_xlim(t_lower_limit / time_unit_value, t_upper_limit / time_unit_value)
                 ax.grid(True, which = 'major', **grid_kwargs)
 
-            if r_limit is None:
-                r_limit = r[-1]
-            ax_pos.set_ylim(0, r_limit / distance_unit_value)
-            ax_neg.set_ylim(-r_limit / distance_unit_value, 0)
+            if r_upper_limit is None:
+                r_upper_limit = r[-1]
+            ax_pos.set_ylim(0, r_upper_limit / distance_unit_value)
+            ax_neg.set_ylim(-r_upper_limit / distance_unit_value, 0)
 
             y_ticks_neg = ax_neg.yaxis.get_major_ticks()
             y_ticks_neg[-1].label1.set_visible(False)
@@ -2915,7 +2918,7 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
                     self.data_times / time_unit_value,
                     self.electric_field_amplitude_vs_time / efield_unit_value,
                     color = efield_color,
-                    linestyle = '--',
+                    linestyle = '-',
                 )
 
                 efield_grid_kwargs = {**si.vis.GRID_KWARGS, **{'color': efield_color, 'linestyle': '--'}}
@@ -4000,7 +4003,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                             distance_unit = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'gouraud',
+                            shading = 'flat',
                             plot_limit = None,
                             slicer = 'get_mesh_slicer_spatial',
                             **kwargs):
@@ -4027,7 +4030,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                   distance_unit = 'bohr_radius',
                   colormap = COLORMAP_WAVEFUNCTION,
                   norm = si.vis.AbsoluteRenormalize(),
-                  shading = 'gouraud',
+                  shading = 'flat',
                   plot_limit = None,
                   slicer = 'get_mesh_slicer_spatial',
                   aspect_ratio = 1,
@@ -4170,7 +4173,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                                  distance_unit = 'bohr_radius',
                                  colormap = plt.get_cmap('inferno'),
                                  norm = si.vis.AbsoluteRenormalize(),
-                                 shading = 'gouraud',
+                                 shading = 'flat',
                                  plot_limit = None,
                                  slicer = 'get_mesh_slicer',
                                  **kwargs):
@@ -4382,7 +4385,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             color_mesh = axis.pcolormesh(theta_mesh,
                                          r_mesh / r_unit_value,
                                          overlap_mesh,
-                                         shading = 'gouraud',
+                                         shading = 'flat',
                                          norm = norm,
                                          cmap = 'viridis')
 

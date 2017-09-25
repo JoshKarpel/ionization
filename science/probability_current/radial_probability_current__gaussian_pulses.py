@@ -53,7 +53,7 @@ if __name__ == '__main__':
         pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
         fluences = np.array([.1, 1, 10]) * Jcm2
         phases = [0, pi / 2]
-        number_of_cycles = [2,]
+        number_of_cycles = [2, ]
 
         # pulse_widths = np.array([50]) * asec
         # fluences = np.array([1]) * Jcm2

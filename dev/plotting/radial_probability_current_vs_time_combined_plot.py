@@ -48,17 +48,17 @@ if __name__ == '__main__':
     # z_lim = .1 * per_asec
     r_lim = 10 * bohr_radius
 
-    # for which in ['sum', 'pos', 'neg']:
-    #     print(which)
-    #     sim.plot_radial_probability_current_vs_time(
-    #         which = which,
-    #         r_upper_limit = r_lim,
-    #         **PLOT_KWARGS
-    #     )
+    for which in ['sum', 'pos', 'neg']:
+        print(which)
+        sim.plot_radial_probability_current_vs_time(
+            which = which,
+            r_upper_limit = r_lim,
+            **PLOT_KWARGS
+        )
 
     print('combined')
     sim.plot_radial_probability_current_vs_time__combined(
-        r_limit = r_lim,
+        r_upper_limit = r_lim,
         current_unit = 'per_fsec',
         **PLOT_KWARGS,
     )
