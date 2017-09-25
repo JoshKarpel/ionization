@@ -40,14 +40,11 @@ if __name__ == '__main__':
         do_checkpoints = ju.ask_checkpoints(parameters)
         ju.ask_data_storage(parameters, spec_type = spec_type)
 
-        print('Generating parameters...')
-
         spec_kwargs_list = clu.expand_parameters_to_dicts(parameters)
         specs = []
 
         print('Generating specifications...')
-
-        for job_number, spec_kwargs in tqdm(enumerate(spec_kwargs_list), ascii = True):
+        for job_number, spec_kwargs in enumerate(tqdm(spec_kwargs_list, ascii = True)):
             electric_potential = spec_kwargs['electric_potential']
 
             time_initial = time_initial_in_pw * electric_potential.pulse_width

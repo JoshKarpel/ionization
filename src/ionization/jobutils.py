@@ -4,6 +4,8 @@ import shutil
 import datetime
 import logging
 
+from tqdm import tqdm
+
 import numpy as np
 
 import simulacra as si
@@ -272,9 +274,7 @@ def construct_pulses__from_omega_min(parameters, *, time_initial_in_pw, time_fin
         time_final_in_pw = time_final_in_pw
     )
 
-    for p in pulse_parameters:
-        print(p)
-
+    print('Generating pulses...')
     pulses = tuple(
         pulse_type.from_omega_min(
             **d,
@@ -283,7 +283,7 @@ def construct_pulses__from_omega_min(parameters, *, time_initial_in_pw, time_fin
                 window_width = d['pulse_width'] * window_width_in_pw,
             ),
         )
-        for d in clu.expand_parameters_to_dicts(pulse_parameters)
+        for d in tqdm(clu.expand_parameters_to_dicts(pulse_parameters), ascii = True)
     )
     parameters.append(
         clu.Parameter(
