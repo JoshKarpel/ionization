@@ -3,6 +3,7 @@ import os
 import shutil
 import datetime
 import logging
+import inspect
 
 from tqdm import tqdm
 
@@ -249,6 +250,43 @@ def ask_pulse_omega_mins(pulse_parameters):
     pulse_parameters.append(omega_mins)
 
 
+def ask_pulse_omega_carriers(pulse_parameters):
+    raise NotImplementedError
+
+
+def ask_pulse_keldysh_parameters(pulse_parameters):
+    raise NotImplementedError
+
+
+def ask_pulse_amplitude_prefactors(pulse_parameters):
+    raise NotImplementedError
+
+
+def ask_pulse_power_exclusion(pulse_parameters):
+    raise NotImplementedError
+
+
+def ask_pulse_number_of_pulse_widths(pulse_parameters):
+    raise NotImplementedError
+
+
+def ask_pulse_number_of_cycles(pulse_parameters):
+    raise NotImplementedError
+
+
+CONSTRUCTOR_ARG_TO_ASK = {
+    'pulse_width': ask_pulse_widths,
+    'fluence': ask_pulse_fluences,
+    'phase': ask_pulse_phases,
+    'omega_min': ask_pulse_omega_mins,
+    'omega_carriers': ask_pulse_omega_carriers,
+    'keldysh_parameter': ask_pulse_keldysh_parameters,
+    'amplitude_prefactor': ask_pulse_amplitude_prefactors,
+    'number_of_pulse_widths': ask_pulse_number_of_pulse_widths,
+    'number_of_cycles': ask_pulse_number_of_cycles,
+}
+
+
 def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
     window_time_guess = min(abs(time_initial_in_pw), abs(time_final_in_pw)) - PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS[pulse_type]
 
@@ -261,12 +299,20 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
 def construct_pulses__from_omega_min(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
-    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? [sinc/gaussian/sech]', default = 'sinc')]
+    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech)', default = 'sinc')]
+    constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if 'from_' in name)
+    constructor_name = clu.ask_for_input(f'Pulse Constructor? ({" | ".join(constructor_names)})', default = 'omega_min')
+    constructor = getattr(pulse_type, f'from_{constructor_name}')
 
-    ask_pulse_widths(pulse_parameters)
-    ask_pulse_fluences(pulse_parameters)
-    ask_pulse_phases(pulse_parameters)
-    ask_pulse_omega_mins(pulse_parameters)
+    constructor_argspec = inspect.getfullargspec(constructor)
+    if constructor_argspec.varargs is not None:  # alias for default constructor, super implicit....
+        constructor_args = inspect.getfullargspec(pulse_type.__init__).args
+    else:
+        constructor_args = constructor_argspec.args
+
+    asks = (CONSTRUCTOR_ARG_TO_ASK[arg] for arg in CONSTRUCTOR_ARG_TO_ASK if arg in constructor_args)
+    for ask in asks:
+        ask(pulse_parameters)
 
     window_time_in_pw, window_width_in_pw = ask_pulse_window(
         pulse_type = pulse_type,
@@ -276,7 +322,7 @@ def construct_pulses__from_omega_min(parameters, *, time_initial_in_pw, time_fin
 
     print('Generating pulses...')
     pulses = tuple(
-        pulse_type.from_omega_min(
+        constructor(
             **d,
             window = ion.SymmetricExponentialTimeWindow(
                 window_time = d['pulse_width'] * window_time_in_pw,
