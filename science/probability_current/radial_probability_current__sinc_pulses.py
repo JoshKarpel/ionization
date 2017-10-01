@@ -51,16 +51,16 @@ if __name__ == '__main__':
         pulse_type = ion.SincPulse
 
         pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
-        fluences = np.array([.1, 1, 10]) * Jcm2
-        phases = [0, pi / 2]
+        fluences = np.array([.1, 1, 10, 20]) * Jcm2
+        phases = [0, pi / 4, pi / 2]
 
         pulse_time_bound = 20
         sim_time_bound = 23
 
-        dt = 1 * asec
+        dt = .5 * asec
         r_bound = 100 * bohr_radius
         r_points_per_br = 10
-        l_bound = 300
+        l_bound = 500
 
         specs = []
         for pw, flu, cep in itertools.product(pulse_widths, fluences, phases):
@@ -84,13 +84,14 @@ if __name__ == '__main__':
                     electric_potential = pulse,
                     electric_potential_dc_correction = True,
                     use_numeric_eigenstates = True,
-                    numeric_eigenstate_max_energy = 20 * eV,
+                    numeric_eigenstate_max_energy = 10 * eV,
                     numeric_eigenstate_max_angular_momentum = 20,
                     checkpoints = True,
                     checkpoint_dir = SIM_LIB,
                     checkpoint_every = datetime.timedelta(minutes = 1),
                     store_radial_probability_current = True,
+                    store_data_every = 4,
                 )
             )
 
-        si.utils.multi_map(run_spec, specs, processes = 2)
+        si.utils.multi_map(run_spec, specs, processes = 5)

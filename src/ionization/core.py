@@ -127,6 +127,9 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
     return np.real(result[0])
 
 
+warning_record = collections.namedtuple('warning_record', ['data_time_index', 'message'])
+
+
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
@@ -189,6 +192,8 @@ class ElectricFieldSimulation(si.Simulation):
             self.snapshot_times.add(self.times[index])
 
         self.snapshots = dict()
+
+        self.warnings = collections.defaultdict(list)
 
     def info(self):
         info = super().info()
@@ -2707,8 +2712,9 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
             norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
 
         if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e9:
-            logger.warning(
-                f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound')
+            msg = f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound'
+            logger.warning(msg)
+            self.warnings['norm_in_largest_l'].append(warning_record(self.time_index, msg))
 
         if self.spec.store_radial_probability_current:
             radial_current_density = self.mesh.get_radial_probability_current_density_mesh__spatial()
