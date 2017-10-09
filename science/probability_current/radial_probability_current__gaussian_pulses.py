@@ -51,13 +51,9 @@ if __name__ == '__main__':
         pulse_type = ion.GaussianPulse
 
         pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
-        fluences = np.array([.1, 1, 10]) * Jcm2
+        fluences = np.array([.1, 1, 10, 20]) * Jcm2
         phases = [0, pi / 4, pi / 2]
         number_of_cycles = [2, ]
-
-        # pulse_widths = np.array([50]) * asec
-        # fluences = np.array([1]) * Jcm2
-        # phases = [0, pi / 2]
 
         pulse_time_bound = 5
         sim_time_bound = 6
@@ -66,7 +62,7 @@ if __name__ == '__main__':
         dt = 1 * asec
         r_bound = 100 * bohr_radius
         r_points_per_br = 10
-        l_bound = 300
+        l_bound = 500
 
         specs = []
         for pw, flu, cep, n_cycles in itertools.product(pulse_widths, fluences, phases, number_of_cycles):
@@ -101,4 +97,4 @@ if __name__ == '__main__':
                 )
             )
 
-        si.utils.multi_map(run_spec, specs, processes = 2)
+        si.utils.multi_map(run_spec, specs, processes = 4)

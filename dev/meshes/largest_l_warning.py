@@ -29,7 +29,7 @@ if __name__ == '__main__':
         # points = 2 ** 8
         points = bound * 4
         # angular_points = 2 ** 6
-        angular_points = 100
+        angular_points = 10
 
         external_potential = ion.SineWave.from_photon_energy(20 * eV, amplitude = 1 * atomic_electric_field)
         internal_potential = ion.Coulomb()
@@ -37,7 +37,7 @@ if __name__ == '__main__':
         sph_spec = ion.SphericalHarmonicSpecification('test',
                                                       r_bound = bound * bohr_radius, r_points = points,
                                                       l_bound = angular_points,
-                                                      time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
+                                                      time_initial = 0, time_final = 100 * asec, time_step = 1 * asec,
                                                       internal_potential = internal_potential,
                                                       electric_potential = external_potential)
 
@@ -48,3 +48,7 @@ if __name__ == '__main__':
         sim.run_simulation()
 
         sim.info().log()
+
+        for rec in sim.warnings['norm_in_largest_l']:
+            # print(index, msg)
+            print(rec)
