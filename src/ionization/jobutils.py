@@ -259,7 +259,11 @@ def ask_pulse_keldysh_parameters(pulse_parameters):
 
 
 def ask_pulse_amplitude_prefactors(pulse_parameters):
-    raise NotImplementedError
+    amplitude_prefactors = clu.Parameter(
+        name = 'amplitude_prefactor',
+        value = atomic_electric_field * np.array(clu.ask_for_eval('Pulse Amplitude Prefactors? (in AEF)', default = '[.01, .05, .1, .5, 1, 2]')),
+        expandable = True)
+    pulse_parameters.append(amplitude_prefactors)
 
 
 def ask_pulse_power_exclusion(pulse_parameters):

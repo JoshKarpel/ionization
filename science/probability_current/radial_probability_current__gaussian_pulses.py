@@ -38,7 +38,7 @@ def run_spec(spec):
         )
 
         sim.plot_radial_probability_current_vs_time__combined(
-            r_limit = 15 * bohr_radius,
+            r_upper_limit = 15 * bohr_radius,
             time_lower_limit = -3 * sim.spec.electric_potential[0].pulse_width,
             **PLOT_KWARGS
         )
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
         pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
         fluences = np.array([.1, 1, 10]) * Jcm2
-        phases = [0, pi / 2]
+        phases = [0, pi / 4, pi / 2]
         number_of_cycles = [2, ]
 
         # pulse_widths = np.array([50]) * asec
