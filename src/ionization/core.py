@@ -3020,12 +3020,12 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
                  evolution_equations = 'LAG',
                  evolution_method = 'SO',
                  evolution_gauge = 'LEN',
-                 store_norm_by_l = False,
                  use_numeric_eigenstates = False,
                  numeric_eigenstate_max_angular_momentum = 20,
                  numeric_eigenstate_max_energy = 100 * eV,
                  hydrogen_zero_angular_momentum_correction = True,
                  store_radial_probability_current = False,
+                 store_norm_by_l = False,
                  **kwargs):
         """
         Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
@@ -3054,8 +3054,6 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.theta_points = theta_points
         self.spherical_harmonics = tuple(si.math.SphericalHarmonic(l, 0) for l in range(self.l_bound))
 
-        self.store_norm_by_l = store_norm_by_l
-
         self.use_numeric_eigenstates = use_numeric_eigenstates
         self.numeric_eigenstate_max_angular_momentum = min(self.l_bound - 1, numeric_eigenstate_max_angular_momentum)
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
@@ -3063,6 +3061,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
 
         self.store_radial_probability_current = store_radial_probability_current
+        self.store_norm_by_l = store_norm_by_l
 
     def info(self):
         info = super().info()
