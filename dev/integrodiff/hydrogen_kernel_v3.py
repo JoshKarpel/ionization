@@ -64,12 +64,12 @@ if __name__ == '__main__':
             **PLOT_KWARGS,
         )
 
-        pulse = ion.SincPulse(pulse_width = 200 * asec, fluence = 1 * Jcm2, phase = 0)
+        pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 200 * asec, fluence = 1 * Jcm2, phase = 0)
 
         shared_kwargs = dict(
-            time_initial = -pulse.pulse_width * 10,
-            time_final = pulse.pulse_width * 10,
-            time_step = 1 * asec,
+            time_initial = -pulse.pulse_width * 3,
+            time_final = pulse.pulse_width * 3,
+            time_step = .1 * asec,
             electric_potential = pulse,
             electric_potential_dc_correction = True,
         )
