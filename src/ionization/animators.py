@@ -430,7 +430,7 @@ class QuantumMeshAxis(si.vis.AxisManager):
                  norm = si.vis.AbsoluteRenormalize(),
                  plot_limit = None,
                  distance_unit = 'bohr_radius',
-                 shading = 'flat',
+                 shading = 'gouraud',
                  slicer = 'get_mesh_slicer',
                  grid_kwargs = None):
         self.which = which

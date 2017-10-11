@@ -14,64 +14,6 @@ from . import core, integrodiff
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-
-def ask_mesh_type():
-    """
-    :return: spec_type, mesh_kwargs
-    """
-    mesh_kwargs = {}
-
-    mesh_type = clu.ask_for_input('Mesh Type (cyl | sph | harm)', default = 'harm', cast_to = str)
-
-    try:
-        if mesh_type == 'cyl':
-            spec_type = core.CylindricalSliceSpecification
-
-            mesh_kwargs['z_bound'] = bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['rho_bound'] = bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
-            mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
-
-            mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
-
-            memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
-
-        elif mesh_type == 'sph':
-            spec_type = core.SphericalSliceSpecification
-
-            mesh_kwargs['r_bound'] = bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
-            mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
-
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
-
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
-
-        elif mesh_type == 'harm':
-            spec_type = core.SphericalHarmonicSpecification
-
-            r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
-            mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
-            mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
-
-            mesh_kwargs['r_bound'] = bohr_radius * r_bound
-
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
-
-            mesh_kwargs['snapshot_type'] = core.SphericalHarmonicSnapshot
-
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
-
-        else:
-            raise ValueError('Mesh type {} not found!'.format(mesh_type))
-
-        logger.warning('Predicted memory usage per Simulation is >{}'.format(si.utils.bytes_to_str(memory_estimate)))
-
-        return spec_type, mesh_kwargs
-    except ValueError:
-        ask_mesh_type()
-
-
 parameter_name_to_unit_name = {
     'pulse_width': 'asec',
     'fluence': 'Jcm2',
@@ -188,7 +130,7 @@ class PulseParameterScanMixin:
                                 z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
 
                         for log_x, log_y, log_z in it.product((True, False), repeat = 3):
-                            if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y): # skip log phase plots
+                            if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y):  # skip log phase plots
                                 continue
 
                             log_str = ''
