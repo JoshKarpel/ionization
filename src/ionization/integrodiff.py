@@ -631,6 +631,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
     simulation_type = IntegroDifferentialEquationSimulation
 
     integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
+    evolution_method = si.utils.RestrictedValues('evolution_method', {'FE', 'BE', 'TRAP', 'RK4', 'ARK4'})
+    evolution_gauge = si.utils.RestrictedValues('evolution_gauge', {'LEN', 'VEL'})
 
     def __init__(self, name,
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,

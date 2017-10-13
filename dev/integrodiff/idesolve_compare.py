@@ -128,6 +128,7 @@ def iterative(pulse, tb = 3, t_pts = 200, tols = (1e-3, 1e-6), processes = 2):
         upper_bound = upper,
         f = f,
         global_error_tolerance = tol,
+        max_iterations = 200,
     ) for tol in tols]
 
     return si.utils.multi_map(run, solvers, processes = processes)

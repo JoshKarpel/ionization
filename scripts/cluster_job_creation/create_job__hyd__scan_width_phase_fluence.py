@@ -24,13 +24,14 @@ if __name__ == '__main__':
 
         ju.ask_initial_state_for_hydrogen_sim(parameters)
 
+        ju.ask_evolution_gauge(parameters, spec_type = spec_type)
+        ju.ask_evolution_method(parameters, spec_type = spec_type)
+
         ju.ask_time_step(parameters)
         time_initial_in_pw, time_final_in_pw, extra_time = ju.ask_time_evolution_by_pulse_widths()
 
-        ju.ask_evolution_gauge(parameters)
-
         # PULSE PARAMETERS
-        pulse_parameters = ju.construct_pulses__from_omega_min(
+        pulse_parameters = ju.construct_pulses(
             parameters,
             time_initial_in_pw = time_initial_in_pw,
             time_final_in_pw = time_final_in_pw
@@ -38,7 +39,7 @@ if __name__ == '__main__':
 
         # MISCELLANEOUS
         do_checkpoints = ju.ask_checkpoints(parameters)
-        ju.ask_data_storage(parameters, spec_type = spec_type)
+        ju.ask_data_storage_tdse(parameters, spec_type = spec_type)
 
         spec_kwargs_list = clu.expand_parameters_to_dicts(parameters)
         specs = []

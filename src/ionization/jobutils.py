@@ -20,6 +20,10 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+class InvalidChoice(Exception):
+    pass
+
+
 def parse_args(**kwargs):
     parser = argparse.ArgumentParser(**kwargs)
     parser.add_argument('job_name',
@@ -193,13 +197,32 @@ def ask_time_evolution_by_pulse_widths():
     return time_initial_in_pw, time_final_in_pw, extra_time
 
 
-def ask_evolution_gauge(parameters):
-    gauge = clu.ask_for_input('Evolution Gauge? [LEN/VEL]', default = 'LEN')
+def ask_evolution_gauge(parameters, *, spec_type):
+    choices = sorted(list(spec_type.evolution_gauge.choices))
+    gauge = clu.ask_for_input(f'Evolution Gauge? [{"/".join(choices)}]', default = choices[0])
+    if gauge not in choices:
+        raise InvalidChoice(f'{gauge} is not one of {choices}')
     parameters.append(
         clu.Parameter(
             name = 'evolution_gauge',
             value = gauge,
         ))
+
+    return gauge
+
+
+def ask_evolution_method(parameters, *, spec_type):
+    choices = sorted(list(spec_type.evolution_method.choices))
+    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = choices[0])
+    if method not in choices:
+        raise InvalidChoice(f'{method} is not one of {choices}')
+    parameters.append(
+        clu.Parameter(
+            name = 'evolution_method',
+            value = method,
+        ))
+
+    return method
 
 
 PULSE_NAMES_TO_TYPES = {
@@ -300,7 +323,7 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
     return window_time_in_pw, window_width_in_pw
 
 
-def construct_pulses__from_omega_min(parameters, *, time_initial_in_pw, time_final_in_pw):
+def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
     pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech)', default = 'sinc')]
@@ -371,7 +394,7 @@ def ask_checkpoints(parameters):
     return do_checkpoints
 
 
-def ask_data_storage(parameters, *, spec_type):
+def ask_data_storage_tdse(parameters, *, spec_type):
     parameters.append(
         clu.Parameter(
             name = 'store_data_every',
@@ -396,6 +419,14 @@ def ask_data_storage(parameters, *, spec_type):
                 name = name,
                 value = clu.ask_for_bool(question, default = default)
             ))
+
+
+def ask_data_storage_ide(parameters, *, spec_type):
+    parameters.append(
+        clu.Parameter(
+            name = 'store_data_every',
+            value = clu.ask_for_input('Store Data Every n Time Steps', default = -1, cast_to = int),
+        ))
 
 
 def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameters, job_processor_type):
