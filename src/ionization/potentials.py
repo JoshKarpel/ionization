@@ -1630,20 +1630,20 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
                  **kwargs):
         super().__init__(**kwargs)
         self.amplitude = amplitude
-        self.wavelength = wavelength
+        self.wavelength_carrier = wavelength
         self.number_of_cycles = number_of_cycles
         self.phase = phase
         self.pulse_center = pulse_center
 
     @classmethod
-    def from_omega(cls,
-                   amplitude = .1 * atomic_electric_field,
-                   omega = twopi * c / (800 * nm),
-                   number_of_cycles = 4,
-                   phase = DEFAULT_PHASE,
-                   pulse_center = DEFAULT_PULSE_CENTER,
-                   **kwargs):
-        wavelength = c / (omega / twopi)
+    def from_omega_carrier(cls,
+                           amplitude = .1 * atomic_electric_field,
+                           omega_carrier = twopi * c / (800 * nm),
+                           number_of_cycles = 4,
+                           phase = DEFAULT_PHASE,
+                           pulse_center = DEFAULT_PULSE_CENTER,
+                           **kwargs):
+        wavelength = c / (omega_carrier / twopi)
 
         return cls(
             amplitude = amplitude,
@@ -1664,9 +1664,9 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
                     **kwargs):
         omega = twopi / period
 
-        return cls.from_omega(
+        return cls.from_omega_carrier(
             amplitude = amplitude,
-            omega = omega,
+            omega_carrier = omega,
             number_of_cycles = number_of_cycles,
             phase = phase,
             pulse_center = pulse_center,
@@ -1693,33 +1693,33 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     @property
-    def frequency(self):
-        return c / self.wavelength
+    def frequency_carrier(self):
+        return c / self.wavelength_carrier
 
     @property
-    def period(self):
-        return 1 / self.frequency
+    def period_carrier(self):
+        return 1 / self.frequency_carrier
 
     @property
-    def omega(self):
-        return twopi * c / self.wavelength
+    def omega_carrier(self):
+        return twopi * c / self.wavelength_carrier
 
     @property
     def pulse_width(self):
-        return self.number_of_cycles * self.period
+        return self.number_of_cycles * self.period_carrier
 
     @property
     def sideband_offset(self):
-        return self.omega / self.number_of_cycles
+        return self.omega_carrier / self.number_of_cycles
 
     def get_electric_field_envelope(self, t):
         tau = t - self.pulse_center
-        return np.cos(self.omega * tau / (2 * self.number_of_cycles)) ** 2
+        return np.cos(self.omega_carrier * tau / (2 * self.number_of_cycles)) ** 2
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega * tau) + self.phase)
+        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1727,7 +1727,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
-        info.add_field('Center Wavelength', f'{uround(self.wavelength, nm)} nm | {uround(self.wavelength, um)} um')
+        info.add_field('Center Wavelength', f'{uround(self.wavelength_carrier, nm)} nm | {uround(self.wavelength_carrier, um)} um')
         info.add_field('Number of Cycles', self.number_of_cycles)
 
         return info

@@ -88,7 +88,7 @@ if __name__ == '__main__':
         frac = 0.7
         bound_mult = 3
         efield = ion.SineWave.from_photon_energy(energy, amplitude = amp)
-        t_bound = bound_mult * efield.period
+        t_bound = bound_mult * efield.period_carrier
         efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound)
         title = f'sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}'
 

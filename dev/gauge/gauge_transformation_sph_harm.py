@@ -80,12 +80,12 @@ if __name__ == '__main__':
         t_bound = 2
 
         efield = ion.SineWave.from_photon_energy(photon_energy, amplitude = amp)
-        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period, window_width = .1 * efield.period)
+        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period_carrier, window_width = .1 * efield.period_carrier)
 
         spec_base = dict(
             r_bound = 50 * bohr_radius,
             electric_potential = efield,
-            time_initial = -t_bound * efield.period, time_final = t_bound * efield.period,
+            time_initial = -t_bound * efield.period_carrier, time_final = t_bound * efield.period_carrier,
             time_step = 1 * asec,
             electric_potential_dc_correction = True,
             store_electric_dipole_moment_expectation_value = True,

@@ -49,7 +49,7 @@ if __name__ == '__main__':
 
         for photon_energy, amplitude in itertools.product(photon_energies, amplitudes):
             efield = ion.SineWave.from_photon_energy(photon_energy, amplitude = amplitude)
-            efield.window = ion.SmoothedTrapezoidalWindow(time_front = front_periods * efield.period, time_plateau = plat_periods * efield.period)
+            efield.window = ion.SmoothedTrapezoidalWindow(time_front = front_periods * efield.period_carrier, time_plateau = plat_periods * efield.period_carrier)
 
             test_width = 1 * bohr_radius
             test_charge = 1 * electron_charge
@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 potential_depth = potential_depth,
                 electric_potential = efield,
                 time_initial = 0,
-                time_final = end_periods * efield.period,
+                time_final = end_periods * efield.period_carrier,
                 time_step = 1 * asec,
                 electric_potential_dc_correction = True,
                 x_bound = 200 * bohr_radius,

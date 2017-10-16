@@ -51,7 +51,7 @@ if __name__ == '__main__':
         bound = 25 * bohr_radius
 
         hyd_efield = ion.SineWave.from_frequency(1 / (100 * asec), amplitude = .2 * atomic_electric_field)
-        hyd_efield.window = ion.SymmetricExponentialTimeWindow(window_time = hyd_efield.period * 3)
+        hyd_efield.window = ion.SymmetricExponentialTimeWindow(window_time = hyd_efield.period_carrier * 3)
         hyd_spec_base = dict(
             r_bound = bound, rho_bound = bound, z_bound = bound,
             l_bound = 50,
@@ -59,19 +59,19 @@ if __name__ == '__main__':
             initial_state = ion.HydrogenBoundState(2, 0),
             test_states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n)),
             electric_potential = hyd_efield,
-            time_initial = -5 * hyd_efield.period, time_final = 5 * hyd_efield.period, time_step = 1 * asec,
+            time_initial = -5 * hyd_efield.period_carrier, time_final = 5 * hyd_efield.period_carrier, time_step = 1 * asec,
             electric_potential_dc_correction = True,
         )
 
         line_potential = ion.HarmonicOscillator.from_energy_spacing_and_mass(1 * eV, electron_mass)
         line_efield = ion.SineWave.from_photon_energy(1 * eV, amplitude = .2 * atomic_electric_field)
-        line_efield.window = ion.SymmetricExponentialTimeWindow(window_time = hyd_efield.period * 3)
+        line_efield.window = ion.SymmetricExponentialTimeWindow(window_time = hyd_efield.period_carrier * 3)
         line_spec_base = hyd_spec_base.copy()
         line_spec_base.update(dict(
             x_bound = bound, x_points = 2 ** 10,
             internal_potential = line_potential,
             electric_potential = line_efield,
-            time_initial = -5 * hyd_efield.period, time_final = 5 * hyd_efield.period,
+            time_initial = -5 * hyd_efield.period_carrier, time_final = 5 * hyd_efield.period_carrier,
             initial_state = ion.QHOState.from_potential(line_potential, electron_mass),
             test_states = tuple(ion.QHOState.from_potential(line_potential, electron_mass, n) for n in range(20)),
         ))

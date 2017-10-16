@@ -66,10 +66,10 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
     dummy = ion.SineWave.from_photon_energy(.5 * eV)
 
     time_initial = 0
-    time_final = 8 * dummy.period
+    time_final = 8 * dummy.period_carrier
 
-    time_front = 1 * dummy.period
-    time_plateau = 5 * dummy.period
+    time_front = 1 * dummy.period_carrier
+    time_plateau = 5 * dummy.period_carrier
 
     efield = ion.SineWave.from_photon_energy_and_intensity(photon_energy, intensity)
     efield.window = ion.SmoothedTrapezoidalWindow(time_front = time_front, time_plateau = time_plateau)

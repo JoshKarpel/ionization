@@ -586,7 +586,7 @@ def sine_squared_pulse(phase = 0, number_of_cycles = 1):
         phase = phase,
     )
 
-    t_bound = .5 * number_of_cycles * pulse.period
+    t_bound = .5 * number_of_cycles * pulse.period_carrier
 
     times = np.linspace(-t_bound, t_bound, 1e3)
 
@@ -687,7 +687,7 @@ def sine_squared_pulse(phase = 0, number_of_cycles = 1):
         phase = phase,
     )
 
-    t_bound = .5 * number_of_cycles * pulse.period
+    t_bound = .5 * number_of_cycles * pulse.period_carrier
 
     times = np.linspace(-t_bound, t_bound, 1e3)
 

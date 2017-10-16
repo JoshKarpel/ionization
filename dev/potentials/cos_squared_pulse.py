@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
             times = np.linspace(-1 * pulse.pulse_width, 1 * pulse.pulse_width, 1e3)
 
-            freq_lim = pulse.omega + (2 * pulse.sideband_offset)
+            freq_lim = pulse.omega_carrier + (2 * pulse.sideband_offset)
             freqs = np.linspace(-freq_lim, freq_lim, 1e3)
 
             si.vis.xy_plot(
@@ -58,12 +58,12 @@ if __name__ == '__main__':
                 f'cos_squared_pulse__ft__Nc={nc}',
                 freqs,
                 vlines = [
-                    pulse.omega,
-                    -pulse.omega,
-                    pulse.omega - pulse.sideband_offset,
-                    pulse.omega + pulse.sideband_offset,
-                    -pulse.omega - pulse.sideband_offset,
-                    -pulse.omega + pulse.sideband_offset,
+                    pulse.omega_carrier,
+                    -pulse.omega_carrier,
+                    pulse.omega_carrier - pulse.sideband_offset,
+                    pulse.omega_carrier + pulse.sideband_offset,
+                    -pulse.omega_carrier - pulse.sideband_offset,
+                    -pulse.omega_carrier + pulse.sideband_offset,
                 ],
                 vline_kwargs = [
                     {'ymax': .8, 'color': 'C0'},

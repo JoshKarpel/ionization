@@ -157,7 +157,7 @@ if __name__ == '__main__':
         # parameters.append(window_time_in_periods)
         # parameters.append(window_width_in_periods)
 
-        T = ion.SineWave.from_photon_energy(.5 * eV).period
+        T = ion.SineWave.from_photon_energy(.5 * eV).period_carrier
 
         front_time_in_periods = clu.Parameter(name = 'front_time_in_periods',
                                               value = clu.ask_for_input('Front time (in periods of hbar * omega = 0.5 eV sine wave)?', default = 1, cast_to = float))

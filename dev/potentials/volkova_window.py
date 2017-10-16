@@ -43,9 +43,9 @@ if __name__ == '__main__':
     with logman as logger:
         dummy = ion.SineWave.from_photon_energy_and_intensity(.5 * eV, intensity = 100 * TWcm2, phase = pi / 2)
         efield = ion.SineWave.from_photon_energy_and_intensity(2 * eV, intensity = 100 * TWcm2, phase = pi / 2)
-        efield.window = ion.SmoothedTrapezoidalWindow(time_front = 1 * dummy.period, time_plateau = 5 * dummy.period)
+        efield.window = ion.SmoothedTrapezoidalWindow(time_front = 1 * dummy.period_carrier, time_plateau = 5 * dummy.period_carrier)
 
-        times = np.linspace(0, 8 * dummy.period, 1e5)
+        times = np.linspace(0, 8 * dummy.period_carrier, 1e5)
 
         si.vis.xy_plot(
             'window',

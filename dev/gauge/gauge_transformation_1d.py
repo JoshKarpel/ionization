@@ -85,7 +85,7 @@ if __name__ == '__main__':
         potential = ion.HarmonicOscillator.from_energy_spacing_and_mass(spacing, electron_mass)
 
         efield = ion.SineWave.from_photon_energy(spacing, amplitude = amp)
-        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period, window_width = .1 * efield.period)
+        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period_carrier, window_width = .1 * efield.period_carrier)
 
         # efield = ion.Rectangle(amplitude = 1 * atomic_electric_field, start_time = 50 * asec, end_time = 250 * asec)
 
@@ -96,7 +96,7 @@ if __name__ == '__main__':
             test_charge = electron_charge,
             initial_state = ion.QHOState.from_potential(potential, electron_mass),
             test_states = tuple(ion.QHOState.from_potential(potential, electron_mass, n) for n in range(max_n + 1)),
-            time_initial = -t_bound * efield.period, time_final = t_bound * efield.period,
+            time_initial = -t_bound * efield.period_carrier, time_final = t_bound * efield.period_carrier,
             # time_initial = 0, time_final = 300 * asec,
             time_step = 5 * asec,
             electric_potential_dc_correction = True,

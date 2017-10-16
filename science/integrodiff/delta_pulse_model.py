@@ -214,7 +214,7 @@ def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
     try:
         name = f'pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi'
     except AttributeError:
-        name = f'sinewave__{uround(pulse.period, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef'
+        name = f'sinewave__{uround(pulse.period_carrier, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef'
 
     si.vis.xy_plot(
         name,

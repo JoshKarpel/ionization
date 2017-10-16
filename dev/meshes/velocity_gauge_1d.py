@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
         potential = ion.HarmonicOscillator.from_energy_spacing_and_mass(spacing, electron_mass)
         efield = ion.SineWave.from_photon_energy(spacing, amplitude = amp)
-        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period, window_width = .1 * efield.period)
+        efield.window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - 1) * efield.period_carrier, window_width = .1 * efield.period_carrier)
 
         line_spec_base = dict(
             x_bound = x_bound, x_points = 2 ** 10,
@@ -62,7 +62,7 @@ if __name__ == '__main__':
             electric_potential = efield,
             initial_state = ion.QHOState.from_potential(potential, electron_mass),
             test_states = tuple(ion.QHOState.from_potential(potential, electron_mass, n) for n in range(max_n + 1)),
-            time_initial = -t_bound * efield.period, time_final = t_bound * efield.period,
+            time_initial = -t_bound * efield.period_carrier, time_final = t_bound * efield.period_carrier,
             time_step = 5 * asec,
             electric_potential_dc_correction = True,
             animators = [

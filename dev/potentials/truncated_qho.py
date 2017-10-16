@@ -57,7 +57,7 @@ if __name__ == '__main__':
                                     # numeric_eigenstate_max_energy = 10 * eV,
                                     # analytic_eigenstate_type = ion.QHOState,
                                     initial_state = init,
-                                    time_initial = 0, time_final = efield.period * 10, time_step = 10 * asec,
+                                    time_initial = 0, time_final = efield.period_carrier * 10, time_step = 10 * asec,
                                     animators = animators,
                                     ).to_simulation()
 

@@ -61,7 +61,7 @@ if __name__ == '__main__':
             phase = 0,
         )
 
-        time_final = pulse.number_of_cycles * pulse.period
+        time_final = pulse.number_of_cycles * pulse.period_carrier
         pulse.pulse_center = time_final / 2
 
         spec = ion.LineSpecification(

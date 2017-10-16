@@ -26,7 +26,7 @@ if __name__ == '__main__':
             number_of_cycles = 1,
         )
 
-        times = np.linspace(-.5 * pulse.period, .5 * pulse.period, 1e3)
+        times = np.linspace(-.5 * pulse.period_carrier, .5 * pulse.period_carrier, 1e3)
 
         si.vis.xy_plot(
             'sine_squared_pulse',
