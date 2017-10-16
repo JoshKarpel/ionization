@@ -229,12 +229,14 @@ PULSE_NAMES_TO_TYPES = {
     'sinc': ion.SincPulse,
     'gaussian': ion.GaussianPulse,
     'sech': ion.SechPulse,
+    'cos2': ion.CosSquaredPulse,
 }
 
 PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS = {
     ion.SincPulse: 5,
     ion.GaussianPulse: 1,
     ion.SechPulse: 1,
+    ion.CosSquaredPulse: 0,
 }
 
 
@@ -298,7 +300,11 @@ def ask_pulse_number_of_pulse_widths(pulse_parameters):
 
 
 def ask_pulse_number_of_cycles(pulse_parameters):
-    raise NotImplementedError
+    number_of_cycles = clu.Parameter(
+        name = 'number_of_cycles',
+        value = np.array(clu.ask_for_eval('Number of Cycles?', default = '[2, 3, 4]')),
+        expandable = True)
+    pulse_parameters.append(number_of_cycles)
 
 
 CONSTRUCTOR_ARG_TO_ASK = {
@@ -326,7 +332,7 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
 def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
-    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech)', default = 'sinc')]
+    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech | cos2)', default = 'sinc')]
     constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if 'from_' in name)
     constructor_name = clu.ask_for_input(f'Pulse Constructor? ({" | ".join(constructor_names)})', default = 'omega_min')
     constructor = getattr(pulse_type, f'from_{constructor_name}')

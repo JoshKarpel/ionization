@@ -442,7 +442,7 @@ class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.zeros(np.shape(t)) * super().get_electric_field_amplitude(t)
+        return np.zeros(np.shape(t)) * super().get_electric_field_amplitude(tau)
 
     def get_vector_potential_amplitude(self, t):
         return np.zeros(np.shape(t))
@@ -489,7 +489,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         on = np.ones(np.shape(t))
         off = np.zeros(np.shape(t))
 
-        out = np.where(cond, on, off) * self.amplitude * super().get_electric_field_amplitude(t)
+        out = np.where(cond, on, off) * self.amplitude * super().get_electric_field_amplitude(tau)
 
         return out
 
@@ -697,7 +697,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.sin((self.omega * t) + self.phase) * self.amplitude * super().get_electric_field_amplitude(t)
+        return np.sin((self.omega * t) + self.phase) * self.amplitude * super().get_electric_field_amplitude(tau)
 
     def get_peak_amplitude(self):
         return self.amplitude
@@ -825,7 +825,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
 
         amp = np.where(cond, on, off)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
+        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
 
 
 DEFAULT_PULSE_WIDTH = 200 * asec
@@ -1080,9 +1080,9 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = np.array(t) - self.pulse_center
-        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
+        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
@@ -1390,9 +1390,9 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
+        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
@@ -1596,9 +1596,9 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(t)
+        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
@@ -1614,6 +1614,121 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Keldysh Parameter (hydrogen ground state)', f'{uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
+
+        return info
+
+
+class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
+    """A sine-squared pulse, parameterized by number of cycles."""
+
+    def __init__(self,
+                 amplitude = .01 * atomic_electric_field,
+                 wavelength = 800 * nm,
+                 number_of_cycles = 4,
+                 phase = DEFAULT_PHASE,
+                 pulse_center = DEFAULT_PULSE_CENTER,
+                 **kwargs):
+        super().__init__(**kwargs)
+        self.amplitude = amplitude
+        self.wavelength = wavelength
+        self.number_of_cycles = number_of_cycles
+        self.phase = phase
+        self.pulse_center = pulse_center
+
+    @classmethod
+    def from_omega(cls,
+                   amplitude = .1 * atomic_electric_field,
+                   omega = twopi * c / (800 * nm),
+                   number_of_cycles = 4,
+                   phase = DEFAULT_PHASE,
+                   pulse_center = DEFAULT_PULSE_CENTER,
+                   **kwargs):
+        wavelength = c / (omega / twopi)
+
+        return cls(
+            amplitude = amplitude,
+            wavelength = wavelength,
+            number_of_cycles = number_of_cycles,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_period(cls,
+                    amplitude = .1 * atomic_electric_field,
+                    period = 200 * asec,
+                    number_of_cycles = 4,
+                    phase = DEFAULT_PHASE,
+                    pulse_center = DEFAULT_PULSE_CENTER,
+                    **kwargs):
+        omega = twopi / period
+
+        return cls.from_omega(
+            amplitude = amplitude,
+            omega = omega,
+            number_of_cycles = number_of_cycles,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs,
+        )
+
+    @classmethod
+    def from_pulse_width(cls,
+                         amplitude = .1 * atomic_electric_field,
+                         pulse_width = DEFAULT_PULSE_WIDTH,
+                         number_of_cycles = 4,
+                         phase = DEFAULT_PHASE,
+                         pulse_center = DEFAULT_PULSE_CENTER,
+                         **kwargs):
+        period = pulse_width / number_of_cycles
+
+        return cls.from_omega(
+            amplitude = amplitude,
+            period = period,
+            number_of_cycles = number_of_cycles,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs,
+        )
+
+    @property
+    def frequency(self):
+        return c / self.wavelength
+
+    @property
+    def period(self):
+        return 1 / self.frequency
+
+    @property
+    def omega(self):
+        return twopi * c / self.wavelength
+
+    @property
+    def pulse_width(self):
+        return self.number_of_cycles * self.period
+
+    @property
+    def sideband_offset(self):
+        return self.omega / self.number_of_cycles
+
+    def get_electric_field_envelope(self, t):
+        tau = t - self.pulse_center
+        return np.cos(self.omega * tau / (2 * self.number_of_cycles)) ** 2
+
+    def get_electric_field_amplitude(self, t):
+        """Return the electric field amplitude at time t."""
+        tau = t - self.pulse_center
+        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega * tau) + self.phase)
+
+        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
+        info.add_field('Center Wavelength', f'{uround(self.wavelength, nm)} nm | {uround(self.wavelength, um)} um')
+        info.add_field('Number of Cycles', self.number_of_cycles)
 
         return info
 
@@ -1735,7 +1850,7 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
                 index, value, target = si.utils.find_nearest_entry(self.times, time)
                 amp[ii] = self.complex_electric_field_vs_time[index]
 
-        return np.real(amp) * super().get_electric_field_amplitude(t)
+        return np.real(amp) * super().get_electric_field_amplitude(tau)
 
 
 class RectangularTimeWindow(TimeWindow):
