@@ -977,16 +977,16 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     @classmethod
-    def from_amplitude_prefactor(
+    def from_amplitude(
             cls,
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
-            amplitude_prefactor = 1 * atomic_electric_field,
+            amplitude = 1 * atomic_electric_field,
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
         delta_omega = twopi / pulse_width
-        fluence = pi * epsilon_0 * c * (amplitude_prefactor ** 2) / delta_omega
+        fluence = pi * epsilon_0 * c * (amplitude ** 2) / delta_omega
 
         return cls(
             pulse_width = pulse_width,
@@ -1222,15 +1222,15 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     @classmethod
-    def from_amplitude_prefactor(
+    def from_amplitude(
             cls,
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
-            amplitude_prefactor = 1 * atomic_electric_field,
+            amplitude = 1 * atomic_electric_field,
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
-        fluence = np.sqrt(pi) * epsilon_0 * c * pulse_width * (amplitude_prefactor ** 2) / 2
+        fluence = np.sqrt(pi) * epsilon_0 * c * pulse_width * (amplitude ** 2) / 2
 
         return cls.from_omega_min(
             pulse_width = pulse_width,

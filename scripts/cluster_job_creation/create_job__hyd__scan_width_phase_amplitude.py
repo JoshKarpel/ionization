@@ -147,8 +147,8 @@ if __name__ == '__main__':
                                   expandable = True)
         pulse_parameters.append(omega_min)
 
-        pulses = tuple(pulse_type.from_amplitude_prefactor(**d,
-                                                           window = ion.SymmetricExponentialTimeWindow(
+        pulses = tuple(pulse_type.from_amplitude(**d,
+                                                 window = ion.SymmetricExponentialTimeWindow(
                                                                window_time = d['pulse_width'] * window_time_in_pw.value,
                                                                window_width = d['pulse_width'] * window_width_in_pw.value
                                                            ))

@@ -283,10 +283,10 @@ def ask_pulse_keldysh_parameters(pulse_parameters):
     raise NotImplementedError
 
 
-def ask_pulse_amplitude_prefactors(pulse_parameters):
+def ask_pulse_amplitudes(pulse_parameters):
     amplitude_prefactors = clu.Parameter(
-        name = 'amplitude_prefactor',
-        value = atomic_electric_field * np.array(clu.ask_for_eval('Pulse Amplitude Prefactors? (in AEF)', default = '[.01, .05, .1, .5, 1, 2]')),
+        name = 'amplitude',
+        value = atomic_electric_field * np.array(clu.ask_for_eval('Pulse Amplitudes? (in AEF)', default = '[.01, .05, .1, .5, 1, 2]')),
         expandable = True)
     pulse_parameters.append(amplitude_prefactors)
 
@@ -314,7 +314,7 @@ CONSTRUCTOR_ARG_TO_ASK = {
     'omega_min': ask_pulse_omega_mins,
     'omega_carriers': ask_pulse_omega_carriers,
     'keldysh_parameter': ask_pulse_keldysh_parameters,
-    'amplitude_prefactor': ask_pulse_amplitude_prefactors,
+    'amplitude': ask_pulse_amplitudes,
     'number_of_pulse_widths': ask_pulse_number_of_pulse_widths,
     'number_of_cycles': ask_pulse_number_of_cycles,
 }
