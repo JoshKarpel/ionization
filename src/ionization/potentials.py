@@ -1683,7 +1683,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
                          **kwargs):
         period = pulse_width / number_of_cycles
 
-        return cls.from_omega(
+        return cls.from_period(
             amplitude = amplitude,
             period = period,
             number_of_cycles = number_of_cycles,
