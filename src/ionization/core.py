@@ -155,6 +155,31 @@ class Snapshot:
         self.data['norm'] = self.sim.mesh.norm()
 
 
+class Snapshot:
+    def __init__(self, simulation, time_index):
+        self.sim = simulation
+        self.spec = self.sim.spec
+        self.time_index = time_index
+
+        self.data = dict()
+
+    @property
+    def time(self):
+        return self.sim.times[self.time_index]
+
+    def __str__(self):
+        return 'Snapshot of {} at time {} as (time index = {})'.format(self.sim.name, uround(self.sim.times[self.time_index], asec, 3), self.time_index)
+
+    def __repr__(self):
+        return si.utils.field_str(self, 'sim', 'time_index')
+
+    def take_snapshot(self):
+        self.collect_norm()
+
+    def collect_norm(self):
+        self.data['norm'] = self.sim.mesh.norm()
+
+
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)

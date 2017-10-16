@@ -1622,7 +1622,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     """A sine-squared pulse, parameterized by number of cycles."""
 
     def __init__(self,
-                 amplitude = .1 * atomic_electric_field,
+                 amplitude = .01 * atomic_electric_field,
                  wavelength = 800 * nm,
                  number_of_cycles = 4,
                  phase = DEFAULT_PHASE,
@@ -1636,14 +1636,14 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         self.pulse_center = pulse_center
 
     @classmethod
-    def from_omega_carrier(cls,
-                           amplitude = .1 * atomic_electric_field,
-                           omega_carrier = twopi * c / (800 * nm),
-                           number_of_cycles = 4,
-                           phase = DEFAULT_PHASE,
-                           pulse_center = DEFAULT_PULSE_CENTER,
-                           **kwargs):
-        wavelength = c / (omega_carrier / twopi)
+    def from_omega(cls,
+                   amplitude = .01 * atomic_electric_field,
+                   omega = twopi * c / (800 * nm),
+                   number_of_cycles = 4,
+                   phase = DEFAULT_PHASE,
+                   pulse_center = DEFAULT_PULSE_CENTER,
+                   **kwargs):
+        wavelength = c / (omega / twopi)
 
         return cls(
             amplitude = amplitude,
@@ -1656,36 +1656,17 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_period(cls,
-                    amplitude = .1 * atomic_electric_field,
-                    period = DEFAULT_PULSE_WIDTH,
+                    amplitude = .01 * atomic_electric_field,
+                    period = 200 * asec,
                     number_of_cycles = 4,
                     phase = DEFAULT_PHASE,
                     pulse_center = DEFAULT_PULSE_CENTER,
                     **kwargs):
         omega = twopi / period
 
-        return cls.from_omega_carrier(
+        return cls.from_omega(
             amplitude = amplitude,
-            omega_carrier = omega,
-            number_of_cycles = number_of_cycles,
-            phase = phase,
-            pulse_center = pulse_center,
-            **kwargs,
-        )
-
-    @classmethod
-    def from_pulse_width(cls,
-                         amplitude = .1 * atomic_electric_field,
-                         pulse_width = DEFAULT_PULSE_WIDTH,
-                         number_of_cycles = 4,
-                         phase = DEFAULT_PHASE,
-                         pulse_center = DEFAULT_PULSE_CENTER,
-                         **kwargs):
-        period = pulse_width / number_of_cycles
-
-        return cls.from_period(
-            amplitude = amplitude,
-            period = period,
+            omega = omega,
             number_of_cycles = number_of_cycles,
             phase = phase,
             pulse_center = pulse_center,
@@ -1703,14 +1684,6 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     @property
     def omega(self):
         return twopi * c / self.wavelength
-
-    @property
-    def pulse_width(self):
-        return self.number_of_cycles * self.period
-
-    @property
-    def sideband_offset(self):
-        return self.omega / self.number_of_cycles
 
     def get_electric_field_envelope(self, t):
         tau = t - self.pulse_center
