@@ -442,7 +442,7 @@ class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.zeros(np.shape(t)) * super().get_electric_field_amplitude(tau)
+        return np.zeros(np.shape(t)) * super().get_electric_field_amplitude(t)
 
     def get_vector_potential_amplitude(self, t):
         return np.zeros(np.shape(t))
@@ -467,19 +467,23 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         self.amplitude = amplitude
 
     def __str__(self):
-        out = '{}(start time = {} as, end time = {} as, amplitude = {} AEF)'.format(self.__class__.__name__,
-                                                                                    uround(self.start_time, asec),
-                                                                                    uround(self.end_time, asec),
-                                                                                    uround(self.amplitude, atomic_electric_field, 3))
+        out = '{}(start time = {} as, end time = {} as, amplitude = {} AEF)'.format(
+            self.__class__.__name__,
+            uround(self.start_time, asec),
+            uround(self.end_time, asec),
+            uround(self.amplitude, atomic_electric_field, 3)
+        )
 
         return out + super().__str__()
 
     def __repr__(self):
-        out = '{}(start_time = {}, end_time = {}, amplitude = {}, window = {})'.format(self.__class__.__name__,
-                                                                                       self.start_time,
-                                                                                       self.end_time,
-                                                                                       self.amplitude,
-                                                                                       repr(self.window))
+        out = '{}(start_time = {}, end_time = {}, amplitude = {}, window = {})'.format(
+            self.__class__.__name__,
+            self.start_time,
+            self.end_time,
+            self.amplitude,
+            repr(self.window)
+        )
 
         return out
 
@@ -489,7 +493,7 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         on = np.ones(np.shape(t))
         off = np.zeros(np.shape(t))
 
-        out = np.where(cond, on, off) * self.amplitude * super().get_electric_field_amplitude(tau)
+        out = np.where(cond, on, off) * self.amplitude * super().get_electric_field_amplitude(t)
 
         return out
 
@@ -697,7 +701,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
-        return np.sin((self.omega * t) + self.phase) * self.amplitude * super().get_electric_field_amplitude(tau)
+        return np.sin((self.omega * t) + self.phase) * self.amplitude * super().get_electric_field_amplitude(t)
 
     def get_peak_amplitude(self):
         return self.amplitude
@@ -1850,7 +1854,7 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
                 index, value, target = si.utils.find_nearest_entry(self.times, time)
                 amp[ii] = self.complex_electric_field_vs_time[index]
 
-        return np.real(amp) * super().get_electric_field_amplitude(tau)
+        return np.real(amp) * super().get_electric_field_amplitude(t)
 
 
 class RectangularTimeWindow(TimeWindow):
