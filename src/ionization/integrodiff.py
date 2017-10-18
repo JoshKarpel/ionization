@@ -2,6 +2,7 @@ import logging
 import collections
 import functools
 import datetime
+import warnings
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -76,7 +77,9 @@ def _hydrogen_kernel_LEN_factory():
 def hydrogen_kernel_LEN(time_difference, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
     kernel_prefactor = 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
-    td_nonzero = kernel_func(time_difference)
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        td_nonzero = kernel_func(time_difference)
     td_zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
     return kernel_prefactor * np.where(time_difference != 0, td_nonzero, td_zero)
 
@@ -842,7 +845,7 @@ def decompose_potential_into_kicks__amplitude(electric_potential, times):
     max_field = 0
     max_field_time = 0
     for efield, sign, time in zip(efield_vs_time, signs, times):
-        if sign == current_sign:
+        if sign == current_sign and time != times[-1]:
             efield_accumulator += efield * (time - prev_time)
             if max_field < np.abs(efield):
                 max_field = np.abs(efield)

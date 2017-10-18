@@ -108,9 +108,18 @@ if __name__ == '__main__':
             )
 
             spec.pulse_type = electric_potential.__class__.__name__
-            spec.pulse_width = electric_potential.pulse_width
-            spec.fluence = electric_potential.fluence
-            spec.phase = electric_potential.phase
+            attrs = [
+                'pulse_width',
+                'phase',
+                'fluence',
+                'number_of_cycles',
+                'omega_carrier',
+            ]
+            for attr in attrs:
+                try:
+                    setattr(spec, attr, getattr(electric_potential, attr))
+                except AttributeError:
+                    pass
 
             spec.time_initial_in_pw = time_initial_in_pw
             spec.time_final_in_pw = time_final_in_pw
