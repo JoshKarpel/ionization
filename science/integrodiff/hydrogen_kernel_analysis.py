@@ -26,8 +26,10 @@ PLOT_KWARGS = dict(
 def kernel(td, omega):
     return ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
 
+
 def alpha(eta):
     return (eta * electron_charge / hbar) ** 2
+
 
 def analytic_b2(td, eta = 1 * atomic_electric_field * atomic_time, omega = ion.HydrogenBoundState(1, 0).energy / hbar):
     return np.abs((1 + (alpha(eta) * kernel(td, omega))) / ((1 + (alpha(eta) * kernel(0, omega))) ** 2)) ** 2

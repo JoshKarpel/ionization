@@ -7,6 +7,8 @@ from tqdm import tqdm
 import numpy as np
 import scipy.integrate as integ
 import scipy.linalg as linalg
+import scipy.sparse.linalg as splinalg
+import scipy.interpolate as interp
 
 import simulacra as si
 from simulacra.units import *
@@ -74,25 +76,58 @@ def solve_ide_implicit_from_pulse(pulse, tb, dt = 1 * asec):
 
 
 @si.utils.timed
-def solve_ide_implicit_from_kicks(kicks):
-    A = np.zeros((len(kicks), len(kicks)), dtype = np.complex128)
+def construct_A(kicks):
+    # A = np.zeros((len(kicks), len(kicks)), dtype = np.complex128)
+    A = np.tri(len(kicks), dtype = np.complex128)
 
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
     prefactor = ide.hydrogen_prefactor_LEN(electron_charge)
-    kernel = lambda td: ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
 
-    def element(n, m):
-        rv = prefactor * kicks[n].amplitude * kicks[m].amplitude * kernel(kicks[n].time - kicks[m].time)
-        if m == n:
-            rv -= 1
-        elif m == n - 1:  # first subdiagonal
-            rv += 1
+    def kernel(td):
+        return ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
 
-        return rv
+    # tds = np.linspace(0, kicks[-1].time + (100 * asec), num = 1000)
+    # kinterp = interp.interp1d(tds, kernel(tds), kind = 'cubic', fill_value = 0, bounds_error = False, assume_sorted = True)
 
-    for n in range(len(kicks)):
-        for m in range(n + 1):
-            A[n, m] = element(n, m)
+    # kernel = lambda td: ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
+
+    # time_delays = {(n, m): kicks[n].time - kicks[m].time for n in range(len(kicks)) for m in range(n + 1)}
+    # kernel_dict = {(n, m): kernel(time_delays[n, m]) for n in range(len(kicks)) for m in range(n + 1)}
+    times = np.array([kick.time for kick in kicks])
+    amplitudes = np.array([kick.amplitude for kick in kicks])
+
+    # def element(n, m):
+    #     rv = prefactor * amplitudes[n] * amplitudes[m] * kernel(time_delays[n, m])
+    #     if m == n:
+    #         rv -= 1
+    #     elif m == n - 1:  # first subdiagonal
+    #         rv += 1
+    #
+    #     return rv
+    #
+    # with si.utils.BlockTimer() as timer:
+    #     for n in range(len(kicks)):
+    #         for m in range(n + 1):
+    #             A[n, m] = element(n, m)
+
+    for idx in range(len(kicks)):
+        A[idx, :] *= amplitudes[idx]  # row idx
+        A[:, idx] *= amplitudes[idx]  # column idx
+        A[idx, :] *= kernel(times[idx] - times)
+        # A[idx, :] *= kinterp(times[idx] - times)
+
+    A *= prefactor
+    A[np.arange(len(kicks)), np.arange(len(kicks))] -= 1  # diagonal
+    A[np.arange(len(kicks) - 1) + 1, np.arange(len(kicks) - 1)] += 1  # first subdiagonal
+
+    # print(A)
+
+    return A
+
+
+@si.utils.timed
+def solve_ide_implicit_from_kicks(kicks):
+    A = construct_A(kicks)
 
     b = np.zeros(len(kicks))
     b[0] = 1
@@ -109,6 +144,9 @@ def solve_ide_implicit_from_kicks(kicks):
     #     overwrite_a = True,
     #     overwrite_b = True,
     # )
+
+    # a, info = splinalg.bicgstab(A, b, x0 = np.ones_like(b))
+    # print(info)
 
     return a, kicks
 
@@ -236,7 +274,8 @@ if __name__ == '__main__':
         pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2, number_of_cycles = 2)
         # pulse = ion.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
 
-        dts = np.array([1, .5, .1, .05]) * asec
+        dts = np.array([1, .5, .1, .01]) * asec
+        # dts = np.array([80]) * asec
         compare_ide_to_matrix(pulse, tb = 4, dts = dts)
 
         # etas = np.array([.01, .05, .1, .2, .3, .4, .5,]) * atomic_time * atomic_electric_field
