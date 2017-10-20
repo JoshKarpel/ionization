@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-from . import core, integrodiff
+from . import core, integrodiff, jobutils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -440,9 +440,8 @@ class PulseSimulationResult(ElectricFieldSimulationResult):
         super().__init__(sim, job_processor)
 
         self.pulse_type = copy(sim.spec.pulse_type)
-        self.pulse_width = copy(sim.spec.pulse_width)
-        self.fluence = copy(sim.spec.fluence)
-        self.phase = copy(sim.spec.phase)
+        for attr in jobutils.POTENTIAL_ATTRS:
+            setattr(self, attr, copy((getattr(sim.spec, attr))))
 
 
 class PulseJobProcessor(PulseParameterScanMixin, ElectricFieldJobProcessor):

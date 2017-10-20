@@ -435,6 +435,25 @@ def ask_data_storage_ide(parameters, *, spec_type):
         ))
 
 
+POTENTIAL_ATTRS = [
+    'pulse_width',
+    'phase',
+    'fluence',
+    'amplitude',
+    'number_of_cycles',
+    'omega_carrier',
+]
+
+
+def transfer_potential_attrs_to_spec(electric_potential, spec):
+    spec.pulse_type = electric_potential.__class__.__name__
+    for attr in POTENTIAL_ATTRS:
+        try:
+            setattr(spec, attr, getattr(electric_potential, attr))
+        except AttributeError:
+            pass
+
+
 def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameters, job_processor_type):
     job_dir = get_job_dir(args)
 

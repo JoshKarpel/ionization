@@ -28,6 +28,12 @@ def ensure_compatibility_spec(spec):
     if not hasattr(spec, 'store_radial_probability_current'):
         spec.store_radial_probability_current = False
 
+    # rename amplitude_time to amplitude
+    try:
+        spec.electric_potential.amplitude = spec.electric_potentia.amplitude_time
+    except AttributeError:
+        pass
+
 
 def ensure_compatibility_sim(sim):
     if not hasattr(sim, 'latest_checkpoint_time'):

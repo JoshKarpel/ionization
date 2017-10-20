@@ -2068,7 +2068,7 @@ def pulse_prefactors_vs_properties():
     si.vis.xy_plot(
         'prefactor_vs_pulse_width_scan',
         pulse_widths_dense,
-        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for pw in pulse_widths_dense]
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude for pw in pulse_widths_dense]
           for flu in fluences_sparse],
         line_labels = [rf'$ H = {uround(flu, Jcm2, 1)} \, \mathrm{{J/cm^2}} $' for flu in fluences_sparse],
         line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in fluences_sparse],
@@ -2085,7 +2085,7 @@ def pulse_prefactors_vs_properties():
     si.vis.xy_plot(
         'prefactor_vs_fluence_scan',
         fluences_dense,
-        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for flu in fluences_dense]
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude for flu in fluences_dense]
           for pw in pulse_widths_sparse],
         line_labels = [rf'$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $' for pw in pulse_widths_sparse],
         line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in pulse_widths_sparse],
@@ -2103,7 +2103,7 @@ def pulse_prefactors_vs_properties():
     si.vis.xy_plot(
         'prefactor_vs_fluence_scan_log',
         fluences_log,
-        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude_time for flu in fluences_log]
+        *[[ion.SincPulse(pulse_width = pw, fluence = flu).amplitude for flu in fluences_log]
           for pw in pulse_widths_sparse],
         line_labels = [rf'$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $' for pw in pulse_widths_sparse],
         line_kwargs = [{'linewidth': BIG_LINEWIDTH} for _ in pulse_widths_sparse],

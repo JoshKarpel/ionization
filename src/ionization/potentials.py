@@ -768,7 +768,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         # self.omega_carrier = (self.omega_min + self.omega_max) / 2
 
         self.amplitude_omega = np.sqrt(self.fluence * self.delta_omega / (twopi * number_of_modes * c * epsilon_0))
-        self.amplitude_time = self.amplitude_omega
+        self.amplitude = self.amplitude_omega
 
         self.cycle_period = twopi / self.mode_spacing
 
@@ -829,7 +829,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
 
         amp = np.where(cond, on, off)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
 
 DEFAULT_PULSE_WIDTH = 200 * asec
@@ -902,7 +902,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         self.omega_carrier = (self.omega_min + self.omega_max) / 2
 
         self.amplitude_omega = np.sqrt(self.fluence / (2 * epsilon_0 * c * self.delta_omega))
-        self.amplitude_time = np.sqrt(self.fluence * self.delta_omega / (pi * epsilon_0 * c))
+        self.amplitude = np.sqrt(self.fluence * self.delta_omega / (pi * epsilon_0 * c))
 
     @classmethod
     def from_omega_min(cls, *args, **kwargs):
@@ -961,7 +961,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
         keldysh_omega = {'carrier': omega_min + (delta_omega / 2), 'bandwidth': delta_omega}[keldysh_omega_selector]
 
-        amplitude_time = electric_field_amplitude_from_keldysh_parameter(
+        amplitude = electric_field_amplitude_from_keldysh_parameter(
             keldysh_parameter,
             keldysh_omega,
             ionization_potential = ionization_potential,
@@ -969,7 +969,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = pi * epsilon_0 * c * (amplitude_time ** 2) / delta_omega
+        fluence = pi * epsilon_0 * c * (amplitude ** 2) / delta_omega
 
         return cls(
             pulse_width = pulse_width,
@@ -1046,7 +1046,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
         return keldysh_parameter(
             keldysh_omega,
-            self.amplitude_time,
+            self.amplitude,
             ionization_potential = ionization_potential,
             test_mass = test_mass,
             test_charge = test_charge,
@@ -1086,13 +1086,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         tau = np.array(t) - self.pulse_center
         amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
@@ -1138,8 +1138,8 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.delta_omega = 1 / pulse_width
 
-        self.amplitude_time = np.sqrt(2 * self.fluence / (np.sqrt(pi) * epsilon_0 * c * self.pulse_width))
-        self.amplitude_omega = self.amplitude_time * self.pulse_width / 2
+        self.amplitude = np.sqrt(2 * self.fluence / (np.sqrt(pi) * epsilon_0 * c * self.pulse_width))
+        self.amplitude_omega = self.amplitude * self.pulse_width / 2
 
     @classmethod
     def from_omega_min(
@@ -1206,7 +1206,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                          'bandwidth': omega_fwhm,
                          'bandwidth_power': omega_fwhm / np.sqrt(2)}[keldysh_omega_selector]
 
-        amplitude_time = electric_field_amplitude_from_keldysh_parameter(
+        amplitude = electric_field_amplitude_from_keldysh_parameter(
             keldysh_parameter,
             keldysh_omega,
             ionization_potential = ionization_potential,
@@ -1214,7 +1214,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = np.sqrt(pi) * pulse_width * epsilon_0 * c * (amplitude_time ** 2) / 2
+        fluence = np.sqrt(pi) * pulse_width * epsilon_0 * c * (amplitude ** 2) / 2
 
         return cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1381,7 +1381,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
         return keldysh_parameter(
             keldysh_omega,
-            self.amplitude_time,
+            self.amplitude,
             ionization_potential = ionization_potential,
             test_mass = test_mass,
             test_charge = test_charge,
@@ -1396,13 +1396,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         tau = t - self.pulse_center
         amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec)} fs | {uround(self.pulse_width, atomic_time)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
@@ -1447,8 +1447,8 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.delta_omega = 2 / (pi * pulse_width)
 
-        self.amplitude_time = np.sqrt(self.fluence / (epsilon_0 * c * self.pulse_width))
-        self.amplitude_omega = self.amplitude_time * self.pulse_width * np.sqrt(pi / 2)
+        self.amplitude = np.sqrt(self.fluence / (epsilon_0 * c * self.pulse_width))
+        self.amplitude_omega = self.amplitude * self.pulse_width * np.sqrt(pi / 2)
 
     @classmethod
     def from_omega_min(
@@ -1513,7 +1513,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         keldysh_omega = {'carrier': dummy.omega_carrier, 'bandwidth': omega_fwhm}[keldysh_omega_selector]
 
-        amplitude_time = electric_field_amplitude_from_keldysh_parameter(
+        amplitude = electric_field_amplitude_from_keldysh_parameter(
             keldysh_parameter,
             keldysh_omega,
             ionization_potential = ionization_potential,
@@ -1521,7 +1521,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = epsilon_0 * c * pulse_width * (amplitude_time ** 2)
+        fluence = epsilon_0 * c * pulse_width * (amplitude ** 2)
 
         return cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1565,7 +1565,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         return keldysh_parameter(
             keldysh_omega,
-            self.amplitude_time,
+            self.amplitude,
             ionization_potential = ionization_potential,
             test_mass = test_mass,
             test_charge = test_charge,
@@ -1602,13 +1602,13 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         tau = t - self.pulse_center
         amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude_time * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
     def info(self):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude_time, atomic_electric_field)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
         info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')

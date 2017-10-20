@@ -103,7 +103,7 @@ if __name__ == '__main__':
 
 
         def integrand_no_phi(t_inner, t_outer):
-            amp = electric_field.amplitude_time ** 2
+            amp = electric_field.amplitude ** 2
             envelopes = electric_field.get_electric_field_envelope(t_outer) * electric_field.get_electric_field_envelope(t_inner)
             kernel = ide.gaussian_kernel_LEN(t_outer - t_inner, tau_alpha = tau_alpha)
             cosines = np.cos(electric_field.omega_carrier * (t_outer - t_inner))
@@ -112,7 +112,7 @@ if __name__ == '__main__':
 
 
         def integrand_phi(t_inner, t_outer):
-            amp = electric_field.amplitude_time ** 2
+            amp = electric_field.amplitude ** 2
             envelopes = electric_field.get_electric_field_envelope(t_outer) * electric_field.get_electric_field_envelope(t_inner)
             kernel = ide.gaussian_kernel_LEN(t_outer - t_inner, tau_alpha = tau_alpha)
             cosines = np.cos((electric_field.omega_carrier * (t_outer + t_inner)) + (2 * electric_field.phase))
@@ -136,7 +136,7 @@ if __name__ == '__main__':
         approx_no_phi, error = complex_dblquad(integrand_no_phi, t_lower, t_upper, lambda t: t_lower, lambda t: t_upper)
         approx_phi, error = complex_dblquad(integrand_phi, t_lower, t_upper, lambda t: t_lower, lambda t: t_upper)
 
-        print(prefactor * (electric_field.amplitude_time ** 2) * (atomic_time ** 2))
+        print(prefactor * (electric_field.amplitude ** 2) * (atomic_time ** 2))
 
         print('full sim', sim.a[-1], np.abs(sim.a[-1]) ** 2)
         print('no phi', approx_no_phi)
