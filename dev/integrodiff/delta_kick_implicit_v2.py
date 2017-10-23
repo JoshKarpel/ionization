@@ -7,6 +7,7 @@ from tqdm import tqdm
 import numpy as np
 import scipy.integrate as integ
 import scipy.linalg as linalg
+import scipy.sparse as sparse
 import scipy.sparse.linalg as splinalg
 import scipy.interpolate as interp
 
@@ -75,10 +76,18 @@ def solve_ide_implicit_from_pulse(pulse, tb, dt = 1 * asec):
     return solve_ide_implicit_from_kicks(kicks)
 
 
+def solve_ide_implicit_from_pulse_v2(pulse, tb, dt = 1 * asec):
+    kicks = new_decomposition(pulse, tb, dt = dt)
+
+    return solve_ide_implicit_from_kicks_v2(kicks)
+
+
 @si.utils.timed
 def construct_A(kicks):
     # A = np.zeros((len(kicks), len(kicks)), dtype = np.complex128)
     A = np.tri(len(kicks), dtype = np.complex128)
+    # A = sparse.csr_matrix((len(kicks), len(kicks)), dtype = np.complex128)
+    print('size of A', si.utils.bytes_to_str(A.nbytes))
 
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
     prefactor = ide.hydrogen_prefactor_LEN(electron_charge)
@@ -113,14 +122,15 @@ def construct_A(kicks):
     for idx in range(len(kicks)):
         A[idx, :] *= amplitudes[idx]  # row idx
         A[:, idx] *= amplitudes[idx]  # column idx
-        A[idx, :] *= kernel(times[idx] - times)
+        A[idx, :idx + 1] *= kernel(times[idx] - times[:idx + 1])
         # A[idx, :] *= kinterp(times[idx] - times)
 
     A *= prefactor
     A[np.arange(len(kicks)), np.arange(len(kicks))] -= 1  # diagonal
     A[np.arange(len(kicks) - 1) + 1, np.arange(len(kicks) - 1)] += 1  # first subdiagonal
 
-    # print(A)
+    A = sparse.csr_matrix(A, dtype = np.complex128)
+    print('size of A', si.utils.bytes_to_str(A.data.nbytes))
 
     return A
 
@@ -129,21 +139,17 @@ def construct_A(kicks):
 def solve_ide_implicit_from_kicks(kicks):
     A = construct_A(kicks)
 
-    b = np.zeros(len(kicks))
+    b = np.zeros(len(kicks), dtype = np.complex128)
     b[0] = 1
 
-    a = linalg.solve_triangular(
+    a = splinalg.spsolve_triangular(
+        # a = linalg.solve_triangular(
         A, b,
         lower = True,
-        check_finite = False,
-        overwrite_b = True
+        overwrite_b = True,
+        # check_finite = False,
+        overwrite_A = True,
     )
-
-    # a, *_ = linalg.lstsq(
-    #     A, b,
-    #     overwrite_a = True,
-    #     overwrite_b = True,
-    # )
 
     # a, info = splinalg.bicgstab(A, b, x0 = np.ones_like(b))
     # print(info)
@@ -151,11 +157,38 @@ def solve_ide_implicit_from_kicks(kicks):
     return a, kicks
 
 
+@si.utils.timed
+def solve_ide_implicit_from_kicks_v2(kicks):
+    b = np.empty(len(kicks), dtype = np.complex128)
+    b[0] = 1
+
+    omega = ion.HydrogenBoundState(1, 0).energy / hbar
+    prefactor = ide.hydrogen_prefactor_LEN(electron_charge)
+
+    def kernel(td):
+        return ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
+
+    times = np.array([kick.time for kick in kicks])
+    amplitudes = np.array([kick.amplitude for kick in kicks])
+    k0 = kernel(0)
+
+    for n in range(1, len(b)):
+        a_n = amplitudes[n]
+        sum_pre = prefactor * a_n
+        t_n = times[n]
+        s = sum_pre * np.sum(amplitudes[:n] * kernel(times[n] - times[:n]) * b[:n])
+        b[n] = (b[n - 1] + s) / (1 - (prefactor * k0 * a_n * a_n))
+
+    return b, kicks
+
+
 def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
     times = np.linspace(-pulse.pulse_width * tb, pulse.pulse_width * tb, 1e5)
 
     ak_vs_dt = [solve_ide_implicit_from_pulse(pulse, tb, dt = dt) for dt in dts]
+    ak_vs_dt_v2 = [solve_ide_implicit_from_pulse_v2(pulse, tb, dt = dt) for dt in dts]
     a_vs_dt = [ak[0] for ak in ak_vs_dt]
+    a_vs_dt_v2 = [ak[0] for ak in ak_vs_dt_v2]
     kicks_vs_dt = [ak[1] for ak in ak_vs_dt]
     sims_vs_dt = [run_hyd_ide_sim(pulse, tb, dt = dt) for dt in dts]
 
@@ -181,7 +214,7 @@ def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
 
     colors = [f'C{n}' for n in range(len(dts))]
 
-    for a, kicks, dt, color in zip(a_vs_dt, kicks_vs_dt, dts, colors):
+    for a, b, kicks, dt, color in zip(a_vs_dt, a_vs_dt_v2, kicks_vs_dt, dts, colors):
         # kt = np.repeat([k.time for k in kicks], 2)[1:]
         # kt[0] = times[0]
         # kt[-1] = times[-1]
@@ -191,6 +224,14 @@ def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
             np.abs(a) ** 2,
             color = color,
             linestyle = '--',
+            label = rf'IME, $\Delta t = {uround(dt, asec)} \, \mathrm{{as}}$',
+        )
+
+        ax_a2.plot(
+            np.array([k.time for k in kicks]) / asec,
+            np.abs(b) ** 2,
+            color = color,
+            linestyle = ':',
             label = rf'IME, $\Delta t = {uround(dt, asec)} \, \mathrm{{as}}$',
         )
 
@@ -211,7 +252,7 @@ def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
     fm.save()
 
     fm.name += 'zoom'
-    ax_a2.set_ylim(.9765, .9775)
+    ax_a2.set_ylim(.9768, .9772)
 
     fm.save()
 
@@ -271,10 +312,11 @@ def kick_delay_scan(eta = .1 * atomic_time * atomic_electric_field):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
+        ide._hydrogen_kernel_LEN_factory()  # call early to remove from timing
         pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2, number_of_cycles = 2)
         # pulse = ion.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
 
-        dts = np.array([1, .5, .1, .01]) * asec
+        dts = np.array([1]) * asec
         # dts = np.array([80]) * asec
         compare_ide_to_matrix(pulse, tb = 4, dts = dts)
 

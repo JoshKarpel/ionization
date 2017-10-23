@@ -13,8 +13,7 @@ import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-import ionization as ion
-import ionization.cluster as iclu
+from . import core, states, potentials
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -68,7 +67,7 @@ def ask_mesh_type():
 
     try:
         if mesh_type == 'cyl':
-            spec_type = ion.CylindricalSliceSpecification
+            spec_type = core.CylindricalSliceSpecification
 
             mesh_kwargs['z_bound'] = bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
             mesh_kwargs['rho_bound'] = bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
@@ -80,7 +79,7 @@ def ask_mesh_type():
             memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
 
         elif mesh_type == 'sph':
-            spec_type = ion.SphericalSliceSpecification
+            spec_type = core.SphericalSliceSpecification
 
             mesh_kwargs['r_bound'] = bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
             mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
@@ -91,7 +90,7 @@ def ask_mesh_type():
             memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
 
         elif mesh_type == 'harm':
-            spec_type = ion.SphericalHarmonicSpecification
+            spec_type = core.SphericalHarmonicSpecification
 
             r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
             mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
@@ -101,7 +100,7 @@ def ask_mesh_type():
 
             mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
-            mesh_kwargs['snapshot_type'] = ion.SphericalHarmonicSnapshot
+            mesh_kwargs['snapshot_type'] = core.SphericalHarmonicSnapshot
 
             memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
 
@@ -132,7 +131,7 @@ def ask_mask__radial_cosine(parameters, mesh_kwargs):
 
     mask = clu.Parameter(
         name = 'mask',
-        value = ion.RadialCosineMask(
+        value = potentials.RadialCosineMask(
             inner_radius = inner,
             outer_radius = outer,
             smoothness = smoothness,
@@ -143,7 +142,7 @@ def ask_mask__radial_cosine(parameters, mesh_kwargs):
 def ask_initial_state_for_hydrogen_sim(parameters):
     initial_state = clu.Parameter(
         name = 'initial_state',
-        value = ion.HydrogenBoundState(
+        value = states.HydrogenBoundState(
             n = clu.ask_for_input('Initial State n?', default = 1, cast_to = int),
             l = clu.ask_for_input('Initial State l?', default = 0, cast_to = int),
         ))
@@ -168,7 +167,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
                 value = max_energy,
             ))
 
-        if spec_type == ion.SphericalHarmonicSpecification:
+        if spec_type == core.SphericalHarmonicSpecification:
             max_angular_momentum = clu.ask_for_input('Numeric Eigenstate Maximum l?', default = 20, cast_to = int)
             parameters.append(
                 clu.Parameter(
@@ -226,17 +225,17 @@ def ask_evolution_method(parameters, *, spec_type):
 
 
 PULSE_NAMES_TO_TYPES = {
-    'sinc': ion.SincPulse,
-    'gaussian': ion.GaussianPulse,
-    'sech': ion.SechPulse,
-    'cos2': ion.CosSquaredPulse,
+    'sinc': potentials.SincPulse,
+    'gaussian': potentials.GaussianPulse,
+    'sech': potentials.SechPulse,
+    'cos2': potentials.CosSquaredPulse,
 }
 
 PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS = {
-    ion.SincPulse: 5,
-    ion.GaussianPulse: 1,
-    ion.SechPulse: 1,
-    ion.CosSquaredPulse: 0,
+    potentials.SincPulse: 5,
+    potentials.GaussianPulse: 1,
+    potentials.SechPulse: 1,
+    potentials.CosSquaredPulse: 0,
 }
 
 
@@ -357,7 +356,7 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulses = tuple(
         constructor(
             **d,
-            window = ion.SymmetricExponentialTimeWindow(
+            window = potentials.SymmetricExponentialTimeWindow(
                 window_time = d['pulse_width'] * window_time_in_pw,
                 window_width = d['pulse_width'] * window_width_in_pw,
             ),
@@ -413,7 +412,7 @@ def ask_data_storage_tdse(parameters, *, spec_type):
         ('store_energy_expectation_value', 'Store Energy EV vs. Time?', True),
         ('store_norm_diff_mask', 'Store Difference in Norm caused by Mask vs. Time?', False),
     ]
-    if spec_type == ion.SphericalHarmonicSpecification:
+    if spec_type == core.SphericalHarmonicSpecification:
         names_questions_defaults += [
             ('store_radial_probability_current', 'Store Radial Probability Current vs. Time?', False),
             ('store_norm_by_l', 'Store Norm-by-L?', False),

@@ -59,17 +59,20 @@ def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width,
 @si.utils.memoize
 def _hydrogen_kernel_LEN_factory():
     k = sym.Symbol('k', real = True)
+    t = sym.Symbol('t', real = True, positive = True)
     a = sym.Symbol('a', real = True, positive = True)
     m = sym.Symbol('m', real = True, positive = True)
-    t = sym.Symbol('t', real = True, positive = True)
     hb = sym.Symbol('hb', real = True, positive = True)
 
+    # integrand = ((k ** 4) / ((1 + ((bohr_radius * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hbar * (k ** 2) * t / (2 * electron_mass_reduced)))
     integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * t / (2 * m)))
 
     kernel = sym.integrate(integrand, (k, -sym.oo, sym.oo))
 
     kernel_func = sym.lambdify((a, m, hb, t), kernel, modules = ['numpy', {'erfc': special.erfc}])
     kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
+
+    # kernel_func = sym.lambdify(t, kernel, modules = ['numpy', {'erf': special.erf}])
 
     return kernel_func
 
