@@ -36,7 +36,7 @@ def run(spec):
         logger.debug(sim.info())
 
         for kwargs in PLOT_KWARGS:
-            sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
+            sim.plot_b2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
 
         return sim
 

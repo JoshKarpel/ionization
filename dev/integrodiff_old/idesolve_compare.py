@@ -41,7 +41,7 @@ def make_comparison_plot(identifier, rk4solvers, idesolvers):
             *[solver.x for solver in idesolvers],
         ],
         [
-            *[solver.a2 for solver in rk4solvers],
+            *[solver.b2 for solver in rk4solvers],
             *[np.abs(solver.y) ** 2 for solver in idesolvers],
         ],
         line_labels = labels,
@@ -84,7 +84,7 @@ def rk4(pulse, tb = 3, dts = (1 * asec, .1 * asec), processes = 2):
             electric_potential = pulse,
             electric_potential_dc_correction = False,
             kernel = ide.hydrogen_kernel_LEN,
-            prefactor = ide.hydrogen_prefactor_LEN(electron_charge),
+            integral_prefactor = ide.hydrogen_prefactor_LEN(electron_charge),
         ) for dt in dts]
 
     return si.utils.multi_map(run, specs, processes = processes)

@@ -35,7 +35,7 @@ def run(spec):
         logger.debug(sim.info())
 
         for kwargs in PLOT_KWARGS:
-            sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
+            sim.plot_b2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **kwargs)
 
         return sim
 
@@ -120,7 +120,7 @@ if __name__ == '__main__':
                     si.vis.xxyy_plot(
                         f'{gauge}__method_comparison__pw={uround(pw, asec, 3)}_dt={uround(dt, asec, 3)}',
                         (r.times for r in results),
-                        (r.a2 for r in results),
+                        (r.b2 for r in results),
                         line_labels = (r.name for r in results),
                         x_label = r'Time $t$', x_unit = 'asec',
                         x_lower_limit = -t_bound * pw, x_upper_limit = t_bound * pw,

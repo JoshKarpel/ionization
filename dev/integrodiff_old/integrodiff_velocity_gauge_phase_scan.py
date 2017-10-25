@@ -23,7 +23,7 @@ def run(spec):
 
         sim.info().log()
 
-        sim.plot_a2_vs_time(log = True, target_dir = OUT_DIR)
+        sim.plot_b2_vs_time(log = True, target_dir = OUT_DIR)
 
     return sim
 

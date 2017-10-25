@@ -1847,7 +1847,7 @@ def ide_symmetry():
         )
         ax_upper.plot(
             result.times / asec,
-            result.a2,
+            result.b2,
             color = color,
             linewidth = BIG_LINEWIDTH,
             label = cep,
@@ -2045,7 +2045,7 @@ def ide__cep_scan():
     si.vis.xy_plot(
         get_func_name(),
         phases,
-        [r.a2[-1] for r in results],
+        [r.b2[-1] for r in results],
         line_kwargs = [{'linewidth': BIG_LINEWIDTH}],
         title = fr'CEP Scan: Sinc Pulse w/ $\tau = {pulse_width} \, \mathrm{{as}}, \; H = {fluence} \, \mathrm{{J/cm^2}}$',
         x_label = r'Carrier-Envelope Phase $\varphi$',

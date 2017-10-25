@@ -84,7 +84,7 @@ if __name__ == '__main__':
                 si.vis.xy_plot(
                     f'phase_scan__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2' + postfix,
                     [sim.spec.electric_potential.phase for sim in sims],
-                    [sim.a2[-1] for sim in sims],
+                    [sim.b2[-1] for sim in sims],
                     x_label = r'\varphi', x_unit = 'rad',
                     y_label = r'$\left| a \right|^2$',
                     y_log_axis = log,

@@ -481,8 +481,8 @@ class IDESimulationResult(clu.SimulationResult):
             name_postfix = f'__{sim.file_name}',
         )
 
-        sim.plot_a2_vs_time(**plot_kwargs)
-        sim.plot_a2_vs_time(**plot_kwargs, log = True)
+        sim.plot_b2_vs_time(**plot_kwargs)
+        sim.plot_b2_vs_time(**plot_kwargs, log = True)
 
     @property
     def final_initial_state_overlap(self):

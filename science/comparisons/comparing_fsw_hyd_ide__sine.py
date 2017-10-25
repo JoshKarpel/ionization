@@ -117,7 +117,7 @@ if __name__ == '__main__':
                 # ),
                 ide.IntegroDifferentialEquationSpecification(
                     prefix + '__ide_len',
-                    prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+                    integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
                     kernel = ide.gaussian_kernel_LEN,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
                     test_energy = fsw_initial_state.energy,
@@ -127,7 +127,7 @@ if __name__ == '__main__':
                 ),
                 ide.IntegroDifferentialEquationSpecification(
                     prefix + '__ide_vel',
-                    prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
+                    integral_prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
                     kernel = ide.gaussian_kernel_VEL,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
                                      'width': test_width},
@@ -147,7 +147,7 @@ if __name__ == '__main__':
                         final_initial_state_overlap = r.state_overlaps_vs_time[r.spec.initial_state][-1]
                         file.write(f'{final_initial_state_overlap} : {r.name}\n')
                     except AttributeError:  # ide simulation
-                        final_initial_state_overlap = r.a2[-1]
+                        final_initial_state_overlap = r.b2[-1]
                         file.write(f'{final_initial_state_overlap} : {r.name}\n')
                     final_initial_state_overlaps.append(final_initial_state_overlap)
 
@@ -179,7 +179,7 @@ if __name__ == '__main__':
                 try:
                     y_data.append(r.state_overlaps_vs_time[r.spec.initial_state])
                 except AttributeError:  # ide simulation
-                    y_data.append(r.a2)
+                    y_data.append(r.b2)
 
             si.vis.xxyy_plot(
                 f'comparison__{prefix}',

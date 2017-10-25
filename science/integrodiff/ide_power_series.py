@@ -24,7 +24,7 @@ def run(spec):
 
         logger.info('{} took {} seconds for {} steps, {} computations'.format(sim.name, sim.elapsed_time.total_seconds(), sim.time_steps, sim.computed_time_steps))
 
-        sim.plot_a2_vs_time(target_dir = spec.out_dir,
+        sim.plot_b2_vs_time(target_dir = spec.out_dir,
                             y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
                             field_axis_label = r'${}(t)$'.format(str_efield),
                             field_scale = 'AEF')
@@ -96,7 +96,7 @@ if __name__ == '__main__':
                 target_dir = OUT_DIR,
         )
 
-        sim.plot_a2_vs_time(**PLOT_KWARGS)
+        sim.plot_b2_vs_time(**PLOT_KWARGS)
 
         t_lower = -t_bound_per_pw * pw * asec
         t_upper = t_bound_per_pw * pw * asec

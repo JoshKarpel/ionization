@@ -453,7 +453,7 @@ def ide_solution_sinc_pulse_cep_symmetry(phase = 0):
 
     for result, cep, color, style in zip(results, (r'$\mathrm{CEP} = \varphi$', r'$\mathrm{CEP} = -\varphi$'), ('C0', 'C1'), ('-', '-')):
         ax_lower.plot(result.times, result.spec.electric_potential.get_electric_field_amplitude(result.times), color = color, linewidth = 1.5, label = cep, linestyle = style)
-        ax_upper.plot(result.times, result.a2, color = color, linewidth = 1.5, label = cep, linestyle = style)
+        ax_upper.plot(result.times, result.b2, color = color, linewidth = 1.5, label = cep, linestyle = style)
 
     efield_1 = results[0].spec.electric_potential.get_electric_field_amplitude(results[0].times)
     field_max = np.max(efield_1)

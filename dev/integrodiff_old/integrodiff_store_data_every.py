@@ -32,7 +32,7 @@ if __name__ == '__main__':
         for sde in (1, -1, 2, 5, 25, 50):
             sim = ide.IntegroDifferentialEquationSpecification(f'sde={sde}',
                                                                time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
-                                                               prefactor = prefactor,
+                                                               integral_prefactor = prefactor,
                                                                electric_potential = electric_field,
                                                                kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                store_data_every = sde,
@@ -44,7 +44,7 @@ if __name__ == '__main__':
 
             sim.save(target_dir = OUT_DIR)
 
-            sim.plot_a2_vs_time(target_dir = OUT_DIR, img_format = 'png', fig_dpi_scale = 3)
+            sim.plot_b2_vs_time(target_dir = OUT_DIR, img_format = 'png', fig_dpi_scale = 3)
 
         for sde in (1, -1, 2, 5, 25, 50):
             sim = ide.AdaptiveIntegroDifferentialEquationSpecification(f'a_sde={sde}',
@@ -61,4 +61,4 @@ if __name__ == '__main__':
 
             sim.save(target_dir = OUT_DIR)
 
-            sim.plot_a2_vs_time(target_dir = OUT_DIR, img_format = 'png', fig_dpi_scale = 3)
+            sim.plot_b2_vs_time(target_dir = OUT_DIR, img_format = 'png', fig_dpi_scale = 3)

@@ -36,7 +36,7 @@ def run_hyd_ide_sim(pulse, tb, dt = 1 * asec):
         'idesim',
         electric_potential = pulse,
         kernel = ide.hydrogen_kernel_LEN,
-        prefactor = ide.hydrogen_prefactor_LEN(electron_charge),
+        integral_prefactor = ide.hydrogen_prefactor_LEN(electron_charge),
         time_initial = -pulse.pulse_width * tb,
         time_final = pulse.pulse_width * tb,
         time_step = dt,
@@ -238,7 +238,7 @@ def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
     for sim, color in zip(sims_vs_dt, colors):
         ax_a2.plot(
             sim.times / asec,
-            sim.a2,
+            sim.b2,
             color = color,
             linestyle = '-',
             label = rf'IDE, $\Delta t = {uround(sim.time_step, asec)} \, \mathrm{{as}}$'

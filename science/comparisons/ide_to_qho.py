@@ -101,7 +101,7 @@ if __name__ == '__main__':
                 ),
                 ide.IntegroDifferentialEquationSpecification(
                     prefix + '__ide_len',
-                    prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+                    integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
                     kernel = ide.gaussian_kernel_LEN,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
                     evolution_gauge = 'LEN',
@@ -110,7 +110,7 @@ if __name__ == '__main__':
                 ),
                 ide.IntegroDifferentialEquationSpecification(
                     prefix + '__ide_vel',
-                    prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
+                    integral_prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
                     kernel = ide.gaussian_kernel_VEL,
                     kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass),
                                      'width': test_width},
