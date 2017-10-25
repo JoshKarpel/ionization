@@ -38,11 +38,15 @@ if __name__ == '__main__':
         dts = np.array([1]) * asec
         methods = ['FE', 'BE', 'TRAP', 'RK4']
 
-        tb = 4
-        pulse = ion.GaussianPulse.from_number_of_cycles(
-            pulse_width = 200 * asec,
-            fluence = 20 * Jcm2,
-            number_of_cycles = 2,
+        pw = 100 * asec
+        tb = 10
+        pulse = ion.SincPulse(
+            pulse_width = pw,
+            fluence = 10 * Jcm2,
+            window = ion.SymmetricExponentialTimeWindow(
+                window_time = tb * pw,
+                window_width = .2 * pw
+            )
         )
 
         shared_spec_kwargs = dict(
