@@ -51,9 +51,15 @@ if __name__ == '__main__':
             ))
         parameters.append(
             clu.Parameter(
-                name = 'prefactor',
-                value = ide.hydrogen_prefactor_LEN(test_charge),
+                name = 'integral_prefactor',
+                value = -(electron_charge / hbar) ** 2,
             ))
+        parameters.append(
+            clu.Parameter(
+                name = 'kernel_kwargs',
+                value = {'omega_b': ion.HydrogenBoundState(1, 0).energy / hbar}
+            )
+        )
 
         if evolution_gauge == 'LEN':
             parameters.append(
@@ -73,7 +79,7 @@ if __name__ == '__main__':
                                             value = asec * clu.ask_for_input('Maximum Time Step (in as)?', default = 10, cast_to = float)))
 
             parameters.append(clu.Parameter(name = 'error_on',
-                                            value = clu.ask_for_input('Fractional Truncation Error Control on a or da/dt?', default = 'da/dt', cast_to = str)))
+                                            value = clu.ask_for_input('Fractional Truncation Error Control on b or db/dt?', default = 'db/dt', cast_to = str)))
 
             parameters.append(clu.Parameter(name = 'epsilon',
                                             value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))

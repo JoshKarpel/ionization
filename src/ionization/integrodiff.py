@@ -21,39 +21,39 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-def gaussian_tau_alpha_LEN(test_width, test_mass):
-    return 4 * test_mass * (test_width ** 2) / hbar
-
-
-def gaussian_prefactor_LEN(test_width, test_charge):
-    return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
-
-
-def gaussian_tau_alpha_VEL(test_width, test_mass):
-    return 2 * test_mass * (test_width ** 2) / hbar
-
-
-def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
-    return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
-
-
-def return_one(x, **kwargs):
-    return 1
-
-
-def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
-    return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
-
-
-def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
-    time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
-    alpha_diff_inner = (quiver_difference / width) ** 2
-
-    exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
-    inv = time_diff_inner ** 1.5
-    diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
-
-    return exp * diff * inv
+# def gaussian_tau_alpha_LEN(test_width, test_mass):
+#     return 4 * test_mass * (test_width ** 2) / hbar
+#
+#
+# def gaussian_prefactor_LEN(test_width, test_charge):
+#     return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
+#
+#
+# def gaussian_tau_alpha_VEL(test_width, test_mass):
+#     return 2 * test_mass * (test_width ** 2) / hbar
+#
+#
+# def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
+#     return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
+#
+#
+# def return_one(x, **kwargs):
+#     return 1
+#
+#
+# def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
+#     return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
+#
+#
+# def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
+#     time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
+#     alpha_diff_inner = (quiver_difference / width) ** 2
+#
+#     exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
+#     inv = time_diff_inner ** 1.5
+#     diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
+#
+#     return exp * diff * inv
 
 
 @si.utils.memoize
@@ -85,10 +85,6 @@ def hydrogen_kernel_LEN(time_difference, *, omega_b, **kwargs):
         td_nonzero = kernel_func(time_difference)
     td_zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
     return kernel_prefactor * np.where(time_difference != 0, td_nonzero, td_zero) * np.exp(1j * omega_b * time_difference)
-
-
-def hydrogen_prefactor_LEN(test_charge):
-    return -(test_charge / hbar) ** 2
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -442,14 +438,14 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         ratio = np.abs(delta_0 / delta_1)
 
-        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or time_step == self.spec.minimum_time_step:  # step was ok
+        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or time_step == self.spec.time_step_min:  # step was ok
             old_step = self.time_step  # for log message
             if delta_1 != 0:  # don't adjust time step if truncation error is zero
                 self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 5))
 
             # ensure new time step is inside min and max allowable time steps
-            self.time_step = min(self.spec.maximum_time_step, self.time_step)
-            self.time_step = max(self.spec.minimum_time_step, self.time_step)
+            self.time_step = min(self.spec.time_step_max, self.time_step)
+            self.time_step = max(self.spec.time_step_min, self.time_step)
 
             logger.debug(f'Accepted ARK4 step to {uround(times[-1] + time_step, asec, 6)} as. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
 
@@ -458,8 +454,8 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             old_step = self.time_step  # for log message
 
             self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 4))  # set new time step
-            self.time_step = min(self.spec.maximum_time_step, self.time_step)
-            self.time_step = max(self.spec.minimum_time_step, self.time_step)
+            self.time_step = min(self.spec.time_step_max, self.time_step)
+            self.time_step = max(self.spec.time_step_min, self.time_step)
 
             logger.debug(f'Rejected ARK4 step. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
             return self.evolve_ARK4(b, times, self.time_step)  # retry with new time step
@@ -559,7 +555,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         axis.grid(True, **si.vis.GRID_KWARGS)
 
     def plot_wavefunction_vs_time(self, *args, **kwargs):
-        """Alias for plot_a2_vs_time."""
+        """Alias for plot_b2_vs_time."""
         self.plot_b2_vs_time(*args, **kwargs)
 
     def plot_b2_vs_time(self,
@@ -650,6 +646,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
     integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
     evolution_method = si.utils.RestrictedValues('evolution_method', {'FE', 'BE', 'TRAP', 'RK4', 'ARK4'})
     evolution_gauge = si.utils.RestrictedValues('evolution_gauge', {'LEN', 'VEL'})
+    error_on = si.utils.RestrictedValues('error_on', {'b', 'db/dt'})
 
     def __init__(self, name,
                  time_initial = 0 * asec,
@@ -662,15 +659,16 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  integral_prefactor = -(electron_charge / hbar) ** 2,
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
-                 kernel = return_one,
-                 kernel_kwargs = None,
+                 kernel = hydrogen_kernel_LEN,
+                 kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
                  integration_method = 'simpson',
                  evolution_method = 'RK4',
                  evolution_gauge = 'LEN',
                  checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
                  store_data_every = 1,
-                 time_step_minimum = .01 * asec, time_step_maximum = 10 * asec,
-                 epsilon = 1e-3, error_on = 'da/dt', safety_factor = .98,
+                 time_step_min = .01 * asec,
+                 time_step_max = 10 * asec,
+                 epsilon = 1e-6, error_on = 'db/dt', safety_factor = .98,
                  **kwargs):
         """
         The differential equation should be of the form
@@ -712,9 +710,9 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         checkpoint_every
         checkpoint_dir
         store_data_every
-        time_step_minimum : :class:`float`
+        time_step_min : :class:`float`
             The minimum time step that can be used by an adaptive algorithm.
-        time_step_maximum : :class:`float`
+        time_step_max : :class:`float`
             the maximum time step that can be used by an adaptive algorithm.
         epsilon : :class:`float`
             The acceptable fractional error in the quantity specified by `error_on`.
@@ -756,8 +754,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.store_data_every = store_data_every
 
-        self.minimum_time_step = time_step_minimum
-        self.maximum_time_step = time_step_maximum
+        self.time_step_min = time_step_min
+        self.time_step_max = time_step_max
 
         self.epsilon = epsilon
         self.error_on = error_on
@@ -802,8 +800,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
             info_algorithm.add_field('Epsilon', self.epsilon)
             info_algorithm.add_field('Safety Factor', self.safety_factor)
             info_algorithm.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as')
-            info_algorithm.add_field('Minimum Time Step', f'{uround(self.minimum_time_step, asec, 3)} as')
-            info_algorithm.add_field('Maximum Time Step', f'{uround(self.maximum_time_step, asec, 3)} as')
+            info_algorithm.add_field('Minimum Time Step', f'{uround(self.time_step_min, asec, 3)} as')
+            info_algorithm.add_field('Maximum Time Step', f'{uround(self.time_step_max, asec, 3)} as')
 
         info.add_info(info_algorithm)
 
@@ -1233,12 +1231,15 @@ class DeltaKickSpecification(si.Specification):
 
     def __init__(self, name,
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 test_mass = electron_mass, test_charge = electron_charge, test_energy = -rydberg,
+                 test_mass = electron_mass,
+                 test_charge = electron_charge,
+                 test_energy = states.HydrogenBoundState(1, 0).energy,
                  a_initial = 1,
                  prefactor = 1,
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
-                 kernel = return_one, kernel_kwargs = None,
+                 kernel = hydrogen_kernel_LEN,
+                 kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
                  evolution_gauge = 'LEN',
                  decomposition_strategy = 'amplitude',
                  **kwargs):
