@@ -846,11 +846,12 @@ class DeltaKicks(potentials.PotentialEnergy):
         info = super().info()
 
         info.add_field('Number of Kicks', len(self))
+        info.add_field('Maximum Kick Amplitude', max(k.amplitude for k in self.kicks))
 
         return info
 
 
-def decompose_potential_into_kicks__amplitude(electric_potential, times):
+def decompose_potential_into_kicks(electric_potential, times):
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
@@ -876,7 +877,7 @@ def decompose_potential_into_kicks__amplitude(electric_potential, times):
             max_field = 0
         prev_time = time
 
-    return kicks
+    return DeltaKicks(kicks)
 
 
 class DeltaKickSimulation(si.Simulation):
@@ -895,17 +896,15 @@ class DeltaKickSimulation(si.Simulation):
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
-        if self.spec.evolution_gauge == 'LEN':
-            self.f = self.spec.electric_potential.get_electric_field_amplitude
-        elif self.spec.evolution_gauge == 'VEL':
-            self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
-
         if not isinstance(self.spec.electric_potential, DeltaKicks):
-            self.kicks = DeltaKicks(getattr(self, f'decompose_potential_into_kicks__{self.spec.decomposition_strategy}')())
+            self.spec.kicks = decompose_potential_into_kicks(self.spec.electric_potential, self.times)
         else:
-            self.kicks = self.spec.electric_potential
+            self.spec.kicks = self.spec.electric_potential
 
-        self.a = np.empty(len(self.kicks)) * np.NaN
+        self.data_times = np.array([self.spec.time_initial] + [k.time for k in self.spec.kicks] + [self.spec.time_final])  # for consistency with other simulations
+
+        self.b = np.empty(len(self.spec.kicks) + 2, dtype = np.complex128) * np.NaN
+        self.b[0] = 1
 
     @property
     def time_steps(self):
@@ -916,10 +915,10 @@ class DeltaKickSimulation(si.Simulation):
         return self.times[self.time_index]
 
     @property
-    def a2(self):
-        return np.abs(self.a) ** 2
+    def b2(self):
+        return np.abs(self.b) ** 2
 
-    def eval_kernel(self, time_difference, *, quiver_difference = None):
+    def eval_kernel(self, time_difference):
         """
         Calculate the values of the IDE kernel as a function of the time difference.
 
@@ -935,120 +934,27 @@ class DeltaKickSimulation(si.Simulation):
         kernel :
             The value of the kernel at the time differences.
         """
-        if self.spec.evolution_gauge == 'LEN':
-            return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
-        elif self.spec.evolution_gauge == 'VEL':  # if we're on velocity, f is the vector potential
-            return self.spec.kernel(time_difference, quiver_difference = quiver_difference, **self.spec.kernel_kwargs)
+        return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
 
-    def eval_quiver_motion(self, vector_potential_vs_time, times, time_step):
-        """
-        Calculate the quiver motion as a function of time using cumulative trapezoid-rule integration.
+    def _solve(self):
+        amplitudes = np.array([kick.amplitude for kick in self.spec.kicks])
+        k0 = self.eval_kernel(0)
 
-        Parameters
-        ----------
-        vector_potential_vs_time
-            The vector potential at each of the `times`.
-        times
-            The times to get the quiver motion at.
-        time_step
-            The time step (only used if `times` is a single time).
+        t_idx = 1
+        for kick in self.spec.kicks:
+            eta = kick.amplitude
+            print(eta, amplitudes[:t_idx])
+            print((self.data_times[t_idx] - self.data_times[1:t_idx + 1]) / asec)
+            print(self.b[:t_idx])
+            history_sum = (self.spec.integral_prefactor * eta) * np.sum(amplitudes[:t_idx - 1] * self.eval_kernel(self.data_times[t_idx] - self.data_times[1:t_idx]) * self.b[1:t_idx])
+            self.b[t_idx] = (self.b[t_idx - 1] + history_sum) / (1 - (self.spec.integral_prefactor * k0 * (eta ** 2)))
+            t_idx += 1
 
-        Returns
-        -------
-        quiver_motion_vs_time :
-            The quiver motion at each of the `times`.
-        """
-        if len(times) != 1:
-            integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
-        else:
-            integral = vector_potential_vs_time * time_step
-        return -(self.spec.test_charge / self.spec.test_mass) * integral
-
-    def decompose_potential_into_kicks__amplitude(self):
-        efield_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
-        signs = np.sign(efield_vs_time)
-
-        # state machine
-        kicks = []
-        current_sign = signs[0]
-        efield_accumulator = 0
-        prev_time = self.times[0]
-        max_field = 0
-        max_field_time = 0
-        for efield, sign, time in zip(efield_vs_time, signs, self.times):
-            if sign == current_sign:
-                efield_accumulator += efield * (time - prev_time)
-                if max_field < np.abs(efield):
-                    max_field = np.abs(efield)
-                    max_field_time = time
-            else:
-                kicks.append(delta_kick(time = max_field_time, amplitude = efield_accumulator))
-
-                # reset
-                current_sign = sign
-                efield_accumulator = 0
-                max_field = 0
-            prev_time = time
-
-        return kicks
-
-    def decompose_potential_into_kicks__fluence(self):
-        efield_vs_time = self.spec.electric_potential.get_electric_field_amplitude(self.times)
-        signs = np.sign(efield_vs_time)
-
-        # state machine
-        kicks = []
-        current_sign = signs[0]
-        fluence_accumulator = 0
-        start_time = self.times[0]
-        prev_time = self.times[0]
-        last_time = self.times[-1]
-        for efield, sign, time in zip(efield_vs_time, signs, self.times):
-            if sign == current_sign and time != last_time:
-                fluence_accumulator += (np.abs(efield) ** 2) * (time - prev_time)
-            else:
-                time_diff = time - start_time
-                kick_time = (time + start_time) / 2
-
-                kicks.append(delta_kick(time = kick_time, amplitude = current_sign * np.sqrt(fluence_accumulator * time_diff)))
-
-                # reset
-                current_sign = sign
-                start_time = time
-                fluence_accumulator = 0
-            prev_time = time
-
-        return kicks
-
-    def recursive_kicks(self):
-        abs_prefactor = np.abs(self.spec.integral_prefactor)
-
-        times = list(k.time for k in self.kicks)
-        amplitudes = list(k.amplitude for k in self.kicks)
-
-        @si.utils.memoize
-        def time_diff(i, j):
-            return times[i] - times[j]
-
-        @si.utils.memoize
-        def b(i, j):
-            return abs_prefactor * amplitudes[i] * amplitudes[j]
-
-        @si.utils.memoize
-        def a(n):
-            if n < 0:
-                return self.spec.a_initial
-            else:
-                first_term = np.exp(-1j * np.abs(self.spec.test_omega) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
-                second_term = sum(a(i) * b(n, i) * self.eval_kernel(time_diff(n, i)) for i in range(n))  # all but current kick
-
-                return first_term - second_term
-
-        return np.array(list(a(i) for i in range(len(self.kicks))))
+        self.b[-1] = self.b[-2]
 
     def run_simulation(self, callback = None):
         """
-        Run the IDE simulation by repeatedly evolving it forward in time.
+        Run the simulation by repeatedly evolving it forward in time.
 
 
         Parameters
@@ -1059,8 +965,7 @@ class DeltaKickSimulation(si.Simulation):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
         self.status = si.Status.RUNNING
 
-        self.a = self.recursive_kicks()
-        self.data_times = np.array(list(k.time for k in self.kicks))  # for consistency with other simulations
+        self._solve()
 
         if callback is not None:
             callback(self)
@@ -1108,7 +1013,7 @@ class DeltaKickSimulation(si.Simulation):
             axis.set_ylabel(', '.join(y_labels), fontsize = 13)
 
         if overlay_kicks:
-            for kick in self.kicks:
+            for kick in self.spec.kicks:
                 axis.plot(
                     [kick.time / time_unit_value, kick.time / time_unit_value],
                     [0, self.spec.electric_potential.get_electric_field_amplitude(kick.time) / atomic_electric_field],
@@ -1128,29 +1033,33 @@ class DeltaKickSimulation(si.Simulation):
 
     def plot_wavefunction_vs_time(self, *args, **kwargs):
         """Alias for plot_a2_vs_time."""
-        self.plot_a2_vs_time(*args, **kwargs)
+        self.plot_b2_vs_time(*args, **kwargs)
 
-    def plot_a2_vs_time(self,
+    def plot_b2_vs_time(self,
                         log = False,
                         time_unit = 'asec',
                         show_vector_potential = False,
                         show_title = False,
+                        y_lower_limit = 0,
+                        y_upper_limit = 1,
                         **kwargs):
-        with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
+        with si.vis.FigureManager(self.file_name + '__b2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
             t_scale_unit, t_scale_name = get_unit_value_and_latex_from_unit(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-            ax_a = plt.subplot(grid_spec[0])
-            ax_pot = plt.subplot(grid_spec[1], sharex = ax_a)
+            ax_b = plt.subplot(grid_spec[0])
+            ax_pot = plt.subplot(grid_spec[1], sharex = ax_b)
 
-            self.attach_electric_potential_plot_to_axis(ax_pot,
-                                                        show_vector_potential = show_vector_potential,
-                                                        time_unit = time_unit)
+            self.attach_electric_potential_plot_to_axis(
+                ax_pot,
+                show_vector_potential = show_vector_potential,
+                time_unit = time_unit
+            )
 
-            ax_a.plot(self.data_times / t_scale_unit,
-                      self.a2,
+            ax_b.plot(self.data_times / t_scale_unit,
+                      self.b2,
                       marker = 'o',
                       markersize = 2,
                       linestyle = ':',
@@ -1158,18 +1067,19 @@ class DeltaKickSimulation(si.Simulation):
                       linewidth = 1)
 
             if log:
-                ax_a.set_yscale('log')
-                min_overlap = np.min(self.a2)
-                ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-                ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
+                ax_b.set_yscale('log')
+                min_overlap = np.min(self.b2)
+                ax_b.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_b.grid(True, which = 'both', **si.vis.GRID_KWARGS)
             else:
-                ax_a.set_ylim(0.0, 1.0)
-                ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_a.grid(True, **si.vis.GRID_KWARGS)
+                ax_b.set_ylim(0.0, 1.0)
+                ax_b.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_b.grid(True, **si.vis.GRID_KWARGS)
 
-            ax_a.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
+            ax_b.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
+            ax_b.set_ylim(y_lower_limit, y_upper_limit)
 
-            ax_a.set_ylabel(r'$\left| a_{\alpha}(t) \right|^2$', fontsize = 13)
+            ax_b.set_ylabel(r'$\left| b(t) \right|^2$', fontsize = 13)
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -1182,9 +1092,9 @@ class DeltaKickSimulation(si.Simulation):
 
             ax_pot.tick_params(axis = 'x', which = 'major', labelsize = 10)
             ax_pot.tick_params(axis = 'y', which = 'major', labelsize = 10)
-            ax_a.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_b.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-            ax_a.tick_params(labelleft = True,
+            ax_b.tick_params(labelleft = True,
                              labelright = True,
                              labeltop = True,
                              labelbottom = False,
@@ -1202,7 +1112,7 @@ class DeltaKickSimulation(si.Simulation):
                                right = True)
 
             if show_title:
-                title = ax_a.set_title(self.name)
+                title = ax_b.set_title(self.name)
                 title.set_y(1.15)
 
             postfix = ''
@@ -1214,8 +1124,7 @@ class DeltaKickSimulation(si.Simulation):
     def info(self):
         info = super().info()
 
-        if self.kicks != self.spec.electric_potential:
-            info.add_info(self.kicks.info())
+        info.add_infos(self.spec)
 
         return info
 
@@ -1234,14 +1143,13 @@ class DeltaKickSpecification(si.Specification):
                  test_mass = electron_mass,
                  test_charge = electron_charge,
                  test_energy = states.HydrogenBoundState(1, 0).energy,
-                 a_initial = 1,
-                 prefactor = 1,
+                 b_initial = 1,
+                 integral_prefactor = -(electron_charge / hbar) ** 2,
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
                  kernel = hydrogen_kernel_LEN,
                  kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
                  evolution_gauge = 'LEN',
-                 decomposition_strategy = 'amplitude',
                  **kwargs):
         """
         The differential equation should be of the form
@@ -1261,9 +1169,9 @@ class DeltaKickSpecification(si.Specification):
             The mass of the test particle.
         test_charge : :class:`float`
             The charge of the test particle.
-        a_initial
+        b_initial
             The initial value of a, the bound state probability amplitude.
-        prefactor
+        integral_prefactor
             The overall prefactor of the IDE.
         electric_potential
             The electric potential that provides ``f`` (either as the electric field or the vector potential).
@@ -1305,9 +1213,9 @@ class DeltaKickSpecification(si.Specification):
         self.test_charge = test_charge
         self.test_energy = test_energy
 
-        self.a_initial = a_initial
+        self.b_initial = b_initial
 
-        self.prefactor = prefactor
+        self.integral_prefactor = integral_prefactor
 
         self.electric_potential = electric_potential
         self.electric_potential_dc_correction = electric_potential_dc_correction
@@ -1318,8 +1226,6 @@ class DeltaKickSpecification(si.Specification):
             self.kernel_kwargs.update(kernel_kwargs)
 
         self.evolution_gauge = evolution_gauge
-
-        self.decomposition_strategy = decomposition_strategy
 
     @property
     def test_omega(self):
@@ -1344,8 +1250,8 @@ class DeltaKickSpecification(si.Specification):
         info.add_info(info_algorithm)
 
         info_ide = si.Info(header = 'IDE Parameters')
-        info_ide.add_field('Initial State', f'a = {self.a_initial}')
-        info_ide.add_field('Prefactor', self.prefactor)
+        info_ide.add_field('Initial State', f'a = {self.b_initial}')
+        info_ide.add_field('Prefactor', self.integral_prefactor)
         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
         info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
 

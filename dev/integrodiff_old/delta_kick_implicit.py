@@ -27,10 +27,25 @@ def run_hyd_ide_sim(pulse, tb):
         'idesim',
         electric_potential = pulse,
         kernel = ide.hydrogen_kernel_LEN,
-        integral_prefactor = ide.hydrogen_prefactor_LEN(electron_charge),
+        integral_prefactor = -(electron_charge / hbar) ** 2,
         time_initial = -pulse.pulse_width * tb,
         time_final = pulse.pulse_width * tb,
-        time_step = .5 * asec,
+        time_step = 1 * asec,
+    ).to_simulation()
+
+    sim.run_simulation()
+
+    return sim
+
+
+def run_dk_sim(pulse, tb):
+    sim = ide.DeltaKickSpecification(
+        'dksim',
+        electric_potential = pulse,
+        kernel = ide.hydrogen_kernel_LEN,
+        integral_prefactor = -(electron_charge / hbar) ** 2,
+        time_initial = -pulse.pulse_width * tb,
+        time_final = pulse.pulse_width * tb,
     ).to_simulation()
 
     sim.run_simulation()
@@ -41,7 +56,7 @@ def run_hyd_ide_sim(pulse, tb):
 def solve_ide_implicit_from_pulse(pulse, tb):
     times = np.linspace(-pulse.pulse_width * tb, pulse.pulse_width * tb, 1e5)
 
-    kicks = ide.decompose_potential_into_kicks__amplitude(pulse, times)
+    kicks = ide.decompose_potential_into_kicks(pulse, times)
 
     return solve_ide_implicit_from_kicks(kicks)
 
@@ -50,8 +65,8 @@ def solve_ide_implicit_from_kicks(kicks):
     A = np.zeros((len(kicks), len(kicks)), dtype = np.complex128)
 
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
-    prefactor = ide.hydrogen_prefactor_LEN(electron_charge)
-    kernel = lambda td: ide.hydrogen_kernel_LEN(td) * np.exp(1j * omega * td)
+    prefactor = -(electron_charge / hbar) ** 2
+    kernel = lambda td: ide.hydrogen_kernel_LEN(td, omega_b = ion.HydrogenBoundState(1, 0).energy / hbar)
 
     def element(n, m):
         rv = prefactor * kicks[n].amplitude * kicks[m].amplitude * kernel(kicks[n].time - kicks[m].time)
@@ -79,6 +94,7 @@ def compare_ide_to_matrix(pulse, tb):
 
     a, kicks = solve_ide_implicit_from_pulse(pulse, tb)
     sim = run_hyd_ide_sim(pulse, tb)
+    sim_dk = run_dk_sim(pulse, tb)
 
     fm = si.vis.xy_plot(
         'pulse_decomposition',
@@ -119,12 +135,21 @@ def compare_ide_to_matrix(pulse, tb):
         sim.b2,
         color = 'black',
     )
+    ax_a2.plot(
+        sim_dk.data_times / asec,
+        sim_dk.b2,
+        color = 'purple',
+        linestyle = ':',
+        marker = 'o',
+    )
     ax_a2.set_ylabel(r'$ \left| a(t) \right|^2 $', fontsize = 16)
 
     ax_field.set_xlim(times[0] / asec, times[-1] / asec)
 
     fm.save()
     fm.cleanup()
+
+    sim_dk.plot_b2_vs_time(y_lower_limit = .95, **PLOT_KWARGS)
 
 
 def pw_scan(fluence):
@@ -197,13 +222,13 @@ def kick_delay_scan(eta = .1 * atomic_time * atomic_electric_field):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        # pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2, number_of_cycles = 2)
+        pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = 0, number_of_cycles = 2)
         # pulse = ion.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
-        # compare_ide_to_matrix(pulse, tb = 20)
+        compare_ide_to_matrix(pulse, tb = 4)
 
         # etas = np.array([.01, .05, .1, .2, .3, .4, .5,]) * atomic_time * atomic_electric_field
-        etas = np.geomspace(.01, 2, 10) * atomic_time * atomic_electric_field
-        si.utils.multi_map(kick_delay_scan, etas, processes = 3)
+        # etas = np.geomspace(.01, 2, 10) * atomic_time * atomic_electric_field
+        # si.utils.multi_map(kick_delay_scan, etas, processes = 3)
 
         # fluences = np.array([.01, .1, 1, 5, 10]) * Jcm2
         # fluences = np.geomspace(.01, 20, 10) * Jcm2

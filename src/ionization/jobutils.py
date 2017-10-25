@@ -295,7 +295,11 @@ def ask_pulse_power_exclusion(pulse_parameters):
 
 
 def ask_pulse_number_of_pulse_widths(pulse_parameters):
-    raise NotImplementedError
+    number_of_pulse_widths = clu.Parameter(
+        name = 'number_of_cycles',
+        value = np.array(clu.ask_for_eval('Number of Pulse Widths to count Cycles over?', default = '[3]')),
+        expandable = True)
+    pulse_parameters.append(number_of_pulse_widths)
 
 
 def ask_pulse_number_of_cycles(pulse_parameters):

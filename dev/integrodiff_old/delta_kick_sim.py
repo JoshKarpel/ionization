@@ -50,8 +50,8 @@ if __name__ == '__main__':
             test_charge = test_charge,
             test_energy = bound_state.energy,
             electric_potential = pulse,
-            a_initial = 1,
-            prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+            b_initial = 1,
+            integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
             kernel = ide.gaussian_kernel_LEN, kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
         ).to_simulation()
 

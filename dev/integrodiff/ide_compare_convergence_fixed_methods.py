@@ -48,21 +48,21 @@ if __name__ == '__main__':
         pw = 100 * asec
         flu = 10 * Jcm2
         cep = 0
-        tb = 3.5
-        pulse = ion.GaussianPulse.from_number_of_cycles(
-            pulse_width = pw,
-            fluence = flu,
-            phase = cep,
-        )
-        # pulse = ion.SincPulse(
+        tb = 20
+        # pulse = ion.GaussianPulse.from_number_of_cycles(
         #     pulse_width = pw,
         #     fluence = flu,
         #     phase = cep,
-        #     window = ion.SymmetricExponentialTimeWindow(
-        #         window_time = (tb - 2) * pw,
-        #         window_width = .2 * pw
-        #     )
         # )
+        pulse = ion.SincPulse(
+            pulse_width = pw,
+            fluence = flu,
+            phase = cep,
+            window = ion.SymmetricExponentialTimeWindow(
+                window_time = (tb - 2) * pw,
+                window_width = .2 * pw
+            )
+        )
 
         pulse_ident = f'{pulse.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}jcm2_cep={uround(cep, pi)}pi_tb={tb}'
 
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
-        results_raw = si.utils.multi_map(run, specs, processes = 3)
+        results_raw = si.utils.multi_map(run, specs, processes = 2)
         results_by_method = {method: sorted([r for r in results_raw if r.spec.evolution_method == method], key = lambda x: x.spec.time_step) for method in methods}
 
         b2_final_by_method = {method: np.array([r.b2[-1] for r in results]) for method, results in results_by_method.items()}

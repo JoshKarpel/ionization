@@ -75,8 +75,8 @@ def get_cosine_and_sine_etas(pulse_width = 200 * asec, fluence = 1 * Jcm2):
     cos_pulse = ion.DC_correct_electric_potential(cos_pulse, times)
     sin_pulse = ion.DC_correct_electric_potential(sin_pulse, times)
 
-    cos_kicks = ide.decompose_potential_into_kicks__amplitude(cos_pulse, times)
-    sin_kicks = ide.decompose_potential_into_kicks__amplitude(sin_pulse, times)
+    cos_kicks = ide.decompose_potential_into_kicks(cos_pulse, times)
+    sin_kicks = ide.decompose_potential_into_kicks(sin_pulse, times)
 
     max_cos_kick = max(k.amplitude for k in cos_kicks)
     max_sin_kick = max(k.amplitude for k in sin_kicks)
