@@ -85,7 +85,7 @@ if __name__ == '__main__':
                     electric_potential = pulse,
                     electric_potential_dc_correction = True,
                     phase = phase,
-                    prefactor = prefactor,
+                    integral_prefactor = prefactor,
                     kernel = ide.gaussian_kernel_LEN,
                     kernel_kwargs = {'tau_alpha': tau_alpha},
                     evolution_gauge = gauge,
@@ -94,7 +94,7 @@ if __name__ == '__main__':
                 ))
 
         results = si.utils.multi_map(run, specs, processes = 2)
-        energy_cep_to_a2 = dict((k, v.a2) for k, v in results)
+        energy_cep_to_a2 = dict((k, v.b2) for k, v in results)
         times = results[0][1].data_times
 
         colors = list(f'C{c}' for c in range(10))

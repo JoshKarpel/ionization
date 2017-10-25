@@ -32,7 +32,7 @@ def run(spec):
         sim.run_simulation()
         logger.debug(sim.info())
 
-        sim.plot_a2_vs_time(**PLOT_KWARGS)
+        sim.plot_b2_vs_time(**PLOT_KWARGS)
 
         return sim
 
@@ -103,7 +103,7 @@ if __name__ == '__main__':
             ide.IntegroDifferentialEquationSpecification(
                 'hydrogen',
                 kernel = ide.hydrogen_kernel_LEN,
-                prefactor = ide.hydrogen_prefactor_LEN(test_charge),
+                integral_prefactor = ide.hydrogen_prefactor_LEN(test_charge),
                 **shared_kwargs
             )
         ]

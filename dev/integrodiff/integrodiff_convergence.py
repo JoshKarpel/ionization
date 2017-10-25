@@ -169,7 +169,7 @@ def run(spec):
 
         sim.run_simulation()
 
-        sim.plot_a2_vs_time(y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
+        sim.plot_b2_vs_time(y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
                             field_axis_label = r'${}(t)$'.format(ion.LATEX_EFIELD),
                             field_scale = 'AEF',
                             **PLOT_KWARGS)
@@ -213,7 +213,7 @@ if __name__ == '__main__':
         for dt in dt_list:
             spec = ide.IntegroDifferentialEquationSpecification('{}__{}__dt={}as'.format(method, electric_field.__class__.__name__, round(dt, 3)),
                                                                 time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
-                                                                prefactor = prefactor,
+                                                                integral_prefactor = prefactor,
                                                                 electric_potential = electric_field,
                                                                 kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                 integration_method = method,
@@ -228,7 +228,7 @@ if __name__ == '__main__':
         si.vis.xxyy_plot(
                 title + '__comparison',
                 (r.times for r in results),
-                (r.a2 for r in results),
+                (r.b2 for r in results),
                 line_labels = (f'${uround(r.spec.time_step, asec, 3)}$ as' for r in results),
                 x_label = r'Time $t$', x_unit = 'asec',
                 y_label = r'$\left| a(t) \right|^2$',

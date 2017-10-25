@@ -32,7 +32,7 @@ def run(spec):
         sim.run_simulation()
         logger.debug(sim.info())
 
-        sim.plot_a2_vs_time(**PLOT_KWARGS)
+        sim.plot_b2_vs_time(**PLOT_KWARGS)
         # sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **PLOT_KWARGS)
 
         return sim
@@ -126,13 +126,13 @@ if __name__ == '__main__':
                 'gaussian',
                 kernel = ide.gaussian_kernel_LEN,
                 kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
-                prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+                integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
                 **shared_kwargs
             ),
             ide.IntegroDifferentialEquationSpecification(
                 'hydrogen',
                 kernel = kernel_hydrogen_func_shifted,
-                prefactor = - ((proton_charge / hbar) ** 2) * hyd_kern_prefactor,
+                integral_prefactor = - ((proton_charge / hbar) ** 2) * hyd_kern_prefactor,
                 **shared_kwargs
             )
         ]

@@ -37,7 +37,7 @@ if __name__ == '__main__':
             time_initial = -pw * 10,
             time_final = pw * 10,
             time_step = dt,
-            prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+            integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
             kernel = ide.gaussian_kernel_LEN,
             kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
         ).to_simulation()

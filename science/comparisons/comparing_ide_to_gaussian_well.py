@@ -117,7 +117,7 @@ if __name__ == '__main__':
             evolution_gauge = 'LEN',
             kernel = ide.gaussian_kernel_LEN,
             kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
-            prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
+            integral_prefactor = ide.gaussian_prefactor_LEN(test_width, test_charge),
             **shared_kwargs,
             **ide_shared_kwargs,
         )
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             evolution_gauge = 'VEL',
             kernel = ide.gaussian_kernel_VEL,
             kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_VEL(test_width, test_mass), 'width': test_width},
-            prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
+            integral_prefactor = ide.gaussian_prefactor_VEL(test_width, test_charge, test_mass),
             **shared_kwargs,
             **ide_shared_kwargs,
         )
@@ -139,7 +139,7 @@ if __name__ == '__main__':
                 try:
                     final_initial_state_overlap = r.state_overlaps_vs_time[r.spec.initial_state][-1]
                 except AttributeError:  # ide simulation
-                    final_initial_state_overlap = r.a2[-1]
+                    final_initial_state_overlap = r.b2[-1]
                 file.write(f'{final_initial_state_overlap} : {r.name}\n')
                 final_initial_state_overlaps.append(final_initial_state_overlap)
 
@@ -154,7 +154,7 @@ if __name__ == '__main__':
             try:
                 y_data.append(r.state_overlaps_vs_time[r.spec.initial_state])
             except AttributeError:  # ide simulation
-                y_data.append(r.a2)
+                y_data.append(r.b2)
 
         si.vis.xxyy_plot(
             f'comparison__{identifier}',
