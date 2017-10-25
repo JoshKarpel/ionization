@@ -36,13 +36,12 @@ def run(spec):
 if __name__ == '__main__':
     with LOGMAN as logger:
         dts = np.array([1]) * asec
-        # methods = ['FE', 'BE', 'TRAP', 'RK4']
-        methods = ['BE']
+        methods = ['FE', 'BE', 'TRAP', 'RK4']
 
         tb = 4
         pulse = ion.GaussianPulse.from_number_of_cycles(
-            pulse_width = 100 * asec,
-            fluence = 1 * Jcm2,
+            pulse_width = 200 * asec,
+            fluence = 20 * Jcm2,
             number_of_cycles = 2,
         )
 
@@ -68,3 +67,11 @@ if __name__ == '__main__':
         results = si.utils.multi_map(run, specs, processes = 2)
         results = {(r.spec.evolution_method, r.spec.time_step): r for r in results}
 
+        si.vis.xxyy_plot(
+            'compare',
+            [*[results[method, dt].data_times for method in methods for dt in dts]],
+            [*[results[method, dt].b2 for method in methods for dt in dts]],
+            line_labels = [results[method, dt].name for method in methods for dt in dts],
+            x_unit = 'asec',
+            **PLOT_KWARGS
+        )

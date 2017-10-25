@@ -228,7 +228,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             qd = None
         kernel = self.eval_kernel(time_curr - times, quiver_difference = qd)
 
-        k = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr * kernel * b,
+        k = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr * kernel * np.array(b),
                                                                    x = times)
 
         b_next = b[-1] + (time_step * k)
@@ -269,16 +269,13 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             qd = None
         kernel = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd)
 
-        k = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr * b * kernel,
+        k = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr * kernel * np.array(b),
                                                                    x = times)
 
-        b_next = (b[-1] + (time_step * k)) / (1 - self.spec.integral_prefactor * ((time_step * f_next) ** 2))
+        b_next = (b[-1] + (time_step * k)) / (1 - self.spec.integral_prefactor * self.eval_kernel(0) * ((time_step * f_next) ** 2))
         t_next = time_curr + time_step
 
-        print(self.spec.integral_prefactor * ((time_step * f_next) ** 2))
-        print(b_next)
-
-        return b_next, t_next  # estimate next point
+        return b_next, t_next
 
     def evolve_TRAP(self, b, times, time_step):
         """
@@ -303,7 +300,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         f_curr = fs_next[-2]
         f_next = fs_next[-1]
 
-        fs_curr_times_a = fs_curr * b
+        fs_curr_times_b = fs_curr * np.array(b)
 
         if self.spec.evolution_gauge == 'VEL':
             quiver_1 = self.eval_quiver_motion(self.f(times), times, time_step)
@@ -321,12 +318,12 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         kernel_1 = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd_1)
         kernel_2 = self.eval_kernel(time_curr - times, quiver_difference = qd_2)
 
-        k_1 = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr_times_a * kernel_1,
+        k_1 = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr_times_b * kernel_1,
                                                                      x = times)
-        k_2 = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr_times_a * kernel_2,
+        k_2 = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr_times_b * kernel_2,
                                                                      x = times)
 
-        b_next = (b[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - (.5 * self.spec.integral_prefactor * ((time_step * f_next) ** 2)))
+        b_next = (b[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - (.5 * self.spec.integral_prefactor * self.eval_kernel(0) * ((time_step * f_next) ** 2)))
         t_next = time_curr + time_step
 
         return b_next, t_next
@@ -387,7 +384,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         kernel_half = self.eval_kernel(time_difference_half, quiver_difference = qd_half)
         kernel_next = self.eval_kernel(time_difference_next, quiver_difference = qd_next)
 
-        fs_curr_times_b = fs_curr * b
+        fs_curr_times_b = fs_curr * np.array(b)
 
         # integrate through the current time step
         integrand_for_k1 = fs_curr_times_b * kernel_curr
@@ -409,7 +406,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
         k4 = self.spec.integral_prefactor * f_next * integral_for_k4
 
-        return b_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6), time_next  # estimate next point
+        b_next = b_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
+        t_next = time_next
+
+        return b_next, t_next
 
     def evolve_ARK4(self, b, times, time_step):
         """
