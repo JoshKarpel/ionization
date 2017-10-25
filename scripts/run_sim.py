@@ -30,7 +30,11 @@ def ensure_compatibility_spec(spec):
 
     # rename amplitude_time to amplitude
     try:
-        spec.electric_potential.amplitude = spec.electric_potentia.amplitude_time
+        spec.electric_potential.amplitude = spec.electric_potential.amplitude_time
+    except AttributeError:
+        pass
+    try:
+        spec.electric_potential[0].amplitude = spec.electric_potential[0].amplitude_time
     except AttributeError:
         pass
 
