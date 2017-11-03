@@ -161,7 +161,21 @@ class PulseParameterScanMixin:
                                 logger.exception(f'Failed to make plot {plot_name} because of {ex}')
 
 
-class ElectricFieldSimulationResult(clu.SimulationResult):
+class PulseSimulationResult(clu.SimulationResult):
+    def __init__(self, sim, job_processor):
+        super().__init__(sim, job_processor)
+
+        self.electric_potential = copy(sim.spec.electric_potential)
+        self.pulse_type = copy(sim.spec.pulse_type)
+
+        for attr in jobutils.POTENTIAL_ATTRS:
+            try:
+                setattr(self, attr, copy((getattr(sim.spec, attr))))
+            except AttributeError as e:
+                logger.debug(f'Failed to copy pulse attribute {attr} from {sim}')
+
+
+class MeshSimulationResult(PulseSimulationResult):
     def __init__(self, sim, job_processor):
         super().__init__(sim, job_processor)
 
@@ -198,16 +212,54 @@ class ElectricFieldSimulationResult(clu.SimulationResult):
             pass
 
 
-class ElectricFieldJobProcessor(clu.JobProcessor):
-    simulation_result_type = ElectricFieldSimulationResult
+class PulseJobProcessor(clu.JobProcessor, PulseParameterScanMixin):
+    pass
+
+
+class MeshJobProcessor(PulseJobProcessor):
+    simulation_type = core.ElectricFieldSimulation
+    simulation_result_type = MeshSimulationResult
 
     ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']
 
-    def __init__(self, job_name, job_dir_path):
-        super().__init__(job_name, job_dir_path, core.ElectricFieldSimulation)
+
+class IDESimulationResult(PulseSimulationResult):
+    def __init__(self, sim, job_processor):
+        super().__init__(sim, job_processor)
+
+        self.final_bound_state_overlap = np.abs(sim.b[-1]) ** 2
+
+        if len(sim.data_times) > 2:
+            self.make_b2_plots(sim)
+
+    def make_b2_plots(self, sim):
+        plot_kwargs = dict(
+            target_dir = self.plots_dir,
+            plot_name = 'name',
+            show_title = True,
+            name_postfix = f'__{sim.file_name}',
+        )
+
+        sim.plot_b2_vs_time(**plot_kwargs)
+        sim.plot_b2_vs_time(**plot_kwargs, log = True)
+
+    @property
+    def final_initial_state_overlap(self):
+        return self.final_bound_state_overlap
+
+    @property
+    def final_norm(self):
+        return self.final_bound_state_overlap
 
 
-class ConvergenceSimulationResult(ElectricFieldSimulationResult):
+class IDEJobProcessor(PulseJobProcessor):
+    simulation_type = integrodiff.IntegroDifferentialEquationSimulation
+    simulation_result_type = IDESimulationResult
+
+    ionization_metrics = ['final_bound_state_overlap']
+
+
+class ConvergenceSimulationResult(MeshSimulationResult):
     def __init__(self, sim, job_processor):
         super().__init__(sim, job_processor)
 
@@ -217,7 +269,7 @@ class ConvergenceSimulationResult(ElectricFieldSimulationResult):
         self.delta_t = copy(sim.spec.time_step)
 
 
-class ConvergenceJobProcessor(ElectricFieldJobProcessor):
+class ConvergenceJobProcessor(MeshJobProcessor):
     simulation_result_type = ConvergenceSimulationResult
 
     scan_parameters = ['delta_r', 'delta_t']
@@ -433,70 +485,3 @@ class ConvergenceJobProcessor(ElectricFieldJobProcessor):
                                     z_lower_limit = None, z_upper_limit = None,
                                     z_label = ionization_metric_name + ' (Diff from Best)',
                                     target_dir = self.summaries_dir)
-
-
-class PulseSimulationResult(ElectricFieldSimulationResult):
-    def __init__(self, sim, job_processor):
-        super().__init__(sim, job_processor)
-
-        self.pulse_type = copy(sim.spec.pulse_type)
-        for attr in jobutils.POTENTIAL_ATTRS:
-            setattr(self, attr, copy((getattr(sim.spec, attr))))
-
-
-class PulseJobProcessor(PulseParameterScanMixin, ElectricFieldJobProcessor):
-    simulation_result_type = PulseSimulationResult
-
-    ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']
-
-
-class IDESimulationResult(clu.SimulationResult):
-    def __init__(self, sim, job_processor):
-        super().__init__(sim, job_processor)
-
-        self.pulse_type = copy(sim.spec.pulse_type)
-        self.pulse_width = copy(sim.spec.pulse_width)
-        self.fluence = copy(sim.spec.fluence)
-        self.phase = copy(sim.spec.phase)
-
-        self.test_charge = copy(sim.spec.test_charge)
-        self.test_mass = copy(sim.spec.test_mass)
-        self.test_energy = copy(sim.spec.test_energy)
-
-        try:
-            self.test_width = copy(sim.spec.test_width)
-        except AttributeError:
-            pass
-
-        self.final_bound_state_overlap = np.abs(sim.a[-1]) ** 2
-
-        if len(sim.data_times):
-            self.make_a_plots(sim)
-
-    def make_a_plots(self, sim):
-        plot_kwargs = dict(
-            target_dir = self.plots_dir,
-            plot_name = 'name',
-            show_title = True,
-            name_postfix = f'__{sim.file_name}',
-        )
-
-        sim.plot_b2_vs_time(**plot_kwargs)
-        sim.plot_b2_vs_time(**plot_kwargs, log = True)
-
-    @property
-    def final_initial_state_overlap(self):
-        return self.final_bound_state_overlap
-
-    @property
-    def final_norm(self):
-        return self.final_bound_state_overlap
-
-
-class IDEJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
-    simulation_result_type = IDESimulationResult
-
-    ionization_metrics = ['final_bound_state_overlap']
-
-    def __init__(self, job_name, job_dir_path):
-        super().__init__(job_name, job_dir_path, integrodiff.IntegroDifferentialEquationSimulation)

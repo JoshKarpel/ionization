@@ -77,7 +77,7 @@ def _hydrogen_kernel_LEN_factory():
     return kernel_func
 
 
-def hydrogen_kernel_LEN(time_difference, *, omega_b, **kwargs):
+def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
     kernel_prefactor = 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
     with warnings.catch_warnings():

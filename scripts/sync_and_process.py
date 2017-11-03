@@ -5,15 +5,17 @@ import os
 
 import simulacra as si
 import simulacra.cluster as clu
-
+import ionization.cluster as iclu
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 log_file = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
-cp_logger = si.utils.LogManager('__main__', 'simulacra', 'ionization',
-                                stdout_logs = True, stdout_level = logging.INFO,
-                                file_logs = False, file_level = logging.INFO, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a')
+cp_logger = si.utils.LogManager(
+    '__main__', 'simulacra', 'ionization',
+    stdout_logs = True, stdout_level = logging.DEBUG,
+    file_logs = True, file_level = logging.DEBUG, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a'
+)
 
 DROPBOX_PROCESS_NAMES = ['Dropbox.exe']
 
@@ -26,7 +28,7 @@ def synchronize_with_cluster(cluster_interface):
 
 
 def process_job(job_name, jobs_dir = None):
-    with cp_logger as l:
+    with cp_logger as logger:
         if jobs_dir is None:
             jobs_dir = os.getcwd()
         job_dir = os.path.join(jobs_dir, job_name)
@@ -35,10 +37,15 @@ def process_job(job_name, jobs_dir = None):
 
         try:
             jp = clu.JobProcessor.load(os.path.join(job_dir, job_name + '.job'))
-            l.info('Loaded existing job processor for job {}'.format(job_name))
+
+            logger.info('Loaded existing job processor for job {}'.format(job_name))
         except FileNotFoundError:
-            jp = job_info['job_processor_type'](job_name, job_dir)
-            l.info('Created new job processor for job {}'.format(job_name))
+            jp_type = job_info['job_processor_type']
+            if jp_type is iclu.PulseJobProcessor:  # tmp, for compatibility
+                jp_type = iclu.MeshJobProcessor
+            jp = jp_type(job_name, job_dir)
+
+            logger.info('Created new job processor for job {}'.format(job_name))
 
         with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
             jp.load_sims(force_reprocess = False)
@@ -70,17 +77,17 @@ def process_jobs(jobs_dir):
 
 
 if __name__ == '__main__':
-    with cp_logger as l:
+    with cp_logger as logger:
         try:
             ci = clu.ClusterInterface('submit-5.chtc.wisc.edu', username = 'karpel', key_path = 'E:\chtc_ssh_private')
             jobs_dir = "E:\Dropbox\Research\Cluster\cluster_mirror\home\karpel\jobs"
 
             si.utils.try_loop(
-                    ft.partial(synchronize_with_cluster, ci),
-                    ft.partial(process_jobs, jobs_dir),
-                    wait_after_success = dt.timedelta(hours = 3),
-                    wait_after_failure = dt.timedelta(hours = 1),
+                ft.partial(synchronize_with_cluster, ci),
+                ft.partial(process_jobs, jobs_dir),
+                wait_after_success = dt.timedelta(hours = 3),
+                wait_after_failure = dt.timedelta(hours = 1),
             )
         except Exception as e:
-            logger.exception(e)
+            logger.exception('Encountered unhandled exception during loop')
             raise e

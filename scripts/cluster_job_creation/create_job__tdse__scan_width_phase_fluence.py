@@ -8,7 +8,7 @@ import ionization as ion
 import ionization.cluster as iclu
 import ionization.jobutils as ju
 
-JOB_PROCESSOR_TYPE = iclu.PulseJobProcessor
+JOB_PROCESSOR_TYPE = iclu.MeshJobProcessor
 
 if __name__ == '__main__':
     args = ju.parse_args(description = 'Create a TDSE Ionization vs Pulse Width, Phase, and Fluence job.')

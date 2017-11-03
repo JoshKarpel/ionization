@@ -42,13 +42,13 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         # dts = np.array([5, 2, 1, .5]) * asec
         # dts = np.geomspace(.1, 10, 30) * asec
-        dts = np.geomspace(.05, 20, 50) * asec
+        dts = np.geomspace(.1, 20, 30) * asec
         methods = ['FE', 'BE', 'TRAP', 'RK4']
 
-        pw = 100 * asec
-        flu = 10 * Jcm2
+        pw = 300 * asec
+        flu = 1 * Jcm2
         cep = 0
-        tb = 20
+        tb = 10
         # pulse = ion.GaussianPulse.from_number_of_cycles(
         #     pulse_width = pw,
         #     fluence = flu,
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
-        results_raw = si.utils.multi_map(run, specs, processes = 2)
+        results_raw = si.utils.multi_map(run, specs, processes = 3)
         results_by_method = {method: sorted([r for r in results_raw if r.spec.evolution_method == method], key = lambda x: x.spec.time_step) for method in methods}
 
         b2_final_by_method = {method: np.array([r.b2[-1] for r in results]) for method, results in results_by_method.items()}
