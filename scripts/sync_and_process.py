@@ -13,8 +13,8 @@ logger.setLevel(logging.DEBUG)
 log_file = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
 cp_logger = si.utils.LogManager(
     '__main__', 'simulacra', 'ionization',
-    stdout_logs = True, stdout_level = logging.DEBUG,
-    file_logs = True, file_level = logging.DEBUG, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a'
+    stdout_logs = True, stdout_level = logging.INFO,
+    file_logs = False, file_level = logging.DEBUG, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a'
 )
 
 DROPBOX_PROCESS_NAMES = ['Dropbox.exe']
@@ -38,42 +38,55 @@ def process_job(job_name, jobs_dir = None):
         try:
             jp = clu.JobProcessor.load(os.path.join(job_dir, job_name + '.job'))
 
-            logger.info('Loaded existing job processor for job {}'.format(job_name))
+            logger.debug('Loaded existing job processor for job {}'.format(job_name))
         except FileNotFoundError:
             jp_type = job_info['job_processor_type']
             if jp_type is iclu.PulseJobProcessor:  # tmp, for compatibility
                 jp_type = iclu.MeshJobProcessor
             jp = jp_type(job_name, job_dir)
 
-            logger.info('Created new job processor for job {}'.format(job_name))
+            logger.debug('Created new job processor for job {}'.format(job_name))
 
-        with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
-            jp.load_sims(force_reprocess = False)
+        if len(jp.unprocessed_sim_names) > 0:
+            with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
+                jp.load_sims(force_reprocess = False)
+                jp.summarize()
 
         jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
 
-        jp.summarize()
-
-        return jp.running_time, jp.sim_count - len(jp.unprocessed_sim_names)
+        return jp
 
 
 def process_jobs(jobs_dir):
-    jobs_processed = 0
-    total_runtime = dt.timedelta()
-    total_sim_count = 0
+    job_processors = []
 
     for job_name in (f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))):
         try:
-            logger.info('Found job {}'.format(job_name))
-            runtime, sim_count = si.utils.run_in_process(process_job, args = (job_name, jobs_dir))
-
-            jobs_processed += 1
-            total_runtime += runtime
-            total_sim_count += sim_count
+            logger.debug('Found job {}'.format(job_name))
+            jp = si.utils.run_in_process(process_job, args = (job_name, jobs_dir))
+            job_processors.append(jp)
         except Exception as e:
             logger.exception('Encountered exception while processing job {}'.format(job_name))
 
-    logger.info(f'Processed {jobs_processed} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
+    total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
+    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
+
+    logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
+
+    longest_jp_name_len = max(len(jp.name) for jp in job_processors)
+
+    header = f' {"Job Name".center(longest_jp_name_len)} │ Finished │ Total │ Runtime'
+    bar = ''.join('─' if char != '│' else '┼' for char in header)
+    lines = []
+    for jp in job_processors:
+        lines.append(f' {jp.name.ljust(longest_jp_name_len)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names) ).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}')
+
+    report = '\n'.join((header, bar, *lines))
+
+    print(report)
+
+    with open('report.txt', mode = 'w', encoding = 'utf-8') as f:
+        f.write(report)
 
 
 if __name__ == '__main__':

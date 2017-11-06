@@ -21,39 +21,39 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-# def gaussian_tau_alpha_LEN(test_width, test_mass):
-#     return 4 * test_mass * (test_width ** 2) / hbar
-#
-#
-# def gaussian_prefactor_LEN(test_width, test_charge):
-#     return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
-#
-#
-# def gaussian_tau_alpha_VEL(test_width, test_mass):
-#     return 2 * test_mass * (test_width ** 2) / hbar
-#
-#
-# def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
-#     return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
-#
-#
-# def return_one(x, **kwargs):
-#     return 1
-#
-#
-# def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
-#     return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
-#
-#
-# def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
-#     time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
-#     alpha_diff_inner = (quiver_difference / width) ** 2
-#
-#     exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
-#     inv = time_diff_inner ** 1.5
-#     diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
-#
-#     return exp * diff * inv
+def gaussian_tau_alpha_LEN(test_width, test_mass):
+    return 4 * test_mass * (test_width ** 2) / hbar
+
+
+def gaussian_prefactor_LEN(test_width, test_charge):
+    return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
+
+
+def gaussian_tau_alpha_VEL(test_width, test_mass):
+    return 2 * test_mass * (test_width ** 2) / hbar
+
+
+def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
+    return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
+
+
+def return_one(x, **kwargs):
+    return 1
+
+
+def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
+    return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
+
+
+def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
+    time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
+    alpha_diff_inner = (quiver_difference / width) ** 2
+
+    exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
+    inv = time_diff_inner ** 1.5
+    diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
+
+    return exp * diff * inv
 
 
 @si.utils.memoize
@@ -64,15 +64,12 @@ def _hydrogen_kernel_LEN_factory():
     m = sym.Symbol('m', real = True, positive = True)
     hb = sym.Symbol('hb', real = True, positive = True)
 
-    # integrand = ((k ** 4) / ((1 + ((bohr_radius * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hbar * (k ** 2) * t / (2 * electron_mass_reduced)))
     integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * t / (2 * m)))
 
     kernel = sym.integrate(integrand, (k, -sym.oo, sym.oo))
 
     kernel_func = sym.lambdify((a, m, hb, t), kernel, modules = ['numpy', {'erfc': special.erfc}])
     kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
-
-    # kernel_func = sym.lambdify(t, kernel, modules = ['numpy', {'erf': special.erf}])
 
     return kernel_func
 
