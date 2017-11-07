@@ -23,7 +23,11 @@ DROPBOX_PROCESS_NAMES = ['Dropbox.exe']
 def synchronize_with_cluster(cluster_interface):
     with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
         with cluster_interface as ci:
-            logger.info(ci.get_job_status())
+            js = ci.get_job_status()
+            logger.info(js)
+            with open('report_cluster.txt', mode = 'w', encoding = 'utf-8') as f:
+                f.write(js)
+
             ci.mirror_remote_home_dir()
 
 
@@ -85,7 +89,7 @@ def process_jobs(jobs_dir):
 
     print(report)
 
-    with open('report.txt', mode = 'w', encoding = 'utf-8') as f:
+    with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
         f.write(report)
 
 
