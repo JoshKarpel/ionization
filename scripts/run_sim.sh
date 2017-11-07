@@ -15,8 +15,8 @@ echo "set python path"
 #export LDFLAGS="-L$(pwd)/python/lib $LDFLAGS"
 #echo "set LDFLAGS"
 
-#export C_INCLUDE_PATH="$(pwd)/python/include:$C_INCLUDE_PATH"
-#echo "set C_INCLUDE"PATH"
+export C_INCLUDE_PATH="$(pwd)/python/include:$C_INCLUDE_PATH"
+echo "set C_INCLUDE_PATH"
 
 export LD_LIBRARY_PATH="$(pwd)/python/lib:$LD_LIBRARY_PATH"
 echo "set LD_LIBRARY_PATH"
