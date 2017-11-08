@@ -12,6 +12,7 @@ import ionization.cluster as iclu
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+JP_DIR = os.path.join(os.getcwd(), 'job_processors')
 
 PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
@@ -19,41 +20,51 @@ PLOT_KWARGS = dict(
     fig_dpi_scale = 3,
 )
 
-
-def get_amplitude(sim_result):
-    return sim_result.electric_potential[0].amplitude_time
-
-
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        jp_name = 'hyd__amp_scan__test3_no_flockglide.job'
-        jp = iclu.PulseJobProcessor.load(jp_name)
+        jp_path = os.path.join(JP_DIR, 'hyd__amp_scan_v2_fast.job')
+        jp = iclu.PulseJobProcessor.load(jp_path)
 
-        pulse_widths = jp.parameter_set('pulse_width')
-        phases = jp.parameter_set('phase')
-        amplitudes = np.array(sorted(set(get_amplitude(r) for r in jp.data.values())))
+        print(jp)
 
-        print(pulse_widths)
-        print(phases)
-        print(amplitudes / atomic_electric_field)
+        pulse_widths = sorted(jp.parameter_set('pulse_width'))
+        phases = sorted(jp.parameter_set('phase'))
+        amplitudes = sorted(jp.parameter_set('amplitude'))
+
+        print(len(jp.data))
+
+        print(len(pulse_widths), len(phases), len(amplitudes))
 
         metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
         metric_names = ['Initial State Overlap', 'Bound State Overlap']
-        for metric, metric_name in zip(metrics, metric_names):
-            for amplitude in amplitudes:
-                results = [r for r in jp.data.values() if get_amplitude(r) == amplitude]
 
-                si.vis.xxyy_plot(
-                    f'{metric}__amp={uround(amplitude, atomic_electric_field)}aef',
-                    [
-                        *[[r.pulse_width for r in results if r.phase == phase] for phase in phases],
-                    ],
-                    [
-                        *[[getattr(r, metric) for r in results if r.phase == phase] for phase in phases],
-                    ],
-                    line_labels = [fr'$\varphi = {uround(phase, pi)}\pi$' for phase in phases],
-                    x_label = r'$\tau$', x_unit = 'asec',
-                    y_label = metric_name,
-                    title = fr'Constant Amplitude Scan: ${ion.LATEX_EFIELD} = {uround(amplitude, atomic_electric_field)} \, \mathrm{{a.u.}}$',
-                    **PLOT_KWARGS,
-                )
+        for metric, metric_name in zip(metrics, metric_names):
+            for idx, amplitude in enumerate(amplitudes):  # lexical sort is not good enough
+                print(f'AMPLITUDE {uround(amplitude, atomic_electric_field)}')
+                results = {(r.pulse_width, r.phase): r for r in jp.select_by_kwargs(amplitude = amplitude)}
+
+                pws = sorted(set(pw for pw, cep in results))
+                ceps = sorted(set(cep for pw, cep in results))
+
+                print(len(pws))
+
+                if len(pws) < 150:
+                    continue
+
+                for log_y in (True, False):
+                    si.vis.xxyy_plot(
+                        metric.upper() + ('_logY_' if log_y else '') + f'_{idx}_' + f'__amp={uround(amplitude, atomic_electric_field)}aef',
+                        [
+                            *[[results[pw, cep].pulse_width for pw in pws] for cep in ceps],
+                        ],
+                        [
+                            *[[getattr(results[pw, cep], metric) for pw in pws] for cep in ceps],
+                        ],
+                        line_labels = [fr'$\varphi = {uround(phase, pi)}\pi$' for phase in ceps],
+                        x_label = r'$\tau$', x_unit = 'asec',
+                        y_label = metric_name,
+                        title = fr'Constant Amplitude Scan: ${ion.LATEX_EFIELD}_0 = {uround(amplitude, atomic_electric_field)} \, \mathrm{{a.u.}}$',
+                        y_lower_limit = None if log_y else 0,
+                        y_log_axis = log_y,
+                        **PLOT_KWARGS,
+                    )

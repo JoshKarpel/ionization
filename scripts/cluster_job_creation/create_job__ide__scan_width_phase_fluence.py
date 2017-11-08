@@ -113,19 +113,7 @@ if __name__ == '__main__':
                 **spec_kwargs,
             )
 
-            spec.pulse_type = electric_potential.__class__.__name__
-            attrs = [
-                'pulse_width',
-                'phase',
-                'fluence',
-                'number_of_cycles',
-                'omega_carrier',
-            ]
-            for attr in attrs:
-                try:
-                    setattr(spec, attr, getattr(electric_potential, attr))
-                except AttributeError:
-                    pass
+            ju.transfer_potential_attrs_to_spec(electric_potential, spec)
 
             spec.time_initial_in_pw = time_initial_in_pw
             spec.time_final_in_pw = time_final_in_pw

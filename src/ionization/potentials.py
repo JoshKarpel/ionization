@@ -992,7 +992,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         delta_omega = twopi / pulse_width
         fluence = pi * epsilon_0 * c * (amplitude ** 2) / delta_omega
 
-        return cls(
+        pot = cls(
             pulse_width = pulse_width,
             omega_min = omega_min,
             fluence = fluence,
@@ -1000,6 +1000,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_center = pulse_center,
             **kwargs
         )
+
+        if np.isclose(amplitude / pot.amplitude, 1):
+            pot.amplitude = amplitude
+        else:
+            raise ValueError('Given amplitude not close enough to calculated amplitude')
+
+        return pot
 
     @property
     def photon_energy_min(self):
@@ -1236,7 +1243,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             **kwargs):
         fluence = np.sqrt(pi) * epsilon_0 * c * pulse_width * (amplitude ** 2) / 2
 
-        return cls.from_omega_min(
+        pot = cls.from_omega_min(
             pulse_width = pulse_width,
             omega_min = omega_min,
             fluence = fluence,
@@ -1244,6 +1251,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_center = pulse_center,
             **kwargs
         )
+
+        if np.isclose(amplitude / pot.amplitude, 1):
+            pot.amplitude = amplitude
+        else:
+            raise ValueError('Given amplitude not close enough to calculated amplitude')
+
+        return pot
 
     @classmethod
     def from_power_exclusion(cls,
