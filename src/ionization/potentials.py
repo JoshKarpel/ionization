@@ -343,7 +343,7 @@ class RadialImaginary(PotentialEnergy):
         super().__init__()
 
     def __repr__(self):
-        return '{}(center = {}, width = {}, decay_time = {})'.format(self.__class__.__name__, self.center, self.width, self.decay_time)
+        return f'{self.__class__.__name__}(center = {self.center}, width = {self.width}, decay_time = {self.decay_time})'
 
     def __str__(self):
         return '{}(center = {} a_0, width = {} a_0, decay time = {} as)'.format(self.__class__.__name__,
@@ -467,23 +467,24 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         self.amplitude = amplitude
 
     def __str__(self):
-        out = '{}(start time = {} as, end time = {} as, amplitude = {} AEF)'.format(
-            self.__class__.__name__,
-            uround(self.start_time, asec),
-            uround(self.end_time, asec),
-            uround(self.amplitude, atomic_electric_field, 3)
-        )
+        attrs = [
+            f'start_time = {uround(self.start_time, asec)} as',
+            f'end_time = {uround(self.end_time, asec)} as',
+            f'amplitude = {uround(self.amplitude, atomic_electric_field)} AEF',
+            f'window = {repr(self.window)}',
+        ]
+        out = f'{self.__class__.__name__}({" ".join(attrs)})'
 
         return out + super().__str__()
 
     def __repr__(self):
-        out = '{}(start_time = {}, end_time = {}, amplitude = {}, window = {})'.format(
-            self.__class__.__name__,
-            self.start_time,
-            self.end_time,
-            self.amplitude,
-            repr(self.window)
-        )
+        attrs = [
+            f'start_time = {self.start_time}',
+            f'end_time = {self.end_time}',
+            f'amplitude = {self.amplitude}',
+            f'window = {repr(self.window)}',
+        ]
+        out = f'{self.__class__.__name__}({" ".join(attrs)})'
 
         return out
 
