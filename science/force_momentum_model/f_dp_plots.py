@@ -33,16 +33,30 @@ PULSE_TO_T_BOUND = {
 }
 
 PULSE_TO_P_BOUND = {
-    ion.GaussianPulse: 3.5,
+    ion.GaussianPulse: 3,
     ion.SincPulse: 30,
 }
 
 
-def f_dp_plot(pulse):
+def make_f_dp_k_plots(pulse):
     t_bound = PULSE_TO_T_BOUND[pulse.__class__]
     p_bound = PULSE_TO_P_BOUND[pulse.__class__]
 
     times = np.linspace(-t_bound * pulse.pulse_width, t_bound * pulse.pulse_width, PLOT_POINTS * t_bound / p_bound)
+
+    si.vis.xy_plot(
+        'fields',
+        times,
+        pulse.get_electric_field_amplitude(times) / atomic_electric_field,
+        pulse.get_vector_potential_amplitude_numeric_cumulative(times) * proton_charge / atomic_momentum,
+        line_labels = [r'$\mathcal{E}(t)$', r'$q \, \mathcal{A}(t)$'],
+        x_unit = 'asec',
+        x_label = r'$ t $',
+        y_label = 'Field Amplitudes (a.u.)',
+        x_lower_limit = -p_bound * pulse.pulse_width,
+        x_upper_limit = p_bound * pulse.pulse_width,
+        **PLOT_KWARGS
+    )
 
     force = lambda t: electron_charge * pulse.get_electric_field_amplitude(t)
 
@@ -65,10 +79,11 @@ def f_dp_plot(pulse):
         y_unit = 'asec',
         y_label = r'$ \delta $',
         z_unit = atomic_force * atomic_momentum,
-        z_label = r'$ F(t) \times \left[ p(t) - p(t - \delta) \right] $',
+        z_label = r'$ \mathcal{F}(t) \times \Delta p(t, \delta) $',
         colormap = plt.get_cmap('RdBu_r'),
         x_lower_limit = -p_bound * pulse.pulse_width,
         x_upper_limit = p_bound * pulse.pulse_width,
+        title = r'Force $\times$ Momentum',
         **PLOT_KWARGS
     )
 
@@ -82,9 +97,10 @@ def f_dp_plot(pulse):
         y_unit = 'asec',
         y_label = r'$ \delta $',
         z_unit = atomic_force * atomic_momentum,
-        z_label = r'$ F(t) \times \left[ p(t) - p(t - \delta) \right] $',
+        z_label = r'$ \left| \mathcal{F}(t) \times \Delta p(t, \delta) \right| $',
         x_lower_limit = -p_bound * pulse.pulse_width,
         x_upper_limit = p_bound * pulse.pulse_width,
+        title = r'Force $\times$ Momentum (Abs.)',
         **PLOT_KWARGS
     )
 
@@ -102,11 +118,11 @@ def f_dp_plot(pulse):
         x_label = r'$ t $',
         y_unit = 'asec',
         y_label = r'$ \delta $',
-        z_label = r'$ K(t, \delta) \times F(t) \times \left[ p(t) - p(t - \delta) \right] $ (norm.)',
         colormap = plt.get_cmap('richardson'),
         richardson_equator_magnitude = 5,
         x_lower_limit = -p_bound * pulse.pulse_width,
         x_upper_limit = p_bound * pulse.pulse_width,
+        title = r'$ \mathcal{K}(t, \, \delta) \times \mathcal{F}(t) \times \Delta p(t, \delta) $',
         **PLOT_KWARGS
     )
 
@@ -120,9 +136,9 @@ def f_dp_plot(pulse):
         y_unit = 'asec',
         y_label = r'$ \delta $',
         z_unit = atomic_force * atomic_momentum,
-        z_label = r'$ K(t, \delta) \times F(t) \times \left[ p(t) - p(t - \delta) \right] $',
         x_lower_limit = -p_bound * pulse.pulse_width,
         x_upper_limit = p_bound * pulse.pulse_width,
+        title = r'$ \left| \mathcal{K}(t, \, \delta) \times \mathcal{F}(t) \times \Delta p(t, \delta) \right| $',
         **PLOT_KWARGS
     )
 
@@ -143,4 +159,4 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 200 * asec, fluence = 1 * Jcm2, number_of_cycles = 3)
 
-        f_dp_plot(pulse)
+        make_f_dp_k_plots(pulse)
