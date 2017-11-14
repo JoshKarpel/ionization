@@ -451,7 +451,7 @@ class ElectricFieldSimulation(si.Simulation):
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
                         self.latest_checkpoint_time = now
-                        logger.info(f'{self.__class__.__name__} {self.name} ({self.file_name}) checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
+                        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
                         self.status = si.Status.RUNNING
 
                 try:

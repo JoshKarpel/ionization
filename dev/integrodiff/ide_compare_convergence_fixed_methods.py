@@ -48,21 +48,21 @@ if __name__ == '__main__':
         pw = 300 * asec
         flu = 1 * Jcm2
         cep = 0
-        tb = 10
-        # pulse = ion.GaussianPulse.from_number_of_cycles(
-        #     pulse_width = pw,
-        #     fluence = flu,
-        #     phase = cep,
-        # )
-        pulse = ion.SincPulse(
+        tb = 5
+        pulse = ion.GaussianPulse.from_number_of_cycles(
             pulse_width = pw,
             fluence = flu,
             phase = cep,
-            window = ion.SymmetricExponentialTimeWindow(
-                window_time = (tb - 2) * pw,
-                window_width = .2 * pw
-            )
         )
+        # pulse = ion.SincPulse(
+        #     pulse_width = pw,
+        #     fluence = flu,
+        #     phase = cep,
+        #     window = ion.SymmetricExponentialTimeWindow(
+        #         window_time = (tb - 2) * pw,
+        #         window_width = .2 * pw
+        #     )
+        # )
 
         pulse_ident = f'{pulse.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}jcm2_cep={uround(cep, pi)}pi_tb={tb}'
 
