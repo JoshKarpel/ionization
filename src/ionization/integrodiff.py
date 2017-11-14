@@ -76,12 +76,12 @@ def _hydrogen_kernel_LEN_factory():
 
 def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
-    kernel_prefactor = 128 * (bohr_radius ** 7) / (3 * (pi ** 2))
+    kernel_prefactor = 24 * (bohr_radius ** 7)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         td_nonzero = kernel_func(time_difference)
-    td_zero = 3 * pi / (256 * (bohr_radius ** 5))  # see Mathematica notebook HydrogenKernel for limit calculation
-    return kernel_prefactor * np.where(time_difference != 0, td_nonzero, td_zero) * np.exp(1j * omega_b * time_difference)
+    td_zero_with_prefactor = 9 * pi * (bohr_radius ** 2) / 32  # see Mathematica notebook HydrogenKernel for limit calculation
+    return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor) * np.exp(1j * omega_b * time_difference)
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -651,7 +651,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  time_step = 1 * asec,
                  test_mass = electron_mass,
                  test_charge = electron_charge,
-                 test_energy = -states.HydrogenBoundState(1, 0).energy,
+                 test_energy = states.HydrogenBoundState(1, 0).energy,
                  b_initial = 1,
                  integral_prefactor = -((electron_charge / hbar) ** 2),
                  electric_potential = potentials.NoElectricPotential(),

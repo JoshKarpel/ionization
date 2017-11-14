@@ -836,7 +836,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
 
         amp = np.where(cond, on, off)
 
-        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
 
 DEFAULT_PULSE_WIDTH = 200 * asec
@@ -1107,7 +1107,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         tau = np.array(t) - self.pulse_center
         amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def info(self):
         info = super().info()
@@ -1432,7 +1432,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         tau = t - self.pulse_center
         amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def info(self):
         info = super().info()
@@ -1645,7 +1645,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         tau = t - self.pulse_center
         amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def info(self):
         info = super().info()
@@ -1768,7 +1768,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         tau = t - self.pulse_center
         amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
-        return amp * self.amplitude * super().get_electric_field_amplitude(tau)
+        return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def info(self):
         info = super().info()
