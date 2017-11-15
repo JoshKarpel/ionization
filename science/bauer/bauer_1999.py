@@ -9,6 +9,7 @@ import datetime
 import itertools
 
 import numpy as np
+import scipy.integrate as integ
 
 import simulacra as si
 from simulacra.units import *
@@ -96,93 +97,250 @@ def get_pulse_identifier(pulse):
     return f'E={uround(pulse.amplitude, atomic_electric_field, 1)}_Nc={pulse.number_of_cycles}_omega={uround(pulse.omega, atomic_angular_frequency, 1)}'
 
 
+def calculate_landau_rate(field_amplitude):
+    scaled_energy = np.abs(ion.HydrogenBoundState(1, 0).energy) / hartree
+    scaled_field = np.abs(field_amplitude) / atomic_electric_field
+
+    return np.where(
+        np.isclose(scaled_field, 0),
+        0,
+        4 * (((2 * scaled_energy) ** 2.5) / scaled_field) * np.exp(-2 * ((2 * scaled_energy) ** 1.5) / (3 * scaled_field)) / atomic_time,
+    )
+
+
+def calculate_keldysh_rate(field_amplitude):
+    scaled_energy = np.abs(ion.HydrogenBoundState(1, 0).energy) / hartree
+    scaled_field = np.abs(field_amplitude) / atomic_electric_field
+
+    return np.where(
+        np.isclose(scaled_field, 0),
+        0,
+        (np.sqrt(6 * pi) / (2 ** 1.25)) * scaled_field * np.sqrt(scaled_energy / ((2 * scaled_field) ** 1.5)) * np.exp(-2 * ((2 * scaled_energy) ** 1.5) / (3 * scaled_field)) / atomic_time,
+    )
+
+
+def calculate_empirical_rate(field_amplitude, prefactor = 2.4):
+    return prefactor * ((np.abs(field_amplitude) / atomic_electric_field) ** 2) / atomic_time
+
+
+def do_bauer_empirical_ionization(pulse, times, prefactor = 2.4):
+    field_amplitudes = pulse.get_electric_field_amplitude(times)
+
+    landau_rate = calculate_landau_rate(field_amplitudes)
+    empirical_rate = calculate_empirical_rate(field_amplitudes, prefactor = prefactor)
+
+    critical_amplitude = .084 * atomic_electric_field
+    ionization_rate = np.where(
+        np.abs(field_amplitudes) > critical_amplitude,
+        empirical_rate,
+        landau_rate
+    )
+
+    return np.exp(-integ.cumtrapz(y = ionization_rate, x = times, initial = 0))
+
+
+def calculate_empirical_ionization_from_sim(sim, prefactor = 2.4):
+    pulse, times = sim.spec.electric_potential, sim.times
+
+    return do_bauer_empirical_ionization(pulse, times, prefactor = prefactor)
+
+
+def plot_ionization_rates():
+    amplitudes = np.geomspace(.05, 10, 1000) * atomic_electric_field
+
+    si.vis.xy_plot(
+        'ionization_rates_comparison',
+        amplitudes,
+        calculate_empirical_rate(amplitudes, prefactor = 2.4),
+        calculate_empirical_rate(amplitudes, prefactor = 2.06),
+        calculate_landau_rate(amplitudes),
+        calculate_keldysh_rate(amplitudes),
+        line_labels = [
+            '$ 2.4 \, \mathcal{E}(t)^2 $',
+            '$ 2.06 \, \mathcal{E}(t)^2 $',
+            '$W_L$',
+            '$W_K$',
+        ],
+        legend_kwargs = dict(
+            loc = 'upper left',
+            bbox_to_anchor = (-.1, -.25),
+            borderaxespad = 0,
+            ncol = 2,
+        ),
+        x_unit = 'atomic_electric_field',
+        x_label = r'$ \mathcal{E} $',
+        x_log_axis = True,
+        y_unit = 1 / atomic_time,
+        y_label = r'Ionization Rate $W$ (a.u.)',
+        y_log_axis = True,
+        y_lower_limit = .001 / atomic_time,
+        y_upper_limit = 10 / atomic_time,
+        y_log_pad = 1,
+        **PLOT_KWARGS
+    )
+
+
+def run_tdse_sims(amplitudes = np.array([.3, .5]) * atomic_electric_field,
+                  number_of_cycleses = (6, 12),
+                  omegas = np.array([.2]) * atomic_angular_frequency,
+                  r_bound = 100 * bohr_radius,
+                  mask_inner = 75 * bohr_radius,
+                  mask_outer = 100 * bohr_radius,
+                  r_points = 500,
+                  l_points = 300):
+    mesh_identifier = f'R={uround(r_bound, bohr_radius)}_Nr={r_points}_L={l_points}'
+
+    specs = []
+    for amplitude, number_of_cycles, omega in itertools.product(amplitudes, number_of_cycleses, omegas):
+        pulse = BauerGaussianPulse(amplitude = amplitude, number_of_cycles = number_of_cycles, omega = omega)
+        pulse_identifier = get_pulse_identifier(pulse)
+
+        times = np.linspace(0, pulse.pulse_center * 2, 1000)
+
+        si.vis.xy_plot(
+            f'field__{pulse_identifier}',
+            times,
+            pulse.get_electric_field_amplitude(times),
+            pulse.get_electric_field_envelope(times) * pulse.amplitude,
+            x_unit = 'fsec',
+            y_unit = 'atomic_electric_field',
+            **PLOT_KWARGS
+        )
+
+        specs.append(ion.SphericalHarmonicSpecification(
+            f'tdse__{mesh_identifier}__{pulse_identifier}',
+            r_bound = r_bound,
+            r_points = r_points,
+            l_points = l_points,
+            time_initial = times[0],
+            time_final = times[-1],
+            time_step = 1 * asec,
+            electric_potential = pulse,
+            mask = ion.RadialCosineMask(inner_radius = mask_inner, outer_radius = mask_outer),
+            use_numeric_eigenstates = True,
+            numeric_eigenstate_max_energy = 20 * eV,
+            numeric_eigenstate_max_angular_momentum = 20,
+            checkpoints = True,
+            checkpoint_dir = SIM_LIB,
+            checkpoint_every = datetime.timedelta(minutes = 1),
+        ))
+
+    return si.utils.multi_map(run, specs, processes = 2), mesh_identifier
+
+
+def make_comparison_plot(sims, mesh_identifier):
+    longest_pulse = max((sim.spec.electric_potential for sim in sims), key = lambda p: 2 * p.pulse_center)
+
+    si.vis.xxyy_plot(
+        f'pulse_ionization_comparison__{mesh_identifier}',
+        # [
+        #     sim.data_times / sim.spec.electric_potential.cycle_time / 2
+        #     if sim.spec.electric_potential.number_of_cycles == 6
+        #     else sim.data_times / sim.spec.electric_potential.cycle_time
+        #     for sim in sims
+        # ],
+        [
+            sim.data_times for sim in sims
+        ],
+        [
+            sim.state_overlaps_vs_time[sim.spec.initial_state]
+            for sim in sims
+        ],
+        line_labels = [
+            get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$')
+            for sim in sims
+        ],
+        # x_label = r'$t$',
+        # x_unit = 'fsec',
+        x_label = r'$t$ (cycles)',
+        x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
+        x_lower_limit = 0,
+        x_upper_limit = longest_pulse.pulse_center,
+        y_label = r'$\Gamma(t)$',
+        y_lower_limit = 0,
+        y_upper_limit = 1,
+        y_pad = 0,
+        font_size_legend = 10,
+        legend_kwargs = dict(
+            loc = 'upper left',
+            bbox_to_anchor = (-.1, -.25),
+            borderaxespad = 0,
+            ncol = 2,
+        ),
+        **PLOT_KWARGS,
+    )
+
+
+def make_comparison_plot_with_empirical_rates(sims, sims_to_empirical, mesh_identifier, prefactor = 2.4):
+    longest_pulse = max((sim.spec.electric_potential for sim in sims), key = lambda p: 2 * p.pulse_center)
+
+    x_data = []
+    y_data = []
+    line_labels = []
+    line_kwargs = []
+    colors = [f'C{n}' for n in range(len(sims))]
+    for sim, color in zip(sims, colors):
+        empirical = sims_to_empirical[sim]
+
+        x_data.append(sim.data_times)
+        x_data.append(sim.times)
+
+        y_data.append(sim.state_overlaps_vs_time[sim.spec.initial_state])
+        y_data.append(empirical)
+
+        pulse_identifier = get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$')
+
+        line_labels.append(pulse_identifier + ' (TDSE)')
+        line_labels.append(pulse_identifier + ' (EMP)')
+
+        line_kwargs.append({'linestyle': '--', 'color': color})
+        line_kwargs.append({'linestyle': '-', 'color': color})
+
+    si.vis.xxyy_plot(
+        f'pulse_ionization_comparison_with_empirical_rates__prefactor={prefactor}__{mesh_identifier}',
+        x_data,
+        y_data,
+        line_labels = line_labels,
+        line_kwargs = line_kwargs,
+        x_label = r'$t$ (cycles)',
+        x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
+        x_lower_limit = 0,
+        x_upper_limit = longest_pulse.pulse_center,
+        y_label = r'$\Gamma(t)$',
+        y_lower_limit = 0,
+        y_upper_limit = 1,
+        y_pad = 0,
+        font_size_legend = 10,
+        legend_kwargs = dict(
+            loc = 'upper left',
+            bbox_to_anchor = (-.1, -.25),
+            borderaxespad = 0,
+            ncol = 2,
+        ),
+        title = f'Prefactor = {prefactor}',
+        **PLOT_KWARGS,
+    )
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
-        amplitudes = np.array([.3, .5]) * atomic_electric_field
-        number_of_cycleses = [6, 12]
-        omegas = np.array([.2]) * atomic_angular_frequency
-
-        r_bound = 120 * bohr_radius
-        mask_inner = 100 * bohr_radius
-        mask_outer = r_bound
-        r_points = 1200
-        l_points = 2000
-        mesh_identifier = f'R={uround(r_bound, bohr_radius)}_Nr={r_points}_L={l_points}'
-
-        specs = []
-        for amplitude, number_of_cycles, omega in itertools.product(amplitudes, number_of_cycleses, omegas):
-            pulse = BauerGaussianPulse(amplitude = amplitude, number_of_cycles = number_of_cycles, omega = omega)
-            pulse_identifier = get_pulse_identifier(pulse)
-
-            times = np.linspace(0, pulse.pulse_center * 2, 1000)
-
-            si.vis.xy_plot(
-                f'field__{pulse_identifier}',
-                times,
-                pulse.get_electric_field_amplitude(times),
-                pulse.get_electric_field_envelope(times) * pulse.amplitude,
-                x_unit = 'fsec',
-                y_unit = 'atomic_electric_field',
-                **PLOT_KWARGS
-            )
-
-            specs.append(ion.SphericalHarmonicSpecification(
-                f'tdse__{mesh_identifier}__{pulse_identifier}',
-                r_bound = r_bound,
-                r_points = r_points,
-                l_points = l_points,
-                time_initial = times[0],
-                time_final = times[-1],
-                time_step = 1 * asec,
-                electric_potential = pulse,
-                mask = ion.RadialCosineMask(inner_radius = mask_inner, outer_radius = mask_outer),
-                use_numeric_eigenstates = True,
-                numeric_eigenstate_max_energy = 20 * eV,
-                numeric_eigenstate_max_angular_momentum = 20,
-                checkpoints = True,
-                checkpoint_dir = SIM_LIB,
-                checkpoint_every = datetime.timedelta(minutes = 1),
-            ))
-
-        sims = si.utils.multi_map(run, specs, processes = 2)
-
-        longest_pulse = max((sim.spec.electric_potential for sim in sims), key = lambda p: 2 * p.pulse_center)
-
-        si.vis.xxyy_plot(
-            f'pulse_ionization_comparison__{mesh_identifier}',
-            # [
-            #     sim.data_times / sim.spec.electric_potential.cycle_time / 2
-            #     if sim.spec.electric_potential.number_of_cycles == 6
-            #     else sim.data_times / sim.spec.electric_potential.cycle_time
-            #     for sim in sims
-            # ],
-            [
-                sim.data_times for sim in sims
-            ],
-            [
-                sim.state_overlaps_vs_time[sim.spec.initial_state]
-                for sim in sims
-            ],
-            line_labels = [
-                get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$')
-                for sim in sims
-            ],
-            # x_label = r'$t$',
-            # x_unit = 'fsec',
-            x_label = r'$t$ (cycles)',
-            x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
-            x_lower_limit = 0,
-            x_upper_limit = longest_pulse.pulse_center,
-            y_label = r'$\Gamma(t)$',
-            y_lower_limit = 0,
-            y_upper_limit = 1,
-            y_pad = 0,
-            font_size_legend = 10,
-            legend_kwargs = dict(
-                loc = 'upper left',
-                bbox_to_anchor = (-.1, -.25),
-                borderaxespad = 0,
-                ncol = 2,
-            ),
-            **PLOT_KWARGS,
+        tdse_sims, mesh_identifier = run_tdse_sims(
+            amplitudes = np.array([.3, .5]) * atomic_electric_field,
+            # amplitudes = np.array([.3]) * atomic_electric_field,
+            number_of_cycleses = [6, 12],
+            # number_of_cycleses = [6],
+            omegas = np.array([.2]) * atomic_angular_frequency,
+            r_bound = 120 * bohr_radius,
+            mask_inner = 100 * bohr_radius,
+            mask_outer = 120 * bohr_radius,
+            r_points = 1200,
+            l_points = 2000,
         )
+
+        make_comparison_plot(tdse_sims, mesh_identifier)
+
+        plot_ionization_rates()
+
+        for prefactor in (2.4, 2.06):
+            sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
+            make_comparison_plot_with_empirical_rates(tdse_sims, sim_to_empirical, mesh_identifier, prefactor = prefactor)
