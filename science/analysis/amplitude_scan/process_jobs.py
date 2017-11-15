@@ -22,7 +22,8 @@ PLOT_KWARGS = dict(
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization') as logger:
-        jp_path = os.path.join(JP_DIR, 'hyd__amp_scan_v2_fast.job')
+        # jp_path = os.path.join(JP_DIR, 'hyd__amp_scan_v2_fast.job')
+        jp_path = os.path.join(JP_DIR, 'emergency_ide_scan_3__amplitude_scan.job')
         jp = iclu.PulseJobProcessor.load(jp_path)
 
         print(jp)
@@ -35,8 +36,10 @@ if __name__ == '__main__':
 
         print(len(pulse_widths), len(phases), len(amplitudes))
 
-        metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
-        metric_names = ['Initial State Overlap', 'Bound State Overlap']
+        # metrics = ['final_initial_state_overlap', 'final_bound_state_overlap']
+        metrics = ['final_bound_state_overlap']
+        # metric_names = ['Initial State Overlap', 'Bound State Overlap']
+        metric_names = ['Bound State Overlap']
 
         for metric, metric_name in zip(metrics, metric_names):
             for idx, amplitude in enumerate(amplitudes):  # lexical sort is not good enough
@@ -48,7 +51,7 @@ if __name__ == '__main__':
 
                 print(len(pws))
 
-                if len(pws) < 150:
+                if len(pws) < 50:
                     continue
 
                 for log_y in (True, False):

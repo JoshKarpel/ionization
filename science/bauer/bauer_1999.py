@@ -18,6 +18,8 @@ import ionization as ion
 import ionization.integrodiff as ide
 
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+import matplotlib.lines as mlines
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -76,19 +78,6 @@ def run(spec):
             sim.save(target_dir = SIM_LIB)
 
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
-
-        si.vis.xy_plot(
-            f'{sim.file_name}__initial_state_overlap__tdse',
-            sim.data_times / sim.spec.electric_potential.cycle_time / 2
-            if sim.spec.electric_potential.number_of_cycles == 6
-            else sim.data_times / sim.spec.electric_potential.cycle_time,
-            sim.state_overlaps_vs_time[sim.spec.initial_state],
-            x_label = r'$t$ (cycles)',
-            x_lower_limit = 0,
-            x_upper_limit = 6,
-            y_label = r'$\Gamma(t)$',
-            **PLOT_KWARGS
-        )
 
     return sim
 
@@ -228,94 +217,81 @@ def run_tdse_sims(amplitudes = np.array([.3, .5]) * atomic_electric_field,
     return si.utils.multi_map(run, specs, processes = 2), mesh_identifier
 
 
-def make_comparison_plot(sims, mesh_identifier):
-    longest_pulse = max((sim.spec.electric_potential for sim in sims), key = lambda p: 2 * p.pulse_center)
+def run_ide_sims(tdse_sims):
+    specs = []
+    dt = 1 * asec
+    for sim in tdse_sims:
+        specs.append(ide.IntegroDifferentialEquationSpecification(
+            sim.name.replace('tdse', 'ide') + f'__dt={uround(dt, asec)}',
+            electric_potential = sim.spec.electric_potential,
+            time_initial = sim.times[0],
+            time_final = sim.times[-1],
+            time_step = dt,
+            checkpoints = True,
+            checkpoint_dir = SIM_LIB,
+            checkpoint_every = datetime.timedelta(minutes = 1),
+        ))
 
-    si.vis.xxyy_plot(
-        f'pulse_ionization_comparison__{mesh_identifier}',
-        # [
-        #     sim.data_times / sim.spec.electric_potential.cycle_time / 2
-        #     if sim.spec.electric_potential.number_of_cycles == 6
-        #     else sim.data_times / sim.spec.electric_potential.cycle_time
-        #     for sim in sims
-        # ],
-        [
-            sim.data_times for sim in sims
-        ],
-        [
-            sim.state_overlaps_vs_time[sim.spec.initial_state]
-            for sim in sims
-        ],
-        line_labels = [
-            get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$')
-            for sim in sims
-        ],
-        # x_label = r'$t$',
-        # x_unit = 'fsec',
-        x_label = r'$t$ (cycles)',
-        x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
-        x_lower_limit = 0,
-        x_upper_limit = longest_pulse.pulse_center,
-        y_label = r'$\Gamma(t)$',
-        y_lower_limit = 0,
-        y_upper_limit = 1,
-        y_pad = 0,
-        font_size_legend = 10,
-        legend_kwargs = dict(
-            loc = 'upper left',
-            bbox_to_anchor = (-.1, -.25),
-            borderaxespad = 0,
-            ncol = 2,
-        ),
-        **PLOT_KWARGS,
-    )
+    ide_sims = si.utils.multi_map(run, specs, processes = 2)
+
+    return ide_sims, dt
 
 
-def make_comparison_plot_with_empirical_rates(sims, sims_to_empirical, mesh_identifier, prefactor = 2.4):
-    longest_pulse = max((sim.spec.electric_potential for sim in sims), key = lambda p: 2 * p.pulse_center)
+def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier, prefactor, ide_time_stpe):
+    longest_pulse = max((sim.spec.electric_potential for sim in tdse_sims), key = lambda p: 2 * p.pulse_center)
 
     x_data = []
     y_data = []
     line_labels = []
     line_kwargs = []
-    colors = [f'C{n}' for n in range(len(sims))]
-    for sim, color in zip(sims, colors):
-        empirical = sims_to_empirical[sim]
+    colors = [f'C{n}' for n in range(len(tdse_sims))]
+    styles = ['-', '--', '-.']
+    for tdse_sim, ide_sim, color in zip(tdse_sims, ide_sims, colors):
+        empirical = sims_to_empirical[tdse_sim]
 
-        x_data.append(sim.data_times)
-        x_data.append(sim.times)
+        x_data.append(tdse_sim.data_times)
+        x_data.append(ide_sim.data_times)
+        x_data.append(tdse_sim.times)
 
-        y_data.append(sim.state_overlaps_vs_time[sim.spec.initial_state])
+        y_data.append(tdse_sim.state_overlaps_vs_time[tdse_sim.spec.initial_state])
+        y_data.append(ide_sim.b2)
         y_data.append(empirical)
 
-        pulse_identifier = get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$')
+        for style in styles:
+            line_kwargs.append({'linestyle': style, 'color': color})
 
-        line_labels.append(pulse_identifier + ' (TDSE)')
-        line_labels.append(pulse_identifier + ' (EMP)')
+    color_patches = [mpatches.Patch(color = color,
+                                    label = get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$'))
+                     for color, sim in zip(colors, tdse_sims)]
 
-        line_kwargs.append({'linestyle': '--', 'color': color})
-        line_kwargs.append({'linestyle': '-', 'color': color})
+    sim_types = ['TDSE', 'IDE', 'EMP']
+    style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 1,
+                                   label = sim_type)
+                     for style, sim_type in zip(styles, sim_types)]
+
+    legend_handles = color_patches + style_patches
 
     si.vis.xxyy_plot(
-        f'pulse_ionization_comparison_with_empirical_rates__prefactor={prefactor}__{mesh_identifier}',
+        f'pulse_ionization_comparison_with_empirical_rates__prefactor={prefactor}__{mesh_identifier}__IDEdt={uround(ide_time_step, asec)}',
         x_data,
         y_data,
-        line_labels = line_labels,
+        # line_labels = line_labels,
         line_kwargs = line_kwargs,
         x_label = r'$t$ (cycles)',
         x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
         x_lower_limit = 0,
-        x_upper_limit = longest_pulse.pulse_center,
+        x_upper_limit = longest_pulse.pulse_center * 2,
         y_label = r'$\Gamma(t)$',
         y_lower_limit = 0,
         y_upper_limit = 1,
         y_pad = 0,
-        font_size_legend = 10,
+        font_size_legend = 9,
         legend_kwargs = dict(
             loc = 'upper left',
             bbox_to_anchor = (-.1, -.25),
             borderaxespad = 0,
             ncol = 2,
+            handles = legend_handles,
         ),
         title = f'Prefactor = {prefactor}',
         **PLOT_KWARGS,
@@ -337,10 +313,10 @@ if __name__ == '__main__':
             l_points = 2000,
         )
 
-        make_comparison_plot(tdse_sims, mesh_identifier)
+        ide_sims, ide_time_step = run_ide_sims(tdse_sims)
 
         plot_ionization_rates()
 
         for prefactor in (2.4, 2.06):
             sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
-            make_comparison_plot_with_empirical_rates(tdse_sims, sim_to_empirical, mesh_identifier, prefactor = prefactor)
+            make_comparison_plot(tdse_sims, ide_sims, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)
