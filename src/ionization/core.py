@@ -155,31 +155,6 @@ class Snapshot:
         self.data['norm'] = self.sim.mesh.norm()
 
 
-class Snapshot:
-    def __init__(self, simulation, time_index):
-        self.sim = simulation
-        self.spec = self.sim.spec
-        self.time_index = time_index
-
-        self.data = dict()
-
-    @property
-    def time(self):
-        return self.sim.times[self.time_index]
-
-    def __str__(self):
-        return 'Snapshot of {} at time {} as (time index = {})'.format(self.sim.name, uround(self.sim.times[self.time_index], asec, 3), self.time_index)
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'sim', 'time_index')
-
-    def take_snapshot(self):
-        self.collect_norm()
-
-    def collect_norm(self):
-        self.data['norm'] = self.sim.mesh.norm()
-
-
 class ElectricFieldSimulation(si.Simulation):
     def __init__(self, spec):
         super().__init__(spec)
@@ -1057,9 +1032,9 @@ class ElectricFieldSpecification(si.Specification):
                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
                  checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
                  animators = tuple(),
-                 store_radial_position_expectation_value = True,
-                 store_electric_dipole_moment_expectation_value = True,
-                 store_energy_expectation_value = True,
+                 store_radial_position_expectation_value = False,
+                 store_electric_dipole_moment_expectation_value = False,
+                 store_energy_expectation_value = False,
                  store_norm_diff_mask = False,
                  store_data_callbacks = (),
                  store_data_every = 1,
@@ -1395,7 +1370,7 @@ class QuantumMesh:
     def norm(self, state = None):
         return np.abs(self.inner_product(a = state, b = state))
 
-    def energy_expectation_value(self):
+    def energy_expectation_value(self, include_interaction = False):
         raise NotImplementedError
 
     def dipole_moment_inner_product(self, a = None, b = None):
@@ -2171,7 +2146,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return hg_mesh_z + hg_mesh_rho
 
     def energy_expectation_value(self, include_interaction = False):
-        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
+        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     @si.utils.memoize
     def _get_probability_current_matrix_operators(self):
@@ -2601,7 +2576,7 @@ class SphericalSliceMesh(QuantumMesh):
 
         return hg_mesh_r + hg_mesh_theta
 
-    def hg_mesh(self):
+    def hg_mesh(self, include_interaction = False):
         hamiltonian_r, hamiltonian_theta = self.get_internal_hamiltonian_matrix_operators()
 
         g_vector_r = self.flatten_mesh(self.g, 'r')
@@ -2612,13 +2587,14 @@ class SphericalSliceMesh(QuantumMesh):
         hg_vector_theta = hamiltonian_theta.dot(g_vector_theta)
         hg_mesh_theta = self.wrap_vector(hg_vector_theta, 'theta')
 
-        raise NotImplementedError
+        if include_interaction:
+            raise NotImplementedError
         # TODO: not including interaction yet
 
         return hg_mesh_r + hg_mesh_theta
 
-    def energy_expectation_value(self):
-        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
+    def energy_expectation_value(self, include_interaction = False):
+        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     @si.utils.memoize
     def get_probability_current_matrix_operators(self):

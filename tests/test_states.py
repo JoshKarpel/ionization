@@ -10,11 +10,23 @@ import ionization as ion
 from simulacra.units import *
 
 
-@hyp.settings(
-    deadline = None,
-)
 @hyp.given(
-    n = st.integers(min_value = 1, max_value = 100)
+    n = st.integers(min_value = 1),
+)
+def test_hydrogen_bound_state_can_be_constructed_with_positive_n(n):
+    ion.HydrogenBoundState(n)
+
+
+@hyp.given(
+    n = st.integers(max_value = 0),
+)
+def test_hydrogen_bound_state_cannot_be_constructed_with_non_positive_n(n):
+    with pytest.raises(ion.IllegalQuantumState):
+        ion.HydrogenBoundState(n)
+
+
+@pytest.mark.parametrize(
+    'n', range(1, 50)
 )
 def test_hydrogen_bound_state_energy_degeneracy(n):
     ref = ion.HydrogenBoundState(n)

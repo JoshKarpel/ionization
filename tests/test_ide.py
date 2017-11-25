@@ -15,7 +15,7 @@ FIXED_STEP_METHODS = [
     'RK4',
 ]
 
-
+# TODO: test each gauge and integration method, etc.
 @pytest.mark.parametrize(
     'evolution_method',
     FIXED_STEP_METHODS

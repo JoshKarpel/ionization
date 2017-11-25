@@ -19,5 +19,6 @@ pyximport.install(setup_args = {"include_dirs": _np.get_include()},
 from .core import *
 from .potentials import *
 from .states import *
+from .exceptions import *
 
 from . import animators

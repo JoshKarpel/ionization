@@ -14,6 +14,129 @@ PULSE_TYPES = [
 ]
 
 
+@hyp.given(
+    start_time = st.floats(allow_nan = False, allow_infinity = False),
+    data = st.data(),
+)
+def test_rectangle_start_time_can_be_earlier_than_end_time(start_time, data):
+    end_time = data.draw(st.floats(min_value = start_time))
+    hyp.assume(end_time > start_time)
+
+    ion.Rectangle(start_time = start_time, end_time = end_time)
+
+
+@hyp.given(
+    start_time = st.floats(allow_nan = False, allow_infinity = False),
+    data = st.data(),
+)
+def test_rectangle_start_time_cannot_be_later_than_end_time(start_time, data):
+    end_time = data.draw(st.floats(max_value = start_time))
+
+    with pytest.raises(ion.InvalidPotentialParameter):
+        ion.Rectangle(start_time = start_time, end_time = end_time)
+
+
+@pytest.mark.filterwarnings(
+    'ignore:overflow'
+)
+@pytest.mark.parametrize(
+    'pulse_type',
+    PULSE_TYPES
+)
+@hyp.given(
+    pulse_width = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_pulse_can_be_constructed_with_positive_pulse_width(pulse_type, pulse_width):
+    hyp.assume(pulse_width > 0)
+
+    pulse = pulse_type(pulse_width = pulse_width)
+
+
+@pytest.mark.parametrize(
+    'pulse_type',
+    PULSE_TYPES
+)
+@hyp.given(
+    pulse_width = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_pulse_cannot_be_constructed_with_non_positive_pulse_width(pulse_type, pulse_width):
+    with pytest.raises(ion.InvalidPotentialParameter):
+        pulse = pulse_type(pulse_width = pulse_width)
+
+
+@pytest.mark.parametrize(
+    'pulse_type',
+    PULSE_TYPES
+)
+@hyp.given(
+    fluence = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_pulse_can_be_constructed_with_non_negative_fluence(pulse_type, fluence):
+    pulse = pulse_type(fluence = fluence)
+
+
+@pytest.mark.parametrize(
+    'pulse_type',
+    PULSE_TYPES
+)
+@hyp.given(
+    fluence = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_pulse_cannot_be_constructed_with_negative_fluence(pulse_type, fluence):
+    hyp.assume(fluence != 0)
+
+    with pytest.raises(ion.InvalidPotentialParameter):
+        pulse = pulse_type(fluence = fluence)
+
+
+@hyp.given(
+    omega_min = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_sinc_pulse_can_be_constructed_with_non_negative_omega_min(omega_min):
+    pulse = ion.SincPulse(omega_min = omega_min)
+
+
+@hyp.given(
+    omega_min = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_sinc_pulse_cannot_be_constructed_with_negative_omega_min(omega_min):
+    hyp.assume(omega_min < 0)
+
+    with pytest.raises(ion.InvalidPotentialParameter):
+        pulse = ion.SincPulse(omega_min = omega_min)
+
+
+@pytest.mark.parametrize(
+    'pulse_type',
+    [
+        ion.GaussianPulse,
+        ion.SechPulse,
+    ]
+)
+@hyp.given(
+    omega_carrier = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_gaussian_and_sech_pulses_can_be_constructed_with_non_negative_omega_carrier(pulse_type, omega_carrier):
+    pulse = pulse_type(omega_carrier = omega_carrier)
+
+
+@pytest.mark.parametrize(
+    'pulse_type',
+    [
+        ion.GaussianPulse,
+        ion.SechPulse,
+    ]
+)
+@hyp.given(
+    omega_carrier = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
+)
+def test_gaussian_and_sech_pulses_cannot_be_constructed_with_negative_omega_carrier(pulse_type, omega_carrier):
+    hyp.assume(omega_carrier < 0)
+
+    with pytest.raises(ion.InvalidPotentialParameter):
+        pulse = pulse_type(omega_carrier = omega_carrier)
+
+
 @pytest.mark.parametrize(
     'pulse_type',
     PULSE_TYPES

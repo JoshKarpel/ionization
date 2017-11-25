@@ -9,7 +9,7 @@ import scipy.optimize as opt
 import simulacra as si
 from simulacra.units import *
 
-from . import core
+from . import core, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -460,6 +460,9 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         :param amplitude: the amplitude of the electric field between start_time and end_time
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
+        if start_time >= end_time:
+            raise exceptions.InvalidPotentialParameter('end_time must be later than start_time')
+
         super().__init__(**kwargs)
 
         self.start_time = start_time
@@ -889,11 +892,18 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_min < 0:
+            raise exceptions.InvalidPotentialParameter('omega_min must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_min = omega_min
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
@@ -1136,11 +1146,18 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_carrier < 0:
+            raise exceptions.InvalidPotentialParameter('omega_carrier must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
@@ -1452,11 +1469,18 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_carrier < 0:
+            raise exceptions.InvalidPotentialParameter('omega_carrier must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
