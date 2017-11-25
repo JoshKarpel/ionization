@@ -653,7 +653,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  test_charge = electron_charge,
                  test_energy = -states.HydrogenBoundState(1, 0).energy,
                  b_initial = 1,
-                 integral_prefactor = -(electron_charge / hbar) ** 2,
+                 integral_prefactor = -((electron_charge / hbar) ** 2),
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
                  kernel = hydrogen_kernel_LEN,
