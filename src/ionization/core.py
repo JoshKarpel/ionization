@@ -992,7 +992,7 @@ class ElectricFieldSimulation(si.Simulation):
                        x_lower_limit = 0, x_upper_limit = frequency_range,
                        **kwargs)
 
-    def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
+    def save(self, target_dir = None, file_extension = '.sim', save_mesh = True, **kwargs):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
 
@@ -1951,6 +1951,7 @@ class LineMesh(QuantumMesh):
     def update_fft_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.fft(), **kwargs)
 
+
 # class LineSnapshot(Snapshot):
 #     def __init__(self):
 #         pass
@@ -2387,8 +2388,16 @@ class SphericalSliceSpecification(ElectricFieldSpecification):
     def __init__(self, name,
                  r_bound = 20 * bohr_radius,
                  r_points = 2 ** 10, theta_points = 2 ** 10,
+                 evolution_equations = 'HAM',
+                 evolution_method = 'CN',
+                 evolution_gauge = 'LEN',
                  **kwargs):
-        super().__init__(name, mesh_type = SphericalSliceMesh, **kwargs)
+        super().__init__(name,
+                         mesh_type = SphericalSliceMesh,
+                         evolution_equations = evolution_equations,
+                         evolution_method = evolution_method,
+                         evolution_gauge = evolution_gauge,
+                         **kwargs)
 
         self.r_bound = r_bound
 

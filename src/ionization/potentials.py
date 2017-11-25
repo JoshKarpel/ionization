@@ -1091,7 +1091,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = np.array(t) - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1099,6 +1099,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Pulse Center', f'{uround(self.pulse_center, asec)} as | {uround(self.pulse_center, fsec, 3)} fs | {uround(self.pulse_center, atomic_time, 3)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
@@ -1408,7 +1409,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1614,7 +1615,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1737,7 +1738,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
