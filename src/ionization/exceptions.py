@@ -4,3 +4,7 @@ class IonizationException(Exception):
 
 class InvalidPotentialParameter(IonizationException):
     pass
+
+
+class InvalidMaskParameter(IonizationException):
+    pass

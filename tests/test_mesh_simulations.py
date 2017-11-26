@@ -92,6 +92,29 @@ def test_initial_norm_is_one_for_3d_meshes_with_numeric_eigenstates(initial_stat
     'initial_state',
     LOW_N_HYDROGEN_BOUND_STATES
 )
+def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_numeric_eigenstates(initial_state):
+    sim = ion.SphericalHarmonicSpecification(
+        'test',
+        initial_state = initial_state,
+        evolution_gauge = 'LEN',
+        evolution_method = 'CN',
+        time_initial = 0,
+        time_final = 100 * asec,
+        time_step = 1 * asec,
+        r_bound = 100 * bohr_radius,
+        l_bound = 30,
+        use_numeric_eigenstates = True,
+        numeric_eigenstate_max_energy = 10 * eV,
+        numeric_eigenstate_max_angular_momentum = 10,
+    ).to_simulation()
+
+    np.testing.assert_allclose(sim.mesh.norm(), 1)
+
+
+@pytest.mark.parametrize(
+    'initial_state',
+    LOW_N_HYDROGEN_BOUND_STATES
+)
 def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_crank_nicholson_evolution(initial_state):
     sim = ion.SphericalHarmonicSpecification(
         'test',

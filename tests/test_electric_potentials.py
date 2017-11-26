@@ -17,7 +17,7 @@ PULSE_TYPES = [
 @hyp.given(
     omega = st.floats(min_value = 0, allow_nan = False, allow_infinity = False)
 )
-def test_sine_wave_omega_can_be_positive(omega):
+def test_can_construct_sine_wave_with_positive_omega(omega):
     hyp.assume(omega > 0)
 
     ion.SineWave(omega = omega)
@@ -26,7 +26,7 @@ def test_sine_wave_omega_can_be_positive(omega):
 @hyp.given(
     omega = st.floats(max_value = 0, allow_nan = False, allow_infinity = False)
 )
-def test_sine_wave_omega_cannot_be_nonpositive(omega):
+def test_cannot_construct_sine_wave_with_non_positive_omega(omega):
     with pytest.raises(ion.InvalidPotentialParameter):
         ion.SineWave(omega = omega)
 
@@ -35,7 +35,7 @@ def test_sine_wave_omega_cannot_be_nonpositive(omega):
     start_time = st.floats(allow_nan = False, allow_infinity = False),
     data = st.data(),
 )
-def test_rectangle_start_time_can_be_earlier_than_end_time(start_time, data):
+def test_can_construct_rectangle_with_start_time_earlier_than_end_time(start_time, data):
     end_time = data.draw(st.floats(min_value = start_time))
     hyp.assume(end_time > start_time)
 
@@ -46,7 +46,7 @@ def test_rectangle_start_time_can_be_earlier_than_end_time(start_time, data):
     start_time = st.floats(allow_nan = False, allow_infinity = False),
     data = st.data(),
 )
-def test_rectangle_start_time_cannot_be_later_than_end_time(start_time, data):
+def test_cannot_construct_rectangle_with_start_time_later_than_end_time(start_time, data):
     end_time = data.draw(st.floats(max_value = start_time))
 
     with pytest.raises(ion.InvalidPotentialParameter):
@@ -63,7 +63,7 @@ def test_rectangle_start_time_cannot_be_later_than_end_time(start_time, data):
 @hyp.given(
     pulse_width = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_pulse_can_be_constructed_with_positive_pulse_width(pulse_type, pulse_width):
+def test_can_construct_pulse_with_positive_pulse_width(pulse_type, pulse_width):
     hyp.assume(pulse_width > 0)
 
     pulse = pulse_type(pulse_width = pulse_width)
@@ -76,7 +76,7 @@ def test_pulse_can_be_constructed_with_positive_pulse_width(pulse_type, pulse_wi
 @hyp.given(
     pulse_width = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_pulse_cannot_be_constructed_with_non_positive_pulse_width(pulse_type, pulse_width):
+def test_cannot_construct_pulse_with_non_positive_pulse_width(pulse_type, pulse_width):
     with pytest.raises(ion.InvalidPotentialParameter):
         pulse = pulse_type(pulse_width = pulse_width)
 
@@ -88,7 +88,7 @@ def test_pulse_cannot_be_constructed_with_non_positive_pulse_width(pulse_type, p
 @hyp.given(
     fluence = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_pulse_can_be_constructed_with_non_negative_fluence(pulse_type, fluence):
+def test_can_construct_pulse_with_non_negative_fluence(pulse_type, fluence):
     pulse = pulse_type(fluence = fluence)
 
 
@@ -99,7 +99,7 @@ def test_pulse_can_be_constructed_with_non_negative_fluence(pulse_type, fluence)
 @hyp.given(
     fluence = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_pulse_cannot_be_constructed_with_negative_fluence(pulse_type, fluence):
+def test_cannot_construct_pulse_with_negative_fluence(pulse_type, fluence):
     hyp.assume(fluence != 0)
 
     with pytest.raises(ion.InvalidPotentialParameter):
@@ -109,14 +109,14 @@ def test_pulse_cannot_be_constructed_with_negative_fluence(pulse_type, fluence):
 @hyp.given(
     omega_min = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_sinc_pulse_can_be_constructed_with_non_negative_omega_min(omega_min):
+def test_can_construct_sinc_pulse_with_non_negative_omega_min(omega_min):
     pulse = ion.SincPulse(omega_min = omega_min)
 
 
 @hyp.given(
     omega_min = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_sinc_pulse_cannot_be_constructed_with_negative_omega_min(omega_min):
+def test_cannot_construct_sinc_pulse_with_negative_omega_min(omega_min):
     hyp.assume(omega_min < 0)
 
     with pytest.raises(ion.InvalidPotentialParameter):
@@ -133,7 +133,7 @@ def test_sinc_pulse_cannot_be_constructed_with_negative_omega_min(omega_min):
 @hyp.given(
     omega_carrier = st.floats(min_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_gaussian_and_sech_pulses_can_be_constructed_with_non_negative_omega_carrier(pulse_type, omega_carrier):
+def test_can_construct_gaussian_and_sech_pulses_with_non_negative_omega_carrier(pulse_type, omega_carrier):
     pulse = pulse_type(omega_carrier = omega_carrier)
 
 
@@ -147,7 +147,7 @@ def test_gaussian_and_sech_pulses_can_be_constructed_with_non_negative_omega_car
 @hyp.given(
     omega_carrier = st.floats(max_value = 0, allow_infinity = False, allow_nan = False),
 )
-def test_gaussian_and_sech_pulses_cannot_be_constructed_with_negative_omega_carrier(pulse_type, omega_carrier):
+def test_cannot_construct_gaussian_and_sech_pulses_with_negative_omega_carrier(pulse_type, omega_carrier):
     hyp.assume(omega_carrier < 0)
 
     with pytest.raises(ion.InvalidPotentialParameter):

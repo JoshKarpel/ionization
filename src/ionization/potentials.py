@@ -2041,6 +2041,13 @@ class RadialCosineMask(Mask):
 
     def __init__(self, inner_radius = 50 * bohr_radius, outer_radius = 100 * bohr_radius, smoothness = 8):
         """Construct a RadialCosineMask from an inner radius, outer radius, and cosine 'smoothness' (the cosine will be raised to the 1/smoothness power)."""
+        if inner_radius < 0 or outer_radius < 0:
+            raise exceptions.InvalidMaskParameter('inner and outer radius must be non-negative')
+        if inner_radius >= outer_radius:
+            raise exceptions.InvalidMaskParameter('outer radius must be larger than inner radius')
+        if smoothness < 1:
+            raise exceptions.InvalidMaskParameter('smoothness must be greater than 1')
+
         super().__init__()
 
         self.inner_radius = inner_radius
@@ -2069,7 +2076,7 @@ class RadialCosineMask(Mask):
         :param kwargs: absorbs keyword arguments.
         :return: the value(s) of the mask at r
         """
-        return np.where(np.greater_equal(r, self.inner_radius) * np.less_equal(r, self.outer_radius),
+        return np.where(np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
                         np.abs(np.cos(0.5 * pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
                         np.where(np.greater_equal(r, self.outer_radius), 0, 1))
 
