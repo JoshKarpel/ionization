@@ -8,17 +8,17 @@ import ionization as ion
 import ionization.integrodiff as ide
 from simulacra.units import *
 
-FIXED_STEP_METHODS = [
+FIXED_STEP_EVOLUTION_METHODS = [
     'FE',
     'BE',
     'TRAP',
     'RK4',
 ]
 
-# TODO: test each gauge and integration method, etc.
+
 @pytest.mark.parametrize(
     'evolution_method',
-    FIXED_STEP_METHODS
+    FIXED_STEP_EVOLUTION_METHODS
 )
 @hyp.settings(
     max_examples = 10,
@@ -28,7 +28,7 @@ FIXED_STEP_METHODS = [
     b_initial_real = st.floats(allow_nan = False, allow_infinity = False),
     b_initial_imag = st.floats(allow_nan = False, allow_infinity = False),
 )
-def test_if_no_potential_final_state_is_initial_state(evolution_method, b_initial_real, b_initial_imag):
+def test_with_no_potential_final_state_is_initial_state_length_gauge(evolution_method, b_initial_real, b_initial_imag):
     b_initial = b_initial_real + (1j * b_initial_imag)
 
     sim = ide.IntegroDifferentialEquationSpecification(

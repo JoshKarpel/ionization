@@ -15,6 +15,23 @@ PULSE_TYPES = [
 
 
 @hyp.given(
+    omega = st.floats(min_value = 0, allow_nan = False, allow_infinity = False)
+)
+def test_sine_wave_omega_can_be_positive(omega):
+    hyp.assume(omega > 0)
+
+    ion.SineWave(omega = omega)
+
+
+@hyp.given(
+    omega = st.floats(max_value = 0, allow_nan = False, allow_infinity = False)
+)
+def test_sine_wave_omega_cannot_be_nonpositive(omega):
+    with pytest.raises(ion.InvalidPotentialParameter):
+        ion.SineWave(omega = omega)
+
+
+@hyp.given(
     start_time = st.floats(allow_nan = False, allow_infinity = False),
     data = st.data(),
 )

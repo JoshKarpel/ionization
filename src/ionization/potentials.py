@@ -541,6 +541,9 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param phase: the phase of the electric field (0 corresponds to a sine wave)
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
+        if omega <= 0:
+            raise exceptions.InvalidPotentialParameter('omega must be positive')
+
         super().__init__(**kwargs)
 
         self.omega = omega
