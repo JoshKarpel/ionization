@@ -5,6 +5,7 @@ import hypothesis.strategies as st
 import numpy as np
 
 import ionization as ion
+import ionization.integrodiff as ide
 from simulacra.units import *
 
 PULSE_TYPES = [
@@ -53,9 +54,7 @@ def test_cannot_construct_rectangle_with_start_time_later_than_end_time(start_ti
         ion.Rectangle(start_time = start_time, end_time = end_time)
 
 
-@pytest.mark.filterwarnings(
-    'ignore:overflow'
-)
+@pytest.mark.filterwarnings('ignore: overflow')
 @pytest.mark.parametrize(
     'pulse_type',
     PULSE_TYPES
@@ -81,6 +80,7 @@ def test_cannot_construct_pulse_with_non_positive_pulse_width(pulse_type, pulse_
         pulse = pulse_type(pulse_width = pulse_width)
 
 
+@pytest.mark.filterwarnings('ignore: overflow')
 @pytest.mark.parametrize(
     'pulse_type',
     PULSE_TYPES
@@ -211,3 +211,31 @@ def test_electric_field_is_zero_at_pulse_center_for_sine_like_pulse(pulse_type, 
     )
 
     np.testing.assert_allclose(pulse.get_electric_field_amplitude(pulse_center), 0, atol = 1e-9 * pulse.amplitude)  # smaller than part per billion of the pulse amplitude
+
+
+@pytest.mark.parametrize(
+    'spec_type',
+    [
+        ion.LineSpecification,
+        ion.CylindricalSliceSpecification,
+        ion.SphericalSliceSpecification,
+        ion.SphericalHarmonicSpecification,
+        ide.IntegroDifferentialEquationSpecification,
+    ]
+)
+def test_dc_correct_electric_potential_replaces_given_potential_after_simulation_initialization(spec_type):
+    pot = ion.SincPulse()
+
+    spec = spec_type(
+        'test',
+        electric_potential = pot,
+        electric_potential_dc_correction = True,
+    )
+
+    assert spec.electric_potential is pot
+
+    sim = spec.to_simulation()
+
+    assert sim.spec.electric_potential is not pot
+    assert sim.spec.electric_potential[0] is pot
+    assert isinstance(sim.spec.electric_potential[1], ion.Rectangle)

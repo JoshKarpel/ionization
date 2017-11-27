@@ -72,6 +72,20 @@ def test_cannot_construct_radial_cosine_mask_with_bad_smoothness(smoothness):
         ion.RadialCosineMask(smoothness = smoothness)
 
 
+@hyp.given(
+    outer_radius = st.floats(min_value = 0, allow_infinity = False, allow_nan = False)
+)
+def test_radial_cosine_mask_is_one_at_inner_radius(outer_radius):
+    inner_radius = 0
+    hyp.assume(outer_radius > inner_radius)
+
+    mask = ion.RadialCosineMask(inner_radius = inner_radius, outer_radius = outer_radius)
+
+    mask_at_outer_radius = mask(r = inner_radius)
+
+    np.testing.assert_allclose(mask_at_outer_radius, 1)
+
+
 # sometimes outer radius is very close to inner radius and makes cos misbehave
 @pytest.mark.filterwarnings('ignore: invalid value encountered in cos')
 @hyp.given(

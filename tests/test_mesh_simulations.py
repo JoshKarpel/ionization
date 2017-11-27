@@ -142,10 +142,13 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
     np.testing.assert_allclose(initial_state_overlaps, final_state_overlaps, atol = 1e-14)
 
 
-# TODO: test each evolution method, gauge, etc.
+# TODO: test each evolution method
 @pytest.mark.parametrize(
     'initial_state, evolution_gauge',
-    itertools.product(LOW_N_HYDROGEN_BOUND_STATES, EVOLUTION_GAUGES)
+    itertools.product(
+        LOW_N_HYDROGEN_BOUND_STATES,
+        EVOLUTION_GAUGES,
+    )
 )
 def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_split_operator_evolution(initial_state, evolution_gauge):
     sim = ion.SphericalHarmonicSpecification(
