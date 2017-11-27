@@ -56,7 +56,10 @@ if __name__ == '__main__':
             **shared_kwargs,
         )
 
-        sims = [spec.to_simulation() for spec in (tdse_spec, ide_spec)]
+        sims = [spec.to_simulation() for spec in (
+            # tdse_spec,
+            ide_spec,
+        )]
         for sim in sims:
             sim.run_simulation()
             sim.plot_wavefunction_vs_time(**PLOT_KWARGS)

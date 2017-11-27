@@ -10,6 +10,7 @@ import itertools
 
 import numpy as np
 import scipy.integrate as integ
+import scipy.optimize as optim
 
 import simulacra as si
 from simulacra.units import *
@@ -112,16 +113,29 @@ def calculate_empirical_rate(field_amplitude, prefactor = 2.4):
     return prefactor * ((np.abs(field_amplitude) / atomic_electric_field) ** 2) / atomic_time
 
 
+def calculate_landau_critical_rate(prefactor = 2.4):
+    # amplitudes = np.geomspace(.05, 10, 1000) * atomic_electric_field
+    critical_field = optim.brentq(
+        lambda amp: calculate_landau_rate(amp) - calculate_empirical_rate(amp, prefactor = prefactor),
+        .01 * atomic_electric_field,
+        .5 * atomic_electric_field,
+    )
+
+    return critical_field
+
+
 def do_bauer_empirical_ionization(pulse, times, prefactor = 2.4):
     field_amplitudes = pulse.get_electric_field_amplitude(times)
 
     landau_rate = calculate_landau_rate(field_amplitudes)
     empirical_rate = calculate_empirical_rate(field_amplitudes, prefactor = prefactor)
 
-    critical_amplitude = .084 * atomic_electric_field
+    critical_field = calculate_landau_critical_rate(prefactor)
+
     ionization_rate = np.where(
-        np.abs(field_amplitudes) > critical_amplitude,
+        np.abs(field_amplitudes) > critical_field,
         empirical_rate,
+        # 0,
         landau_rate
     )
 
@@ -237,7 +251,37 @@ def run_ide_sims(tdse_sims):
     return ide_sims, dt
 
 
-def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier, prefactor, ide_time_stpe):
+def landau_if_below_critical_field(field_amplitude, prefactor = 2.4):
+    critical_field = calculate_landau_critical_rate(prefactor)
+    return np.where(
+        np.abs(field_amplitude) <= critical_field,
+        calculate_landau_rate(field_amplitude),
+        0
+    )
+
+
+def run_ide_sims_with_decay(tdse_sims, prefactor = 2.4):
+    specs = []
+    dt = 1 * asec
+    for sim in tdse_sims:
+        specs.append(ide.IntegroDifferentialEquationSpecification(
+            sim.name.replace('tdse', 'ide') + f'__dt={uround(dt, asec)}__WITH_DECAY_prefactor={prefactor}',
+            electric_potential = sim.spec.electric_potential,
+            time_initial = sim.times[0],
+            time_final = sim.times[-1],
+            time_step = dt,
+            checkpoints = True,
+            checkpoint_dir = SIM_LIB,
+            checkpoint_every = datetime.timedelta(minutes = 1),
+            additional_decay_function = functools.partial(landau_if_below_critical_field, prefactor = prefactor),
+        ))
+
+    ide_sims = si.utils.multi_map(run, specs, processes = 2)
+
+    return ide_sims, dt
+
+
+def make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sims_to_empirical, mesh_identifier, prefactor, ide_time_step):
     longest_pulse = max((sim.spec.electric_potential for sim in tdse_sims), key = lambda p: 2 * p.pulse_center)
 
     x_data = []
@@ -245,16 +289,18 @@ def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier
     line_labels = []
     line_kwargs = []
     colors = [f'C{n}' for n in range(len(tdse_sims))]
-    styles = ['-', '--', '-.']
-    for tdse_sim, ide_sim, color in zip(tdse_sims, ide_sims, colors):
+    styles = ['-', '--', '-.', ':']
+    for tdse_sim, ide_sim, ide_sim_with_decay, color in zip(tdse_sims, ide_sims, ide_sims_with_decay, colors):
         empirical = sims_to_empirical[tdse_sim]
 
         x_data.append(tdse_sim.data_times)
         x_data.append(ide_sim.data_times)
+        x_data.append(ide_sim_with_decay.data_times)
         x_data.append(tdse_sim.times)
 
         y_data.append(tdse_sim.state_overlaps_vs_time[tdse_sim.spec.initial_state])
         y_data.append(ide_sim.b2)
+        y_data.append(ide_sim_with_decay.b2)
         y_data.append(empirical)
 
         for style in styles:
@@ -264,7 +310,7 @@ def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier
                                     label = get_pulse_identifier(sim.spec.electric_potential).replace('_', ' ').replace('E', '$\mathcal{E}_0$').replace('Nc', '$N$').replace('omega', '$\omega$'))
                      for color, sim in zip(colors, tdse_sims)]
 
-    sim_types = ['TDSE', 'IDE', 'EMP']
+    sim_types = ['TDSE', 'IDE', 'IDE w/ $W_L$', 'EMP']
     style_patches = [mlines.Line2D([], [], color = 'black', linestyle = style, linewidth = 1,
                                    label = sim_type)
                      for style, sim_type in zip(styles, sim_types)]
@@ -280,10 +326,10 @@ def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier
         x_label = r'$t$ (cycles)',
         x_unit = 2 * longest_pulse.pulse_center / longest_pulse.number_of_cycles,
         x_lower_limit = 0,
-        x_upper_limit = longest_pulse.pulse_center * 2,
+        x_upper_limit = longest_pulse.pulse_center,
         y_label = r'$\Gamma(t)$',
         y_lower_limit = 0,
-        y_upper_limit = 1,
+        y_upper_limit = 1.5,
         y_pad = 0,
         font_size_legend = 9,
         legend_kwargs = dict(
@@ -300,6 +346,9 @@ def make_comparison_plot(tdse_sims, ide_sims, sims_to_empirical, mesh_identifier
 
 if __name__ == '__main__':
     with LOGMAN as logger:
+        print(calculate_landau_critical_rate(2.4) / atomic_electric_field)
+        print(calculate_landau_critical_rate(2.06) / atomic_electric_field)
+
         tdse_sims, mesh_identifier = run_tdse_sims(
             amplitudes = np.array([.3, .5]) * atomic_electric_field,
             # amplitudes = np.array([.3]) * atomic_electric_field,
@@ -319,4 +368,5 @@ if __name__ == '__main__':
 
         for prefactor in (2.4, 2.06):
             sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
-            make_comparison_plot(tdse_sims, ide_sims, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)
+            ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
+            make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)

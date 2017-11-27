@@ -37,6 +37,34 @@ ANIMATOR_KWARGS = dict(
     fps = 30,
 )
 
+
+def analytic():
+    omega_b = ion.HydrogenBoundState(1, 0).energy / hbar
+    m = electron_mass
+    a = bohr_radius
+
+    thingy = (a ** 2) * m * omega_b
+
+    prefactor = 1j * 3 * (a ** 4) * m * pi / (16 * (((2 * (a ** 2) * m * omega_b) + hbar) ** 6))
+    first = 96 * (thingy ** 5)
+    second = 336 * (thingy ** 4) * hbar
+    third = 560 * (thingy ** 3) * (hbar ** 2)
+    fourth = 840 * (thingy ** 2) * (hbar ** 3)
+    fifth = -210 * thingy * (hbar ** 4)
+    sixth = -7 * (hbar ** 5)
+    seventh = 512 * np.sqrt(2) * (a ** 3) * omega_b * np.sqrt(-(m ** 3) * omega_b * (hbar ** 7))
+
+    # print(prefactor * first)
+    # print(prefactor * second)
+    # print(prefactor * third)
+    # print(prefactor * fourth)
+    # print(prefactor * fifth)
+    # print(prefactor * sixth)
+    # print(prefactor * seventh)
+
+    return prefactor * (first + second + third + fourth + fifth + sixth + seventh)
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
         omega_b = ion.HydrogenBoundState(1, 0).energy / hbar
@@ -76,7 +104,7 @@ if __name__ == '__main__':
 
         H_kernel_prefactor = (9 * pi * (bohr_radius ** 2)) / 32
         assert H_kernel(0) == H_kernel_prefactor
-        KH_from_simps = integ.simps(y = H_kernel(time_diffs),
+        KH_from_simps = integ.simps(y = 1j * H_kernel(time_diffs),
                                     x = time_diffs)
         print('KH', KH_from_simps)
         print('KH / tau_alpha / prefactor', KH_from_simps / tau_alpha / H_kernel_prefactor)
@@ -117,3 +145,5 @@ if __name__ == '__main__':
         print(2 * KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
         # print(KG_abs_per_tau_alpha / KH_abs_per_tau_alpha)
         # print(KH_abs_per_tau_alpha / KG_abs_per_tau_alpha)
+
+        # print(analytic() * ((electron_charge * atomic_electric_field / hbar) ** 2) * atomic_time)
