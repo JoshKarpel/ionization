@@ -273,7 +273,7 @@ class HydrogenBoundState(QuantumState):
         if int(m) == m and -self.l <= m <= self.l:
             self._m = int(m)
         else:
-            IllegalQuantumState('|m| (|{}|) must be less than l ({})'.format(m, self.l))
+            raise IllegalQuantumState('|m| (|{}|) must be less than or equal to l ({})'.format(m, self.l))
 
     @property
     def energy(self):
@@ -366,20 +366,17 @@ class HydrogenCoulombState(QuantumState):
         if any(int(x) != x for x in (l, m)):
             raise IllegalQuantumState('l and m must be integers')
 
-        if energy >= 0:
-            self._energy = energy
-        else:
+        if energy < 0:
             raise IllegalQuantumState('energy must be greater than zero')
+        self.energy = energy
 
-        if l >= 0:
-            self._l = int(l)
-        else:
+        if l < 0:
             raise IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
+        self.l = int(l)
 
-        if -l <= m <= l:
-            self._m = int(m)
-        else:
+        if not -l <= m <= l:
             raise IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
+        self.m = int(m)
 
     @classmethod
     def from_wavenumber(cls, k, l = 0, m = 0):
@@ -389,20 +386,8 @@ class HydrogenCoulombState(QuantumState):
         return cls(energy, l, m)
 
     @property
-    def energy(self):
-        return self._energy
-
-    @property
     def k(self):
         return core.electron_wavenumber_from_energy(self.energy)
-
-    @property
-    def l(self):
-        return self._l
-
-    @property
-    def m(self):
-        return self._m
 
     @property
     def spherical_harmonic(self):

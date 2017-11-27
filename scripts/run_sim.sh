@@ -12,8 +12,8 @@ tar -xzf ionization.tar.gz
 export PATH=$(pwd)/python/bin:$PATH
 echo "set python path"
 
-#export LDFLAGS="-L$(pwd)/python/lib $LDFLAGS"
-#echo "set LDFLAGS"
+export LDFLAGS="-L$(pwd)/python/lib $LDFLAGS"
+echo "set LDFLAGS"
 
 export C_INCLUDE_PATH="$(pwd)/python/include:$C_INCLUDE_PATH"
 echo "set C_INCLUDE_PATH"

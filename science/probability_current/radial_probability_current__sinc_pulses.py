@@ -40,7 +40,7 @@ def run_spec(spec):
         sim.plot_radial_probability_current_vs_time__combined(
             r_upper_limit = 15 * bohr_radius,
             t_lower_limit = -5 * sim.spec.electric_potential[0].pulse_width,
-            t_upper_limit = 15 * sim.spec.electric_potential[0].pulse_width
+            t_upper_limit = 10 * sim.spec.electric_potential[0].pulse_width
             **PLOT_KWARGS
         )
 
@@ -58,7 +58,7 @@ if __name__ == '__main__':
         pulse_time_bound = 20
         sim_time_bound = 23
 
-        dt = .5 * asec
+        dt = 1 * asec
         r_bound = 100 * bohr_radius
         r_points_per_br = 10
         l_bound = 500

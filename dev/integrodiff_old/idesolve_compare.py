@@ -114,7 +114,7 @@ def upper(x):
     return x
 
 
-def iterative(pulse, tb = 3, t_pts = 200, tols = (1e-3, 1e-6), processes = 2):
+def iterative(pulse, tb = 3, t_pts = 200, tols = (1e-3, 1e-6), maxiter = 100, processes = 2):
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
     t = np.linspace(-pulse.pulse_width * tb, pulse.pulse_width * tb, t_pts)
 
@@ -128,7 +128,7 @@ def iterative(pulse, tb = 3, t_pts = 200, tols = (1e-3, 1e-6), processes = 2):
         upper_bound = upper,
         f = f,
         global_error_tolerance = tol,
-        max_iterations = 200,
+        max_iterations = maxiter,
     ) for tol in tols]
 
     return si.utils.multi_map(run, solvers, processes = processes)
@@ -146,11 +146,12 @@ if __name__ == '__main__':
             tb = 3
             dts = [5 * asec, 1 * asec, .5 * asec, .1 * asec]
             tols = [1e-4, 1e-5, 1e-6]
-            pts = 200
+            maxiter = 400
+            pts = 100
 
             ident = f'pw={uround(pw, asec)}as__pts={pts}'
 
             rk4solvers = rk4(pulse, tb = tb, dts = dts)
-            idesolvers = iterative(pulse, tb = tb, t_pts = pts, tols = tols)
+            idesolvers = iterative(pulse, tb = tb, t_pts = pts, tols = tols, maxiter = maxiter)
 
             make_comparison_plot(ident, rk4solvers, idesolvers)

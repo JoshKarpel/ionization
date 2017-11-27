@@ -9,7 +9,7 @@ import scipy.optimize as opt
 import simulacra as si
 from simulacra.units import *
 
-from . import core
+from . import core, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -460,6 +460,9 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         :param amplitude: the amplitude of the electric field between start_time and end_time
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
+        if start_time >= end_time:
+            raise exceptions.InvalidPotentialParameter('end_time must be later than start_time')
+
         super().__init__(**kwargs)
 
         self.start_time = start_time
@@ -539,6 +542,9 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param phase: the phase of the electric field (0 corresponds to a sine wave)
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         """
+        if omega <= 0:
+            raise exceptions.InvalidPotentialParameter('omega must be positive')
+
         super().__init__(**kwargs)
 
         self.omega = omega
@@ -890,11 +896,18 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_min < 0:
+            raise exceptions.InvalidPotentialParameter('omega_min must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_min = omega_min
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
@@ -1092,7 +1105,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = np.array(t) - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1100,6 +1113,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Pulse Center', f'{uround(self.pulse_center, asec)} as | {uround(self.pulse_center, fsec, 3)} fs | {uround(self.pulse_center, atomic_time, 3)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
@@ -1136,11 +1150,18 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_carrier < 0:
+            raise exceptions.InvalidPotentialParameter('omega_carrier must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
@@ -1409,7 +1430,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1452,11 +1473,18 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center
         kwargs
         """
+        if pulse_width <= 0:
+            raise exceptions.InvalidPotentialParameter('pulse width must be positive')
+        if fluence < 0:
+            raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
+        if omega_carrier < 0:
+            raise exceptions.InvalidPotentialParameter('omega_carrier must be non-negative')
+
         super().__init__(**kwargs)
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase
+        self.phase = phase % twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
@@ -1615,7 +1643,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -1738,7 +1766,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
         tau = t - self.pulse_center
-        amp = self.get_electric_field_envelope(tau) * np.cos((self.omega_carrier * tau) + self.phase)
+        amp = self.get_electric_field_envelope(t) * np.cos((self.omega_carrier * tau) + self.phase)
 
         return amp * self.amplitude * super().get_electric_field_amplitude(tau)
 
@@ -2014,6 +2042,13 @@ class RadialCosineMask(Mask):
 
     def __init__(self, inner_radius = 50 * bohr_radius, outer_radius = 100 * bohr_radius, smoothness = 8):
         """Construct a RadialCosineMask from an inner radius, outer radius, and cosine 'smoothness' (the cosine will be raised to the 1/smoothness power)."""
+        if inner_radius < 0 or outer_radius < 0:
+            raise exceptions.InvalidMaskParameter('inner and outer radius must be non-negative')
+        if inner_radius >= outer_radius:
+            raise exceptions.InvalidMaskParameter('outer radius must be larger than inner radius')
+        if smoothness < 1:
+            raise exceptions.InvalidMaskParameter('smoothness must be greater than 1')
+
         super().__init__()
 
         self.inner_radius = inner_radius
@@ -2042,7 +2077,7 @@ class RadialCosineMask(Mask):
         :param kwargs: absorbs keyword arguments.
         :return: the value(s) of the mask at r
         """
-        return np.where(np.greater_equal(r, self.inner_radius) * np.less_equal(r, self.outer_radius),
+        return np.where(np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
                         np.abs(np.cos(0.5 * pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
                         np.where(np.greater_equal(r, self.outer_radius), 0, 1))
 
