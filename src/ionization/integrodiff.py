@@ -76,7 +76,7 @@ def _hydrogen_kernel_LEN_factory():
 
 def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
-    kernel_prefactor = 24 * (bohr_radius ** 7)
+    kernel_prefactor = 24 * (bohr_radius ** 7)  # TODO: WTF
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
         td_nonzero = kernel_func(time_difference)
@@ -472,6 +472,11 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         while self.time < self.spec.time_final:
             new_b, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.b, self.times, self.time_step)
+            dt = new_t - self.time
+
+            efield_amplitude = self.spec.electric_potential.get_electric_field_amplitude(self.time + (dt / 2))
+            new_b *= np.exp(-dt * self.spec.additional_decay_function(efield_amplitude))
+
             self.b.append(new_b)
             self.times.append(new_t)
             self.time_index += 1
@@ -634,6 +639,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             figman.name += postfix
 
 
+def return_zero(*args, **kwargs):
+    return 0
+
+
 class IntegroDifferentialEquationSpecification(si.Specification):
     """
     A Specification for an :class:`IntegroDifferentialEquationSimulation`.
@@ -666,6 +675,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  time_step_min = .01 * asec,
                  time_step_max = 10 * asec,
                  epsilon = 1e-6, error_on = 'db/dt', safety_factor = .98,
+                 additional_decay_function = None,
                  **kwargs):
         """
         The differential equation should be of the form
@@ -758,6 +768,10 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         self.error_on = error_on
 
         self.safety_factor = safety_factor
+
+        if additional_decay_function is None:
+            additional_decay_function = return_zero
+        self.additional_decay_function = additional_decay_function
 
     @property
     def test_omega(self):
