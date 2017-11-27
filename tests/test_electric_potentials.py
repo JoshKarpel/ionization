@@ -15,43 +15,43 @@ PULSE_TYPES = [
 ]
 
 
-@hyp.given(
-    omega = st.floats(min_value = 0, allow_nan = False, allow_infinity = False)
-)
-def test_can_construct_sine_wave_with_positive_omega(omega):
-    hyp.assume(omega > 0)
+class TestSineWave:
+    @hyp.given(
+        omega = st.floats(min_value = 0, allow_nan = False, allow_infinity = False)
+    )
+    def test_can_construct_with_positive_omega(self, omega):
+        hyp.assume(omega > 0)
 
-    ion.SineWave(omega = omega)
-
-
-@hyp.given(
-    omega = st.floats(max_value = 0, allow_nan = False, allow_infinity = False)
-)
-def test_cannot_construct_sine_wave_with_non_positive_omega(omega):
-    with pytest.raises(ion.InvalidPotentialParameter):
         ion.SineWave(omega = omega)
 
-
-@hyp.given(
-    start_time = st.floats(allow_nan = False, allow_infinity = False),
-    data = st.data(),
-)
-def test_can_construct_rectangle_with_start_time_earlier_than_end_time(start_time, data):
-    end_time = data.draw(st.floats(min_value = start_time))
-    hyp.assume(end_time > start_time)
-
-    ion.Rectangle(start_time = start_time, end_time = end_time)
+    @hyp.given(
+        omega = st.floats(max_value = 0, allow_nan = False, allow_infinity = False)
+    )
+    def test_cannot_construct_with_non_positive_omega(self, omega):
+        with pytest.raises(ion.InvalidPotentialParameter):
+            ion.SineWave(omega = omega)
 
 
-@hyp.given(
-    start_time = st.floats(allow_nan = False, allow_infinity = False),
-    data = st.data(),
-)
-def test_cannot_construct_rectangle_with_start_time_later_than_end_time(start_time, data):
-    end_time = data.draw(st.floats(max_value = start_time))
+class TestRectangle:
+    @hyp.given(
+        start_time = st.floats(allow_nan = False, allow_infinity = False),
+        data = st.data(),
+    )
+    def test_can_construct_with_start_time_earlier_than_end_time(self, start_time, data):
+        end_time = data.draw(st.floats(min_value = start_time))
+        hyp.assume(end_time > start_time)
 
-    with pytest.raises(ion.InvalidPotentialParameter):
         ion.Rectangle(start_time = start_time, end_time = end_time)
+
+    @hyp.given(
+        start_time = st.floats(allow_nan = False, allow_infinity = False),
+        data = st.data(),
+    )
+    def test_cannot_construct_with_start_time_later_than_end_time(self, start_time, data):
+        end_time = data.draw(st.floats(max_value = start_time))
+
+        with pytest.raises(ion.InvalidPotentialParameter):
+            ion.Rectangle(start_time = start_time, end_time = end_time)
 
 
 @pytest.mark.filterwarnings('ignore: overflow')
