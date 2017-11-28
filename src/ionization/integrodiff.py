@@ -83,11 +83,6 @@ def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(
     td_zero_with_prefactor = 9 * pi * (bohr_radius ** 2) / 32  # see Mathematica notebook HydrogenKernel for limit calculation
     return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor) * np.exp(1j * omega_b * time_difference)
 
-# def hydrogen_kernel_VEL_integrand_factory(alpha)
-#
-# def hydrogen_kernel_VEL(time_difference, *, alpha, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
-#     exp = np.exp(-1j * hbar * time_difference * )
-
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
     """
