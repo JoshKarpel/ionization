@@ -57,7 +57,7 @@ if __name__ == '__main__':
         orbit_time = twopi * atomic_time
 
         ## FIND ROOTS
-        imag_zero_at = optim.brentq(lambda td: np.imag(kernel(td * asec, omega)) / norm, 80, 110) * asec
+        imag_zero_at = optim.brentq(lambda td: np.imag(kernel(td * asec, omega)) / norm, 30, 70) * asec
         print(f'first imag zero of kernel is at {uround(imag_zero_at, asec)} as')
         print(f'ratio to tau alpha: {imag_zero_at / tau_alpha:.6f}')
 

@@ -86,30 +86,30 @@ if __name__ == '__main__':
 
         KG_from_simps = integ.simps(y = G_kernel(time_diffs) * np.exp(1j * omega_b * time_diffs),
                                     x = time_diffs)
-        print(G_kernel(0))
-        print('KG', KG_from_simps)
-        print('KG / tau_alpha', KG_from_simps / tau_alpha)
-        KG_abs_per_tau_alpha = np.abs(KG_from_simps / tau_alpha)
-        print(KG_abs_per_tau_alpha)
+        # print(G_kernel(0))
+        # print('KG', KG_from_simps)
+        # print('KG / tau_alpha', KG_from_simps / tau_alpha)
+        # KG_abs_per_tau_alpha = np.abs(KG_from_simps / tau_alpha)
+        # print(KG_abs_per_tau_alpha)
 
         H_kernel = ide.hydrogen_kernel_LEN
-        # print(bohr_radius ** 2 / (2 * pi))
-        # print(kernel(0))
-        # print(kernel(.01 * asec))
 
-        # print(tau_alpha / atomic_time)
-        # print(1 / omega_b / atomic_time)
-        # print(omega_b / atomic_angular_frequency)
-        # print(tau_alpha * omega_b)
-
-        H_kernel_prefactor = (9 * pi * (bohr_radius ** 2)) / 32
+        H_kernel_prefactor = (bohr_radius ** 2)
         assert H_kernel(0) == H_kernel_prefactor
-        KH_from_simps = integ.simps(y = 1j * H_kernel(time_diffs),
+        KH_from_simps = integ.simps(y = H_kernel(time_diffs),
                                     x = time_diffs)
-        print('KH', KH_from_simps)
-        print('KH / tau_alpha / prefactor', KH_from_simps / tau_alpha / H_kernel_prefactor)
-        KH_abs_per_tau_alpha_per_prefactor = np.abs(KH_from_simps / tau_alpha / H_kernel_prefactor)
-        print(KH_abs_per_tau_alpha_per_prefactor)
+
+        KH_per_atomic_time_per_prefactor = KH_from_simps / atomic_time / H_kernel_prefactor
+        KH_abs_per_atomic_time_per_prefactor = np.abs(KH_per_atomic_time_per_prefactor)
+        print('KH / atomic time / kernel prefactor', KH_per_atomic_time_per_prefactor)
+        print('Abs(KH) / atomic time / kernel prefactor', KH_abs_per_atomic_time_per_prefactor)
+
+        overall_prefactor = -(electron_charge ** 4) / (16 * (pi ** 2) * (hbar ** 2) * (epsilon_0 ** 2) * (bohr_radius ** 4))
+        gamma = overall_prefactor * KH_abs_per_atomic_time_per_prefactor * atomic_time * H_kernel_prefactor
+        print('gamma', gamma)
+
+        Gamma = 2 * gamma
+        print('Gamma / atomic time', Gamma * atomic_time)
 
         si.vis.xy_plot(
             'visualize',
@@ -126,7 +126,7 @@ if __name__ == '__main__':
             **PLOT_KWARGS
         )
 
-        generic_prefactor = (1 / (16 * (pi ** 2))) * ((proton_charge ** 4) / ((epsilon_0 * bohr_radius * hbar) ** 2))
+        # generic_prefactor = (1 / (16 * (pi ** 2))) * ((proton_charge ** 4) / ((epsilon_0 * bohr_radius * hbar) ** 2))
         # print(generic_prefactor)
         #
         # print(generic_prefactor * (np.sqrt(pi) * .87 * tau_alpha * asec))
@@ -139,10 +139,10 @@ if __name__ == '__main__':
         # print(gau_k0_times_pre)
         # print(hyd_k0_times_pre / gau_k0_times_pre)
         #
-        print(KG_abs_per_tau_alpha * np.sqrt(pi) * tau_alpha * generic_prefactor * atomic_time)
-        print(KH_abs_per_tau_alpha_per_prefactor * (H_kernel_prefactor / (bohr_radius ** 2)) * tau_alpha * generic_prefactor * atomic_time)
-        print(KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
-        print(2 * KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
+        # print(KG_abs_per_tau_alpha * np.sqrt(pi) * tau_alpha * generic_prefactor * atomic_time)
+        # print(KH_abs_per_tau_alpha_per_prefactor * (H_kernel_prefactor / (bohr_radius ** 2)) * tau_alpha * generic_prefactor * atomic_time)
+        # print(KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
+        # print(2 * KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
         # print(KG_abs_per_tau_alpha / KH_abs_per_tau_alpha)
         # print(KH_abs_per_tau_alpha / KG_abs_per_tau_alpha)
 

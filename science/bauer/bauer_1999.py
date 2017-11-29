@@ -155,12 +155,12 @@ def plot_ionization_rates():
         'ionization_rates_comparison',
         amplitudes,
         calculate_empirical_rate(amplitudes, prefactor = 2.4),
-        calculate_empirical_rate(amplitudes, prefactor = 2.06),
+        calculate_empirical_rate(amplitudes, prefactor = 1.03),
         calculate_landau_rate(amplitudes),
         calculate_keldysh_rate(amplitudes),
         line_labels = [
             '$ 2.4 \, \mathcal{E}(t)^2 $',
-            '$ 2.06 \, \mathcal{E}(t)^2 $',
+            '$ 1.03 \, \mathcal{E}(t)^2 $',
             '$W_L$',
             '$W_K$',
         ],
@@ -329,7 +329,7 @@ def make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sims_to_empir
         x_upper_limit = longest_pulse.pulse_center,
         y_label = r'$\Gamma(t)$',
         y_lower_limit = 0,
-        y_upper_limit = 1.5,
+        y_upper_limit = 1,
         y_pad = 0,
         font_size_legend = 9,
         legend_kwargs = dict(
@@ -347,26 +347,24 @@ def make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sims_to_empir
 if __name__ == '__main__':
     with LOGMAN as logger:
         print(calculate_landau_critical_rate(2.4) / atomic_electric_field)
-        print(calculate_landau_critical_rate(2.06) / atomic_electric_field)
+        print(calculate_landau_critical_rate(2.33) / atomic_electric_field)
 
         tdse_sims, mesh_identifier = run_tdse_sims(
             amplitudes = np.array([.3, .5]) * atomic_electric_field,
-            # amplitudes = np.array([.3]) * atomic_electric_field,
             number_of_cycleses = [6, 12],
-            # number_of_cycleses = [6],
             omegas = np.array([.2]) * atomic_angular_frequency,
-            r_bound = 120 * bohr_radius,
-            mask_inner = 100 * bohr_radius,
-            mask_outer = 120 * bohr_radius,
-            r_points = 1200,
-            l_points = 2000,
+            r_bound = 100 * bohr_radius,
+            mask_inner = 75 * bohr_radius,
+            mask_outer = 100 * bohr_radius,
+            r_points = 1000,
+            l_points = 500,
         )
 
         ide_sims, ide_time_step = run_ide_sims(tdse_sims)
 
         plot_ionization_rates()
 
-        for prefactor in (2.4, 2.06):
+        for prefactor in (2.4, 2.33):
             sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
             ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
             make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)

@@ -59,16 +59,16 @@ def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width,
 @si.utils.memoize
 def _hydrogen_kernel_LEN_factory():
     k = sym.Symbol('k', real = True)
-    t = sym.Symbol('t', real = True, positive = True)
+    td = sym.Symbol('td', real = True, positive = True)
     a = sym.Symbol('a', real = True, positive = True)
     m = sym.Symbol('m', real = True, positive = True)
     hb = sym.Symbol('hb', real = True, positive = True)
 
-    integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * t / (2 * m)))
+    integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * td / (2 * m)))
 
-    kernel = sym.integrate(integrand, (k, -sym.oo, sym.oo))
+    kernel = sym.integrate(integrand, (k, 0, sym.oo))
 
-    kernel_func = sym.lambdify((a, m, hb, t), kernel, modules = ['numpy', {'erfc': special.erfc}])
+    kernel_func = sym.lambdify((a, m, hb, td), kernel, modules = ['numpy', {'erfc': special.erfc}])
     kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
 
     return kernel_func
@@ -76,12 +76,12 @@ def _hydrogen_kernel_LEN_factory():
 
 def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
     kernel_func = _hydrogen_kernel_LEN_factory()
-    kernel_prefactor = 24 * (bohr_radius ** 7)  # TODO: WTF
+    kernel_prefactor = (512 / (3 * pi)) * (bohr_radius ** 7)
     with warnings.catch_warnings():
         warnings.simplefilter('ignore')
-        td_nonzero = kernel_func(time_difference)
-    td_zero_with_prefactor = 9 * pi * (bohr_radius ** 2) / 32  # see Mathematica notebook HydrogenKernel for limit calculation
-    return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor) * np.exp(1j * omega_b * time_difference)
+        td_nonzero = kernel_func(time_difference) * np.exp(1j * omega_b * time_difference)
+    td_zero_with_prefactor = bohr_radius ** 2  # see Mathematica notebooks for limit calculation
+    return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor)
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -393,7 +393,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         integrand_for_k3 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k3) * kernel_half
         integral_for_k3 = self.integrate(y = integrand_for_k3, x = times_half)
         k3 = self.spec.integral_prefactor * f_half * integral_for_k3
-        b_end_for_k4 = b_curr + (time_step * k3)  # estimate midpoint based on estimate of slope at midpoint
+        b_end_for_k4 = b_curr + (time_step * k3)
 
         integrand_for_k4 = np.append(fs_curr_times_b, f_next * b_end_for_k4) * kernel_next
         integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
