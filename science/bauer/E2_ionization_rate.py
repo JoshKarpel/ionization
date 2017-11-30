@@ -65,6 +65,27 @@ def analytic():
     return prefactor * (first + second + third + fourth + fifth + sixth + seventh)
 
 
+def HCC_kernel_STATIC(td, efield_0):
+    H_kernel = ide.hydrogen_kernel_LEN(td)
+
+    pre = (electron_charge ** 2) / (6 * electron_mass * hbar)
+    extra = np.exp(-1j * pre * (efield_0 ** 2) * (td ** 3))
+
+    return H_kernel * extra
+
+
+def HCC_kernel_SINE(td, efield_0, omega):
+    H_kernel = ide.hydrogen_kernel_LEN(td)
+
+    pre = (electron_charge ** 2) / (2 * electron_mass * hbar)
+    first = ((efield_0 / omega) ** 2) * td
+    second = -((efield_0 ** 2) / (omega ** 3)) * np.sin(omega * td)
+
+    extra = np.exp(-1j * pre * (first + second))
+
+    return H_kernel * extra
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
         omega_b = ion.HydrogenBoundState(1, 0).energy / hbar
@@ -109,7 +130,7 @@ if __name__ == '__main__':
         print('gamma', gamma)
 
         Gamma = 2 * gamma
-        print('Gamma / atomic time', Gamma * atomic_time)
+        print('Gamma * atomic time', Gamma * atomic_time)
 
         si.vis.xy_plot(
             'visualize',
@@ -126,24 +147,79 @@ if __name__ == '__main__':
             **PLOT_KWARGS
         )
 
-        # generic_prefactor = (1 / (16 * (pi ** 2))) * ((proton_charge ** 4) / ((epsilon_0 * bohr_radius * hbar) ** 2))
-        # print(generic_prefactor)
-        #
-        # print(generic_prefactor * (np.sqrt(pi) * .87 * tau_alpha * asec))
-        # print(generic_prefactor * (np.sqrt(pi) * .87 * tau_alpha * atomic_time))
-        #
-        # gaussian_prefactor = ide.gaussian_prefactor_LEN(bohr_radius, electron_charge)
-        # gau_k0_times_pre = gaussian_prefactor * ide.gaussian_kernel_LEN(0, tau_alpha = tau_alpha)
-        # hyd_k0_times_pre = -((electron_charge / hbar) ** 2) * H_kernel(0)
-        # print(hyd_k0_times_pre)
-        # print(gau_k0_times_pre)
-        # print(hyd_k0_times_pre / gau_k0_times_pre)
-        #
-        # print(KG_abs_per_tau_alpha * np.sqrt(pi) * tau_alpha * generic_prefactor * atomic_time)
-        # print(KH_abs_per_tau_alpha_per_prefactor * (H_kernel_prefactor / (bohr_radius ** 2)) * tau_alpha * generic_prefactor * atomic_time)
-        # print(KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
-        # print(2 * KH_abs_per_tau_alpha_per_prefactor * (9 * pi / 8))
-        # print(KG_abs_per_tau_alpha / KH_abs_per_tau_alpha)
-        # print(KH_abs_per_tau_alpha / KG_abs_per_tau_alpha)
+        # WITH EXTRA C-C TERM STATIC (SEE NOTEBOOK #3 P.103)
 
-        # print(analytic() * ((electron_charge * atomic_electric_field / hbar) ** 2) * atomic_time)
+        # plot_times = np.linspace(0, 1, 1000) * fsec
+        #
+        # si.vis.xy_plot(
+        #     'visualize_with_cc',
+        #     plot_times,
+        #     np.real(H_kernel(plot_times) / H_kernel_prefactor),
+        #     np.real(G_kernel(plot_times) * np.exp(1j * omega_b * plot_times)),
+        #     np.real(HCC_kernel(plot_times, 0) / H_kernel_prefactor),
+        #     np.real(HCC_kernel(plot_times, .01 * atomic_electric_field) / H_kernel_prefactor),
+        #     np.real(HCC_kernel(plot_times, .1 * atomic_electric_field) / H_kernel_prefactor),
+        #     np.real(HCC_kernel(plot_times, .5 * atomic_electric_field) / H_kernel_prefactor),
+        #     line_labels = [
+        #         'H',
+        #         'G',
+        #         'HCC, 0',
+        #         'HCC, 0.01',
+        #         'HCC, 0.1',
+        #         'HCC, 0.5',
+        #     ],
+        #     x_unit = 'fsec',
+        #     # y_lower_limit = -1,
+        #     # y_upper_limit = 1,
+        #     legend_on_right = True,
+        #     **PLOT_KWARGS
+        # )
+
+
+        print('-' * 40)
+
+        efield_0s = np.array([0, .01, .1, .3, .5, 1, 2]) * atomic_electric_field
+
+        for efield_0 in efield_0s:
+            KHCC_from_simps = integ.simps(y = HCC_kernel_STATIC(time_diffs, efield_0 = efield_0),
+                                          x = time_diffs)
+            KHCC_per_atomic_time_per_prefactor = KHCC_from_simps / atomic_time / H_kernel_prefactor
+            KHCC_abs_per_atomic_time_per_prefactor = np.abs(KHCC_per_atomic_time_per_prefactor)
+            KHCC_re_per_atomic_time_per_prefactor = np.real(KHCC_per_atomic_time_per_prefactor)
+
+            print('efield_0', uround(efield_0, atomic_electric_field))
+            print('KHCC / atomic time / kernel prefactor', KHCC_per_atomic_time_per_prefactor)
+            print('Abs(KHCC) / atomic time / kernel prefactor', KHCC_abs_per_atomic_time_per_prefactor)
+            print('Re(KHCC) / atomic time / kernel prefactor', KHCC_re_per_atomic_time_per_prefactor)
+
+            gamma = overall_prefactor * KHCC_re_per_atomic_time_per_prefactor * atomic_time * H_kernel_prefactor
+            # print('gamma', gamma)
+
+            Gamma = 2 * gamma
+            print('Gamma * atomic time', Gamma * atomic_time)
+            print()
+
+        # WITH EXTRA C-C TERM SINE WAVE (SEE NOTEBOOK #3 P.104)
+        print('-' * 40)
+
+        efield_0s = np.array([0, .01, .1, .3, .5, 1, 2]) * atomic_electric_field
+        omega = twopi * c / (800 * nm)
+
+        for efield_0 in efield_0s:
+            KHCC_from_simps = integ.simps(y = HCC_kernel_SINE(time_diffs, efield_0 = efield_0, omega = omega),
+                                          x = time_diffs)
+            KHCC_per_atomic_time_per_prefactor = KHCC_from_simps / atomic_time / H_kernel_prefactor
+            KHCC_abs_per_atomic_time_per_prefactor = np.abs(KHCC_per_atomic_time_per_prefactor)
+            KHCC_re_per_atomic_time_per_prefactor = np.real(KHCC_per_atomic_time_per_prefactor)
+
+            print('efield_0', uround(efield_0, atomic_electric_field))
+            print('KHCC / atomic time / kernel prefactor', KHCC_per_atomic_time_per_prefactor)
+            print('Abs(KHCC) / atomic time / kernel prefactor', KHCC_abs_per_atomic_time_per_prefactor)
+            print('Re(KHCC) / atomic time / kernel prefactor', KHCC_re_per_atomic_time_per_prefactor)
+
+            gamma = overall_prefactor * KHCC_re_per_atomic_time_per_prefactor * atomic_time * H_kernel_prefactor
+            # print('gamma', gamma)
+
+            Gamma = 2 * gamma
+            print('Gamma * atomic time', Gamma * atomic_time)
+            print()

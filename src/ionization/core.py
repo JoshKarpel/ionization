@@ -967,7 +967,7 @@ class ElectricFieldSimulation(si.Simulation):
                        x_lower_limit = 0, x_upper_limit = frequency_range,
                        **kwargs)
 
-    def save(self, target_dir = None, file_extension = '.sim', save_mesh = True, **kwargs):
+    def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
 
