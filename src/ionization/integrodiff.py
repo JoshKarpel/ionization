@@ -3,6 +3,7 @@ import collections
 import functools
 import datetime
 import warnings
+from abc import ABC, abstractmethod
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -82,6 +83,66 @@ def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(
         td_nonzero = kernel_func(time_difference) * np.exp(1j * omega_b * time_difference)
     td_zero_with_prefactor = bohr_radius ** 2  # see Mathematica notebooks for limit calculation
     return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor)
+
+
+class Kernel(ABC):
+    @abstractmethod
+    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
+        """
+        Parameters
+        ----------
+        current_time
+            The current time (i.e., t).
+        previous_time
+            The previous time (i.e., t').
+        electric_potential
+            The electric potential used in the simulation.
+        vector_potential
+            The interpolated vector potential of the electric potential.
+
+        Returns
+        -------
+            The value of the kernel K(t, t'; E, A)
+        """
+        raise NotImplementedError
+
+
+class LengthGaugeHydrogenBesselKernel(Kernel):
+    """The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge."""
+
+    def __init__(self, omega_b = states.HydrogenBoundState(1).energy / hbar):
+        self.omega_bound = omega_b
+        self.kernel_function = self._generate_kernel_function()
+
+        self.kernel_prefactor = (512 / (3 * pi)) * (bohr_radius ** 7)
+        self.kernel_time_difference_zero_limit = bohr_radius ** 2
+
+    def _generate_kernel_function(self):
+        k = sym.Symbol('k', real = True)
+        td = sym.Symbol('td', real = True, positive = True)
+        a = sym.Symbol('a', real = True, positive = True)
+        m = sym.Symbol('m', real = True, positive = True)
+        hb = sym.Symbol('hb', real = True, positive = True)
+
+        integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * td / (2 * m)))
+
+        kernel = sym.integrate(integrand, (k, 0, sym.oo))
+
+        kernel_func = sym.lambdify((a, m, hb, td), kernel, modules = ['numpy', {'erfc': special.erfc}])
+        kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
+
+        return kernel_func
+
+    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
+        time_difference = current_time - previous_time
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            td_nonzero = self.kernel_function(time_difference)
+            td_nonzero *= np.exp(1j * self.omega_bound * time_difference)
+            td_nonzero *= self.kernel_prefactor
+
+        return np.where(time_difference != 0, td_nonzero, self.kernel_time_difference_zero_limit)
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
