@@ -426,7 +426,7 @@ class ElectricFieldSimulation(si.Simulation):
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
                         self.latest_checkpoint_time = now
-                        logger.info(f'{self.__class__.__name__} {self.name} ({self.file_name}) checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
+                        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
                         self.status = si.Status.RUNNING
 
                 try:
@@ -967,7 +967,7 @@ class ElectricFieldSimulation(si.Simulation):
                        x_lower_limit = 0, x_upper_limit = frequency_range,
                        **kwargs)
 
-    def save(self, target_dir = None, file_extension = '.sim', save_mesh = True, **kwargs):
+    def save(self, target_dir = None, file_extension = '.sim', save_mesh = False, **kwargs):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
 
@@ -1185,7 +1185,10 @@ class ElectricFieldSpecification(si.Specification):
         info_analysis.add_field('Store Radial Position EV', self.store_radial_position_expectation_value)
         info_analysis.add_field('Store Dipole Moment EV', self.store_electric_dipole_moment_expectation_value)
         info_analysis.add_field('Store Energy EV', self.store_energy_expectation_value)
-        info_analysis.add_field('Store Radial Probability Current', self.store_radial_probability_current)
+        try:
+            info_analysis.add_field('Store Radial Probability Current', self.store_radial_probability_current)
+        except AttributeError:
+            pass
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
         info_analysis.add_field('Snapshot Times', (f'{uround(st, asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
@@ -2357,6 +2360,325 @@ class CylindricalSliceMesh(QuantumMesh):
 
             if not show_axes:
                 axis.axis('off')
+
+
+class WarpedCylindricalSliceSpecification(ElectricFieldSpecification):
+    def __init__(self, name,
+                 z_bound = 20 * bohr_radius, rho_bound = 20 * bohr_radius,
+                 z_points = 2 ** 9, rho_points = 2 ** 8,
+                 evolution_equations = 'HAM',
+                 evolution_method = 'CN',
+                 evolution_gauge = 'LEN',
+                 warping = 1,
+                 **kwargs):
+        super().__init__(name,
+                         mesh_type = WarpedCylindricalSliceMesh,
+                         evolution_equations = evolution_equations,
+                         evolution_method = evolution_method,
+                         evolution_gauge = evolution_gauge,
+                         **kwargs)
+
+        self.z_bound = z_bound
+        self.rho_bound = rho_bound
+        self.z_points = int(z_points)
+        self.rho_points = int(rho_points)
+
+        self.warping = warping
+
+    def info(self):
+        info = super().info()
+
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
+        info_mesh.add_field('Z Boundary', f'{uround(self.z_bound, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Z Points', self.z_points)
+        info_mesh.add_field('Z Mesh Spacing', f'~{uround(self.z_bound / self.z_points, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Rho Boundary', f'{uround(self.rho_bound, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Rho Points', self.rho_points)
+        info_mesh.add_field('Rho Mesh Spacing', f'~{uround(self.rho_bound / self.rho_points, bohr_radius, 3)} a_0')
+        info_mesh.add_field('Rho Warping', self.warping)
+        info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
+
+        info.add_info(info_mesh)
+
+        return info
+
+
+class WarpedCylindricalSliceMesh(QuantumMesh):
+    mesh_storage_method = ('z', 'rho')
+
+    def __init__(self, simulation):
+        super().__init__(simulation)
+
+        self.z = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
+        # self.rho = np.delete(np.linspace(0, self.spec.rho_bound, self.spec.rho_points + 1), 0)
+        self.chi_max = self.spec.rho_bound ** (1 / self.spec.warping)
+        self.chi = np.linspace(0, self.chi_max, self.spec.rho_points + 1)[1:]
+
+        self.delta_z = self.z[1] - self.z[0]
+        self.delta_chi = self.chi[1] - self.chi[0]
+        self.inner_product_multiplier = self.delta_z * self.delta_chi
+
+        self.z_center_index = int(self.spec.z_points // 2)
+
+        # self.z_mesh, self.rho_mesh = np.meshgrid(self.z, self.rho, indexing = 'ij')
+        self.g = self.get_g_for_state(self.spec.initial_state)
+
+        self.mesh_points = len(self.z) * len(self.chi)
+        self.matrix_operator_shape = (self.mesh_points, self.mesh_points)
+        self.mesh_shape = np.shape(self.r_mesh)
+
+    @property
+    @si.utils.memoize
+    def z_mesh(self):
+        return np.meshgrid(self.z, self.chi, indexing = 'ij')[0]
+
+    @property
+    @si.utils.memoize
+    def chi_mesh(self):
+        return np.meshgrid(self.z, self.chi, indexing = 'ij')[1]
+
+    @property
+    @si.utils.memoize
+    def rho_mesh(self):
+        return self.chi_mesh ** self.spec.warping
+
+    @property
+    def g_factor(self):
+        return np.sqrt(twopi * self.spec.warping) * (self.chi_mesh ** (self.spec.warping - 0.5))
+
+    @property
+    def r_mesh(self):
+        return np.sqrt((self.z_mesh ** 2) + (self.rho_mesh ** 2))
+
+    @property
+    def theta_mesh(self):
+        return np.arccos(self.z_mesh / self.r_mesh)
+
+    @property
+    def sin_theta_mesh(self):
+        return np.sin(self.theta_mesh)
+
+    @property
+    def cos_theta_mesh(self):
+        return np.cos(self.theta_mesh)
+
+    def flatten_mesh(self, mesh, flatten_along):
+        """Return a mesh flattened along one of the mesh coordinates ('z' or 'chi')."""
+        if flatten_along == 'z':
+            flat = 'F'
+        elif flatten_along == 'chi':
+            flat = 'C'
+        elif flatten_along is None:
+            return mesh
+        else:
+            raise ValueError("{} is not a valid specifier for flatten_along (valid specifiers: 'z', 'chi')".format(flatten_along))
+
+        return mesh.flatten(flat)
+
+    def wrap_vector(self, vector, wrap_along):
+        if wrap_along == 'z':
+            wrap = 'F'
+        elif wrap_along == 'chi':
+            wrap = 'C'
+        elif wrap_along is None:
+            return vector
+        else:
+            raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'chi')".format(wrap_along))
+
+        return np.reshape(vector, self.mesh_shape, wrap)
+
+    @si.utils.memoize
+    def get_g_for_state(self, state):
+        g = self.g_factor * state(self.r_mesh, self.theta_mesh, 0)
+        g /= np.sqrt(self.norm(g))
+        g *= state.amplitude
+
+        return g
+
+    def dipole_moment_inner_product(self, a = None, b = None):
+        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
+
+    def _get_kinetic_energy_matrix_operators_HAM(self):
+        """Get the mesh kinetic energy operator matrices for z and rho."""
+        z_prefactor = -(hbar ** 2) / (2 * self.spec.test_mass * (self.delta_z ** 2))
+        chi_prefactor = -(hbar ** 2) / (2 * self.spec.test_mass * (self.delta_chi ** 2))
+
+        z_diagonal = z_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
+        z_offdiagonal = z_prefactor * np.array([1 if (z_index + 1) % self.spec.z_points != 0 else 0 for z_index in range(self.mesh_points - 1)], dtype = np.complex128)
+
+        @si.utils.memoize
+        def c(j):
+            return j / np.sqrt((j ** 2) - 0.25)
+
+        chi_diagonal = chi_prefactor * ((-2 * np.ones(self.mesh_points, dtype = np.complex128)) + ((self.spec.warping - .5) ** 2))
+        chi_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        for rho_index in range(self.mesh_points - 1):
+            if (rho_index + 1) % self.spec.rho_points != 0:
+                j = (rho_index % self.spec.rho_points) + 1  # get j for the upper diagonal
+                chi_offdiagonal[rho_index] = c(j)
+        chi_offdiagonal *= chi_prefactor
+
+        z_kinetic = sparse.diags([z_offdiagonal, z_diagonal, z_offdiagonal], offsets = (-1, 0, 1))
+        rho_kinetic = sparse.diags([chi_offdiagonal, chi_diagonal, chi_offdiagonal], offsets = (-1, 0, 1))
+
+        return z_kinetic, rho_kinetic
+
+    @si.utils.memoize
+    def get_internal_hamiltonian_matrix_operators(self):
+        """Get the mesh internal Hamiltonian matrix operators for z and rho."""
+        kinetic_z, kinetic_rho = self.get_kinetic_energy_matrix_operators()
+        potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
+
+        kinetic_z = add_to_diagonal_sparse_matrix_diagonal(kinetic_z, value = 0.5 * self.flatten_mesh(potential_mesh, 'z'))
+        kinetic_rho = add_to_diagonal_sparse_matrix_diagonal(kinetic_rho, value = 0.5 * self.flatten_mesh(potential_mesh, 'rho'))
+
+        return kinetic_z, kinetic_rho
+
+    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+        """Get the interaction term calculated from the Lagrangian evolution equations."""
+        electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
+
+        interaction_hamiltonian_z = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'z'))
+        interaction_hamiltonian_rho = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'rho'))
+
+        return interaction_hamiltonian_z, interaction_hamiltonian_rho
+
+    def _get_interaction_hamiltonian_matrix_operators_VEL(self):
+        # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
+        raise NotImplementedError
+
+    def tg_mesh(self, use_abs_g = False):
+        hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
+
+        if use_abs_g:
+            g = np.abs(self.g)
+        else:
+            g = self.g
+
+        g_vector_z = self.flatten_mesh(g, 'z')
+        hg_vector_z = hamiltonian_z.dot(g_vector_z)
+        hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
+
+        g_vector_rho = self.flatten_mesh(g, 'rho')
+        hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
+        hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
+
+        return hg_mesh_z + hg_mesh_rho
+
+    def hg_mesh(self, include_interaction = False):
+        hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
+
+        g_vector_z = self.flatten_mesh(self.g, 'z')
+        hg_vector_z = hamiltonian_z.dot(g_vector_z)
+        hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
+
+        g_vector_rho = self.flatten_mesh(self.g, 'rho')
+        hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
+        hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
+
+        if include_interaction:
+            raise NotImplementedError
+
+        return hg_mesh_z + hg_mesh_rho
+
+    def energy_expectation_value(self, include_interaction = False):
+        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
+
+    @si.utils.memoize
+    def _get_probability_current_matrix_operators(self):
+        """Get the mesh probability current operators for z and rho."""
+        z_prefactor = hbar / (4 * pi * self.spec.test_mass * self.delta_rho * self.delta_z)
+        rho_prefactor = hbar / (4 * pi * self.spec.test_mass * (self.delta_rho ** 2))
+
+        # construct the diagonals of the z probability current matrix operator
+        z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        for z_index in range(0, self.mesh_points - 1):
+            if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
+                z_offdiagonal[z_index] = 0
+            else:
+                j = z_index // self.spec.z_points
+                z_offdiagonal[z_index] = 1 / (j + 0.5)
+        z_offdiagonal *= z_prefactor
+
+        @si.utils.memoize
+        def d(j):
+            return 1 / np.sqrt((j ** 2) - 0.25)
+
+        # construct the diagonals of the rho probability current matrix operator
+        rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+        for rho_index in range(0, self.mesh_points - 1):
+            if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
+                rho_offdiagonal[rho_index] = 0
+            else:
+                j = (rho_index % self.spec.rho_points) + 1
+                rho_offdiagonal[rho_index] = d(j)
+        rho_offdiagonal *= rho_prefactor
+
+        z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
+        rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
+
+        return z_current, rho_current
+
+    def get_probability_current_vector_field(self):
+        z_current, rho_current = self._get_probability_current_matrix_operators()
+
+        g_vector_z = self.flatten_mesh(self.g, 'z')
+        current_vector_z = z_current.dot(g_vector_z)
+        gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
+        current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
+
+        g_vector_rho = self.flatten_mesh(self.g, 'rho')
+        current_vector_rho = rho_current.dot(g_vector_rho)
+        gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
+        current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
+
+        return current_mesh_z, current_mesh_rho
+
+    def get_spline_for_mesh(self, mesh):
+        return sp.interp.RectBivariateSpline(self.z, self.rho, mesh)
+
+    def _evolve_CN(self, time_step):
+        """
+        Evolve the mesh forward in time by time_step.
+
+        Crank-Nicholson evolution in the Length gauge.
+
+        :param time_step:
+        :return:
+        """
+        tau = time_step / (2 * hbar)
+
+        hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
+        interaction_hamiltonian_z, interaction_hamiltonian_rho = self.get_interaction_hamiltonian_matrix_operators()
+
+        hamiltonian_z = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 0.5 * interaction_hamiltonian_z.diagonal())
+        hamiltonian_rho = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 0.5 * interaction_hamiltonian_rho.diagonal())
+
+        hamiltonian_rho_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_rho, value = 1)
+        hamiltonian_z_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 1)
+        hamiltonian_z_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_z, value = 1)
+        hamiltonian_rho_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 1)
+
+        operators = [
+            DotOperator(hamiltonian_rho_explicit, wrapping_direction = 'rho'),
+            TDMAOperator(hamiltonian_z_implicit, wrapping_direction = 'z'),
+            DotOperator(hamiltonian_z_explicit, wrapping_direction = 'z'),
+            TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = 'rho'),
+        ]
+
+        self.g = apply_operators(self, self.g, *operators)
+
+    @si.utils.memoize
+    def get_mesh_slicer(self, plot_limit = None):
+        """Returns a slice object that slices a mesh to the given distance of the center."""
+        if plot_limit is None:
+            mesh_slicer = (slice(None, None, 1), slice(None, None, 1))
+        else:
+            z_lim_points = round(plot_limit / self.delta_z)
+            rho_lim_points = round(plot_limit / self.delta_rho)
+            mesh_slicer = (slice(int(self.z_center_index - z_lim_points), int(self.z_center_index + z_lim_points + 1), 1), slice(0, int(rho_lim_points + 1), 1))
+
+        return mesh_slicer
 
 
 class SphericalSliceSpecification(ElectricFieldSpecification):

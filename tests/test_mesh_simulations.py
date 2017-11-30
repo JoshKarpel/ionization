@@ -5,7 +5,7 @@ import pytest
 import numpy as np
 
 import ionization as ion
-from simulacra.units import *
+import simulacra.units as u
 
 from . import testutils
 
@@ -73,12 +73,13 @@ def test_initial_norm_is_one_for_3d_meshes_with_numeric_eigenstates(initial_stat
         'test',
         initial_state = initial_state,
         time_initial = 0,
-        time_final = 100 * asec,
-        time_step = 1 * asec,
-        r_bound = 100 * bohr_radius,
+        time_final = 100 * u.asec,
+        time_step = 1 * u.asec,
+        r_bound = 100 * u.bohr_radius,
+        r_points = 500,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * eV,
+        numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_simulation()
 
@@ -96,12 +97,12 @@ def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_num
         evolution_gauge = 'LEN',
         evolution_method = 'CN',
         time_initial = 0,
-        time_final = 100 * asec,
-        time_step = 1 * asec,
-        r_bound = 100 * bohr_radius,
+        time_final = 100 * u.asec,
+        time_step = 1 * u.asec,
+        r_bound = 100 * u.bohr_radius,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * eV,
+        numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_simulation()
 
@@ -119,12 +120,13 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         evolution_gauge = 'LEN',
         evolution_method = 'CN',
         time_initial = 0,
-        time_final = 100 * asec,
-        time_step = 1 * asec,
-        r_bound = 100 * bohr_radius,
+        time_final = 100 * u.asec,
+        time_step = 1 * u.asec,
+        r_bound = 100 * u.bohr_radius,
+        r_points = 500,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * eV,
+        numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_simulation()
 
@@ -154,12 +156,13 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         evolution_gauge = evolution_gauge,
         evolution_method = 'SO',
         time_initial = 0,
-        time_final = 100 * asec,
-        time_step = 1 * asec,
-        r_bound = 100 * bohr_radius,
+        time_final = 100 * u.asec,
+        time_step = 1 * u.asec,
+        r_bound = 100 * u.bohr_radius,
+        r_points = 500,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * eV,
+        numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_simulation()
 

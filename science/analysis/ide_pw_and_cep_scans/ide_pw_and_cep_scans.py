@@ -79,5 +79,8 @@ def make_scans(jp_name, SCAN_ATTR):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        make_scans('ide__cep_scan__fast.job', 'phase')
-        make_scans('ide__pw_scan__fast.job', 'pulse_width')
+        # make_scans('ide__cep_scan__fast.job', 'phase')
+        # make_scans('ide__pw_scan__fast.job', 'pulse_width')
+        make_scans('emergency_ide_scan.job', 'pulse_width')
+        make_scans('emergency_ide_scan_2.job', 'pulse_width')
+        make_scans('emergency_ide_scan_3__amplitude_scan.job', 'pulse_width')
