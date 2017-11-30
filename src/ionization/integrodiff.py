@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.integrate as integrate
+import scipy.integrate as integ
 import scipy.special as special
 from tqdm import tqdm
 import sympy as sym
@@ -107,17 +107,17 @@ class Kernel(ABC):
         raise NotImplementedError
 
 
-class LengthGaugeHydrogenBesselKernel(Kernel):
+class LengthGaugeHydrogenKernel(Kernel):
     """The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge."""
 
     def __init__(self, omega_b = states.HydrogenBoundState(1).energy / hbar):
         self.omega_bound = omega_b
-        self.kernel_function = self._generate_kernel_function()
 
         self.kernel_prefactor = (512 / (3 * pi)) * (bohr_radius ** 7)
-        self.kernel_time_difference_zero_limit = bohr_radius ** 2
+        self.kernel_at_time_difference_zero_with_prefactor = bohr_radius ** 2
 
-    def _generate_kernel_function(self):
+    @si.utils.memoize
+    def _kernel_function(self):
         k = sym.Symbol('k', real = True)
         td = sym.Symbol('td', real = True, positive = True)
         a = sym.Symbol('a', real = True, positive = True)
@@ -128,7 +128,11 @@ class LengthGaugeHydrogenBesselKernel(Kernel):
 
         kernel = sym.integrate(integrand, (k, 0, sym.oo))
 
-        kernel_func = sym.lambdify((a, m, hb, td), kernel, modules = ['numpy', {'erfc': special.erfc}])
+        kernel_func = sym.lambdify(
+            (a, m, hb, td),
+            kernel,
+            modules = ['numpy', {'erfc': special.erfc}]
+        )
         kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
 
         return kernel_func
@@ -138,11 +142,42 @@ class LengthGaugeHydrogenBesselKernel(Kernel):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            td_nonzero = self.kernel_function(time_difference)
-            td_nonzero *= np.exp(1j * self.omega_bound * time_difference)
-            td_nonzero *= self.kernel_prefactor
+            kernel = self._kernel_function()(time_difference)
+            kernel *= np.exp(1j * self.omega_bound * time_difference)
+            kernel *= self.kernel_prefactor
 
-        return np.where(time_difference != 0, td_nonzero, self.kernel_time_difference_zero_limit)
+        return np.where(
+            time_difference != 0,
+            kernel,
+            self.kernel_at_time_difference_zero_with_prefactor
+        )
+
+
+class ApproximateLengthGaugeHydrogenKernel(LengthGaugeHydrogenKernel):
+    """
+    The kernel for the hydrogen ground state with plane wave continuum states.
+    This version uses an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
+    """
+
+    def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
+        pre = (electron_charge ** 2) / (2 * electron_mass * hbar)
+
+        def integrand(integration_time, previous_time):
+            return (vector_potential(integration_time) - vector_potential(previous_time)) ** 2
+
+        integral = integ.quadrature(
+            integrand,
+            previous_time,
+            current_time,
+            args = [previous_time],
+        )
+
+        return np.exp(-1j * pre * integral)
+
+    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
+        kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
+
+        return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -158,7 +193,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         The current number of time steps that have been solved for.
     b
         The solution of the IDE vs time (i.e., the bound state probability amplitude).
-    a2
+    b2
         The square of the absolute value of the solution vs time (i.e., the probability that the system is in the bound state).
     """
 
@@ -181,9 +216,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
         if self.spec.integration_method == 'simpson':
-            self.integrate = integrate.simps
+            self.integrate = integ.simps
         elif self.spec.integration_method == 'trapezoid':
-            self.integrate = integrate.trapz
+            self.integrate = integ.trapz
 
         if self.spec.evolution_gauge == 'LEN':
             self.f = self.spec.electric_potential.get_electric_field_amplitude
@@ -249,7 +284,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         #     integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
         # else:
         #     integral = vector_potential_vs_time * time_step
-        integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
+        integral = integ.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
         return -(self.spec.test_charge / self.spec.test_mass) * integral
 
     def evolve_FE(self, b, times, time_step):
