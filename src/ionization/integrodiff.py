@@ -9,8 +9,8 @@ import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy.integrate as integ
+import scipy.interpolate as interp
 import scipy.special as special
-from tqdm import tqdm
 import sympy as sym
 
 import simulacra as si
@@ -20,69 +20,6 @@ from . import core, potentials, states
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-
-def gaussian_tau_alpha_LEN(test_width, test_mass):
-    return 4 * test_mass * (test_width ** 2) / hbar
-
-
-def gaussian_prefactor_LEN(test_width, test_charge):
-    return -np.sqrt(pi) * (test_width ** 2) * ((test_charge / hbar) ** 2)
-
-
-def gaussian_tau_alpha_VEL(test_width, test_mass):
-    return 2 * test_mass * (test_width ** 2) / hbar
-
-
-def gaussian_prefactor_VEL(test_width, test_charge, test_mass):
-    return -((test_charge / test_mass) ** 2) / (4 * (test_width ** 2))
-
-
-def return_one(x, **kwargs):
-    return 1
-
-
-def gaussian_kernel_LEN(time_difference, *, tau_alpha, **kwargs):
-    return (1 + (1j * time_difference / tau_alpha)) ** (-1.5)
-
-
-def gaussian_kernel_VEL(time_difference, *, quiver_difference, tau_alpha, width, **kwargs):
-    time_diff_inner = 1 / (1 + (1j * time_difference / tau_alpha))
-    alpha_diff_inner = (quiver_difference / width) ** 2
-
-    exp = np.exp(-alpha_diff_inner * time_diff_inner / 8)
-    inv = time_diff_inner ** 1.5
-    diff = 1 - (.25 * alpha_diff_inner * time_diff_inner)
-
-    return exp * diff * inv
-
-
-@si.utils.memoize
-def _hydrogen_kernel_LEN_factory():
-    k = sym.Symbol('k', real = True)
-    td = sym.Symbol('td', real = True, positive = True)
-    a = sym.Symbol('a', real = True, positive = True)
-    m = sym.Symbol('m', real = True, positive = True)
-    hb = sym.Symbol('hb', real = True, positive = True)
-
-    integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * td / (2 * m)))
-
-    kernel = sym.integrate(integrand, (k, 0, sym.oo))
-
-    kernel_func = sym.lambdify((a, m, hb, td), kernel, modules = ['numpy', {'erfc': special.erfc}])
-    kernel_func = functools.partial(kernel_func, bohr_radius, electron_mass, hbar)
-
-    return kernel_func
-
-
-def hydrogen_kernel_LEN(time_difference, *, omega_b = states.HydrogenBoundState(1, 0).energy / hbar, **kwargs):
-    kernel_func = _hydrogen_kernel_LEN_factory()
-    kernel_prefactor = (512 / (3 * pi)) * (bohr_radius ** 7)
-    with warnings.catch_warnings():
-        warnings.simplefilter('ignore')
-        td_nonzero = kernel_func(time_difference) * np.exp(1j * omega_b * time_difference)
-    td_zero_with_prefactor = bohr_radius ** 2  # see Mathematica notebooks for limit calculation
-    return np.where(time_difference != 0, kernel_prefactor * td_nonzero, td_zero_with_prefactor)
 
 
 class Kernel(ABC):
@@ -106,15 +43,36 @@ class Kernel(ABC):
         """
         raise NotImplementedError
 
+    def info(self):
+        info = si.Info(header = f'Kernel: {self.__class__.__name__}')
+
+        return info
+
 
 class LengthGaugeHydrogenKernel(Kernel):
     """The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge."""
 
-    def __init__(self, omega_b = states.HydrogenBoundState(1).energy / hbar):
-        self.omega_bound = omega_b
+    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
+        self.bound_state_energy = bound_state_energy
+        self.omega_bound = bound_state_energy / hbar
 
         self.kernel_prefactor = (512 / (3 * pi)) * (bohr_radius ** 7)
         self.kernel_at_time_difference_zero_with_prefactor = bohr_radius ** 2
+
+    def __call__(self, time_current, time_previous, electric_potential, vector_potential):
+        time_difference = time_current - time_previous
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            kernel = self._kernel_function()(time_difference)
+            kernel *= np.exp(1j * self.omega_bound * time_difference)
+            kernel *= self.kernel_prefactor
+
+        return np.where(
+            time_difference != 0,
+            kernel,
+            self.kernel_at_time_difference_zero_with_prefactor
+        )
 
     @si.utils.memoize
     def _kernel_function(self):
@@ -137,20 +95,12 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         return kernel_func
 
-    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
-        time_difference = current_time - previous_time
+    def info(self):
+        info = super().info()
 
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            kernel = self._kernel_function()(time_difference)
-            kernel *= np.exp(1j * self.omega_bound * time_difference)
-            kernel *= self.kernel_prefactor
+        info.add_field('Bound State Energy', f'{uround(self.bound_state_energy, eV)} eV | {uround(self.bound_state_energy, hartree)} hartree')
 
-        return np.where(
-            time_difference != 0,
-            kernel,
-            self.kernel_at_time_difference_zero_with_prefactor
-        )
+        return info
 
 
 class ApproximateLengthGaugeHydrogenKernel(LengthGaugeHydrogenKernel):
@@ -158,6 +108,12 @@ class ApproximateLengthGaugeHydrogenKernel(LengthGaugeHydrogenKernel):
     The kernel for the hydrogen ground state with plane wave continuum states.
     This version uses an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
     """
+
+    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
+        # TODO: confirm the prefactor is the same
+        kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
+
+        return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
         pre = (electron_charge ** 2) / (2 * electron_mass * hbar)
@@ -174,10 +130,227 @@ class ApproximateLengthGaugeHydrogenKernel(LengthGaugeHydrogenKernel):
 
         return np.exp(-1j * pre * integral)
 
-    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
-        kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 
-        return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
+class EvolutionMethod(ABC):
+    @abstractmethod
+    def evolve(self, sim, b, times, time_step):
+        raise NotImplementedError
+
+    def info(self):
+        info = si.Info(header = f'Evolution Method: {self.__class__.__name__}')
+
+        return info
+
+
+class ForwardEulerMethod(EvolutionMethod):
+    def evolve(self, sim, b, times, time_step):
+        times = np.array(times)
+        time_curr = times[-1]
+
+        fs_curr = sim.f(times)
+        f_curr = fs_curr[-1]
+
+        kernel = sim.evaluate_kernel(time_curr, times)
+
+        integral = sim.integrate(
+            y = fs_curr * kernel * np.array(b),
+            x = times
+        )
+        derivative = sim.spec.integral_prefactor * f_curr * integral
+
+        b_next = b[-1] + (time_step * derivative)
+        t_next = time_curr + time_step
+
+        return b_next, t_next
+
+
+class BackwardEulerMethod(EvolutionMethod):
+    def evolve(self, sim, b, times, time_step):
+        times_next = np.array(times + [times[-1] + time_step])
+        times = np.array(times)
+
+        time_curr = times[-1]
+
+        fs_next = sim.f(times_next)
+        fs_curr = fs_next[:-1]
+        f_next = fs_next[-1]
+
+        kernel = sim.evaluate_kernel(time_curr + time_step, times)
+
+        integral = sim.integrate(
+            y = fs_curr * kernel * np.array(b),
+            x = times
+        )
+        derivative = sim.spec.integral_prefactor * f_next * integral
+
+        b_next = (b[-1] + (time_step * derivative)) / (1 - sim.spec.integral_prefactor * sim.evaluate_kernel(0, 0) * ((time_step * f_next) ** 2))
+        t_next = time_curr + time_step
+
+        return b_next, t_next
+
+
+class TrapezoidMethod(EvolutionMethod):
+    def evolve(self, sim, b, times, time_step):
+        times_next = np.array(times + [times[-1] + time_step])
+        times = np.array(times)
+        time_curr = times[-1]
+
+        fs_next = sim.f(times_next)
+        fs_curr = fs_next[:-1]
+        f_curr = fs_next[-2]
+        f_next = fs_next[-1]
+
+        fs_curr_times_b = fs_curr * np.array(b)
+
+        kernel_1 = sim.evaluate_kernel(time_curr + time_step, times)
+        integral_forward = sim.integrate(
+            y = fs_curr_times_b * kernel_1,
+            x = times
+        )
+        derivative_forward = sim.spec.integral_prefactor * f_next * integral_forward
+
+        kernel_2 = sim.evaluate_kernel(time_curr, times)
+        integral_backward = sim.integrate(
+            y = fs_curr_times_b * kernel_2,
+            x = times
+        )
+        derivative_backward = sim.spec.integral_prefactor * f_curr * integral_backward
+
+        b_next = (b[-1] + (time_step * (derivative_forward + derivative_backward) / 2))
+        b_next /= (1 - (.5 * sim.spec.integral_prefactor * sim.evaluate_kernel(0, 0) * ((time_step * f_next) ** 2)))
+
+        t_next = time_curr + time_step
+
+        return b_next, t_next
+
+
+class RungeKuttaFourMethod(EvolutionMethod):
+    def evolve(self, sim, b, times, time_step):
+        b_curr = b[-1]
+
+        time_curr = times[-1]
+        time_half = time_curr + (time_step / 2)
+        time_next = time_curr + time_step
+
+        times_half = np.array(times + [time_half])
+        times_next = np.array(times + [time_next])
+        times = np.array(times)
+
+        fs_half = sim.f(times_half)
+        f_half = fs_half[-1]
+
+        fs_next = sim.f(times_next)
+        f_next = fs_next[-1]
+        f_curr = fs_next[-2]
+        fs_curr = fs_next[:-1]
+
+        kernel_curr = sim.evaluate_kernel(time_curr, times)
+        kernel_half = sim.evaluate_kernel(time_half, times_half)
+        kernel_next = sim.evaluate_kernel(time_next, times_next)
+
+        fs_curr_times_b = fs_curr * np.array(b)
+
+        # integrate through the current time step
+        integrand_for_k1 = fs_curr_times_b * kernel_curr
+        integral_for_k1 = sim.integrate(y = integrand_for_k1, x = times)
+        k1 = sim.spec.integral_prefactor * f_curr * integral_for_k1
+        b_midpoint_for_k2 = b_curr + (time_step * k1 / 2)  # time_step / 2 here because we moved forward to midpoint
+
+        integrand_for_k2 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k2) * kernel_half
+        integral_for_k2 = sim.integrate(y = integrand_for_k2, x = times_half)
+        k2 = sim.spec.integral_prefactor * f_half * integral_for_k2  # time_step / 2 because it's half of an interval that we're integrating over
+        b_midpoint_for_k3 = b_curr + (time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
+
+        integrand_for_k3 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k3) * kernel_half
+        integral_for_k3 = sim.integrate(y = integrand_for_k3, x = times_half)
+        k3 = sim.spec.integral_prefactor * f_half * integral_for_k3
+        b_end_for_k4 = b_curr + (time_step * k3)
+
+        integrand_for_k4 = np.append(fs_curr_times_b, f_next * b_end_for_k4) * kernel_next
+        integral_for_k4 = sim.integrate(y = integrand_for_k4, x = times_next)
+        k4 = sim.spec.integral_prefactor * f_next * integral_for_k4
+
+        b_next = b_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
+        t_next = time_next
+
+        return b_next, t_next
+
+
+class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
+    def __init__(self,
+                 time_step_min = .01 * asec,
+                 time_step_max = 10 * asec,
+                 epsilon = 1e-6,
+                 error_on = 'db/dt',
+                 safety_factor = .98):
+        """
+        Parameters
+        ----------
+        time_step_min : :class:`float`
+            The minimum time step that can be used by the adaptive algorithm.
+        time_step_max : :class:`float`
+            The maximum time step that can be used by the adaptive algorithm.
+        epsilon : :class:`float`
+            The acceptable fractional error in the quantity specified by `error_on`.
+        error_on : {``'b'``, ``'db/dt'``}
+            Which quantity to control the fractional error in.
+        safety_factor : :class:`float`
+            The safety factor that new time steps are multiplicatively fudged by.
+        """
+        self.time_step_min = time_step_min
+        self.time_step_max = time_step_max
+        self.epsilon = epsilon
+        self.error_on = error_on
+        self.safety_factor = safety_factor
+
+    def evolve(self, sim, b, times, time_step):
+        b_full_step_estimate, _ = super().evolve(sim, b, times, time_step)
+
+        time_curr = times[-1]
+        time_half = time_curr + (time_step / 2)
+
+        a_half_step_estimate, _ = super().evolve(sim, b, times, time_step / 2)
+        a_double_step_estimate, _ = super().evolve(sim, b + [a_half_step_estimate], times + [time_half], time_step / 2)
+
+        delta_1 = a_double_step_estimate - b_full_step_estimate  # estimate truncation error from difference in estimates of a
+
+        if sim.spec.error_on == 'b':
+            delta_0 = self.epsilon * b[-1]
+        elif sim.spec.error_on == 'db/dt':
+            delta_0 = self.epsilon * (b[-1] - a_double_step_estimate)
+
+        ratio = np.abs(delta_0 / delta_1)
+
+        old_step = sim.time_step  # for log message
+        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or time_step == self.time_step_min:  # step was ok
+            if delta_1 != 0:  # don't adjust time step if truncation error is zero
+                sim.time_step = self.safety_factor * time_step * (ratio ** (1 / 5))
+
+            # ensure new time step is inside min and max allowable time steps
+            sim.time_step = min(self.time_step_max, sim.time_step)
+            sim.time_step = max(self.time_step_min, sim.time_step)
+
+            logger.debug(f'Accepted ARK4 step to {uround(times[-1] + time_step, asec, 6)} as. Changed time step to {uround(sim.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
+
+            return a_double_step_estimate + (delta_1 / 15), time_curr + time_step
+        else:  # reject step
+            sim.time_step = self.safety_factor * time_step * (ratio ** (1 / 4))  # set new time step
+            sim.time_step = min(self.time_step_max, sim.time_step)
+            sim.time_step = max(self.time_step_min, sim.time_step)
+
+            logger.debug(f'Rejected ARK4 step. Changed time step to {uround(sim.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
+            return self.evolve(sim, b, times, sim.time_step)  # retry with new time step
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Error Control On', self.error_on)
+        info.add_field('Epsilon', self.epsilon)
+        info.add_field('Safety Factor', self.safety_factor)
+        info.add_field('Minimum Time Step', f'{uround(self.time_step_min, asec, 3)} as')
+        info.add_field('Maximum Time Step', f'{uround(self.time_step_max, asec, 3)} as')
+
+        return info
 
 
 class IntegroDifferentialEquationSimulation(si.Simulation):
@@ -208,12 +381,19 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         self.b = [self.spec.b_initial]
 
+        time_range = self.spec.time_final - self.spec.time_initial
+        dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, int(time_range / self.time_step))
         if self.spec.electric_potential_dc_correction:
-            dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, 1000000)
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+
+        self.interpolated_vector_potential = interp.CubicSpline(
+            x = dummy_times,
+            y = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(dummy_times),
+            bc_type = 'natural',
+        )
 
         if self.spec.integration_method == 'simpson':
             self.integrate = integ.simps
@@ -241,317 +421,26 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     def b2(self):
         return np.abs(self.b) ** 2
 
-    def eval_kernel(self, time_difference, *, quiver_difference = None):
+    def evaluate_kernel(self, time_current, time_previous):
         """
         Calculate the values of the IDE kernel as a function of the time difference.
 
         Parameters
         ----------
-        time_difference
-            The time differences to evaluate the kernel at.
-        quiver_difference
-            The quiver motion differences to evaluate the kernel at. Only used for velocity-gauge kernels.
+        time_current
+        time_previous
 
         Returns
         -------
         kernel :
             The value of the kernel at the time differences.
         """
-        if self.spec.evolution_gauge == 'LEN':
-            return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
-        elif self.spec.evolution_gauge == 'VEL':  # if we're on velocity, f is the vector potential
-            return self.spec.kernel(time_difference, quiver_difference = quiver_difference, **self.spec.kernel_kwargs)
-
-    def eval_quiver_motion(self, vector_potential_vs_time, times, time_step):
-        """
-        Calculate the quiver motion as a function of time using cumulative trapezoid-rule integration.
-
-        Parameters
-        ----------
-        vector_potential_vs_time
-            The vector potential at each of the `times`.
-        times
-            The times to get the quiver motion at.
-        time_step
-            The time step (only used if `times` is a single time).
-
-        Returns
-        -------
-        quiver_motion_vs_time :
-            The quiver motion at each of the `times`.
-        """
-        # if len(times) != 1:
-        #     integral = integrate.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
-        # else:
-        #     integral = vector_potential_vs_time * time_step
-        integral = integ.cumtrapz(y = vector_potential_vs_time, x = times, initial = 0)
-        return -(self.spec.test_charge / self.spec.test_mass) * integral
-
-    def evolve_FE(self, b, times, time_step):
-        """
-        Evolve the IDE forward in time by `time_step` using the Forward Euler algorithm.
-
-        Parameters
-        ----------
-        b
-        times
-        time_step
-
-        Returns
-        -------
-
-        """
-        times = np.array(times)
-        time_curr = times[-1]
-
-        fs_curr = self.f(times)
-        f_curr = fs_curr[-1]
-
-        if self.spec.evolution_gauge == 'VEL':
-            quiver = self.eval_quiver_motion(self.f(times), times, time_step)
-            try:
-                qd = quiver[-1] - quiver
-            except IndexError:
-                qd = 0
-        else:
-            qd = None
-        kernel = self.eval_kernel(time_curr - times, quiver_difference = qd)
-
-        k = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr * kernel * np.array(b),
-                                                                   x = times)
-
-        b_next = b[-1] + (time_step * k)
-        t_next = time_curr + time_step
-
-        return b_next, t_next
-
-    def evolve_BE(self, b, times, time_step):
-        """
-        Evolve the IDE forward in time by `time_step` using the Backward Euler algorithm.
-
-        Parameters
-        ----------
-        b
-        times
-        time_step
-
-        Returns
-        -------
-
-        """
-        times_next = np.array(times + [times[-1] + time_step])
-        times = np.array(times)
-
-        time_curr = times[-1]
-
-        fs_next = self.f(times_next)
-        fs_curr = fs_next[:-1]
-        f_next = fs_next[-1]
-
-        if self.spec.evolution_gauge == 'VEL':
-            quiver = self.eval_quiver_motion(self.f(times_next), times_next, time_step)
-            try:
-                qd = quiver[-1] - quiver[:-1]
-            except IndexError:
-                qd = 0
-        else:
-            qd = None
-        kernel = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd)
-
-        k = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr * kernel * np.array(b),
-                                                                   x = times)
-
-        b_next = (b[-1] + (time_step * k)) / (1 - self.spec.integral_prefactor * self.eval_kernel(0) * ((time_step * f_next) ** 2))
-        t_next = time_curr + time_step
-
-        return b_next, t_next
-
-    def evolve_TRAP(self, b, times, time_step):
-        """
-        Evolve the IDE forward in time by `time_step` using the Trapezoidal algorithm.
-
-        Parameters
-        ----------
-        b
-        times
-        time_step
-
-        Returns
-        -------
-
-        """
-        times_next = np.array(times + [times[-1] + time_step])
-        times = np.array(times)
-        time_curr = times[-1]
-
-        fs_next = self.f(times_next)
-        fs_curr = fs_next[:-1]
-        f_curr = fs_next[-2]
-        f_next = fs_next[-1]
-
-        fs_curr_times_b = fs_curr * np.array(b)
-
-        if self.spec.evolution_gauge == 'VEL':
-            quiver_1 = self.eval_quiver_motion(self.f(times), times, time_step)
-            quiver_2 = self.eval_quiver_motion(self.f(times_next), times_next, time_step)
-            try:
-                qd_1 = quiver_1[-1] - quiver_1
-                qd_2 = quiver_2[-1] - quiver_2[:-1]
-            except IndexError:
-                qd_1 = 0
-                qd_2 = 0
-        else:
-            qd_1 = None
-            qd_2 = None
-
-        kernel_1 = self.eval_kernel(time_curr + time_step - times, quiver_difference = qd_1)
-        kernel_2 = self.eval_kernel(time_curr - times, quiver_difference = qd_2)
-
-        k_1 = self.spec.integral_prefactor * f_next * self.integrate(y = fs_curr_times_b * kernel_1,
-                                                                     x = times)
-        k_2 = self.spec.integral_prefactor * f_curr * self.integrate(y = fs_curr_times_b * kernel_2,
-                                                                     x = times)
-
-        b_next = (b[-1] + (time_step * (k_1 + k_2) / 2)) / (1 - (.5 * self.spec.integral_prefactor * self.eval_kernel(0) * ((time_step * f_next) ** 2)))
-        t_next = time_curr + time_step
-
-        return b_next, t_next
-
-    def evolve_RK4(self, b, times, time_step):
-        """
-        Evole the IDE forward in time by `time_step` using the fourth-order Runge-Kutta algorithm.
-
-        Parameters
-        ----------
-        b
-        times
-        time_step
-
-        Returns
-        -------
-
-        """
-        b_curr = b[-1]
-
-        time_curr = times[-1]
-        time_half = time_curr + (time_step / 2)
-        time_next = time_curr + time_step
-
-        times_half = np.array(times + [time_half])
-        times_next = np.array(times + [time_next])
-        times = np.array(times)
-
-        time_difference_curr = time_curr - times
-        time_difference_half = time_half - times_half
-        time_difference_next = time_next - times_next
-
-        fs_half = self.f(times_half)
-        f_half = fs_half[-1]
-
-        fs_next = self.f(times_next)
-        f_next = fs_next[-1]
-        f_curr = fs_next[-2]
-        fs_curr = fs_next[:-1]
-
-        if self.spec.evolution_gauge == 'VEL':
-            quiver_curr = self.eval_quiver_motion(self.f(times), times, time_step)
-            quiver_half = self.eval_quiver_motion(self.f(times_half), times_half, time_step)
-            quiver_next = self.eval_quiver_motion(self.f(times_next), times_next, time_step)
-            try:
-                qd_curr = quiver_curr[-1] - quiver_curr
-                qd_half = quiver_half[-1] - quiver_half
-                qd_next = quiver_next[-1] - quiver_next
-            except IndexError:
-                qd_curr = 0
-                qd_half = 0
-                qd_next = 0
-        else:
-            qd_curr = None
-            qd_half = None
-            qd_next = None
-        kernel_curr = self.eval_kernel(time_difference_curr, quiver_difference = qd_curr)
-        kernel_half = self.eval_kernel(time_difference_half, quiver_difference = qd_half)
-        kernel_next = self.eval_kernel(time_difference_next, quiver_difference = qd_next)
-
-        fs_curr_times_b = fs_curr * np.array(b)
-
-        # integrate through the current time step
-        integrand_for_k1 = fs_curr_times_b * kernel_curr
-        integral_for_k1 = self.integrate(y = integrand_for_k1, x = times)
-        k1 = self.spec.integral_prefactor * f_curr * integral_for_k1
-        b_midpoint_for_k2 = b_curr + (time_step * k1 / 2)  # time_step / 2 here because we moved forward to midpoint
-
-        integrand_for_k2 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k2) * kernel_half
-        integral_for_k2 = self.integrate(y = integrand_for_k2, x = times_half)
-        k2 = self.spec.integral_prefactor * f_half * integral_for_k2  # time_step / 2 because it's half of an interval that we're integrating over
-        b_midpoint_for_k3 = b_curr + (time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
-
-        integrand_for_k3 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k3) * kernel_half
-        integral_for_k3 = self.integrate(y = integrand_for_k3, x = times_half)
-        k3 = self.spec.integral_prefactor * f_half * integral_for_k3
-        b_end_for_k4 = b_curr + (time_step * k3)
-
-        integrand_for_k4 = np.append(fs_curr_times_b, f_next * b_end_for_k4) * kernel_next
-        integral_for_k4 = self.integrate(y = integrand_for_k4, x = times_next)
-        k4 = self.spec.integral_prefactor * f_next * integral_for_k4
-
-        b_next = b_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
-        t_next = time_next
-
-        return b_next, t_next
-
-    def evolve_ARK4(self, b, times, time_step):
-        """
-        Evolve the IDE forward in time by `time_step` using an adaptive-time-step fourth-order Runge-Kutta algorithm.
-
-        Parameters
-        ----------
-        b
-        times
-        time_step
-
-        Returns
-        -------
-
-        """
-        b_full_step_estimate, _ = self.evolve_RK4(b, times, time_step)
-
-        time_curr = times[-1]
-        time_half = time_curr + (time_step / 2)
-
-        a_half_step_estimate, _ = self.evolve_RK4(b, times, time_step / 2)
-        a_double_step_estimate, _ = self.evolve_RK4(b + [a_half_step_estimate], times + [time_half], time_step / 2)
-
-        delta_1 = a_double_step_estimate - b_full_step_estimate  # estimate truncation error from difference in estimates of a
-
-        if self.spec.error_on == 'b':
-            delta_0 = self.spec.epsilon * b[-1]
-        elif self.spec.error_on == 'db/dt':
-            delta_0 = self.spec.epsilon * (b[-1] - a_double_step_estimate)
-
-        ratio = np.abs(delta_0 / delta_1)
-
-        if ratio >= 1 or np.isinf(ratio) or np.isnan(ratio) or time_step == self.spec.time_step_min:  # step was ok
-            old_step = self.time_step  # for log message
-            if delta_1 != 0:  # don't adjust time step if truncation error is zero
-                self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 5))
-
-            # ensure new time step is inside min and max allowable time steps
-            self.time_step = min(self.spec.time_step_max, self.time_step)
-            self.time_step = max(self.spec.time_step_min, self.time_step)
-
-            logger.debug(f'Accepted ARK4 step to {uround(times[-1] + time_step, asec, 6)} as. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
-
-            return a_double_step_estimate + (delta_1 / 15), time_curr + time_step
-        else:  # reject step
-            old_step = self.time_step  # for log message
-
-            self.time_step = self.spec.safety_factor * time_step * (ratio ** (1 / 4))  # set new time step
-            self.time_step = min(self.spec.time_step_max, self.time_step)
-            self.time_step = max(self.spec.time_step_min, self.time_step)
-
-            logger.debug(f'Rejected ARK4 step. Changed time step to {uround(self.time_step, asec, 6)} as from {uround(old_step, asec, 6)} as')
-            return self.evolve_ARK4(b, times, self.time_step)  # retry with new time step
+        return self.spec.kernel(
+            time_current,
+            time_previous,
+            self.spec.electric_potential,
+            self.interpolated_vector_potential,
+        )
 
     def run_simulation(self, callback = None):
         """
@@ -567,7 +456,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.status = si.Status.RUNNING
 
         while self.time < self.spec.time_final:
-            new_b, new_t = getattr(self, f'evolve_{self.spec.evolution_method}')(self.b, self.times, self.time_step)
+            new_b, new_t = self.spec.evolution_method.evolve(self, self.b, self.times, self.time_step)
             dt = new_t - self.time
 
             efield_amplitude = self.spec.electric_potential.get_electric_field_amplitude(self.time + (dt / 2))
@@ -745,32 +634,22 @@ class IntegroDifferentialEquationSpecification(si.Specification):
     """
     simulation_type = IntegroDifferentialEquationSimulation
 
-    integration_method = si.utils.RestrictedValues('integration_method', ('simpson', 'trapezoid'))
-    evolution_method = si.utils.RestrictedValues('evolution_method', {'FE', 'BE', 'TRAP', 'RK4', 'ARK4'})
-    evolution_gauge = si.utils.RestrictedValues('evolution_gauge', {'LEN', 'VEL'})
-    error_on = si.utils.RestrictedValues('error_on', {'b', 'db/dt'})
-
     def __init__(self, name,
                  time_initial = 0 * asec,
                  time_final = 200 * asec,
                  time_step = 1 * asec,
                  test_mass = electron_mass,
                  test_charge = electron_charge,
-                 test_energy = states.HydrogenBoundState(1, 0).energy,
                  b_initial = 1,
                  integral_prefactor = -((electron_charge / hbar) ** 2),
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
-                 kernel = hydrogen_kernel_LEN,
-                 kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
+                 kernel = LengthGaugeHydrogenKernel(),
                  integration_method = 'simpson',
-                 evolution_method = 'RK4',
+                 evolution_method = RungeKuttaFourMethod(),
                  evolution_gauge = 'LEN',
                  checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
                  store_data_every = 1,
-                 time_step_min = .01 * asec,
-                 time_step_max = 10 * asec,
-                 epsilon = 1e-6, error_on = 'db/dt', safety_factor = .98,
                  additional_decay_function = None,
                  **kwargs):
         """
@@ -813,16 +692,6 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         checkpoint_every
         checkpoint_dir
         store_data_every
-        time_step_min : :class:`float`
-            The minimum time step that can be used by an adaptive algorithm.
-        time_step_max : :class:`float`
-            the maximum time step that can be used by an adaptive algorithm.
-        epsilon : :class:`float`
-            The acceptable fractional error in the quantity specified by `error_on`.
-        error_on : {``'b'``, ``'db/dt'``}
-            Which quantity to control the fractional error in.
-        safety_factor : :class:`float`
-            The safety factor that new time steps are multiplicatively fudged by.
         kwargs
         """
         super().__init__(name, **kwargs)
@@ -833,7 +702,6 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.test_mass = test_mass
         self.test_charge = test_charge
-        self.test_energy = test_energy
 
         self.b_initial = b_initial
 
@@ -843,9 +711,6 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         self.electric_potential_dc_correction = electric_potential_dc_correction
 
         self.kernel = kernel
-        self.kernel_kwargs = dict()
-        if kernel_kwargs is not None:
-            self.kernel_kwargs.update(kernel_kwargs)
 
         self.integration_method = integration_method
         self.evolution_method = evolution_method
@@ -857,25 +722,9 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.store_data_every = store_data_every
 
-        self.time_step_min = time_step_min
-        self.time_step_max = time_step_max
-
-        self.epsilon = epsilon
-        self.error_on = error_on
-
-        self.safety_factor = safety_factor
-
         if additional_decay_function is None:
             additional_decay_function = return_zero
         self.additional_decay_function = additional_decay_function
-
-    @property
-    def test_omega(self):
-        return self.test_energy / hbar
-
-    @property
-    def test_frequency(self):
-        return self.test_omega / twopi
 
     def info(self):
         info = super().info()
@@ -893,30 +742,23 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_checkpoint)
 
         info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
+        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec)} as | {uround(self.time_initial, atomic_time)} a.u.')
+        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec)} as | {uround(self.time_final, atomic_time)} a.u.')
+        info_evolution.add_field('Time Step', f'{uround(self.time_step, asec)} as | {uround(self.time_step, atomic_time)} a.u.')
 
         info.add_info(info_evolution)
 
         info_algorithm = si.Info(header = 'Evolution Algorithm')
         info_algorithm.add_field('Integration Method', self.integration_method)
-        info_algorithm.add_field('Evolution Method', self.evolution_method)
+        info_algorithm.add_info(self.evolution_method.info())
         info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
-        if self.evolution_method == 'ARK4':
-            info_algorithm.add_field('Error Control On', self.error_on)
-            info_algorithm.add_field('Epsilon', self.epsilon)
-            info_algorithm.add_field('Safety Factor', self.safety_factor)
-            info_algorithm.add_field('Time Step', f'{uround(self.time_step, asec, 3)} as')
-            info_algorithm.add_field('Minimum Time Step', f'{uround(self.time_step_min, asec, 3)} as')
-            info_algorithm.add_field('Maximum Time Step', f'{uround(self.time_step_max, asec, 3)} as')
 
         info.add_info(info_algorithm)
 
         info_ide = si.Info(header = 'IDE Parameters')
         info_ide.add_field('Initial State', f'a = {self.b_initial}')
-        info_ide.add_field('Bound State Energy', f'{uround(self.test_energy, eV)} eV')
         info_ide.add_field('Prefactor', self.integral_prefactor)
-        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+        info_ide.add_info(self.kernel.info())
         info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
 
         info_potential = self.electric_potential.info()
@@ -1235,137 +1077,136 @@ class DeltaKickSimulation(si.Simulation):
 
         return info
 
-
-class DeltaKickSpecification(si.Specification):
-    """
-    A Specification for an :class:`IntegroDifferentialEquationSimulation`.
-    """
-    simulation_type = DeltaKickSimulation
-
-    integration_method = si.utils.RestrictedValues('integration_method', ['simpson', 'trapezoid'])
-    pulse_decomposition_strategy = si.utils.RestrictedValues('pulse_decomposition_strategy', ['amplitude', 'fluence'])
-
-    def __init__(self, name,
-                 time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
-                 test_mass = electron_mass,
-                 test_charge = electron_charge,
-                 test_energy = states.HydrogenBoundState(1, 0).energy,
-                 b_initial = 1,
-                 integral_prefactor = -(electron_charge / hbar) ** 2,
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = False,
-                 kernel = hydrogen_kernel_LEN,
-                 kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
-                 evolution_gauge = 'LEN',
-                 **kwargs):
-        """
-        The differential equation should be of the form
-        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
-
-        Parameters
-        ----------
-        name : :class:`str`
-            The name for the simulation.
-        time_initial : :class:`float`
-            The initial time.
-        time_final : :class:`float`
-            The final time.
-        time_step : :class:`float`
-            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
-        test_mass : :class:`float`
-            The mass of the test particle.
-        test_charge : :class:`float`
-            The charge of the test particle.
-        b_initial
-            The initial value of a, the bound state probability amplitude.
-        integral_prefactor
-            The overall prefactor of the IDE.
-        electric_potential
-            The electric potential that provides ``f`` (either as the electric field or the vector potential).
-        electric_potential_dc_correction
-            If True, DC correction is performed on the electric field.
-        kernel
-            The kernel function of the IDE.
-        kernel_kwargs
-            Additional keyword arguments to pass to `kernel`.
-        integration_method : {``'trapz'``, ``'simps'``}
-            Which integration method to use, when applicable.
-        evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
-            Which evolution algorithm/method to use.
-        evolution_gauge : {``'LEN'``, ``'VEL'``}
-            Which gauge to perform time evolution in.
-        checkpoints
-        checkpoint_every
-        checkpoint_dir
-        store_data_every
-        time_step_minimum : :class:`float`
-            The minimum time step that can be used by an adaptive algorithm.
-        time_step_maximum : :class:`float`
-            the maximum time step that can be used by an adaptive algorithm.
-        epsilon : :class:`float`
-            The acceptable fractional error in the quantity specified by `error_on`.
-        error_on : {``'a'``, ``'da/dt'``}
-            Which quantity to control the fractional error in.
-        safety_factor : :class:`float`
-            The safety factor that new time steps are multiplicatively fudged by.
-        kwargs
-        """
-        super().__init__(name, **kwargs)
-
-        self.time_initial = time_initial
-        self.time_final = time_final
-        self.time_step = time_step
-
-        self.test_mass = test_mass
-        self.test_charge = test_charge
-        self.test_energy = test_energy
-
-        self.b_initial = b_initial
-
-        self.integral_prefactor = integral_prefactor
-
-        self.electric_potential = electric_potential
-        self.electric_potential_dc_correction = electric_potential_dc_correction
-
-        self.kernel = kernel
-        self.kernel_kwargs = dict()
-        if kernel_kwargs is not None:
-            self.kernel_kwargs.update(kernel_kwargs)
-
-        self.evolution_gauge = evolution_gauge
-
-    @property
-    def test_omega(self):
-        return self.test_energy / hbar
-
-    @property
-    def test_frequency(self):
-        return self.test_omega / twopi
-
-    def info(self):
-        info = super().info()
-
-        info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
-
-        info.add_info(info_evolution)
-
-        info_algorithm = si.Info(header = 'Evolution Algorithm')
-        info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
-
-        info.add_info(info_algorithm)
-
-        info_ide = si.Info(header = 'IDE Parameters')
-        info_ide.add_field('Initial State', f'a = {self.b_initial}')
-        info_ide.add_field('Prefactor', self.integral_prefactor)
-        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
-        info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
-
-        info_potential = self.electric_potential.info()
-        info_potential.header = 'Electric Potential: ' + info_potential.header
-        info_ide.add_info(info_potential)
-
-        info.add_info(info_ide)
-
-        return info
+# class DeltaKickSpecification(si.Specification):
+#     """
+#     A Specification for an :class:`IntegroDifferentialEquationSimulation`.
+#     """
+#     simulation_type = DeltaKickSimulation
+#
+#     integration_method = si.utils.RestrictedValues('integration_method', ['simpson', 'trapezoid'])
+#     pulse_decomposition_strategy = si.utils.RestrictedValues('pulse_decomposition_strategy', ['amplitude', 'fluence'])
+#
+#     def __init__(self, name,
+#                  time_initial = 0 * asec, time_final = 200 * asec, time_step = 1 * asec,
+#                  test_mass = electron_mass,
+#                  test_charge = electron_charge,
+#                  test_energy = states.HydrogenBoundState(1, 0).energy,
+#                  b_initial = 1,
+#                  integral_prefactor = -(electron_charge / hbar) ** 2,
+#                  electric_potential = potentials.NoElectricPotential(),
+#                  electric_potential_dc_correction = False,
+#                  kernel = hydrogen_kernel_LEN,
+#                  kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / hbar},
+#                  evolution_gauge = 'LEN',
+#                  **kwargs):
+#         """
+#         The differential equation should be of the form
+#         da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
+#
+#         Parameters
+#         ----------
+#         name : :class:`str`
+#             The name for the simulation.
+#         time_initial : :class:`float`
+#             The initial time.
+#         time_final : :class:`float`
+#             The final time.
+#         time_step : :class:`float`
+#             The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
+#         test_mass : :class:`float`
+#             The mass of the test particle.
+#         test_charge : :class:`float`
+#             The charge of the test particle.
+#         b_initial
+#             The initial value of a, the bound state probability amplitude.
+#         integral_prefactor
+#             The overall prefactor of the IDE.
+#         electric_potential
+#             The electric potential that provides ``f`` (either as the electric field or the vector potential).
+#         electric_potential_dc_correction
+#             If True, DC correction is performed on the electric field.
+#         kernel
+#             The kernel function of the IDE.
+#         kernel_kwargs
+#             Additional keyword arguments to pass to `kernel`.
+#         integration_method : {``'trapz'``, ``'simps'``}
+#             Which integration method to use, when applicable.
+#         evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
+#             Which evolution algorithm/method to use.
+#         evolution_gauge : {``'LEN'``, ``'VEL'``}
+#             Which gauge to perform time evolution in.
+#         checkpoints
+#         checkpoint_every
+#         checkpoint_dir
+#         store_data_every
+#         time_step_minimum : :class:`float`
+#             The minimum time step that can be used by an adaptive algorithm.
+#         time_step_maximum : :class:`float`
+#             the maximum time step that can be used by an adaptive algorithm.
+#         epsilon : :class:`float`
+#             The acceptable fractional error in the quantity specified by `error_on`.
+#         error_on : {``'a'``, ``'da/dt'``}
+#             Which quantity to control the fractional error in.
+#         safety_factor : :class:`float`
+#             The safety factor that new time steps are multiplicatively fudged by.
+#         kwargs
+#         """
+#         super().__init__(name, **kwargs)
+#
+#         self.time_initial = time_initial
+#         self.time_final = time_final
+#         self.time_step = time_step
+#
+#         self.test_mass = test_mass
+#         self.test_charge = test_charge
+#         self.test_energy = test_energy
+#
+#         self.b_initial = b_initial
+#
+#         self.integral_prefactor = integral_prefactor
+#
+#         self.electric_potential = electric_potential
+#         self.electric_potential_dc_correction = electric_potential_dc_correction
+#
+#         self.kernel = kernel
+#         self.kernel_kwargs = dict()
+#         if kernel_kwargs is not None:
+#             self.kernel_kwargs.update(kernel_kwargs)
+#
+#         self.evolution_gauge = evolution_gauge
+#
+#     @property
+#     def test_omega(self):
+#         return self.test_energy / hbar
+#
+#     @property
+#     def test_frequency(self):
+#         return self.test_omega / twopi
+#
+#     def info(self):
+#         info = super().info()
+#
+#         info_evolution = si.Info(header = 'Time Evolution')
+#         info_evolution.add_field('Initial Time', f'{uround(self.time_initial, asec, 3)} as')
+#         info_evolution.add_field('Final Time', f'{uround(self.time_final, asec, 3)} as')
+#
+#         info.add_info(info_evolution)
+#
+#         info_algorithm = si.Info(header = 'Evolution Algorithm')
+#         info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
+#
+#         info.add_info(info_algorithm)
+#
+#         info_ide = si.Info(header = 'IDE Parameters')
+#         info_ide.add_field('Initial State', f'a = {self.b_initial}')
+#         info_ide.add_field('Prefactor', self.integral_prefactor)
+#         info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+#         info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
+#
+#         info_potential = self.electric_potential.info()
+#         info_potential.header = 'Electric Potential: ' + info_potential.header
+#         info_ide.add_info(info_potential)
+#
+#         info.add_info(info_ide)
+#
+#         return info

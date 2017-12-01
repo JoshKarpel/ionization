@@ -26,14 +26,20 @@ PLOT_KWARGS = dict(
 
 def run(spec):
     with LOGMAN as logger:
-        # sim = spec.to_simulation()
+        sim = spec.to_simulation()
+
+        sim.run_simulation()
+
+        return sim
+
+
+def run_from_lib(spec):
+    with LOGMAN as logger:
         sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
 
         if sim.status != si.Status.FINISHED:
             sim.run_simulation()
             sim.save(target_dir = SIM_LIB)
-
-        # sim.plot_b2_vs_time(**PLOT_KWARGS)
 
         return sim
 
@@ -45,24 +51,16 @@ if __name__ == '__main__':
         dts = np.geomspace(.1, 20, 30) * asec
         methods = ['FE', 'BE', 'TRAP', 'RK4']
 
-        pw = 300 * asec
-        flu = 1 * Jcm2
+        pw = 50 * asec
+        flu = .1 * Jcm2
         cep = 0
-        tb = 5
+        tb = 3.5
         pulse = ion.GaussianPulse.from_number_of_cycles(
             pulse_width = pw,
             fluence = flu,
             phase = cep,
+            number_of_cycles = 3,
         )
-        # pulse = ion.SincPulse(
-        #     pulse_width = pw,
-        #     fluence = flu,
-        #     phase = cep,
-        #     window = ion.SymmetricExponentialTimeWindow(
-        #         window_time = (tb - 2) * pw,
-        #         window_width = .2 * pw
-        #     )
-        # )
 
         pulse_ident = f'{pulse.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}jcm2_cep={uround(cep, pi)}pi_tb={tb}'
 
@@ -72,9 +70,9 @@ if __name__ == '__main__':
             electric_potential = pulse,
             kernel = ide.hydrogen_kernel_LEN,
             kernel_kwargs = {'omega_b': ion.HydrogenBoundState(1, 0).energy / hbar},
-            checkpoints = True,
-            checkpoint_dir = SIM_LIB,
-            checkpoint_every = datetime.timedelta(minutes = 1),
+            # checkpoints = True,
+            # checkpoint_dir = SIM_LIB,
+            # checkpoint_every = datetime.timedelta(minutes = 1),
         )
 
         specs = []
@@ -88,8 +86,8 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
-        results_raw = si.utils.multi_map(run, specs, processes = 3)
-        results_by_method = {method: sorted([r for r in results_raw if r.spec.evolution_method == method], key = lambda x: x.spec.time_step) for method in methods}
+        results = si.utils.multi_map(run, specs, processes = 3)
+        results_by_method = {method: sorted([r for r in results if r.spec.evolution_method == method], key = lambda x: x.spec.time_step) for method in methods}
 
         b2_final_by_method = {method: np.array([r.b2[-1] for r in results]) for method, results in results_by_method.items()}
 
