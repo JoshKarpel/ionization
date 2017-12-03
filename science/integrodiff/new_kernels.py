@@ -72,19 +72,19 @@ if __name__ == '__main__':
             ),
         ]
 
-        # pulse = BauerGaussianPulse()
-        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
-            pulse_width = 100 * u.asec,
-            fluence = 2 * u.Jcm2,
-            phase = 0,
-            number_of_cycles = 3,
-        )
+        pulse = BauerGaussianPulse()
+        # pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
+        #     pulse_width = 100 * u.asec,
+        #     fluence = 2 * u.Jcm2,
+        #     phase = 0,
+        #     number_of_cycles = 3,
+        # )
 
         shared_kwargs = dict(
-            # time_initial = 0,
-            # time_final = 2 * pulse.pulse_center,
-            time_initial = -3.5 * pulse.pulse_width,
-            time_final = 3.5 * pulse.pulse_width,
+            time_initial = 0,
+            time_final = 2 * pulse.pulse_center,
+            # time_initial = -3.5 * pulse.pulse_width,
+            # time_final = 3.5 * pulse.pulse_width,
             time_step = 1 * u.asec,
             electric_potential = pulse,
             evolution_method = ide.ForwardEulerMethod(),
@@ -113,5 +113,7 @@ if __name__ == '__main__':
                 *[r.b2 for r in results]
             ],
             line_labels = [r.spec.kernel.__class__.__name__ for r in results],
+            x_unit = 'asec',
+            x_label = '$t$',
             **PLOT_KWARGS,
         )
