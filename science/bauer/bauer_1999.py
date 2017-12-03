@@ -16,7 +16,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches

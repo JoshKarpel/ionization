@@ -27,7 +27,7 @@ SPEC_TYPES_WITH_NUMERIC_EIGENSTATES = [
     ion.SphericalHarmonicSpecification,
 ]
 
-LOW_N_HYDROGEN_BOUND_STATES = [ion.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
+LOW_N_HYDROGEN_BOUND_STATES = [ion.states.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
 
 EVOLUTION_GAUGES = ['LEN', 'VEL']
 

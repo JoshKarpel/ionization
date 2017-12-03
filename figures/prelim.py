@@ -17,7 +17,7 @@ matplotlib.use('pgf')
 import simulacra as si
 import simulacra.cluster as clu
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 import ionization.cluster as iclu
 from simulacra.units import *
 

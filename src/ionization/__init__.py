@@ -1,5 +1,3 @@
-__all__ = ['core', 'potentials', 'states', 'animators']
-
 import os
 import logging
 
@@ -17,8 +15,9 @@ pyximport.install(setup_args = {"include_dirs": _np.get_include()},
                   language_level = 3)
 
 from .core import *
-from .potentials import *
-from .states import *
-from .exceptions import *
+from . import exceptions
 
+from . import potentials
+from . import states
 from . import animators
+from . import ide

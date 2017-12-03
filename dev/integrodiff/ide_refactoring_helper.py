@@ -7,7 +7,6 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -46,17 +45,17 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         dt = 1 * asec
         methods = [
-            ide.ForwardEulerMethod(),
-            ide.BackwardEulerMethod(),
-            ide.TrapezoidMethod(),
-            ide.RungeKuttaFourMethod(),
+            ion.ide.ForwardEulerMethod(),
+            ion.ide.BackwardEulerMethod(),
+            ion.ide.TrapezoidMethod(),
+            ion.ide.RungeKuttaFourMethod(),
         ]
 
         pw = 100 * asec
         flu = 2 * Jcm2
         cep = 0
         tb = 4
-        pulse = ion.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width = pw,
             fluence = flu,
             phase = cep,
@@ -68,12 +67,12 @@ if __name__ == '__main__':
             time_final = tb * pulse.pulse_width,
             time_step = dt,
             electric_potential = pulse,
-            kernel = ide.LengthGaugeHydrogenKernel(),
+            kernel = ion.ide.LengthGaugeHydrogenKernel(),
         )
 
         specs = []
         for method in methods:
-            spec = ide.IntegroDifferentialEquationSpecification(
+            spec = ion.ide.IntegroDifferentialEquationSpecification(
                 f'{method.__class__.__name__}',
                 evolution_method = method,
                 **shared_spec_kwargs
@@ -102,10 +101,10 @@ if __name__ == '__main__':
 
         method_to_final_b2 = {r.spec.evolution_method.__class__: r.b2[-1] for r in results}
         expected = {
-            ide.ForwardEulerMethod: 0.11392725334866653,
-            ide.BackwardEulerMethod: 0.10407548854993905,
-            ide.TrapezoidMethod: 0.10891475259299933,
-            ide.RungeKuttaFourMethod: 0.10898054046019617
+            ion.ide.ForwardEulerMethod: 0.11392725334866653,
+            ion.ide.BackwardEulerMethod: 0.10407548854993905,
+            ion.ide.TrapezoidMethod: 0.10891475259299933,
+            ion.ide.RungeKuttaFourMethod: 0.10898054046019617
         }
 
         summary = 'Results:\n'

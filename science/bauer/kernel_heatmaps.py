@@ -9,7 +9,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 
 from bauer_1999 import BauerGaussianPulse
 

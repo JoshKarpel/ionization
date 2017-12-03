@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-from . import core, integrodiff, jobutils
+from . import core, ide, jobutils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -253,7 +253,7 @@ class IDESimulationResult(PulseSimulationResult):
 
 
 class IDEJobProcessor(PulseJobProcessor):
-    simulation_type = integrodiff.IntegroDifferentialEquationSimulation
+    simulation_type = ide.IntegroDifferentialEquationSimulation
     simulation_result_type = IDESimulationResult
 
     ionization_metrics = ['final_bound_state_overlap']

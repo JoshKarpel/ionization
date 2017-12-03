@@ -1,6 +1,6 @@
-import functools as ft
-import itertools as it
 import logging
+import functools
+import itertools
 from copy import deepcopy
 
 import mpmath
@@ -12,15 +12,10 @@ import scipy.special as special
 import simulacra as si
 from simulacra.units import *
 
-from . import core
+from . import core, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-
-class IllegalQuantumState(si.SimulacraException):
-    """An exception indicating that a state with an illegal quantum number has been generated."""
-    pass
 
 
 class QuantumState(si.Summand):
@@ -71,7 +66,7 @@ class QuantumState(si.Summand):
 
     @property
     def tuple(self):
-        """This property should return a tuple of unique information about the state, which will be used to hash it or perform comparison operations."""
+        """This property should return a tuple of unique information about the state, which will be used to hash itertools or perform comparison operations."""
         raise NotImplementedError
 
     def __hash__(self):
@@ -142,19 +137,19 @@ class FreeSphericalWave(QuantumState):
         super().__init__(amplitude = amplitude)
 
         if any(int(x) != x for x in (l, m)):
-            raise IllegalQuantumState('l and m must be integers')
+            raise exceptions.IllegalQuantumState('l and m must be integers')
 
         self.energy = energy
 
         if l >= 0:
             self._l = l
         else:
-            raise IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
+            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
 
         if -l <= m <= l:
             self._m = m
         else:
-            raise IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
+            raise exceptions.IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
 
     @classmethod
     def from_wavenumber(cls, k, l = 0, m = 0):
@@ -249,7 +244,7 @@ class HydrogenBoundState(QuantumState):
         if 0 < n == int(n):
             self._n = int(n)
         else:
-            raise IllegalQuantumState('n ({}) must be an integer greater than zero'.format(n))
+            raise exceptions.IllegalQuantumState('n ({}) must be an integer greater than zero'.format(n))
 
     @property
     def l(self):
@@ -261,7 +256,7 @@ class HydrogenBoundState(QuantumState):
         if int(l) == l and 0 <= l < self.n:
             self._l = int(l)
         else:
-            raise IllegalQuantumState('l ({}) must be greater than or equal to zero and less than n ({})'.format(l, self.n))
+            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero and less than n ({})'.format(l, self.n))
 
     @property
     def m(self):
@@ -273,7 +268,7 @@ class HydrogenBoundState(QuantumState):
         if int(m) == m and -self.l <= m <= self.l:
             self._m = int(m)
         else:
-            raise IllegalQuantumState('|m| (|{}|) must be less than or equal to l ({})'.format(m, self.l))
+            raise exceptions.IllegalQuantumState('|m| (|{}|) must be less than or equal to l ({})'.format(m, self.l))
 
     @property
     def energy(self):
@@ -364,18 +359,18 @@ class HydrogenCoulombState(QuantumState):
         super().__init__(amplitude = amplitude)
 
         if any(int(x) != x for x in (l, m)):
-            raise IllegalQuantumState('l and m must be integers')
+            raise exceptions.IllegalQuantumState('l and m must be integers')
 
         if energy < 0:
-            raise IllegalQuantumState('energy must be greater than zero')
+            raise exceptions.IllegalQuantumState('energy must be greater than zero')
         self.energy = energy
 
         if l < 0:
-            raise IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
+            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
         self.l = int(l)
 
         if not -l <= m <= l:
-            raise IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
+            raise exceptions.IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
         self.m = int(m)
 
     @classmethod
@@ -427,7 +422,7 @@ class HydrogenCoulombState(QuantumState):
 
             a = self.l + 1 - kappa
             b = 2 * (self.l + 1)
-            hgf = ft.partial(mpmath.hyp1f1, a, b)  # construct a partial function, with a and b filled in
+            hgf = functools.partial(mpmath.hyp1f1, a, b)  # construct a partial function, with a and b filled in
             hgf = np.vectorize(hgf, otypes = [np.complex128])  # vectorize using numpy
 
             A = (kappa ** (-((2 * self.l) + 1))) * special.gamma(1 + self.l + kappa) / special.gamma(kappa - self.l)
@@ -443,7 +438,7 @@ class HydrogenCoulombState(QuantumState):
         elif epsilon == 0:
             bessel_order = (2 * self.l) + 1
             prefactor = unit_prefactor
-            bessel = ft.partial(special.jv, bessel_order)  # construct a partial function with the Bessel function order filled in
+            bessel = functools.partial(special.jv, bessel_order)  # construct a partial function with the Bessel function order filled in
 
             return self.amplitude * prefactor * bessel(np.sqrt(8 * x)) * np.sqrt(x) / r
 
@@ -780,7 +775,7 @@ class FiniteSquareWellState(QuantumState):
         z_0 = (well_width / 2) * np.sqrt(2 * mass * well_depth) / hbar
 
         if n - 1 > z_0 // (pi / 2):
-            raise IllegalQuantumState('There is no bound state with the given parameters')
+            raise exceptions.IllegalQuantumState('There is no bound state with the given parameters')
 
         left_bound = (n - 1) * pi / 2
         right_bound = min(z_0, left_bound + (pi / 2))
@@ -863,10 +858,10 @@ class FiniteSquareWellState(QuantumState):
         :return: a list of FiniteSquareWell instances
         """
         states = []
-        for n in it.count(1):
+        for n in itertools.count(1):
             try:
                 states.append(cls(well_depth, well_width, mass, n = n, well_center = well_center, amplitude = amplitude))
-            except IllegalQuantumState:
+            except exceptions.IllegalQuantumState:
                 return states
 
     @classmethod
@@ -952,7 +947,7 @@ class GaussianWellState(QuantumState):
 
         max_n = np.ceil(2 * np.sqrt(2 * mass * self.well_depth / (pi * (hbar ** 2))) * well_width) + 0.5
         if n > max_n:
-            raise IllegalQuantumState('Bound state energy must be less than zero')
+            raise exceptions.IllegalQuantumState('Bound state energy must be less than zero')
 
         self.width = optimize.newton(lambda w: ((w ** 4) / (((well_width ** 2) + (w ** 2)) ** 1.5)) - ((hbar ** 2) / (4 * mass * well_width * self.well_depth)), well_width)
         self.energy = -(well_width * self.well_depth / np.sqrt(((well_width ** 2) + (self.width ** 2))) + ((hbar ** 2) / (8 * mass * (self.width ** 2))))
