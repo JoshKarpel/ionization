@@ -54,8 +54,6 @@ class LengthGaugeHydrogenKernel(Kernel):
         self.kernel_prefactor = (512 / (3 * u.pi)) * (u.bohr_radius ** 7)
         self.kernel_at_time_difference_zero_with_prefactor = u.bohr_radius ** 2
 
-        self.kernel_function = self._generate_kernel_function()
-
     def __call__(self, time_current, time_previous, electric_potential, vector_potential):
         time_difference = time_current - time_previous
 
@@ -71,7 +69,9 @@ class LengthGaugeHydrogenKernel(Kernel):
             self.kernel_at_time_difference_zero_with_prefactor
         )
 
-    def _generate_kernel_function(self):
+    @property
+    @si.utils.memoize
+    def kernel_function(self):
         k = sym.Symbol('k', real = True)
         td = sym.Symbol('td', real = True, positive = True)
         a = sym.Symbol('a', real = True, positive = True)
@@ -99,29 +99,39 @@ class LengthGaugeHydrogenKernel(Kernel):
         return info
 
 
-class ApproximateLengthGaugeHydrogenKernel(LengthGaugeHydrogenKernel):
+class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
     """
     The kernel for the hydrogen ground state with plane wave continuum states.
     This version uses an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
     """
 
+    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy, integration_method = integ.quadrature, integration_kwargs = {}):
+        super().__init__(bound_state_energy = bound_state_energy)
+
+        self.integration_method = integration_method
+        self.integration_kwargs = integration_kwargs
+
+        self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
+
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         # TODO: confirm the prefactor is the same
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 
-        return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
+        return kernel * self._vector_potential_phase_factor(self, current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
-        pre = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
+        vp_previous = vector_potential(previous_time)
 
-        def integrand(integration_time, previous_time):
-            return (vector_potential(integration_time) - vector_potential(previous_time)) ** 2
+        def integrand(integration_time):
+            return (vector_potential(integration_time) - vp_previous) ** 2
 
-        integral = integ.quadrature(
+        integral, *errs = self.integration_method(
             integrand,
             previous_time,
             current_time,
-            args = [previous_time],
+            **self.integration_kwargs,
         )
 
-        return np.exp(-1j * pre * integral)
+        return np.exp(-1j * self.phase_prefactor * integral)
+
+    _vector_potential_phase_factor = np.vectorize(_vector_potential_phase_factor, otypes = [np.complex128])

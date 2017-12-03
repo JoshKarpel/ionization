@@ -119,8 +119,6 @@ class Superposition(si.Sum, QuantumState):
 class FreeSphericalWave(QuantumState):
     """A class that represents a free spherical wave."""
 
-    energy = si.utils.Checked('energy', check = lambda x: x > 0)
-
     bound = False
     discrete_eigenvalues = False
     analytic = True

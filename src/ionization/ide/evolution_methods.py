@@ -1,4 +1,5 @@
 import logging
+import enum
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -8,6 +9,11 @@ import simulacra.units as u
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+
+class TimeStepType(enum.Enum):
+    FIXED = 'fixed'
+    ADAPTIVE = 'adaptive'
 
 
 class EvolutionMethod(ABC):
@@ -22,6 +28,8 @@ class EvolutionMethod(ABC):
 
 
 class ForwardEulerMethod(EvolutionMethod):
+    time_step_type = TimeStepType.FIXED
+
     def evolve(self, sim, b, times, time_step):
         times = np.array(times)
         time_curr = times[-1]
@@ -44,6 +52,8 @@ class ForwardEulerMethod(EvolutionMethod):
 
 
 class BackwardEulerMethod(EvolutionMethod):
+    time_step_type = TimeStepType.FIXED
+
     def evolve(self, sim, b, times, time_step):
         times_next = np.array(times + [times[-1] + time_step])
         times = np.array(times)
@@ -69,6 +79,8 @@ class BackwardEulerMethod(EvolutionMethod):
 
 
 class TrapezoidMethod(EvolutionMethod):
+    time_step_type = TimeStepType.FIXED
+
     def evolve(self, sim, b, times, time_step):
         times_next = np.array(times + [times[-1] + time_step])
         times = np.array(times)
@@ -104,6 +116,8 @@ class TrapezoidMethod(EvolutionMethod):
 
 
 class RungeKuttaFourMethod(EvolutionMethod):
+    time_step_type = TimeStepType.FIXED
+
     def evolve(self, sim, b, times, time_step):
         b_curr = b[-1]
 
@@ -156,6 +170,8 @@ class RungeKuttaFourMethod(EvolutionMethod):
 
 
 class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
+    time_step_type = TimeStepType.ADAPTIVE
+
     def __init__(self,
                  time_step_min = .01 * u.asec,
                  time_step_max = 10 * u.asec,

@@ -160,7 +160,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def attach_electric_potential_plot_to_axis(self,
                                                axis,
-                                               time_unit = 'u.asec',
+                                               time_unit = 'asec',
                                                legend_kwargs = None,
                                                show_y_label = False,
                                                show_electric_field = True,
@@ -212,11 +212,11 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def plot_b2_vs_time(self,
                         log = False,
-                        time_unit = 'u.asec',
+                        time_unit = 'asec',
                         show_vector_potential = False,
                         show_title = False,
                         **kwargs):
-        with si.vis.FigureManager(self.file_name + '__a2_vs_time', **kwargs) as figman:
+        with si.vis.FigureManager(self.file_name + '__b2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
             t_scale_unit, t_scale_name = u.get_unit_value_and_latex_from_unit(time_unit)

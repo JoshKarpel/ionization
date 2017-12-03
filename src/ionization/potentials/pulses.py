@@ -23,7 +23,7 @@ class UniformLinearlyPolarizedElectricPotential(potentials.PotentialEnergy):
         self.window = window
 
     def __str__(self):
-        return ' with {}'.format(self.window)
+        return f' with {self.window}'
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""

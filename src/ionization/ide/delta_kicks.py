@@ -169,7 +169,7 @@ class DeltaKickSimulation(si.Simulation):
 
     def attach_electric_potential_plot_to_axis(self,
                                                axis,
-                                               time_unit = 'u.asec',
+                                               time_unit = 'asec',
                                                legend_kwargs = None,
                                                show_y_label = False,
                                                show_electric_field = True,
@@ -231,7 +231,7 @@ class DeltaKickSimulation(si.Simulation):
 
     def plot_b2_vs_time(self,
                         log = False,
-                        time_unit = 'u.asec',
+                        time_unit = 'asec',
                         show_vector_potential = False,
                         show_title = False,
                         y_lower_limit = 0,
