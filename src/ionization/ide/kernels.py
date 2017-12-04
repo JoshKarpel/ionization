@@ -117,21 +117,32 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         # TODO: confirm the prefactor is the same
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 
-        return kernel * self._vector_potential_phase_factor(self, current_time, previous_time, vector_potential)
+        return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
         vp_previous = vector_potential(previous_time)
+        vp_current = vector_potential(current_time)
 
-        def integrand(integration_time):
-            return (vector_potential(integration_time) - vp_previous) ** 2
+        integrand = (vp_current - vp_previous) ** 2
 
-        integral, *errs = self.integration_method(
-            integrand,
-            previous_time,
-            current_time,
-            **self.integration_kwargs,
+        # def integrand(integration_time):
+        #     return (vector_potential(integration_time) - vp_previous) ** 2
+        #
+        # integral, *errs = self.integration_method(
+        #     integrand,
+        #     previous_time,
+        #     current_time,
+        #     **self.integration_kwargs,
+        # )
+
+        integral = integ.cumtrapz(
+            y = integrand,
+            # x = previous_time,  #??,
+            # dx = 1 * u.asec,
+            x = current_time - previous_time,
+            initial = 0,
         )
 
         return np.exp(-1j * self.phase_prefactor * integral)
 
-    _vector_potential_phase_factor = np.vectorize(_vector_potential_phase_factor, otypes = [np.complex128])
+    # _vector_potential_phase_factor = np.vectorize(_vector_potential_phase_factor, otypes = [np.complex128])

@@ -68,7 +68,7 @@ if __name__ == '__main__':
         KERNELS = [
             ide.LengthGaugeHydrogenKernel(),
             ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(
-                integration_method = integ.quadrature,
+                # integration_method = integ.quadrature,
             ),
         ]
 
