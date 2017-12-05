@@ -65,18 +65,6 @@ if __name__ == '__main__':
             raise NotImplementedError("I haven't calculated the velocity-gauge hydrogen kernel yet...")
 
         ju.ask_time_step(parameters)
-        if evolution_method in ['ARK4']:  # if method is adaptive
-            parameters.append(clu.Parameter(name = 'time_step_minimum',
-                                            value = asec * clu.ask_for_input('Minimum Time Step (in as)?', default = .01, cast_to = float)))
-
-            parameters.append(clu.Parameter(name = 'time_step_maximum',
-                                            value = asec * clu.ask_for_input('Maximum Time Step (in as)?', default = 10, cast_to = float)))
-
-            parameters.append(clu.Parameter(name = 'error_on',
-                                            value = clu.ask_for_input('Fractional Truncation Error Control on b or db/dt?', default = 'db/dt', cast_to = str)))
-
-            parameters.append(clu.Parameter(name = 'epsilon',
-                                            value = clu.ask_for_input('Fractional Truncation Error Limit?', default = 1e-6, cast_to = float)))
 
         time_initial_in_pw, time_final_in_pw, extra_time = ju.ask_time_evolution_by_pulse_widths()
 

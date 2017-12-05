@@ -13,7 +13,7 @@ import simulacra as si
 import simulacra.cluster as clu
 from simulacra.units import *
 
-from . import core, states, potentials
+from . import core, states, potentials, ide
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -211,14 +211,19 @@ def ask_evolution_gauge(parameters, *, spec_type):
 
 
 def ask_evolution_method(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_method.choices))
+    choices = {
+        'FE': ide.ForwardEulerMethod(),
+        'BE': ide.BackwardEulerMethod(),
+        'TRAP': ide.TrapezoidMethod(),
+        'RK4': ide.RungeKuttaFourMethod(),
+    }
     method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = choices[0])
     if method not in choices:
         raise InvalidChoice(f'{method} is not one of {choices}')
     parameters.append(
         clu.Parameter(
             name = 'evolution_method',
-            value = method,
+            value = choices[method],
         ))
 
     return method
