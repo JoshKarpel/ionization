@@ -1,6 +1,6 @@
 import collections
-import functools as ft
-import itertools as it
+import functools
+import itertools
 import datetime
 import logging
 from copy import copy, deepcopy
@@ -708,7 +708,7 @@ class ElectricFieldSimulation(si.Simulation):
             labels.append(r'$\left| \left\langle \Psi | \psi_{{n \geq {} }}  \right\rangle \right|^2$'.format(bound_state_max_n + 1))
             colors.append('.4')
 
-            free_state_color_cycle = it.cycle(['#8dd3c7', '#ffffb3', '#bebada', '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'])
+            free_state_color_cycle = itertools.cycle(['#8dd3c7', '#ffffb3', '#bebada', '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'])
             for group, states in sorted(grouped_free_states.items()):
                 if len(states) != 0:
                     overlaps.append(np.sum(state_overlaps[s] for s in states))
@@ -810,7 +810,7 @@ class ElectricFieldSimulation(si.Simulation):
         state_overlaps = {k: state_overlaps[k] for k in state_list}  # filter down to just states in state_list
 
         if group_angular_momentum:
-            overlap_by_angular_momentum_by_energy = collections.defaultdict(ft.partial(collections.defaultdict, float))
+            overlap_by_angular_momentum_by_energy = collections.defaultdict(functools.partial(collections.defaultdict, float))
 
             for state, overlap_vs_time in state_overlaps.items():
                 overlap_by_angular_momentum_by_energy[state.l][state.energy] += overlap_vs_time[time_index]
@@ -1169,7 +1169,7 @@ class ElectricFieldSpecification(si.Specification):
 
         info_potentials = si.Info(header = 'Potentials and Masks')
         info_potentials.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
-        for x in it.chain(self.internal_potential, self.electric_potential, self.mask):
+        for x in itertools.chain(self.internal_potential, self.electric_potential, self.mask):
             info_potentials.add_info(x.info())
 
         info.add_info(info_potentials)
@@ -3625,7 +3625,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         #     for jj, wavenumber in enumerate(wavenumbers):
         #         inner_product_mesh[ii, jj] = np.sum(multiplier * sph_harm(theta) * bessel(wavenumber))
 
-        for (ii, theta), (jj, wavenumber) in it.product(enumerate(thetas), enumerate(wavenumbers)):
+        for (ii, theta), (jj, wavenumber) in itertools.product(enumerate(thetas), enumerate(wavenumbers)):
             inner_product_mesh[ii, jj] = np.sum(multiplier * sph_harm(theta) * bessel(wavenumber))
 
         return theta_mesh, wavenumber_mesh, inner_product_mesh

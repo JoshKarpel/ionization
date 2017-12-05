@@ -1,23 +1,10 @@
 import os
-import sys
 import socket
 import datetime
-import platform
-
-print(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {datetime.datetime.utcnow()}.', file = sys.stderr)
-print(f'Execute node operating system: {os.uname()}', file = sys.stderr)
-try:
-    print(f'Distribution: {platform.linux_distribution()}', file = sys.stderr)
-except Exception:
-    pass
-print(f'Local directory contents: {os.listdir(os.getcwd())}', file = sys.stderr)
-
 import argparse
 import logging
 
 import simulacra as si
-
-import ionization as ion
 
 
 def ensure_compatibility_spec(spec):
@@ -39,20 +26,15 @@ if __name__ == '__main__':
     logman = si.utils.LogManager(
         '__main__', 'simulacra', 'ionization',
         stdout_logs = False,
-        file_logs = True, file_level = logging.INFO, file_name = '{}'.format(args.sim_name), file_mode = 'a'
+        file_logs = True, file_level = logging.INFO, file_name = '{}'.format(args.sim_name), file_mode = 'a',
     )
 
     with logman as logger:
         try:
             logger.info(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {datetime.datetime.utcnow()}.')
             logger.info(f'Execute node operating system: {os.uname()}')
-            try:
-                logger.info(f'Distribution: {platform.linux_distribution()}')
-            except Exception:
-                pass
             logger.info(f'Local directory contents: {os.listdir(os.getcwd())}')
 
-            # try to find existing checkpoint, and start from scratch if that fails
             try:
                 sim_path = os.path.join(os.getcwd(), '{}.sim'.format(args.sim_name))
                 sim = si.Simulation.load(sim_path)

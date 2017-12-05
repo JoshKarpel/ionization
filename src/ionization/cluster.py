@@ -1,4 +1,4 @@
-import itertools as it
+import itertools
 import logging
 from copy import copy
 
@@ -29,16 +29,15 @@ class PulseParameterScanMixin:
     def make_summary_plots(self):
         super().make_summary_plots()
 
-        if len(self.unprocessed_sim_names) == 0:
-            logger.info(f'Generating pulse parameter scans for job {self.name}')
-            self.make_pulse_parameter_scans_1d()
-            self.make_pulse_parameter_scans_2d()
+        logger.info(f'Generating pulse parameter scans for job {self.name}')
+        self.make_pulse_parameter_scans_1d()
+        self.make_pulse_parameter_scans_2d()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for plot_parameter, line_parameter, scan_parameter in it.permutations(self.scan_parameters):
+            for plot_parameter, line_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
                 plot_parameter_name, line_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), line_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
                 plot_parameter_unit, line_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[line_parameter], parameter_name_to_unit_name[scan_parameter]
                 plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
@@ -66,7 +65,7 @@ class PulseParameterScanMixin:
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
 
-                    for log_x, log_y in it.product((True, False), repeat = 2):
+                    for log_x, log_y in itertools.product((True, False), repeat = 2):
                         if scan_parameter == 'phase' and log_x:
                             continue
 
@@ -97,7 +96,7 @@ class PulseParameterScanMixin:
                             y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
                             y_label = ionization_metric_name,
                             legend_on_right = True,
-                            target_dir = self.summaries_dir
+                            target_dir = self.summaries_dir,
                         )
 
     def make_pulse_parameter_scans_2d(self):
@@ -106,7 +105,7 @@ class PulseParameterScanMixin:
 
             # for plot_parameter, x_parameter, y_parameter in it.permutations(self.scan_parameters):
             for plot_parameter in self.scan_parameters:
-                for x_parameter, y_parameter in it.combinations((p for p in self.scan_parameters if p != plot_parameter), r = 2):  # overkill, but whatever
+                for x_parameter, y_parameter in itertools.combinations((p for p in self.scan_parameters if p != plot_parameter), r = 2):  # overkill, but whatever
                     plot_parameter_name, x_parameter_name, y_parameter_name = plot_parameter.replace('_', ' ').title(), x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
                     plot_parameter_unit, x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
                     plot_parameter_set, x_parameter_set, y_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(x_parameter), self.parameter_set(y_parameter)
@@ -129,7 +128,7 @@ class PulseParameterScanMixin:
                             for jj, y_value in enumerate(y):
                                 z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
 
-                        for log_x, log_y, log_z in it.product((True, False), repeat = 3):
+                        for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
                             if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y):  # skip log phase plots
                                 continue
 
@@ -286,7 +285,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for plot_parameter, scan_parameter in it.permutations(self.scan_parameters):
+            for plot_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
                 plot_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
                 plot_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[scan_parameter]
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
@@ -303,7 +302,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
 
-                    for log_x, log_y in it.product((False, True), repeat = 2):
+                    for log_x, log_y in itertools.product((False, True), repeat = 2):
                         if any((log_x, log_y)):
                             log_str = '__log'
 
@@ -337,7 +336,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for plot_parameter, scan_parameter in it.permutations(self.scan_parameters):
+            for plot_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
                 plot_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
                 plot_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[scan_parameter]
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
@@ -355,7 +354,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
 
-                    for log_x, log_y in it.product((False, True), repeat = 2):
+                    for log_x, log_y in itertools.product((False, True), repeat = 2):
                         if any((log_x, log_y)):
                             log_str = '__log'
 
@@ -382,7 +381,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for x_parameter, y_parameter in it.combinations(self.scan_parameters, r = 2):
+            for x_parameter, y_parameter in itertools.combinations(self.scan_parameters, r = 2):
                 x_parameter_name, y_parameter_name = x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
                 x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
                 x_parameter_set, y_parameter_set = self.parameter_set(x_parameter), self.parameter_set(y_parameter)
@@ -401,7 +400,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                     for jj, y_value in enumerate(y):
                         z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
 
-                for log_x, log_y, log_z in it.product((True, False), repeat = 3):
+                for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
                     if any((log_x, log_y, log_z)):
                         log_str = '__log'
 
@@ -436,7 +435,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for x_parameter, y_parameter in it.combinations(self.scan_parameters, r = 2):
+            for x_parameter, y_parameter in itertools.combinations(self.scan_parameters, r = 2):
                 x_parameter_name, y_parameter_name = x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
                 x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
                 x_parameter_set, y_parameter_set = self.parameter_set(x_parameter), self.parameter_set(y_parameter)
@@ -462,7 +461,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
 
                 z_mesh = ma.masked_less_equal(z_mesh, 0)
 
-                for log_x, log_y, log_z in it.product((True, False), repeat = 3):
+                for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
                     if any((log_x, log_y, log_z)):
                         log_str = '__log'
 
