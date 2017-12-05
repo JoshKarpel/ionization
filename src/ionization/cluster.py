@@ -20,11 +20,12 @@ parameter_name_to_unit_name = {
     'phase': 'rad',
     'delta_r': 'bohr_radius',
     'delta_t': 'asec',
+    'amplitude': 'atomic_electric_field',
 }
 
 
 class PulseParameterScanMixin:
-    scan_parameters = ['pulse_width', 'fluence', 'phase']
+    scan_parameters = ['pulse_width', 'fluence', 'phase', 'amplitude']
 
     def make_summary_plots(self):
         super().make_summary_plots()
