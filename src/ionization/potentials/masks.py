@@ -79,8 +79,8 @@ class RadialCosineMask(Mask):
     def info(self):
         info = super().info()
 
-        info.add_field('Inner Radius', f'{u.uround(self.inner_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.inner_radius, nm, 3)} nm')
-        info.add_field('Outer Radius', f'{u.uround(self.outer_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.outer_radius, nm, 3)} nm')
+        info.add_field('Inner Radius', f'{u.uround(self.inner_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.inner_radius, u.nm, 3)} nm')
+        info.add_field('Outer Radius', f'{u.uround(self.outer_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.outer_radius, u.nm, 3)} nm')
         info.add_field('Smoothness', self.smoothness)
 
         return info

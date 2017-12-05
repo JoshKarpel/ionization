@@ -407,9 +407,9 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_checkpoint)
 
         info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{uround(self.time_initial, u.asec)} as | {uround(self.time_initial, atomic_time)} a.u.')
-        info_evolution.add_field('Final Time', f'{uround(self.time_final, u.asec)} as | {uround(self.time_final, atomic_time)} a.u.')
-        info_evolution.add_field('Time Step', f'{uround(self.time_step, u.asec)} as | {uround(self.time_step, atomic_time)} a.u.')
+        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec)} as | {u.uround(self.time_initial, u.atomic_time)} a.u.')
+        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec)} as | {u.uround(self.time_final, u.atomic_time)} a.u.')
+        info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec)} as | {u.uround(self.time_step, u.atomic_time)} a.u.')
 
         info.add_info(info_evolution)
 

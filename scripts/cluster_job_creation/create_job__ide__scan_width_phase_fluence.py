@@ -27,8 +27,7 @@ if __name__ == '__main__':
         parameters = []
 
         spec_type = ide.IntegroDifferentialEquationSpecification
-        evolution_gauge = ju.ask_evolution_gauge(parameters, spec_type = spec_type)
-        evolution_method = ju.ask_evolution_method(parameters, spec_type = spec_type)
+        evolution_method = ju.ask_evolution_method_ide(parameters, spec_type = spec_type)
 
         test_charge = electron_charge
         test_mass = electron_mass
@@ -55,14 +54,11 @@ if __name__ == '__main__':
                 value = -(electron_charge / hbar) ** 2,
             ))
 
-        if evolution_gauge == 'LEN':
-            parameters.append(
-                clu.Parameter(
-                    name = 'kernel',
-                    value = ide.LengthGaugeHydrogenKernel(),
-                ))
-        elif evolution_gauge == 'VEL':
-            raise NotImplementedError("I haven't calculated the velocity-gauge hydrogen kernel yet...")
+        parameters.append(
+            clu.Parameter(
+                name = 'kernel',
+                value = ide.LengthGaugeHydrogenKernel(),
+            ))
 
         ju.ask_time_step(parameters)
 

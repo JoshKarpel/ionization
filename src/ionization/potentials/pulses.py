@@ -358,7 +358,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Intensity', f'{u.uround(self.intensity, TW / (cm ** 2))} TW/cm^2')
         info.add_field('Photon Energy', f'{u.uround(self.photon_energy, u.eV)} u.eV')
         info.add_field('Frequency', f'{u.uround(self.frequency, u.THz)} u.THz')
-        info.add_field('Period', f'{u.uround(self.period, u.asec)} as | {u.uround(self.period, fsec)} fs')
+        info.add_field('Period', f'{u.uround(self.period, u.asec)} as | {u.uround(self.period, u.fsec)} fs')
         info.add_field('Wavelength', f'{u.uround(self.wavelength, u.nm)} u.nm | {u.uround(self.wavelength, bohr_radius)} a_0')
 
         info.add_info(self.window.info())
@@ -749,8 +749,8 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec, 3)} fs | {u.uround(self.pulse_width, atomic_time, 3)} a.u.')
-        info.add_field('Pulse Center', f'{u.uround(self.pulse_center, u.asec)} as | {u.uround(self.pulse_center, fsec, 3)} fs | {u.uround(self.pulse_center, atomic_time, 3)} a.u.')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, u.fsec, 3)} fs | {u.uround(self.pulse_width, u.atomic_time, 3)} a.u.')
+        info.add_field('Pulse Center', f'{u.uround(self.pulse_center, u.asec)} as | {u.uround(self.pulse_center, u.fsec, 3)} fs | {u.uround(self.pulse_center, u.atomic_time, 3)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
@@ -1074,7 +1074,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec)} fs | {u.uround(self.pulse_width, atomic_time)} a.u.')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, u.fsec)} fs | {u.uround(self.pulse_width, u.atomic_time)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
@@ -1287,7 +1287,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec, 3)} fs | {u.uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, u.fsec, 3)} fs | {u.uround(self.pulse_width, u.atomic_time, 3)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')

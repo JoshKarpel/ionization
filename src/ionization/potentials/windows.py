@@ -101,7 +101,6 @@ class LinearRampTimeWindow(TimeWindow):
         info = super().info()
 
         info.add_field('Time Ramp Start', f'{u.uround(self.ramp_on_time, u.asec)} u.asec')
-        info.add_field('Time Ramp Finish', f'{u.uround(self.ramp_off_time, u.asec)} u.asec')
 
         return info
 
@@ -133,9 +132,9 @@ class SymmetricExponentialTimeWindow(TimeWindow):
     def info(self):
         info = super().info()
 
-        info.add_field('Window Time', f'{u.uround(self.window_time, u.asec)} as | {u.uround(self.window_time, fsec)} fs | {u.uround(self.window_time, atomic_time)} a.u.')
-        info.add_field('Window Width', f'{u.uround(self.window_width, u.asec)} as | {u.uround(self.window_width, fsec)} fs | {u.uround(self.window_width, atomic_time)} a.u.')
-        info.add_field('Window Center', f'{u.uround(self.window_center, u.asec)} as | {u.uround(self.window_center, fsec)} fs | {u.uround(self.window_center, atomic_time)} a.u.')
+        info.add_field('Window Time', f'{u.uround(self.window_time, u.asec)} as | {u.uround(self.window_time, u.fsec)} fs | {u.uround(self.window_time, u.atomic_time)} a.u.')
+        info.add_field('Window Width', f'{u.uround(self.window_width, u.asec)} as | {u.uround(self.window_width, u.fsec)} fs | {u.uround(self.window_width, u.atomic_time)} a.u.')
+        info.add_field('Window Center', f'{u.uround(self.window_center, u.asec)} as | {u.uround(self.window_center, u.fsec)} fs | {u.uround(self.window_center, u.atomic_time)} a.u.')
 
         return info
 
@@ -161,7 +160,7 @@ class SmoothedTrapezoidalWindow(TimeWindow):
     def info(self):
         info = super().info()
 
-        info.add_field('Front Time', f'{u.uround(self.time_front, u.asec)} as | {u.uround(self.time_front, fsec)} fs | {u.uround(self.time_front, atomic_time)} a.u.')
-        info.add_field('Plateau Time', f'{u.uround(self.time_plateau, u.asec)} as | {u.uround(self.time_plateau, fsec)} fs  | {u.uround(self.time_plateau, atomic_time)} a.u.')
+        info.add_field('Front Time', f'{u.uround(self.time_front, u.asec)} as | {u.uround(self.time_front, u.fsec)} fs | {u.uround(self.time_front, u.atomic_time)} a.u.')
+        info.add_field('Plateau Time', f'{u.uround(self.time_plateau, u.asec)} as | {u.uround(self.time_plateau, u.fsec)} fs  | {u.uround(self.time_plateau, u.atomic_time)} a.u.')
 
         return info
