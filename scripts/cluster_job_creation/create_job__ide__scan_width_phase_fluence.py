@@ -13,7 +13,7 @@ from simulacra.units import *
 
 import ionization as ion
 import ionization.cluster as iclu
-import ionization.integrodiff as ide
+import ionization.ide as ide
 import ionization.jobutils as ju
 
 JOB_PROCESSOR_TYPE = iclu.IDEJobProcessor
@@ -32,7 +32,7 @@ if __name__ == '__main__':
 
         test_charge = electron_charge
         test_mass = electron_mass
-        test_energy = ion.HydrogenBoundState(1, 0).energy
+        test_energy = ion.states.HydrogenBoundState(1, 0).energy
 
         parameters.append(
             clu.Parameter(
@@ -54,18 +54,12 @@ if __name__ == '__main__':
                 name = 'integral_prefactor',
                 value = -(electron_charge / hbar) ** 2,
             ))
-        parameters.append(
-            clu.Parameter(
-                name = 'kernel_kwargs',
-                value = {'omega_b': ion.HydrogenBoundState(1, 0).energy / hbar}
-            )
-        )
 
         if evolution_gauge == 'LEN':
             parameters.append(
                 clu.Parameter(
                     name = 'kernel',
-                    value = ide.hydrogen_kernel_LEN
+                    value = ide.LengthGaugeHydrogenKernel(),
                 ))
         elif evolution_gauge == 'VEL':
             raise NotImplementedError("I haven't calculated the velocity-gauge hydrogen kernel yet...")

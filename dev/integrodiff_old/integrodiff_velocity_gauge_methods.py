@@ -7,7 +7,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-from src.ionization import integrodiff as ide
+from src.ionization import ide as ide
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]

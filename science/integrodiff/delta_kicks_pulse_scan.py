@@ -10,7 +10,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)

@@ -12,7 +12,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 
 import delta_pulse_model as dpm
 

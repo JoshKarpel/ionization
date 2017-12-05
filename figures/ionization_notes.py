@@ -13,7 +13,7 @@ matplotlib.use('pgf')
 
 import simulacra as si
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 from simulacra.units import *
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]

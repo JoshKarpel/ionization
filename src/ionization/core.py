@@ -1014,9 +1014,9 @@ class ElectricFieldSpecification(si.Specification):
 
     simulation_type = ElectricFieldSimulation
 
-    evolution_equations = si.utils.RestrictedValues('evolution_equations', {'LAG', 'HAM'})
-    evolution_method = si.utils.RestrictedValues('evolution_method', {'CN', 'SO', 'S'})
-    evolution_gauge = si.utils.RestrictedValues('evolution_gauge', {'LEN', 'VEL'})
+    evolution_equations = si.utils.RestrictedValues({'LAG', 'HAM'})
+    evolution_method = si.utils.RestrictedValues({'CN', 'SO', 'S'})
+    evolution_gauge = si.utils.RestrictedValues({'LEN', 'VEL'})
 
     def __init__(self, name,
                  mesh_type = None,

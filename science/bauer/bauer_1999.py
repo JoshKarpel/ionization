@@ -16,7 +16,7 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.integrodiff as ide
+import ionization.ide as ide
 
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -42,7 +42,7 @@ ANIMATOR_KWARGS = dict(
 )
 
 
-class BauerGaussianPulse(ion.UniformLinearlyPolarizedElectricPotential):
+class BauerGaussianPulse(ion.potentials.UniformLinearlyPolarizedElectricPotential):
     """Gaussian pulse as defined in Bauer1999. Phase = 0 is a sine-like pulse."""
 
     def __init__(self, amplitude = 0.3 * atomic_electric_field, omega = .2 * atomic_angular_frequency, number_of_cycles = 6, phase = 0, **kwargs):

@@ -1,397 +1,29 @@
-import functools as ft
 import logging
 
 import numpy as np
 import numpy.fft as nfft
 import scipy.integrate as integ
-import scipy.optimize as opt
+import scipy.optimize as optim
 
 import simulacra as si
-from simulacra.units import *
+import simulacra.units as u
 
-from . import core, exceptions
+from .. import exceptions
+
+from . import potentials, windows
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class PotentialEnergy(si.Summand):
-    """A class representing some kind of potential energy. Can be summed to form a PotentialEnergySum."""
-
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-        self.summation_class = PotentialEnergySum
-
-
-class PotentialEnergySum(si.Sum, PotentialEnergy):
-    """A class representing a combination of potential energies."""
-
-    container_name = 'potentials'
-
-    def get_electric_field_amplitude(self, t):
-        return sum(x.get_electric_field_amplitude(t) for x in self._container)
-
-    def get_electric_field_integral_numeric(self, t):
-        return sum(x.get_electric_field_integral_numeric(t) for x in self._container)
-
-    def get_vector_potential_amplitude(self, t):
-        return sum(x.get_vector_potential_amplitude(t) for x in self._container)
-
-    def get_vector_potential_amplitude_numeric(self, times, rule = 'simps'):
-        return sum(x.get_vector_potential_amplitude_numeric(times, rule = rule) for x in self._container)
-
-    def get_electric_field_integral_numeric_cumulative(self, times):
-        """Return the integral of the electric field amplitude from the start of times for each interval in times."""
-        return sum(x.get_electric_field_integral_numeric_cumulative(times) for x in self._container)
-
-    def get_vector_potential_amplitude_numeric_cumulative(self, times):
-        return sum(x.get_vector_potential_amplitude_numeric_cumulative(times) for x in self._container)
-
-    def get_fluence_numeric(self, times, rule = 'simps'):
-        return sum(x.get_fluence_numeric(times, rule = rule) for x in self._container)
-
-
-class NoPotentialEnergy(PotentialEnergy):
-    """A class representing no potential energy from any source."""
-
-    def __call__(self, *args, **kwargs):
-        """Return 0 for any arguments."""
-        return 0
-
-
-class TimeWindow(si.Summand):
-    """A class representing a time-window that can be attached to another potential."""
-
-    def __init__(self):
-        super().__init__()
-        self.summation_class = TimeWindowSum
-
-
-class TimeWindowSum(si.Sum, TimeWindow):
-    """A class representing a combination of time-windows."""
-
-    container_name = 'windows'
-
-    def __call__(self, *args, **kwargs):
-        return ft.reduce(lambda a, b: a * b, (x(*args, **kwargs) for x in self._container))  # windows should be multiplied together, not summed
-
-
-class NoTimeWindow(TimeWindow):
-    """A class representing the lack of a time-window."""
-
-    def __call__(self, t):
-        return 1
-
-
-class Mask(si.Summand):
-    """A class representing a spatial 'mask' that can be applied to the wavefunction to reduce it in certain regions."""
-
-    def __init__(self):
-        super().__init__()
-        self.summation_class = MaskSum
-
-
-class MaskSum(si.Sum, Mask):
-    """A class representing a combination of masks."""
-
-    container_name = 'masks'
-
-    def __call__(self, *args, **kwargs):
-        return ft.reduce(lambda a, b: a * b, (x(*args, **kwargs) for x in self._container))  # masks should be multiplied together, not summed
-
-
-class NoMask(Mask):
-    """A class representing the lack of a mask."""
-
-    def __call__(self, *args, **kwargs):
-        return 1
-
-
-class Coulomb(PotentialEnergy):
-    """A class representing the electric potential energy caused by the Coulomb potential."""
-
-    def __init__(self, charge = 1 * proton_charge):
-        """
-        Construct a Coulomb from a charge.
-
-        :param charge: the charge of the particle providing the potential
-        """
-        super().__init__()
-
-        self.charge = charge
-
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge')
-
-    def __call__(self, *, r, test_charge, **kwargs):
-        """
-        Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
-
-        Accepts only keyword arguments.
-
-        :param r: the radial distance coordinate
-        :param test_charge: the test charge
-        :param kwargs: absorbs any other keyword arguments
-        :return:
-        """
-        return coulomb_constant * self.charge * test_charge / r
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Charge', f'{uround(self.charge, proton_charge, 3)} e')
-
-        return info
-
-
-class SoftCoulomb(PotentialEnergy):
-    """A class representing the electric potential energy caused by the Coulomb potential."""
-
-    def __init__(self, charge = 1 * proton_charge, softening_distance = .05 * bohr_radius):
-        """
-        Construct a Coulomb from a charge.
-
-        :param charge: the charge of the particle providing the potential
-        """
-        super().__init__()
-
-        self.charge = charge
-        self.softening_distance = softening_distance
-
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge')
-
-    def __call__(self, *, r, test_charge, **kwargs):
-        """
-        Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
-
-        Accepts only keyword arguments.
-
-        :param r: the radial distance coordinate
-        :param test_charge: the test charge
-        :param kwargs: absorbs any other keyword arguments
-        :return:
-        """
-        return coulomb_constant * self.charge * test_charge / np.sqrt((r ** 2) + (self.softening_distance ** 2))
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Charge', f'{uround(self.charge, proton_charge)} e')
-        info.add_field('Softening Distance', f'{uround(self.softening_distance, bohr_radius)} a_0')
-
-        return info
-
-
-class HarmonicOscillator(PotentialEnergy):
-    """A PotentialEnergy representing the potential energy of a harmonic oscillator."""
-
-    def __init__(self, spring_constant = 4.20521 * N / m, center = 0 * nm, cutoff_distance = None):
-        """Construct a HarmonicOscillator object with the given spring constant and center position."""
-        self.spring_constant = spring_constant
-        self.center = center
-
-        self.cutoff_distance = cutoff_distance
-
-        super().__init__()
-
-    @classmethod
-    def from_frequency_and_mass(cls, omega = 1.5192675e15 * Hz, mass = electron_mass, **kwargs):
-        """Return a HarmonicOscillator constructed from the given angular frequency and mass."""
-        return cls(spring_constant = mass * (omega ** 2), **kwargs)
-
-    @classmethod
-    def from_ground_state_energy_and_mass(cls, ground_state_energy = 0.5 * eV, mass = electron_mass, **kwargs):
-        """
-        Return a HarmonicOscillator constructed from the given ground state energy and mass.
-
-        Note: the ground state energy is half of the energy spacing of the oscillator.
-        """
-        return cls.from_frequency_and_mass(omega = 2 * ground_state_energy / hbar, mass = mass, **kwargs)
-
-    @classmethod
-    def from_energy_spacing_and_mass(cls, energy_spacing = 1 * eV, mass = electron_mass, **kwargs):
-        """
-        Return a HarmonicOscillator constructed from the given state energy spacing and mass.
-
-        Note: the ground state energy is half of the energy spacing of the oscillator.
-        """
-        return cls.from_frequency_and_mass(omega = energy_spacing / hbar, mass = mass, **kwargs)
-
-    def __call__(self, *, distance, **kwargs):
-        """Return the HarmonicOscillator potential energy evaluated at position distance."""
-        d = (distance - self.center)
-
-        inside = 0.5 * self.spring_constant * (d ** 2)
-        if self.cutoff_distance is not None:
-            outside = 0.5 * self.spring_constant * (self.cutoff_distance ** 2)
-            return np.where(np.less_equal(np.abs(d), self.cutoff_distance), inside, outside)
-        else:
-            return inside
-
-    def omega(self, mass):
-        """Return the angular frequency for this potential for the given mass."""
-        return np.sqrt(self.spring_constant / mass)
-
-    def frequency(self, mass):
-        """Return the cyclic frequency for this potential for the given mass."""
-        return self.omega(mass) / twopi
-
-    def __str__(self):
-        return '{}(spring_constant = {} N/m, center = {} nm)'.format(self.__class__.__name__, np.around(self.spring_constant, 3), uround(self.center, nm, 3))
-
-    def __repr__(self):
-        return '{}(spring_constant = {}, center = {})'.format(self.__class__.__name__, self.spring_constant, self.center)
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Spring Constant', f'{uround(self.spring_constant, 1, 3)} N/m | {uround(self.spring_constant, atomic_force, 3)} a.u./Bohr Radius')
-        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} a_0 | {uround(self.center, nm, 3)} nm')
-        if self.cutoff_distance is not None:
-            info.add_field('Cutoff Distance', f'{uround(self.cutoff_distance, bohr_radius, 3)} a_0 | {uround(self.cutoff_distance, nm, 3)} nm')
-
-        return info
-
-
-class FiniteSquareWell(PotentialEnergy):
-    def __init__(self, potential_depth = 1 * eV, width = 10 * nm, center = 0 * nm):
-        self.potential_depth = np.abs(potential_depth)
-        self.width = width
-        self.center = center
-
-        super().__init__()
-
-    def __str__(self):
-        return si.utils.field_str(self, ('potential_depth', 'eV'), ('width', 'nm'), ('center', 'nm'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'potential_depth', 'width', 'center')
-
-    @property
-    def left_edge(self):
-        return self.center - (self.width / 2)
-
-    @property
-    def right_edge(self):
-        return self.center + (self.width / 2)
-
-    def __call__(self, *, distance, **kwargs):
-        cond = np.greater_equal(distance, self.left_edge) * np.less_equal(distance, self.right_edge)
-
-        return -self.potential_depth * np.where(cond, 1, 0)
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Potential Depth', f'{uround(self.potential_depth, eV)} eV')
-        info.add_field('Width', f'{uround(self.width, bohr_radius, 3)} a_0 | {uround(self.width, nm, 3)} nm')
-        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} a_0 | {uround(self.center, nm, 3)} nm')
-
-        return info
-
-
-class GaussianPotential(PotentialEnergy):
-    def __init__(self, potential_extrema = -1 * eV, width = 1 * bohr_radius, center = 0):
-        super().__init__()
-
-        self.potential_extrema = potential_extrema
-        self.width = width
-        self.center = center
-
-    def fwhm(self):
-        return 2 * np.sqrt(2 * np.log(2)) * self.width
-
-    def __call__(self, *, distance, **kwargs):
-        x = distance - self.center
-        return self.potential_extrema * np.exp(-.5 * ((x / self.width) ** 2))
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Potential Depth', f'{uround(self.potential_extrema, eV)} eV')
-        info.add_field('Width', f'{uround(self.width, bohr_radius, 3)} a_0 | {uround(self.width, nm, 3)} nm')
-        info.add_field('Center', f'{uround(self.center, bohr_radius, 3)} a_0 | {uround(self.center, nm, 3)} nm')
-
-        return info
-
-
-class RadialImaginary(PotentialEnergy):
-    def __init__(self, center = 20 * bohr_radius, width = 2 * bohr_radius, decay_time = 100 * asec):
-        """
-        Construct a RadialImaginary potential. The potential is shaped like a Gaussian wrapped around a ring and has an imaginary amplitude.
-
-        A positive/negative amplitude yields an imaginary potential that causes decay/amplification.
-
-        :param center: the radial coordinate to center the potential on
-        :param width: the width (FWHM) of the Gaussian
-        :param decay_time: the decay time (1/e time) of a wavefunction packet at the peak of the imaginary potential
-        """
-        self.center = center
-        self.width = width
-        self.decay_time = decay_time
-        self.decay_rate = 1 / decay_time
-
-        self.prefactor = -1j * self.decay_rate * hbar
-
-        super().__init__()
-
-    def __repr__(self):
-        return f'{self.__class__.__name__}(center = {self.center}, width = {self.width}, decay_time = {self.decay_time})'
-
-    def __str__(self):
-        return '{}(center = {} a_0, width = {} a_0, decay time = {} as)'.format(self.__class__.__name__,
-                                                                                uround(self.center, bohr_radius, 3),
-                                                                                uround(self.width, bohr_radius, 3),
-                                                                                uround(self.decay_time, asec))
-
-    def __call__(self, *, r, **kwargs):
-        return self.prefactor * np.exp(-(((r - self.center) / self.width) ** 2))
-
-
-def DC_correct_electric_potential(electric_potential, times):
-    def func_to_minimize(amp, original_pulse):
-        test_correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = amp, window = electric_potential.window)
-        test_pulse = original_pulse + test_correction_field
-
-        return np.abs(test_pulse.get_electric_field_integral_numeric_cumulative(times)[-1])
-
-    correction_amp = opt.minimize_scalar(func_to_minimize, args = (electric_potential,)).x
-    correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_potential.window)
-
-    return electric_potential + correction_field
-
-
-def plot_electric_field_amplitude_vs_time(name, times, *electric_potentials, **kwargs):
-    default_kwargs = dict(
-        x_label = r'$ t $',
-        x_unit = 'asec',
-        y_label = fr'${core.LATEX_EFIELD}(t)$',
-        y_unit = 'atomic_electric_field',
-    )
-
-    si.vis.xy_plot(
-        name,
-        times,
-        *[electric_potential.get_electric_field_amplitude(times) for electric_potential in electric_potentials],
-        **{**default_kwargs, **kwargs},
-    )
-
-
-class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
-    def __init__(self, window = NoTimeWindow()):
+class UniformLinearlyPolarizedElectricPotential(potentials.PotentialEnergy):
+    def __init__(self, window = windows.NoTimeWindow()):
         super().__init__()
 
         self.window = window
 
     def __str__(self):
-        return ' with {}'.format(self.window)
+        return f' with {self.window}'
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
@@ -430,8 +62,8 @@ class UniformLinearlyPolarizedElectricPotential(PotentialEnergy):
         return -self.get_electric_field_integral_numeric_cumulative(times)
 
     def get_fluence_numeric(self, times, rule = 'simps'):
-        return epsilon_0 * c * getattr(integ, rule)(y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
-                                                    x = times)
+        return u.epsilon_0 * u.c * getattr(integ, rule)(y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
+                                                        x = times)
 
 
 class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
@@ -451,7 +83,7 @@ class NoElectricPotential(UniformLinearlyPolarizedElectricPotential):
 class Rectangle(UniformLinearlyPolarizedElectricPotential):
     """A class representing an electric with a sharp turn-on and turn-off time."""
 
-    def __init__(self, start_time = 0 * asec, end_time = 50 * asec, amplitude = 1 * atomic_electric_field, **kwargs):
+    def __init__(self, start_time = 0 * u.asec, end_time = 50 * u.asec, amplitude = 1 * u.atomic_electric_field, **kwargs):
         """
         Construct a Rectangle from a start time, end time, and electric field amplitude.
 
@@ -471,9 +103,9 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
 
     def __str__(self):
         attrs = [
-            f'start_time = {uround(self.start_time, asec)} as',
-            f'end_time = {uround(self.end_time, asec)} as',
-            f'amplitude = {uround(self.amplitude, atomic_electric_field)} AEF',
+            f'start_time = {u.uround(self.start_time, u.asec)} as',
+            f'end_time = {u.uround(self.end_time, u.asec)} as',
+            f'amplitude = {u.uround(self.amplitude, u.atomic_electric_field)} AEF',
             f'window = {repr(self.window)}',
         ]
         out = f'{self.__class__.__name__}({" ".join(attrs)})'
@@ -504,9 +136,9 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} AEF')
-        info.add_field('Time On', f'{uround(self.start_time, asec)} as')
-        info.add_field('Time Off', f'{uround(self.end_time, asec)} as')
+        info.add_field('Amplitude', f'{u.uround(self.amplitude, u.atomic_electric_field)} AEF')
+        info.add_field('Time On', f'{u.uround(self.start_time, u.asec)} as')
+        info.add_field('Time Off', f'{u.uround(self.end_time, u.asec)} as')
 
         info.add_info(self.window.info())
 
@@ -516,9 +148,9 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
 def keldysh_parameter(omega,
                       electric_field_amplitude,
                       *,
-                      ionization_potential = rydberg,
-                      test_charge = electron_charge,
-                      test_mass = electron_mass_reduced):
+                      ionization_potential = u.rydberg,
+                      test_charge = u.electron_charge,
+                      test_mass = u.electron_mass_reduced):
     return omega * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * electric_field_amplitude)
 
 
@@ -526,14 +158,14 @@ def electric_field_amplitude_from_keldysh_parameter(
         keldysh_parameter,
         omega,
         *,
-        ionization_potential = rydberg,
-        test_charge = electron_charge,
-        test_mass = electron_mass_reduced):
+        ionization_potential = u.rydberg,
+        test_charge = u.electron_charge,
+        test_mass = u.electron_mass_reduced):
     return omega * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * keldysh_parameter)
 
 
 class SineWave(UniformLinearlyPolarizedElectricPotential):
-    def __init__(self, omega, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def __init__(self, omega, amplitude = 1 * u.atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a SineWave from the angular frequency, electric field amplitude, and phase.
 
@@ -548,16 +180,16 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         super().__init__(**kwargs)
 
         self.omega = omega
-        self.phase = phase % twopi
+        self.phase = phase % u.twopi
         self.amplitude = amplitude
 
     def __str__(self):
-        out = '{}(omega = 2pi * {} THz, wavelength = {} nm, photon energy = {} eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
-                                                                                                                                 uround(self.frequency, THz),
-                                                                                                                                 uround(self.wavelength, nm, 3),
-                                                                                                                                 uround(self.photon_energy, eV),
-                                                                                                                                 uround(self.amplitude, atomic_electric_field, 3),
-                                                                                                                                 uround(self.phase, twopi, 3))
+        out = '{}(omega = 2pi * {} u.THz, wavelength = {} u.nm, photon energy = {} u.eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
+                                                                                                                                       u.uround(self.frequency, u.THz),
+                                                                                                                                       u.uround(self.wavelength, u.nm, 3),
+                                                                                                                                       u.uround(self.photon_energy, u.eV),
+                                                                                                                                       u.uround(self.amplitude, u.atomic_electric_field, 3),
+                                                                                                                                       u.uround(self.phase, u.twopi, 3))
 
         return out + super().__str__()
 
@@ -571,7 +203,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return out
 
     @classmethod
-    def from_frequency(cls, frequency, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def from_frequency(cls, frequency, amplitude = 1 * u.atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a SineWave from the frequency, electric field amplitude, and phase.
 
@@ -581,10 +213,10 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         :param kwargs: kwargs are passed to UniformLinearlyPolarizedElectricField
         :return: a SineWave instance
         """
-        return cls(frequency * twopi, amplitude = amplitude, phase = phase, **kwargs)
+        return cls(frequency * u.twopi, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
-    def from_period(cls, period, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def from_period(cls, period, amplitude = 1 * u.atomic_electric_field, phase = 0, **kwargs):
         """
 
         Parameters
@@ -601,7 +233,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return cls.from_frequency(1 / period, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
-    def from_wavelength(cls, wavelength, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def from_wavelength(cls, wavelength, amplitude = 1 * u.atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a :class:`SineWave` from a wavelength and amplitude.
 
@@ -612,17 +244,17 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         amplitude
             The maximum amplitude of the electric field of the sine wave.
         phase
-            The phase of the sine wave. ``0`` is sine, ``pi`` is cosine.
+            The phase of the sine wave. ``0`` is sine, ``u.pi`` is cosine.
         kwargs
 
         Returns
         -------
         :class:`SineWave`
         """
-        return cls.from_frequency(c / wavelength, amplitude = amplitude, phase = phase, **kwargs)
+        return cls.from_frequency(u.c / wavelength, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
-    def from_photon_energy(cls, photon_energy, amplitude = 1 * atomic_electric_field, phase = 0, **kwargs):
+    def from_photon_energy(cls, photon_energy, amplitude = 1 * u.atomic_electric_field, phase = 0, **kwargs):
         """
         Construct a SineWave from the photon energy, electric field amplitude, and phase.
 
@@ -637,10 +269,10 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         -------
 
         """
-        return cls(photon_energy / hbar, amplitude = amplitude, phase = phase, **kwargs)
+        return cls(photon_energy / u.hbar, amplitude = amplitude, phase = phase, **kwargs)
 
     @classmethod
-    def from_photon_energy_and_intensity(cls, photon_energy, intensity = 1 * TWcm2, phase = 0, **kwargs):
+    def from_photon_energy_and_intensity(cls, photon_energy, intensity = 1 * u.TWcm2, phase = 0, **kwargs):
         """
         Construct a SineWave from the photon energy, electric field intensity, and phase.
 
@@ -655,20 +287,20 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         -------
 
         """
-        return cls(photon_energy / hbar, amplitude = np.sqrt(2 * intensity / (epsilon_0 * c)), phase = phase, **kwargs)
+        return cls(photon_energy / u.hbar, amplitude = np.sqrt(2 * intensity / (u.epsilon_0 * u.c)), phase = phase, **kwargs)
 
     @property
     def intensity(self):
         """Cycle-averaged intensity"""
-        return .5 * epsilon_0 * c * (self.amplitude ** 2)
+        return .5 * u.epsilon_0 * u.c * (self.amplitude ** 2)
 
     @property
     def frequency(self):
-        return self.omega / twopi
+        return self.omega / u.twopi
 
     @frequency.setter
     def frequency(self, frequency):
-        self.omega = frequency * twopi
+        self.omega = frequency * u.twopi
 
     @property
     def period(self):
@@ -680,24 +312,24 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def wavelength(self):
-        return c / self.frequency
+        return u.c / self.frequency
 
     @wavelength.setter
     def wavelength(self, wavelength):
-        self.frequency = c / wavelength
+        self.frequency = u.c / wavelength
 
     @property
     def photon_energy(self):
-        return hbar * self.omega
+        return u.hbar * self.omega
 
     @photon_energy.setter
     def photon_energy(self, photon_energy):
-        self.omega = photon_energy / hbar
+        self.omega = photon_energy / u.hbar
 
     def keldysh_parameter(self,
-                          ionization_potential = rydberg,
-                          test_mass = electron_mass,
-                          test_charge = electron_charge):
+                          ionization_potential = u.rydberg,
+                          test_mass = u.electron_mass,
+                          test_charge = u.electron_charge):
         return keldysh_parameter(
             self.omega,
             self.amplitude,
@@ -714,20 +346,20 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return self.amplitude
 
     def get_peak_power_density(self):
-        return c * epsilon_0 * (np.abs(self.amplitude) ** 2)
+        return u.c * u.epsilon_0 * (np.abs(self.amplitude) ** 2)
 
     def get_average_power_density(self):
-        return .5 * c * epsilon_0 * (np.abs(self.amplitude) ** 2)
+        return .5 * u.c * u.epsilon_0 * (np.abs(self.amplitude) ** 2)
 
     def info(self):
         info = super().info()
 
-        info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} AEF')
-        info.add_field('Intensity', f'{uround(self.intensity, TW / (cm ** 2))} TW/cm^2')
-        info.add_field('Photon Energy', f'{uround(self.photon_energy, eV)} eV')
-        info.add_field('Frequency', f'{uround(self.frequency, THz)} THz')
-        info.add_field('Period', f'{uround(self.period, asec)} as | {uround(self.period, fsec)} fs')
-        info.add_field('Wavelength', f'{uround(self.wavelength, nm)} nm | {uround(self.wavelength, bohr_radius)} a_0')
+        info.add_field('Amplitude', f'{u.uround(self.amplitude, u.atomic_electric_field)} AEF')
+        info.add_field('Intensity', f'{u.uround(self.intensity, TW / (cm ** 2))} TW/cm^2')
+        info.add_field('Photon Energy', f'{u.uround(self.photon_energy, u.eV)} u.eV')
+        info.add_field('Frequency', f'{u.uround(self.frequency, u.THz)} u.THz')
+        info.add_field('Period', f'{u.uround(self.period, u.asec)} as | {u.uround(self.period, fsec)} fs')
+        info.add_field('Wavelength', f'{u.uround(self.wavelength, u.nm)} u.nm | {u.uround(self.wavelength, bohr_radius)} a_0')
 
         info.add_info(self.window.info())
 
@@ -735,7 +367,12 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
 
 class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
-    def __init__(self, pulse_width = 200 * asec, pulse_frequency_ratio = 5, fluence = 1 * Jcm2, phase = 0, pulse_center = 0 * asec,
+    def __init__(self,
+                 pulse_width = 200 * u.asec,
+                 pulse_frequency_ratio = 5,
+                 fluence = 1 * u.Jcm2,
+                 phase = 0,
+                 pulse_center = 0 * u.asec,
                  number_of_modes = 71,
                  **kwargs):
         """
@@ -758,7 +395,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         self.pulse_width = pulse_width
 
         self.number_of_modes = number_of_modes
-        self.mode_spacing = twopi / (self.number_of_modes * self.pulse_width)
+        self.mode_spacing = u.twopi / (self.number_of_modes * self.pulse_width)
         self.pulse_frequency_ratio = pulse_frequency_ratio
 
         self.omega_min = self.pulse_frequency_ratio * self.mode_spacing
@@ -770,38 +407,38 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         self.fluence = fluence
         self.pulse_center = pulse_center
 
-        self.delta_omega = twopi / self.pulse_width
+        self.delta_omega = u.twopi / self.pulse_width
         self.omega_max = self.omega_min + self.delta_omega
         # self.omega_carrier = (self.omega_min + self.omega_max) / 2
 
-        self.amplitude_omega = np.sqrt(self.fluence * self.delta_omega / (twopi * number_of_modes * c * epsilon_0))
+        self.amplitude_omega = np.sqrt(self.fluence * self.delta_omega / (u.twopi * number_of_modes * u.c * u.epsilon_0))
         self.amplitude = self.amplitude_omega
 
-        self.cycle_period = twopi / self.mode_spacing
+        self.cycle_period = u.twopi / self.mode_spacing
 
     @property
     def photon_energy_min(self):
-        return hbar * self.omega_min
+        return u.hbar * self.omega_min
 
     @property
     def photon_energy_max(self):
-        return hbar * self.omega_max
+        return u.hbar * self.omega_max
 
     @property
     def frequency_min(self):
-        return self.omega_min / twopi
+        return self.omega_min / u.twopi
 
     @property
     def frequency_max(self):
-        return self.omega_max / twopi
+        return self.omega_max / u.twopi
 
     @property
     def frequency_delta(self):
-        return self.delta_omega / twopi
+        return self.delta_omega / u.twopi
 
     @property
     def amplitude_per_frequency(self):
-        return np.sqrt(twopi) * self.amplitude_omega
+        return np.sqrt(u.twopi) * self.amplitude_omega
 
     def __str__(self):
         out = si.utils.field_str(self,
@@ -839,12 +476,12 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
 
-DEFAULT_PULSE_WIDTH = 200 * asec
-DEFAULT_FLUENCE = 1 * Jcm2
+DEFAULT_PULSE_WIDTH = 200 * u.asec
+DEFAULT_FLUENCE = 1 * u.Jcm2
 DEFAULT_PHASE = 0
-DEFAULT_OMEGA_MIN = twopi * 30 * THz
-DEFAULT_OMEGA_CARRIER = twopi * 2530 * THz
-DEFAULT_PULSE_CENTER = 0 * asec
+DEFAULT_OMEGA_MIN = u.twopi * 30 * u.THz
+DEFAULT_OMEGA_CARRIER = u.twopi * 2530 * u.THz
+DEFAULT_PULSE_CENTER = 0 * u.asec
 DEFAULT_KELDYSH_PARAMETER = 1
 
 
@@ -907,16 +544,16 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.omega_min = omega_min
         self.pulse_width = pulse_width
-        self.phase = phase % twopi
+        self.phase = phase % u.twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
-        self.delta_omega = twopi / self.pulse_width
+        self.delta_omega = u.twopi / self.pulse_width
         self.omega_max = self.omega_min + self.delta_omega
         self.omega_carrier = (self.omega_min + self.omega_max) / 2
 
-        self.amplitude_omega = np.sqrt(self.fluence / (2 * epsilon_0 * c * self.delta_omega))
-        self.amplitude = np.sqrt(self.fluence * self.delta_omega / (pi * epsilon_0 * c))
+        self.amplitude_omega = np.sqrt(self.fluence / (2 * u.epsilon_0 * u.c * self.delta_omega))
+        self.amplitude = np.sqrt(self.fluence * self.delta_omega / (u.pi * u.epsilon_0 * u.c))
 
     @classmethod
     def from_omega_min(cls, *args, **kwargs):
@@ -946,7 +583,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         -------
 
         """
-        delta_omega = twopi / pulse_width
+        delta_omega = u.twopi / pulse_width
         omega_min = omega_carrier - (delta_omega / 2)
 
         return cls(
@@ -964,14 +601,14 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
             keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = rydberg,
-            test_charge = electron_charge,
-            test_mass = electron_mass_reduced,
+            ionization_potential = u.rydberg,
+            test_charge = u.electron_charge,
+            test_mass = u.electron_mass_reduced,
             keldysh_omega_selector = 'carrier',
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
-        delta_omega = twopi / pulse_width
+        delta_omega = u.twopi / pulse_width
 
         keldysh_omega = {'carrier': omega_min + (delta_omega / 2), 'bandwidth': delta_omega}[keldysh_omega_selector]
 
@@ -983,7 +620,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = pi * epsilon_0 * c * (amplitude ** 2) / delta_omega
+        fluence = u.pi * u.epsilon_0 * u.c * (amplitude ** 2) / delta_omega
 
         return cls(
             pulse_width = pulse_width,
@@ -999,12 +636,12 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             cls,
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
-            amplitude = 1 * atomic_electric_field,
+            amplitude = 1 * u.atomic_electric_field,
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
-        delta_omega = twopi / pulse_width
-        fluence = pi * epsilon_0 * c * (amplitude ** 2) / delta_omega
+        delta_omega = u.twopi / pulse_width
+        fluence = u.pi * u.epsilon_0 * u.c * (amplitude ** 2) / delta_omega
 
         pot = cls(
             pulse_width = pulse_width,
@@ -1024,15 +661,15 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def photon_energy_min(self):
-        return hbar * self.omega_min
+        return u.hbar * self.omega_min
 
     @property
     def photon_energy_carrier(self):
-        return hbar * self.omega_carrier
+        return u.hbar * self.omega_carrier
 
     @property
     def photon_energy_max(self):
-        return hbar * self.omega_max
+        return u.hbar * self.omega_max
 
     @property
     def photon_energy_bandwidth(self):
@@ -1040,28 +677,28 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def frequency_min(self):
-        return self.omega_min / twopi
+        return self.omega_min / u.twopi
 
     @property
     def frequency_carrier(self):
-        return self.omega_carrier / twopi
+        return self.omega_carrier / u.twopi
 
     @property
     def frequency_max(self):
-        return self.omega_max / twopi
+        return self.omega_max / u.twopi
 
     @property
     def frequency_delta(self):
-        return self.delta_omega / twopi
+        return self.delta_omega / u.twopi
 
     @property
     def amplitude_per_frequency(self):
-        return np.sqrt(twopi) * self.amplitude_omega
+        return np.sqrt(u.twopi) * self.amplitude_omega
 
     def keldysh_parameter(self,
-                          ionization_potential = rydberg,
-                          test_mass = electron_mass_reduced,
-                          test_charge = electron_charge,
+                          ionization_potential = u.rydberg,
+                          test_mass = u.electron_mass_reduced,
+                          test_charge = u.electron_charge,
                           keldysh_omega_selector = 'carrier'):
         keldysh_omega = {'carrier': self.omega_carrier, 'bandwidth': self.delta_omega}[keldysh_omega_selector]
 
@@ -1112,18 +749,18 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
-        info.add_field('Pulse Center', f'{uround(self.pulse_center, asec)} as | {uround(self.pulse_center, fsec, 3)} fs | {uround(self.pulse_center, atomic_time, 3)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
-        info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
-        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
-        info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
-        info.add_field('Photon Energy Range', f'{uround(self.photon_energy_min, eV)} eV to {uround(self.photon_energy_max, eV)} eV')
-        info.add_field('Photon Energy Bandwidth', f'{uround(self.photon_energy_bandwidth, eV)} eV')
-        info.add_field('Carrier Frequency', f'{uround(self.frequency_carrier, THz)} THz')
-        info.add_field('Frequency Range', f'{uround(self.frequency_min, THz)} THz to {uround(self.frequency_max, THz)} THz')
-        info.add_field('Frequency Bandwidth', f'{uround(self.frequency_delta, THz)} THz')
-        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec, 3)} fs | {u.uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Pulse Center', f'{u.uround(self.pulse_center, u.asec)} as | {u.uround(self.pulse_center, fsec, 3)} fs | {u.uround(self.pulse_center, atomic_time, 3)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
+        info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
+        info.add_field('Photon Energy Range', f'{u.uround(self.photon_energy_min, u.eV)} u.eV to {u.uround(self.photon_energy_max, u.eV)} u.eV')
+        info.add_field('Photon Energy Bandwidth', f'{u.uround(self.photon_energy_bandwidth, u.eV)} u.eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
+        info.add_field('Frequency Range', f'{u.uround(self.frequency_min, u.THz)} u.THz to {u.uround(self.frequency_max, u.THz)} u.THz')
+        info.add_field('Frequency Bandwidth', f'{u.uround(self.frequency_delta, u.THz)} u.THz')
+        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
 
@@ -1161,13 +798,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase % twopi
+        self.phase = phase % u.twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
         self.delta_omega = 1 / pulse_width
 
-        self.amplitude = np.sqrt(2 * self.fluence / (np.sqrt(pi) * epsilon_0 * c * self.pulse_width))
+        self.amplitude = np.sqrt(2 * self.fluence / (np.sqrt(u.pi) * u.epsilon_0 * u.c * self.pulse_width))
         self.amplitude_omega = self.amplitude * self.pulse_width / 2
 
     @classmethod
@@ -1221,9 +858,9 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
             keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = rydberg,
-            test_charge = electron_charge,
-            test_mass = electron_mass,
+            ionization_potential = u.rydberg,
+            test_charge = u.electron_charge,
+            test_mass = u.electron_mass,
             keldysh_omega_selector = 'carrier',
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
@@ -1243,7 +880,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = np.sqrt(pi) * pulse_width * epsilon_0 * c * (amplitude ** 2) / 2
+        fluence = np.sqrt(u.pi) * pulse_width * u.epsilon_0 * u.c * (amplitude ** 2) / 2
 
         return cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1259,11 +896,11 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             cls,
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
-            amplitude = 1 * atomic_electric_field,
+            amplitude = 1 * u.atomic_electric_field,
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
-        fluence = np.sqrt(pi) * epsilon_0 * c * pulse_width * (amplitude ** 2) / 2
+        fluence = np.sqrt(u.pi) * u.epsilon_0 * u.c * pulse_width * (amplitude ** 2) / 2
 
         pot = cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1289,7 +926,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                              phase = DEFAULT_PHASE,
                              pulse_center = DEFAULT_PULSE_CENTER,
                              **kwargs):
-        omega_carrier = exclusion * (pi / (np.sqrt(2) * pulse_width))
+        omega_carrier = exclusion * (u.pi / (np.sqrt(2) * pulse_width))
 
         return cls(
             pulse_width = pulse_width,
@@ -1328,7 +965,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         -------
 
         """
-        omega_carrier = pi * number_of_cycles / (number_of_pulse_widths * pulse_width)
+        omega_carrier = u.pi * number_of_cycles / (number_of_pulse_widths * pulse_width)
 
         pulse = cls(
             pulse_width = pulse_width,
@@ -1346,11 +983,11 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def photon_energy_carrier(self):
-        return hbar * self.omega_carrier
+        return u.hbar * self.omega_carrier
 
     @property
     def frequency_carrier(self):
-        return self.omega_carrier / twopi
+        return self.omega_carrier / u.twopi
 
     @property
     def time_fwhm(self):
@@ -1370,7 +1007,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def photon_energy_fwhm(self):
-        return hbar * self.omega_fwhm
+        return u.hbar * self.omega_fwhm
 
     @property
     def photon_energy_fwhm_power(self):
@@ -1378,7 +1015,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def frequency_fwhm(self):
-        return self.omega_fwhm / twopi
+        return self.omega_fwhm / u.twopi
 
     @property
     def frequency_fwhm_power(self):
@@ -1390,7 +1027,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                                  ('pulse_center', 'asec'),
                                  ('fluence', 'J/cm^2'),
                                  'phase',
-                                 ('frequency_carrier', 'THz'),
+                                 ('frequency_carrier', 'u.THz'),
                                  ('photon_energy_carrier', 'eV'),
                                  )
 
@@ -1407,9 +1044,9 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                                   )
 
     def keldysh_parameter(self,
-                          ionization_potential = rydberg,
-                          test_mass = electron_mass,
-                          test_charge = electron_charge,
+                          ionization_potential = u.rydberg,
+                          test_mass = u.electron_mass,
+                          test_charge = u.electron_charge,
                           keldysh_omega_selector = 'carrier'):
         keldysh_omega = {'carrier': self.omega_carrier,
                          'bandwidth': self.omega_fwhm,
@@ -1437,17 +1074,17 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec)} fs | {uround(self.pulse_width, atomic_time)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
-        info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
-        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
-        info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
-        info.add_field('Photon Energy FWHM (Amplitude)', f'{uround(self.photon_energy_fwhm, eV)} eV')
-        info.add_field('Photon Energy FWHM (Power)', f'{uround(self.photon_energy_fwhm_power, eV)} eV')
-        info.add_field('Carrier Frequency', f'{uround(self.frequency_carrier, THz)} THz')
-        info.add_field('Frequency FWHM (Amplitude)', f'{uround(self.frequency_fwhm, THz)} THz')
-        info.add_field('Frequency FWHM (Power)', f'{uround(self.frequency_fwhm_power, THz)} THz')
-        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec)} fs | {u.uround(self.pulse_width, atomic_time)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
+        info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
+        info.add_field('Photon Energy FWHM (Amplitude)', f'{u.uround(self.photon_energy_fwhm, u.eV)} u.eV')
+        info.add_field('Photon Energy FWHM (Power)', f'{u.uround(self.photon_energy_fwhm_power, u.eV)} u.eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
+        info.add_field('Frequency FWHM (Amplitude)', f'{u.uround(self.frequency_fwhm, u.THz)} u.THz')
+        info.add_field('Frequency FWHM (Power)', f'{u.uround(self.frequency_fwhm_power, u.THz)} u.THz')
+        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
 
@@ -1484,14 +1121,14 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
         self.omega_carrier = omega_carrier
         self.pulse_width = pulse_width
-        self.phase = phase % twopi
+        self.phase = phase % u.twopi
         self.fluence = fluence
         self.pulse_center = pulse_center
 
-        self.delta_omega = 2 / (pi * pulse_width)
+        self.delta_omega = 2 / (u.pi * pulse_width)
 
-        self.amplitude = np.sqrt(self.fluence / (epsilon_0 * c * self.pulse_width))
-        self.amplitude_omega = self.amplitude * self.pulse_width * np.sqrt(pi / 2)
+        self.amplitude = np.sqrt(self.fluence / (u.epsilon_0 * u.c * self.pulse_width))
+        self.amplitude_omega = self.amplitude * self.pulse_width * np.sqrt(u.pi / 2)
 
     @classmethod
     def from_omega_min(
@@ -1544,15 +1181,15 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             pulse_width = DEFAULT_PULSE_WIDTH,
             omega_min = DEFAULT_OMEGA_MIN,
             keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = rydberg,
-            test_charge = electron_charge,
-            test_mass = electron_mass,
+            ionization_potential = u.rydberg,
+            test_charge = u.electron_charge,
+            test_mass = u.electron_mass,
             keldysh_omega_selector = 'carrier',
             phase = DEFAULT_PHASE,
             pulse_center = DEFAULT_PULSE_CENTER,
             **kwargs):
         dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
-        omega_fwhm = 2 * np.log(2 + np.sqrt(3)) / (2 * pulse_width / pi)
+        omega_fwhm = 2 * np.log(2 + np.sqrt(3)) / (2 * pulse_width / u.pi)
 
         keldysh_omega = {'carrier': dummy.omega_carrier, 'bandwidth': omega_fwhm}[keldysh_omega_selector]
 
@@ -1564,7 +1201,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = epsilon_0 * c * pulse_width * (amplitude ** 2)
+        fluence = u.epsilon_0 * u.c * pulse_width * (amplitude ** 2)
 
         return cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1577,11 +1214,11 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def photon_energy_carrier(self):
-        return hbar * self.omega_carrier
+        return u.hbar * self.omega_carrier
 
     @property
     def frequency_carrier(self):
-        return self.omega_carrier / twopi
+        return self.omega_carrier / u.twopi
 
     @property
     def time_fwhm(self):
@@ -1589,20 +1226,20 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def omega_fwhm(self):
-        return 2 * np.log(2 + np.sqrt(3)) / (2 * self.pulse_width / pi)
+        return 2 * np.log(2 + np.sqrt(3)) / (2 * self.pulse_width / u.pi)
 
     @property
     def photon_energy_fwhm(self):
-        return hbar * self.omega_fwhm
+        return u.hbar * self.omega_fwhm
 
     @property
     def frequency_fwhm(self):
-        return self.omega_fwhm / twopi
+        return self.omega_fwhm / u.twopi
 
     def keldysh_parameter(self,
-                          ionization_potential = rydberg,
-                          test_mass = electron_mass,
-                          test_charge = electron_charge,
+                          ionization_potential = u.rydberg,
+                          test_mass = u.electron_mass,
+                          test_charge = u.electron_charge,
                           keldysh_omega_selector = 'carrier'):
         keldysh_omega = {'carrier': self.omega_carrier, 'bandwidth': self.omega_fwhm}[keldysh_omega_selector]
 
@@ -1620,7 +1257,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
                                  ('pulse_center', 'asec'),
                                  ('fluence', 'J/cm^2'),
                                  'phase',
-                                 ('frequency_carrier', 'THz'),
+                                 ('frequency_carrier', 'u.THz'),
                                  ('photon_energy_carrier', 'eV'),
                                  )
 
@@ -1650,15 +1287,15 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Pulse Width', f'{uround(self.pulse_width, asec)} as | {uround(self.pulse_width, fsec, 3)} fs | {uround(self.pulse_width, atomic_time, 3)} a.u.')
-        info.add_field('Electric Field Amplitude Prefactor', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
-        info.add_field('Fluence', f'{uround(self.fluence, Jcm2)} J/cm^2')
-        info.add_field('Carrier-Envelope Phase', f'{uround(self.phase, pi)} pi')
-        info.add_field('Carrier Photon Energy', f'{uround(self.photon_energy_carrier, eV)} eV')
-        info.add_field('Photon Energy FWHM', f'{uround(self.photon_energy_fwhm, eV)} eV')
-        info.add_field('Carrier Frequency', f'{uround(self.frequency_carrier, THz)} THz')
-        info.add_field('Frequency FWHM', f'{uround(self.frequency_fwhm, THz)} THz')
-        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
+        info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, fsec, 3)} fs | {u.uround(self.pulse_width, atomic_time, 3)} a.u.')
+        info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
+        info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
+        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
+        info.add_field('Photon Energy FWHM', f'{u.uround(self.photon_energy_fwhm, u.eV)} u.eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
+        info.add_field('Frequency FWHM', f'{u.uround(self.frequency_fwhm, u.THz)} u.THz')
+        info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
 
@@ -1669,8 +1306,8 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     """A sine-squared pulse, parameterized by number of cycles."""
 
     def __init__(self,
-                 amplitude = .01 * atomic_electric_field,
-                 wavelength = 800 * nm,
+                 amplitude = .01 * u.atomic_electric_field,
+                 wavelength = 800 * u.nm,
                  number_of_cycles = 4,
                  phase = DEFAULT_PHASE,
                  pulse_center = DEFAULT_PULSE_CENTER,
@@ -1684,13 +1321,13 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_omega_carrier(cls,
-                           amplitude = .1 * atomic_electric_field,
-                           omega_carrier = twopi * c / (800 * nm),
+                           amplitude = .1 * u.atomic_electric_field,
+                           omega_carrier = u.twopi * u.c / (800 * u.nm),
                            number_of_cycles = 4,
                            phase = DEFAULT_PHASE,
                            pulse_center = DEFAULT_PULSE_CENTER,
                            **kwargs):
-        wavelength = c / (omega_carrier / twopi)
+        wavelength = u.c / (omega_carrier / u.twopi)
 
         return cls(
             amplitude = amplitude,
@@ -1703,13 +1340,13 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_period(cls,
-                    amplitude = .1 * atomic_electric_field,
-                    period = 200 * asec,
+                    amplitude = .1 * u.atomic_electric_field,
+                    period = 200 * u.asec,
                     number_of_cycles = 4,
                     phase = DEFAULT_PHASE,
                     pulse_center = DEFAULT_PULSE_CENTER,
                     **kwargs):
-        omega = twopi / period
+        omega = u.twopi / period
 
         return cls.from_omega_carrier(
             amplitude = amplitude,
@@ -1722,7 +1359,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_pulse_width(cls,
-                         amplitude = .1 * atomic_electric_field,
+                         amplitude = .1 * u.atomic_electric_field,
                          pulse_width = DEFAULT_PULSE_WIDTH,
                          number_of_cycles = 4,
                          phase = DEFAULT_PHASE,
@@ -1741,7 +1378,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def frequency_carrier(self):
-        return c / self.wavelength_carrier
+        return u.c / self.wavelength_carrier
 
     @property
     def period_carrier(self):
@@ -1749,7 +1386,7 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def omega_carrier(self):
-        return twopi * c / self.wavelength_carrier
+        return u.twopi * u.c / self.wavelength_carrier
 
     @property
     def pulse_width(self):
@@ -1773,8 +1410,8 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
     def info(self):
         info = super().info()
 
-        info.add_field('Amplitude', f'{uround(self.amplitude, atomic_electric_field)} a.u.')
-        info.add_field('Center Wavelength', f'{uround(self.wavelength_carrier, nm)} nm | {uround(self.wavelength_carrier, um)} um')
+        info.add_field('Amplitude', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
+        info.add_field('Center Wavelength', f'{u.uround(self.wavelength_carrier, u.nm)} u.nm | {u.uround(self.wavelength_carrier, um)} um')
         info.add_field('Number of Cycles', self.number_of_cycles)
 
         return info
@@ -1861,11 +1498,11 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def omega(self):
-        return twopi * self.frequency
+        return u.twopi * self.frequency
 
     @property
     def dw(self):
-        return twopi * self.df
+        return u.twopi * self.df
 
     @property
     def power_vs_frequency(self):
@@ -1873,9 +1510,9 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
 
     @property
     def fluence_numeric(self):
-        from_field = epsilon_0 * c * integ.simps(y = np.real(self.complex_electric_field_vs_time) ** 2,
-                                                 dx = self.dt)
-        # from_spectrum = epsilon_0 * c * integ.simps(y = self.complex_amplitude_vs_frequency ** 2,
+        from_field = u.epsilon_0 * u.c * integ.simps(y = np.real(self.complex_electric_field_vs_time) ** 2,
+                                                     dx = self.dt)
+        # from_spectrum = u.epsilon_0 * u.c * integ.simps(y = self.complex_amplitude_vs_frequency ** 2,
         #                                             dx = self.df)
 
         # return (from_field + from_spectrum) / 2
@@ -1900,192 +1537,14 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         return np.real(amp) * super().get_electric_field_amplitude(t)
 
 
-class RectangularTimeWindow(TimeWindow):
-    def __init__(self, on_time = 0 * asec, off_time = 50 * asec):
-        self.on_time = on_time
-        self.off_time = off_time
+def DC_correct_electric_potential(electric_potential, times):
+    def func_to_minimize(amp, original_pulse):
+        test_correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = amp, window = electric_potential.window)
+        test_pulse = original_pulse + test_correction_field
 
-        super().__init__()
+        return np.abs(test_pulse.get_electric_field_integral_numeric_cumulative(times)[-1])
 
-    def __str__(self):
-        return '{}(on at = {} as, off at = {} as)'.format(self.__class__.__name__,
-                                                          uround(self.on_time, asec),
-                                                          uround(self.off_time, asec))
+    correction_amp = optim.minimize_scalar(func_to_minimize, args = (electric_potential,)).x
+    correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_potential.window)
 
-    def __repr__(self):
-        return '{}(on_time = {}, off_time = {})'.format(self.__class__.__name__,
-                                                        self.on_time,
-                                                        self.off_time)
-
-    def __call__(self, t):
-        cond = np.greater_equal(t, self.on_time) * np.less_equal(t, self.off_time)
-        on = 1
-        off = 0
-
-        return np.where(cond, on, off)
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Time On', f'{uround(self.on_time, asec)} asec')
-        info.add_field('Time Off', f'{uround(self.off_time, asec)} asec')
-
-        return info
-
-
-class LinearRampTimeWindow(TimeWindow):
-    def __init__(self, ramp_on_time = 0 * asec, ramp_time = 50 * asec):
-        self.ramp_on_time = ramp_on_time
-        self.ramp_time = ramp_time
-
-        # TODO: ramp_from and ramp_to
-
-        super().__init__()
-
-    def __str__(self):
-        return '{}(ramp on at = {} as, ramp time = {} as)'.format(self.__class__.__name__,
-                                                                  uround(self.ramp_on_time, asec),
-                                                                  uround(self.ramp_time, asec))
-
-    def __repr__(self):
-        return '{}(ramp_on_time = {}, ramp_time = {})'.format(self.__class__.__name__,
-                                                              self.ramp_on_time,
-                                                              self.ramp_time)
-
-    def __call__(self, t):
-        cond = np.greater_equal(t, self.ramp_on_time)
-        on = 1
-        off = 0
-
-        out_1 = np.where(cond, on, off)
-
-        cond = np.less_equal(t, self.ramp_on_time + self.ramp_time)
-        on = np.ones(np.shape(t)) * (t - self.ramp_on_time) / self.ramp_time
-        off = 1
-
-        out_2 = np.where(cond, on, off)
-
-        return out_1 * out_2
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Time Ramp Start', f'{uround(self.ramp_on_time, asec)} asec')
-        info.add_field('Time Ramp Finish', f'{uround(self.ramp_off_time, asec)} asec')
-
-        return info
-
-
-class SymmetricExponentialTimeWindow(TimeWindow):
-    def __init__(self, window_time = 500 * asec, window_width = 10 * asec, window_center = 0 * asec):
-        self.window_time = window_time
-        self.window_width = window_width
-        self.window_center = window_center
-
-        super().__init__()
-
-    def __str__(self):
-        return '{}(window time = {} as, window width = {} as, window center = {})'.format(self.__class__.__name__,
-                                                                                          uround(self.window_time, asec),
-                                                                                          uround(self.window_width, asec),
-                                                                                          uround(self.window_center, asec))
-
-    def __repr__(self):
-        return '{}(window_time = {}, window_width = {}, window_center = {})'.format(self.__class__.__name__,
-                                                                                    self.window_time,
-                                                                                    self.window_width,
-                                                                                    self.window_center)
-
-    def __call__(self, t):
-        tau = np.array(t) - self.window_center
-        return np.abs(1 / (1 + np.exp(-(tau + self.window_time) / self.window_width)) - 1 / (1 + np.exp(-(tau - self.window_time) / self.window_width)))
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Window Time', f'{uround(self.window_time, asec)} as | {uround(self.window_time, fsec)} fs | {uround(self.window_time, atomic_time)} a.u.')
-        info.add_field('Window Width', f'{uround(self.window_width, asec)} as | {uround(self.window_width, fsec)} fs | {uround(self.window_width, atomic_time)} a.u.')
-        info.add_field('Window Center', f'{uround(self.window_center, asec)} as | {uround(self.window_center, fsec)} fs | {uround(self.window_center, atomic_time)} a.u.')
-
-        return info
-
-
-class SmoothedTrapezoidalWindow(TimeWindow):
-    def __init__(self, *, time_front, time_plateau):
-        super().__init__()
-
-        self.time_front = time_front
-        self.time_plateau = time_plateau
-
-    def __call__(self, t):
-        cond_before = np.less(t, self.time_front)
-        cond_middle = np.less_equal(self.time_front, t) * np.less_equal(t, self.time_front + self.time_plateau)
-        cond_after = np.less(self.time_front + self.time_plateau, t) * np.less_equal(t, (2 * self.time_front) + self.time_plateau)
-
-        out = np.where(cond_before, np.sin(pi * t / (2 * self.time_front)) ** 2, 0)
-        out += np.where(cond_middle, 1, 0)
-        out += np.where(cond_after, np.cos(pi * (t - (self.time_front + self.time_plateau)) / (2 * self.time_front)) ** 2, 0)
-
-        return out
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Front Time', f'{uround(self.time_front, asec)} as | {uround(self.time_front, fsec)} fs | {uround(self.time_front, atomic_time)} a.u.')
-        info.add_field('Plateau Time', f'{uround(self.time_plateau, asec)} as | {uround(self.time_plateau, fsec)} fs  | {uround(self.time_plateau, atomic_time)} a.u.')
-
-        return info
-
-
-class RadialCosineMask(Mask):
-    """A class representing a masks which begins at some radius and smoothly decreases to 0 as the nth-root of cosine."""
-
-    def __init__(self, inner_radius = 50 * bohr_radius, outer_radius = 100 * bohr_radius, smoothness = 8):
-        """Construct a RadialCosineMask from an inner radius, outer radius, and cosine 'smoothness' (the cosine will be raised to the 1/smoothness power)."""
-        if inner_radius < 0 or outer_radius < 0:
-            raise exceptions.InvalidMaskParameter('inner and outer radius must be non-negative')
-        if inner_radius >= outer_radius:
-            raise exceptions.InvalidMaskParameter('outer radius must be larger than inner radius')
-        if smoothness < 1:
-            raise exceptions.InvalidMaskParameter('smoothness must be greater than 1')
-
-        super().__init__()
-
-        self.inner_radius = inner_radius
-        self.outer_radius = outer_radius
-        self.smoothness = smoothness
-
-    def __str__(self):
-        return '{}(inner radius = {} a_0, outer radius = {} a_0, smoothness = {})'.format(self.__class__.__name__,
-                                                                                          uround(self.inner_radius, bohr_radius, 3),
-                                                                                          uround(self.outer_radius, bohr_radius, 3),
-                                                                                          self.smoothness)
-
-    def __repr__(self):
-        return '{}(inner_radius = {}, outer_radius = {}, smoothness = {})'.format(self.__class__.__name__,
-                                                                                  self.inner_radius,
-                                                                                  self.outer_radius,
-                                                                                  self.smoothness)
-
-    def __call__(self, *, r, **kwargs):
-        """
-        Return the value(s) of the mask at radial position(s) r.
-
-        Accepts only keyword arguments.
-
-        :param r: the radial position coordinate
-        :param kwargs: absorbs keyword arguments.
-        :return: the value(s) of the mask at r
-        """
-        return np.where(np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
-                        np.abs(np.cos(0.5 * pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
-                        np.where(np.greater_equal(r, self.outer_radius), 0, 1))
-
-    def info(self):
-        info = super().info()
-
-        info.add_field('Inner Radius', f'{uround(self.inner_radius, bohr_radius, 3)} a_0 | {uround(self.inner_radius, nm, 3)} nm')
-        info.add_field('Outer Radius', f'{uround(self.outer_radius, bohr_radius, 3)} a_0 | {uround(self.outer_radius, nm, 3)} nm')
-        info.add_field('Smoothness', self.smoothness)
-
-        return info
+    return electric_potential + correction_field
