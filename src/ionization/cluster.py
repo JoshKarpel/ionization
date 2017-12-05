@@ -38,7 +38,7 @@ class PulseParameterScanMixin:
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for plot_parameter, line_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
+            for plot_parameter, line_parameter, scan_parameter in itertools.permutations(self.scan_parameters, r = 3):
                 plot_parameter_name, line_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), line_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
                 plot_parameter_unit, line_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[line_parameter], parameter_name_to_unit_name[scan_parameter]
                 plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
