@@ -52,9 +52,7 @@ def process_job(job_name, jobs_dir = None):
             with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
                 jp.load_sims(force_reprocess = False)
 
-            if len(jp.unprocessed_sim_names) == 0:
-                jp.summarize()
-
+        jp.summarize()
         jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
 
         return jp
