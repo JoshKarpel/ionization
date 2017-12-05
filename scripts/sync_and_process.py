@@ -5,7 +5,6 @@ import os
 
 import simulacra as si
 import simulacra.cluster as clu
-import ionization.cluster as iclu
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,20 +39,20 @@ def process_job(job_name, jobs_dir = None):
         job_info = clu.load_job_info_from_file(job_dir)
 
         try:
-            jp = clu.JobProcessor.load(os.path.join(job_dir, job_name + '.job'))
+            jp = clu.JobProcessor.load(os.path.join(job_dir, f'{job_name}.job'))
 
             logger.debug('Loaded existing job processor for job {}'.format(job_name))
         except FileNotFoundError:
             jp_type = job_info['job_processor_type']
-            if jp_type is iclu.PulseJobProcessor:  # tmp, for compatibility
-                jp_type = iclu.MeshJobProcessor
             jp = jp_type(job_name, job_dir)
 
-            logger.debug('Created new job processor for job {}'.format(job_name))
+            logger.debug(f'Created new job processor of type {jp_type} for job {job_name}')
 
         if len(jp.unprocessed_sim_names) > 0:
             with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
                 jp.load_sims(force_reprocess = False)
+
+            if len(jp.unprocessed_sim_names) == 0:
                 jp.summarize()
 
         jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))

@@ -212,7 +212,7 @@ class MeshSimulationResult(PulseSimulationResult):
             pass
 
 
-class PulseJobProcessor(clu.JobProcessor, PulseParameterScanMixin):
+class PulseJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
     pass
 
 
