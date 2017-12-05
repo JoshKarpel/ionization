@@ -121,10 +121,9 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
     def integrand(theta, phi):
         return y1(theta, phi) * y2(theta, phi) * np.conj(y3(theta, phi)) * np.sin(theta)
 
-    result = si.math.complex_nquad(integrand, [(0, pi), (0, twopi)], opts = {'limit': 1000})
-    logger.debug(result)
+    result, *errs = si.math.complex_nquad(integrand, [(0, pi), (0, twopi)], opts = {'limit': 1000})
 
-    return np.real(result[0])
+    return np.real(result)
 
 
 warning_record = collections.namedtuple('warning_record', ['data_time_index', 'message'])

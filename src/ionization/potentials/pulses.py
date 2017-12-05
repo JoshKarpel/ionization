@@ -10,13 +10,13 @@ import simulacra.units as u
 
 from .. import exceptions
 
-from . import potentials, windows
+from . import potential, windows
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class UniformLinearlyPolarizedElectricPotential(potentials.PotentialEnergy):
+class UniformLinearlyPolarizedElectricPotential(potential.PotentialEnergy):
     def __init__(self, window = windows.NoTimeWindow()):
         super().__init__()
 

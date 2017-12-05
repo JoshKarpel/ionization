@@ -3,10 +3,10 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from . import potentials
+from . import potential
 
 
-class Coulomb(potentials.PotentialEnergy):
+class Coulomb(potential.PotentialEnergy):
     """A class representing the electric potential energy caused by the Coulomb potential."""
 
     def __init__(self, charge = 1 * u.proton_charge):
@@ -46,7 +46,7 @@ class Coulomb(potentials.PotentialEnergy):
         return info
 
 
-class SoftCoulomb(potentials.PotentialEnergy):
+class SoftCoulomb(potential.PotentialEnergy):
     """A class representing the electric potential energy caused by the Coulomb potential."""
 
     def __init__(self, charge = 1 * u.proton_charge, softening_distance = .05 * u.bohr_radius):
@@ -88,7 +88,7 @@ class SoftCoulomb(potentials.PotentialEnergy):
         return info
 
 
-class HarmonicOscillator(potentials.PotentialEnergy):
+class HarmonicOscillator(potential.PotentialEnergy):
     """A PotentialEnergy representing the potential energy of a harmonic oscillator."""
 
     def __init__(self, spring_constant = 4.20521 * u.N / u.m, center = 0 * u.nm, cutoff_distance = None):
@@ -159,7 +159,7 @@ class HarmonicOscillator(potentials.PotentialEnergy):
         return info
 
 
-class FiniteSquareWell(potentials.PotentialEnergy):
+class FiniteSquareWell(potential.PotentialEnergy):
     def __init__(self, potential_depth = 1 * u.eV, width = 10 * u.nm, center = 0 * u.nm):
         self.potential_depth = np.abs(potential_depth)
         self.width = width
@@ -196,7 +196,7 @@ class FiniteSquareWell(potentials.PotentialEnergy):
         return info
 
 
-class GaussianPotential(potentials.PotentialEnergy):
+class GaussianPotential(potential.PotentialEnergy):
     def __init__(self, potential_extrema = -1 * u.eV, width = 1 * u.bohr_radius, center = 0):
         super().__init__()
 

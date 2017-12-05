@@ -21,27 +21,11 @@ import ionization as ion
 
 
 def ensure_compatibility_spec(spec):
-    if not hasattr(spec, 'theta_points'):
-        spec.theta_points = 360
-    if type(spec.checkpoint_every) == int:
-        spec.checkpoint_every = datetime.timedelta(minutes = 60)
-    if not hasattr(spec, 'store_radial_probability_current'):
-        spec.store_radial_probability_current = False
-
-    # rename amplitude_time to amplitude
-    try:
-        spec.electric_potential.amplitude = spec.electric_potential.amplitude_time
-    except AttributeError:
-        pass
-    try:
-        spec.electric_potential[0].amplitude = spec.electric_potential[0].amplitude_time
-    except AttributeError:
-        pass
+    pass
 
 
 def ensure_compatibility_sim(sim):
-    if not hasattr(sim, 'latest_checkpoint_time'):
-        sim.latest_checkpoint_time = datetime.datetime.utcnow()
+    pass
 
 
 if __name__ == '__main__':

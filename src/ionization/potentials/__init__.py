@@ -1,4 +1,4 @@
-from .potentials import *
+from .potential import *
 from .static import *
 from .pulses import *
 from .windows import *

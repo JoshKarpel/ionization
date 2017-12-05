@@ -2,10 +2,10 @@ import numpy as np
 
 import simulacra.units as u
 
-from . import potentials
+from . import potential
 
 
-class ImaginaryGaussianRing(potentials.PotentialEnergy):
+class ImaginaryGaussianRing(potential.PotentialEnergy):
     def __init__(self, center = 20 * u.bohr_radius, width = 2 * u.bohr_radius, decay_time = 100 * u.asec):
         """
         Construct a RadialImaginary potential. The potential is shaped like a Gaussian wrapped around a ring and has an imaginary amplitude.

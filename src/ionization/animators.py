@@ -530,9 +530,6 @@ class LineMeshAxis(QuantumMeshAxis):
         x_lower_limit, x_upper_limit = np.nanmin(x), np.nanmax(x)
         self.axis.set_xlim(x_lower_limit / unit_value, x_upper_limit / unit_value)
 
-
-        # self.axis.axis('tight')
-
         self.redraw += [*self.axis.xaxis.get_gridlines(),
                         *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
