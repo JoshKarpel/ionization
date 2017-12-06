@@ -52,8 +52,12 @@ def process_job(job_name, jobs_dir = None):
             with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
                 jp.load_sims(force_reprocess = False)
 
-        jp.summarize()
         jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
+
+        try:
+            jp.summarize()
+        except Exception as e:
+            logger.exception(e)
 
         return jp
 
@@ -74,7 +78,7 @@ def process_jobs(jobs_dir):
 
     logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
 
-    longest_jp_name_len = max(len(jp.name) for jp in job_processors)
+    longest_jp_name_len = max(len(jp.name) for jp in job_processors) if job_processors else 10
 
     header = f' {"Job Name".center(longest_jp_name_len)} │ Finished │ Total │ Runtime'
     bar = ''.join('─' if char != '│' else '┼' for char in header)

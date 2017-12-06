@@ -30,9 +30,10 @@ class PulseParameterScanMixin:
     def make_summary_plots(self):
         super().make_summary_plots()
 
-        logger.info(f'Generating pulse parameter scans for job {self.name}')
-        self.make_pulse_parameter_scans_1d()
-        self.make_pulse_parameter_scans_2d()
+        if len(self.unprocessed_sim_names) == 0:
+            logger.info(f'Generating pulse parameter scans for job {self.name}')
+            self.make_pulse_parameter_scans_1d()
+            # self.make_pulse_parameter_scans_2d()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
@@ -127,7 +128,7 @@ class PulseParameterScanMixin:
 
                         for ii, x_value in enumerate(x):
                             for jj, y_value in enumerate(y):
-                                z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
+                                z_mesh[ii, jj] = xy_to_metric[x_value, y_value]
 
                         for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
                             if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y):  # skip log phase plots
