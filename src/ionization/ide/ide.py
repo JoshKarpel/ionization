@@ -131,7 +131,8 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.times.append(new_t)
             self.time_index += 1
 
-            logger.debug(f'{self} evolved to time index {self.time_index}')
+            completion_percent = 100 * (self.time - self.spec.time_initial) / (self.spec.time_final - self.spec.time_initial)
+            logger.debug(f'{self} evolved to time index {self.time_index} ({round(completion_percent)}%)')
 
             if callback is not None:
                 callback(self)
@@ -141,7 +142,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                     self.save(target_dir = self.spec.checkpoint_dir)
                     self.latest_checkpoint_time = now
-                    logger.info(f'Checkpointed {self} at time index {self.time_index}')
+                    logger.info(f'Checkpointed {self} at time index {self.time_index} ({round(completion_percent)}%)')
                     self.status = si.Status.RUNNING
 
         self.b = np.array(self.b)
@@ -433,4 +434,3 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_ide)
 
         return info
-

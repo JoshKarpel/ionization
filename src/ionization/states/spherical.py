@@ -94,7 +94,7 @@ class FreeSphericalWave(state.QuantumState):
 
     @property
     def latex(self):
-        """Return a LaTeX-formatted string for the HydrogenCoulombState."""
+        """Return a LaTeX-formatted string for the FreeSphericalWave."""
         return r'\phi_{{{},{},{}}}'.format(u.uround(self.energy, u.eV, 3), self.l, self.m)
 
     def radial_function(self, r):

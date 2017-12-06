@@ -123,26 +123,20 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         vp_previous = vector_potential(previous_time)
         vp_current = vector_potential(current_time)
 
-        integrand = (vp_current - vp_previous) ** 2
+        time_difference = current_time - previous_time
 
-        # def integrand(integration_time):
-        #     return (vector_potential(integration_time) - vp_previous) ** 2
-        #
-        # integral, *errs = self.integration_method(
-        #     integrand,
-        #     previous_time,
-        #     current_time,
-        #     **self.integration_kwargs,
-        # )
-
-        integral = integ.cumtrapz(
-            y = integrand,
-            # x = previous_time,  #??,
-            # dx = 1 * u.asec,
-            x = current_time - previous_time,
+        vp_integral = -integ.cumtrapz(
+            y = vector_potential(previous_time)[::-1],
+            x = previous_time[::-1],
             initial = 0,
-        )
+        )[::-1]
+
+        vp2_integral = integ.cumtrapz(
+            y = vector_potential(previous_time)[::-1] ** 2,
+            x = previous_time[::-1],
+            initial = 0,
+        )[::-1]
+
+        integral = vp2_integral - (2 * vp_previous * vp_integral) + ((vp_previous ** 2) * time_difference)
 
         return np.exp(-1j * self.phase_prefactor * integral)
-
-    # _vector_potential_phase_factor = np.vectorize(_vector_potential_phase_factor, otypes = [np.complex128])
