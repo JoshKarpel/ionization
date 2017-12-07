@@ -1,5 +1,6 @@
 import logging
 import datetime
+from typing import Union, Callable
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -21,7 +22,8 @@ logger.setLevel(logging.DEBUG)
 class IntegroDifferentialEquationSimulation(si.Simulation):
     """
     A class that encapsulates a simulation of an IDE with the form
-    da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
+    db/dt = prefactor * f(t) * integral[ f(t') * b(t') * kernel(t, t')
+    which happen to arise when working with the IDE model.
 
     Attributes
     ----------
@@ -30,7 +32,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     time_steps : :class:`int`
         The current number of time steps that have been solved for.
     b
-        The solution of the IDE vs time (i.e., the bound state probability amplitude).
+        The solution of the IDE vs time (i.e., the bound state probability amplitude in the rotating frame of the bound state).
     b2
         The square of the absolute value of the solution vs time (i.e., the probability that the system is in the bound state).
     """
@@ -107,7 +109,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.interpolated_vector_potential,
         )
 
-    def run_simulation(self, callback = None):
+    def run_simulation(self, callback: Callable = None):
         """
         Run the IDE simulation by repeatedly evolving it forward in time.
 
@@ -181,17 +183,23 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         y_labels = []
         if show_electric_field:
             e_label = fr'$ {core.LATEX_EFIELD}(t) $'
-            axis.plot(self.times / time_unit_value, self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
-                      color = core.COLOR_ELECTRIC_FIELD,
-                      linewidth = 1.5,
-                      label = e_label)
+            axis.plot(
+                self.times / time_unit_value,
+                self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
+                color = core.COLOR_ELECTRIC_FIELD,
+                linewidth = 1.5,
+                label = e_label
+            )
             y_labels.append(e_label)
         if show_vector_potential:
             a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
-            axis.plot(self.times / time_unit_value, u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / u.atomic_momentum,
-                      color = core.COLOR_VECTOR_POTENTIAL,
-                      linewidth = 1.5,
-                      label = a_label)
+            axis.plot(
+                self.times / time_unit_value,
+                u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / u.atomic_momentum,
+                color = core.COLOR_VECTOR_POTENTIAL,
+                linewidth = 1.5,
+                label = a_label
+            )
             y_labels.append(a_label)
 
         if show_y_label:
@@ -222,32 +230,36 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
             t_scale_unit, t_scale_name = u.get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
-            ax_a = plt.subplot(grid_spec[0])
-            ax_pot = plt.subplot(grid_spec[1], sharex = ax_a)
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)
+            ax_b2 = plt.subplot(grid_spec[0])
+            ax_pot = plt.subplot(grid_spec[1], sharex = ax_b2)
 
-            self.attach_electric_potential_plot_to_axis(ax_pot,
-                                                        show_vector_potential = show_vector_potential,
-                                                        time_unit = time_unit)
+            self.attach_electric_potential_plot_to_axis(
+                ax_pot,
+                show_vector_potential = show_vector_potential,
+                time_unit = time_unit
+            )
 
-            ax_a.plot(self.times / t_scale_unit,
-                      self.b2,
-                      color = 'black',
-                      linewidth = 2)
+            ax_b2.plot(
+                self.times / t_scale_unit,
+                self.b2,
+                color = 'black',
+                linewidth = 2
+            )
 
             if log:
-                ax_a.set_yscale('log')
+                ax_b2.set_yscale('log')
                 min_overlap = np.min(self.b2)
-                ax_a.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
-                ax_a.grid(True, which = 'both', **si.vis.GRID_KWARGS)
+                ax_b2.set_ylim(bottom = max(1e-9, min_overlap * .1), top = 1.0)
+                ax_b2.grid(True, which = 'both', **si.vis.GRID_KWARGS)
             else:
-                ax_a.set_ylim(0.0, 1.0)
-                ax_a.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_a.grid(True, **si.vis.GRID_KWARGS)
+                ax_b2.set_ylim(0.0, 1.0)
+                ax_b2.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
+                ax_b2.grid(True, **si.vis.GRID_KWARGS)
 
-            ax_a.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
+            ax_b2.set_xlim(self.spec.time_initial / t_scale_unit, self.spec.time_final / t_scale_unit)
 
-            ax_a.set_ylabel(r'$\left| b(t) \right|^2$', fontsize = 13)
+            ax_b2.set_ylabel(r'$\left| b(t) \right|^2$', fontsize = 13)
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -260,27 +272,31 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
             ax_pot.tick_params(axis = 'x', which = 'major', labelsize = 10)
             ax_pot.tick_params(axis = 'y', which = 'major', labelsize = 10)
-            ax_a.tick_params(axis = 'both', which = 'major', labelsize = 10)
+            ax_b2.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-            ax_a.tick_params(labelleft = True,
-                             labelright = True,
-                             labeltop = True,
-                             labelbottom = False,
-                             bottom = True,
-                             top = True,
-                             left = True,
-                             right = True)
-            ax_pot.tick_params(labelleft = True,
-                               labelright = True,
-                               labeltop = False,
-                               labelbottom = True,
-                               bottom = True,
-                               top = True,
-                               left = True,
-                               right = True)
+            ax_b2.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = True,
+                labelbottom = False,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
+            ax_pot.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = False,
+                labelbottom = True,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
 
             if show_title:
-                title = ax_a.set_title(self.name)
+                title = ax_b2.set_title(self.name)
                 title.set_y(1.15)
 
             postfix = ''
@@ -300,23 +316,26 @@ class IntegroDifferentialEquationSpecification(si.Specification):
     """
     simulation_type = IntegroDifferentialEquationSimulation
 
-    def __init__(self, name,
-                 time_initial = 0 * u.asec,
-                 time_final = 200 * u.asec,
-                 time_step = 1 * u.asec,
-                 test_mass = u.electron_mass,
-                 test_charge = u.electron_charge,
-                 b_initial = 1,
-                 integral_prefactor = -((u.electron_charge / u.hbar) ** 2),
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = False,
-                 kernel = kernels.LengthGaugeHydrogenKernel(),
-                 integration_method = 'simpson',
-                 evolution_method = evolution_methods.RungeKuttaFourMethod(),
-                 evolution_gauge = 'LEN',
-                 checkpoints = False, checkpoint_every = datetime.timedelta(hours = 1), checkpoint_dir = None,
-                 store_data_every = 1,
-                 additional_decay_function = None,
+    def __init__(self,
+                 name,
+                 time_initial: float = 0 * u.asec,
+                 time_final: float = 200 * u.asec,
+                 time_step: float = 1 * u.asec,
+                 test_mass: float = u.electron_mass,
+                 test_charge: float = u.electron_charge,
+                 b_initial: Union[float, complex] = 1,
+                 integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
+                 electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+                 electric_potential_dc_correction: bool = False,
+                 kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+                 integration_method: str = 'simpson',
+                 evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
+                 evolution_gauge: str = 'LEN',
+                 checkpoints: bool = False,
+                 checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
+                 checkpoint_dir: str = None,
+                 store_data_every: int = 1,
+                 additional_decay_function: Callable = None,
                  **kwargs):
         """
         The differential equation should be of the form
@@ -336,23 +355,23 @@ class IntegroDifferentialEquationSpecification(si.Specification):
             The mass of the test particle.
         test_charge : :class:`float`
             The charge of the test particle.
-        b_initial
+        b_initial : :class:`complex`
             The initial value of a, the bound state probability amplitude.
         integral_prefactor
             The overall prefactor of the IDE.
         electric_potential
             The electric potential that provides ``f`` (either as the electric field or the vector potential).
         electric_potential_dc_correction
-            If True, DC correction is performed on the electric field.
+            If ``True``, DC correction is performed on the electric field.
         kernel
             The kernel function of the IDE.
         kernel_kwargs
             Additional keyword arguments to pass to `kernel`.
-        integration_method : {``'trapz'``, ``'simps'``}
+        integration_method
             Which integration method to use, when applicable.
-        evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
+        evolution_method
             Which evolution algorithm/method to use.
-        evolution_gauge : {``'LEN'``, ``'VEL'``}
+        evolution_gauge
             Which gauge to perform time evolution in.
         checkpoints
         checkpoint_every

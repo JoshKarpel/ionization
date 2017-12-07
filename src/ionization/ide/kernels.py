@@ -105,23 +105,18 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
     This version uses an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
     """
 
-    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy, integration_method = integ.quadrature, integration_kwargs = {}):
+    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
         super().__init__(bound_state_energy = bound_state_energy)
-
-        self.integration_method = integration_method
-        self.integration_kwargs = integration_kwargs
 
         self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
-        # TODO: confirm the prefactor is the same
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 
         return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
         vp_previous = vector_potential(previous_time)
-        vp_current = vector_potential(current_time)
 
         time_difference = current_time - previous_time
 

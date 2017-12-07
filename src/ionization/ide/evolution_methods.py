@@ -17,6 +17,13 @@ class TimeStepType(enum.Enum):
 
 
 class EvolutionMethod(ABC):
+    """
+    An abstract class for evolution methods for IDE simulations.
+
+    Any subclass must have a class attribute called `time_step_type` that is assigned to a member of :class:`TimeStepType`.
+    Which one obviously depends on what kind of time step the method uses.
+    """
+
     @abstractmethod
     def evolve(self, sim, b, times, time_step):
         raise NotImplementedError
@@ -24,10 +31,18 @@ class EvolutionMethod(ABC):
     def info(self):
         info = si.Info(header = f'Evolution Method: {self.__class__.__name__}')
 
+        info.add_field('Time Step Type', self.time_step_type)
+
         return info
 
 
 class ForwardEulerMethod(EvolutionMethod):
+    """
+    The forward Euler method.
+    This method is first order in time, and not particularly stable.
+    See `Wikipedia<https://en.wikipedia.org/wiki/Euler_method>`_ for examples.
+    """
+
     time_step_type = TimeStepType.FIXED
 
     def evolve(self, sim, b, times, time_step):
@@ -52,6 +67,12 @@ class ForwardEulerMethod(EvolutionMethod):
 
 
 class BackwardEulerMethod(EvolutionMethod):
+    """
+    The backward Euler method.
+    This method is first order in time, but is much more stable than forward Euler.
+    See `Wikipedia<https://en.wikipedia.org/wiki/Backward_Euler_method>`_ for examples.
+    """
+
     time_step_type = TimeStepType.FIXED
 
     def evolve(self, sim, b, times, time_step):
@@ -79,6 +100,11 @@ class BackwardEulerMethod(EvolutionMethod):
 
 
 class TrapezoidMethod(EvolutionMethod):
+    """
+    The trapezoid method, which is the combination of the forward and backward Euler methods.
+    This method is second order in time and shares the stability properties of the backward Euler method.
+    """
+
     time_step_type = TimeStepType.FIXED
 
     def evolve(self, sim, b, times, time_step):
@@ -116,6 +142,12 @@ class TrapezoidMethod(EvolutionMethod):
 
 
 class RungeKuttaFourMethod(EvolutionMethod):
+    """
+    The fourth-order Runge-Kutta method.
+    This method is fourth-order in time.
+    See `Wikipedia<https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge–Kutta_method>` for discussion.
+    """
+
     time_step_type = TimeStepType.FIXED
 
     def evolve(self, sim, b, times, time_step):
@@ -170,11 +202,15 @@ class RungeKuttaFourMethod(EvolutionMethod):
 
 
 class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
+    """
+    An adaptive fourth-order Runge-Kutta method.
+    """
+
     time_step_type = TimeStepType.ADAPTIVE
 
     def __init__(self,
                  time_step_min = .01 * u.asec,
-                 time_step_max = 10 * u.asec,
+                 time_step_max = 1 * u.asec,
                  epsilon = 1e-6,
                  error_on = 'db/dt',
                  safety_factor = .98):
@@ -225,7 +261,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
             sim.time_step = min(self.time_step_max, sim.time_step)
             sim.time_step = max(self.time_step_min, sim.time_step)
 
-            logger.debug(f'Accepted ARK4 step to {uround(times[-1] + time_step, u.asec, 6)} as. Changed time step to {uround(sim.time_step, u.asec, 6)} as from {uround(old_step, u.asec, 6)} as')
+            logger.debug(f'Accepted ARK4 step to {u.uround(times[-1] + time_step, u.asec, 6)} as. Changed time step to {u.uround(sim.time_step, u.asec, 6)} as from {u.uround(old_step, u.asec, 6)} as')
 
             return a_double_step_estimate + (delta_1 / 15), time_curr + time_step
         else:  # reject step
@@ -233,7 +269,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
             sim.time_step = min(self.time_step_max, sim.time_step)
             sim.time_step = max(self.time_step_min, sim.time_step)
 
-            logger.debug(f'Rejected ARK4 step. Changed time step to {uround(sim.time_step, u.asec, 6)} as from {uround(old_step, u.asec, 6)} as')
+            logger.debug(f'Rejected ARK4 step. Changed time step to {u.uround(sim.time_step, u.asec, 6)} as from {u.uround(old_step, u.asec, 6)} as')
             return self.evolve(sim, b, times, sim.time_step)  # retry with new time step
 
     def info(self):
@@ -242,7 +278,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
         info.add_field('Error Control On', self.error_on)
         info.add_field('Epsilon', self.epsilon)
         info.add_field('Safety Factor', self.safety_factor)
-        info.add_field('Minimum Time Step', f'{uround(self.time_step_min, u.asec, 3)} as')
-        info.add_field('Maximum Time Step', f'{uround(self.time_step_max, u.asec, 3)} as')
+        info.add_field('Minimum Time Step', f'{u.uround(self.time_step_min, u.asec, 3)} as')
+        info.add_field('Maximum Time Step', f'{u.uround(self.time_step_max, u.asec, 3)} as')
 
         return info
