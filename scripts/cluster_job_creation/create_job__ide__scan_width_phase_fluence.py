@@ -9,7 +9,7 @@ import numpy as np
 
 import simulacra as si
 import simulacra.cluster as clu
-from simulacra.units import *
+import simulacra.units as u
 
 import ionization as ion
 import ionization.cluster as iclu
@@ -29,8 +29,8 @@ if __name__ == '__main__':
         spec_type = ide.IntegroDifferentialEquationSpecification
         evolution_method = ju.ask_evolution_method_ide(parameters, spec_type = spec_type)
 
-        test_charge = electron_charge
-        test_mass = electron_mass
+        test_charge = u.electron_charge
+        test_mass = u.electron_mass
         test_energy = ion.states.HydrogenBoundState(1, 0).energy
 
         parameters.append(
@@ -51,14 +51,16 @@ if __name__ == '__main__':
         parameters.append(
             clu.Parameter(
                 name = 'integral_prefactor',
-                value = -(electron_charge / hbar) ** 2,
+                value = -(u.electron_charge / u.hbar) ** 2,
             ))
 
-        parameters.append(
-            clu.Parameter(
-                name = 'kernel',
-                value = ide.LengthGaugeHydrogenKernel(),
-            ))
+        # parameters.append(
+        #     clu.Parameter(
+        #         name = 'kernel',
+        #         value = ide.LengthGaugeHydrogenKernel(),
+        #     ))
+
+        kernel = ju.ask_ide_kernel(parameters)
 
         ju.ask_time_step(parameters)
 

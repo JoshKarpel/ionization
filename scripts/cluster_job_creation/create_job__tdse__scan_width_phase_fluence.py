@@ -2,7 +2,7 @@ from tqdm import tqdm
 
 import simulacra as si
 import simulacra.cluster as clu
-from simulacra.units import *
+import simulacra.units as u
 
 import ionization as ion
 import ionization.cluster as iclu

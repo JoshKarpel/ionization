@@ -11,7 +11,7 @@ import numpy as np
 
 import simulacra as si
 import simulacra.cluster as clu
-from simulacra.units import *
+import simulacra.units as u
 
 from . import core, states, potentials, ide
 
@@ -69,10 +69,10 @@ def ask_mesh_type():
         if mesh_type == 'cyl':
             spec_type = core.CylindricalSliceSpecification
 
-            mesh_kwargs['z_bound'] = bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['rho_bound'] = bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
-            mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
+            mesh_kwargs['z_bound'] = u.bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
+            mesh_kwargs['rho_bound'] = u.bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
+            mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / u.bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
+            mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / u.bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
 
             mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
 
@@ -81,8 +81,8 @@ def ask_mesh_type():
         elif mesh_type == 'sph':
             spec_type = core.SphericalSliceSpecification
 
-            mesh_kwargs['r_bound'] = bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
+            mesh_kwargs['r_bound'] = u.bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
+            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / u.bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
             mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
 
             mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
@@ -96,7 +96,7 @@ def ask_mesh_type():
             mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
             mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
 
-            mesh_kwargs['r_bound'] = bohr_radius * r_bound
+            mesh_kwargs['r_bound'] = u.bohr_radius * r_bound
 
             mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
@@ -115,14 +115,14 @@ def ask_mesh_type():
 
 
 def ask_mask__radial_cosine(parameters, mesh_kwargs):
-    outer_radius_default = mesh_kwargs['outer_radius'] / bohr_radius
+    outer_radius_default = mesh_kwargs['outer_radius'] / u.bohr_radius
 
-    inner = bohr_radius * clu.ask_for_input(
+    inner = u.bohr_radius * clu.ask_for_input(
         'Mask Inner Radius (in Bohr radii)?',
         default = np.ceil(outer_radius_default * .8),
         cast_to = float
     )
-    outer = bohr_radius * clu.ask_for_input(
+    outer = u.bohr_radius * clu.ask_for_input(
         'Mask Outer Radius (in Bohr radii)?',
         default = np.ceil(outer_radius_default),
         cast_to = float
@@ -160,7 +160,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
                 value = True,
             ))
 
-        max_energy = eV * clu.ask_for_input('Numeric Eigenstate Max Energy (in eV)?', default = 20, cast_to = float)
+        max_energy = u.eV * clu.ask_for_input('Numeric Eigenstate Max Energy (in eV)?', default = 20, cast_to = float)
         parameters.append(
             clu.Parameter(
                 name = 'numeric_eigenstate_max_energy',
@@ -184,14 +184,14 @@ def ask_time_step(parameters):
     parameters.append(
         clu.Parameter(
             name = 'time_step',
-            value = asec * clu.ask_for_input('Time Step (in as)?', default = 1, cast_to = float),
+            value = u.asec * clu.ask_for_input('Time Step (in as)?', default = 1, cast_to = float),
         ))
 
 
 def ask_time_evolution_by_pulse_widths():
     time_initial_in_pw = clu.ask_for_input('Initial Time (in pulse widths)?', default = -35, cast_to = float)
     time_final_in_pw = clu.ask_for_input('Final Time (in pulse widths)?', default = 35, cast_to = float)
-    extra_time = asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float)
+    extra_time = u.asec * clu.ask_for_input('Extra Time (in as)?', default = 0, cast_to = float)
 
     return time_initial_in_pw, time_final_in_pw, extra_time
 
@@ -212,28 +212,17 @@ def ask_evolution_gauge(parameters, *, spec_type):
 
 def ask_evolution_method_ide(parameters, *, spec_type):
     choices = {
-        'FE': ide.ForwardEulerMethod(),
-        'BE': ide.BackwardEulerMethod(),
-        'TRAP': ide.TrapezoidMethod(),
-        'RK4': ide.RungeKuttaFourMethod(),
+        'FE': ide.ForwardEulerMethod,
+        'BE': ide.BackwardEulerMethod,
+        'TRAP': ide.TrapezoidMethod,
+        'RK4': ide.RungeKuttaFourMethod,
     }
-    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'RK4')
-    if method not in choices:
+    method_key = clu.ask_for_input(f'Evolution Method? [{"/".join(choices.keys())}]', default = 'RK4')
+    try:
+        method = choices[method_key]()
+    except KeyError:
         raise InvalidChoice(f'{method} is not one of {choices}')
-    parameters.append(
-        clu.Parameter(
-            name = 'evolution_method',
-            value = choices[method],
-        ))
 
-    return method
-
-
-def ask_evolution_method_tdse(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_method.choices))
-    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
-    if method not in choices:
-        raise InvalidChoice(f'{method} is not one of {choices}')
     parameters.append(
         clu.Parameter(
             name = 'evolution_method',
@@ -241,6 +230,43 @@ def ask_evolution_method_tdse(parameters, *, spec_type):
         ))
 
     return method
+
+
+def ask_evolution_method_tdse(parameters, *, spec_type):
+    choices = sorted(list(spec_type.evolution_method.choices))
+    method_key = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
+    try:
+        method = choices[method_key]
+    except KeyError:
+        raise InvalidChoice(f'{method} is not one of {choices}')
+
+    parameters.append(
+        clu.Parameter(
+            name = 'evolution_method',
+            value = method,
+        ))
+
+    return method
+
+
+def ask_ide_kernel(parameters):
+    choices = {
+        'hydrogen': ide.LengthGaugeHydrogenKernel,
+        'hydrogen_with_cc': ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
+    }
+    kernel_key = clu.ask_for_input(f'IDE Kernel? [{"/".join(choices)}]', default = 'hydrogen')
+    try:
+        kernel = choices[kernel_key]()
+    except KeyError:
+        raise InvalidChoice(f'{kernel_key} is not one of {choices.keys()}')
+
+    parameters.append(
+        clu.Parameter(
+            name = 'kernel',
+            value = kernel,
+        ))
+
+    return kernel
 
 
 PULSE_NAMES_TO_TYPES = {
@@ -261,7 +287,7 @@ PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS = {
 def ask_pulse_widths(pulse_parameters):
     pulse_width = clu.Parameter(
         name = 'pulse_width',
-        value = asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
+        value = u.asec * np.array(clu.ask_for_eval('Pulse Widths (in as)?', default = '[50, 100, 200, 400, 800]')),
         expandable = True
     )
     pulse_parameters.append(pulse_width)
@@ -270,7 +296,7 @@ def ask_pulse_widths(pulse_parameters):
 def ask_pulse_fluences(pulse_parameters):
     fluence = clu.Parameter(
         name = 'fluence',
-        value = Jcm2 * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.01, .1, 1, 10, 20]')),
+        value = u.Jcm2 * np.array(clu.ask_for_eval('Pulse Fluence (in J/cm^2)?', default = '[.01, .1, 1, 10, 20]')),
         expandable = True
     )
     pulse_parameters.append(fluence)
@@ -288,7 +314,7 @@ def ask_pulse_phases(pulse_parameters):
 def ask_pulse_omega_mins(pulse_parameters):
     omega_mins = clu.Parameter(
         name = 'omega_min',
-        value = twopi * THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)', default = '[30]')),
+        value = u.twopi * u.THz * np.array(clu.ask_for_eval('Pulse Frequency Minimum? (in THz)', default = '[30]')),
         expandable = True)
     pulse_parameters.append(omega_mins)
 
@@ -304,7 +330,7 @@ def ask_pulse_keldysh_parameters(pulse_parameters):
 def ask_pulse_amplitudes(pulse_parameters):
     amplitude_prefactors = clu.Parameter(
         name = 'amplitude',
-        value = atomic_electric_field * np.array(clu.ask_for_eval('Pulse Amplitudes? (in AEF)', default = '[.01, .05, .1, .5, 1, 2]')),
+        value = u.atomic_electric_field * np.array(clu.ask_for_eval('Pulse Amplitudes? (in AEF)', default = '[.01, .05, .1, .5, 1, 2]')),
         expandable = True)
     pulse_parameters.append(amplitude_prefactors)
 
