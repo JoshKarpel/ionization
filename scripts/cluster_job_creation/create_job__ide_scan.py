@@ -54,12 +54,6 @@ if __name__ == '__main__':
                 value = -(u.electron_charge / u.hbar) ** 2,
             ))
 
-        # parameters.append(
-        #     clu.Parameter(
-        #         name = 'kernel',
-        #         value = ide.LengthGaugeHydrogenKernel(),
-        #     ))
-
         kernel = ju.ask_ide_kernel(parameters)
 
         ju.ask_time_step(parameters)
