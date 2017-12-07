@@ -80,20 +80,27 @@ def process_jobs(jobs_dir):
 
     logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
 
+    report = generate_processing_report(job_processors)
+
+    print(report)
+
+    with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
+        f.write(report)
+
+
+def generate_processing_report(job_processors):
     longest_jp_name_len = max(len(jp.name) for jp in job_processors) if job_processors else 10
 
     header = f' {"Job Name".center(longest_jp_name_len)} │ Finished │ Total │ Runtime'
     bar = ''.join('─' if char != '│' else '┼' for char in header)
     lines = []
     for jp in job_processors:
-        lines.append(f' {jp.name.ljust(longest_jp_name_len)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names) ).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}')
+        lines.append(f' {jp.name.ljust(longest_jp_name_len)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}')
+    footer = f' {" " * longest_jp_name_len} │ {sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)} │ {sum(jp.sim_count for jp in job_processors)} │ {sum(jp.running_time for jp in job_processors)}'
 
-    report = '\n'.join((header, bar, *lines))
+    report = '\n'.join(('\n', header, bar, *lines, bar, footer, bar.replace('┼', '┴'), '\n'))
 
-    print(report)
-
-    with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
-        f.write(report)
+    return report
 
 
 if __name__ == '__main__':
