@@ -58,7 +58,8 @@ def process_job(job_name, jobs_dir = None):
         jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
 
         try:
-            jp.summarize()
+            if len(jp.unprocessed_sim_names) < jp.sim_count:
+                jp.summarize()
         except Exception as e:
             logger.exception(e)
 

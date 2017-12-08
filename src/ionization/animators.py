@@ -5,8 +5,7 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 
 import simulacra as si
-
-from simulacra.units import *
+import simulacra.units as u
 
 from . import core
 
@@ -45,11 +44,11 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             logger.warning(f'{self} has both show_electric_field and show_vector_potential set to False')
 
         self.time_unit = time_unit
-        self.time_unit_value, self.time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
+        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
         self.electric_field_unit = electric_field_unit
-        self.electric_field_unit_value, self.electric_field_unit_latex = get_unit_value_and_latex_from_unit(electric_field_unit)
+        self.electric_field_unit_value, self.electric_field_unit_latex = u.get_unit_value_and_latex_from_unit(electric_field_unit)
         self.vector_potential_unit = vector_potential_unit
-        self.vector_potential_unit_value, self.vector_potential_unit_latex = get_unit_value_and_latex_from_unit(vector_potential_unit)
+        self.vector_potential_unit_value, self.vector_potential_unit_latex = u.get_unit_value_and_latex_from_unit(vector_potential_unit)
 
         self.show_y_label = show_y_label
         self.show_ticks_bottom = show_ticks_bottom
@@ -97,7 +96,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_vector_potential:
             self.vector_potential_line, = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
-                proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
+                u.proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
                 label = fr'$q \, {core.LATEX_AFIELD}(t)$',
                 color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
                 animated = True,
@@ -128,13 +127,14 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             data.append(self.spec.electric_potential.get_electric_field_amplitude(self.sim.times) / self.electric_field_unit_value)
         if self.show_vector_potential:
-            data.append(proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times) / self.vector_potential_unit_value)
+            data.append(u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.sim.times) / self.vector_potential_unit_value)
 
-        y_lower_limit, y_upper_limit = si.vis.set_axis_limits(self.axis,
-                                                              *data,
-                                                              pad = 0.05,
-                                                              direction = 'y',
-                                                              )
+        y_lower_limit, y_upper_limit = si.vis.set_axis_limits(
+            self.axis,
+            *data,
+            pad = 0.05,
+            direction = 'y',
+        )
 
         self.axis.tick_params(axis = 'both', which = 'major', labelsize = 16)
 
@@ -146,7 +146,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             self.electric_field_line.set_ydata(self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value)
         if self.show_vector_potential:
-            self.vector_potential_line.set_ydata(proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value)
+            self.vector_potential_line.set_ydata(u.proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value)
 
         self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
@@ -180,7 +180,7 @@ class StackplotAxis(si.vis.AxisManager):
         self.show_norm = show_norm
 
         self.time_unit = time_unit
-        self.time_unit_value, self.time_unit_latex = get_unit_value_and_latex_from_unit(time_unit)
+        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         self.y_label = y_label
         self.show_ticks_bottom = show_ticks_bottom
@@ -489,7 +489,7 @@ class LineMeshAxis(QuantumMeshAxis):
         self.log = log
 
     def initialize_axis(self):
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
 
         self.mesh = self.attach_method(
             self.axis,
@@ -542,7 +542,7 @@ class LineMeshAxis(QuantumMeshAxis):
 
 class CylindricalSliceMeshAxis(QuantumMeshAxis):
     def initialize_axis(self):
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
 
         if self.which == 'g':
             self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
@@ -604,7 +604,7 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
                                        animated = True)
         self.redraw.append(self.mesh)
 
-        unit_value, unit_name = get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
 
         self.axis.set_theta_zero_location('N')
         self.axis.set_theta_direction('clockwise')
@@ -717,6 +717,8 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                  axman_upper_right = WavefunctionStackplotAxis(),
                  axman_colorbar = ColorBarAxis(),
                  fig_dpi_scale = 1,
+                 time_text_unit = 'asec',
+                 time_text_digits = 1,
                  **kwargs):
         super().__init__(**kwargs)
 
@@ -727,6 +729,8 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         self.axis_managers += [axman for axman in [self.axman_lower_right, self.axman_upper_right, self.axman_colorbar] if axman is not None]
 
         self.fig_dpi_scale = fig_dpi_scale
+        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex_from_unit(time_text_unit)
+        self.time_text_digits = time_text_digits
 
     def _initialize_figure(self):
         self.fig = si.vis.get_figure(fig_width = 20, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
@@ -770,15 +774,17 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         }
         plt.figtext(.075, .9, plot_labels[self.axman_wavefunction.which], fontsize = 50)
 
-        self.time_text = plt.figtext(.6, .3,
-                                     r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)),
-                                     fontsize = 30,
-                                     animated = True)
+        self.time_text = plt.figtext(
+            .6, .3,
+            fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, \mathrm{self.time_text_unit_tex}$',
+            fontsize = 30,
+            animated = True
+        )
         self.redraw.append(self.time_text)
 
         super()._initialize_figure()
 
     def _update_data(self):
-        self.time_text.set_text(r'$t = {} \, \mathrm{{as}}$'.format(uround(self.sim.time, asec, 1)))
+        self.time_text.set_text(fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, \mathrm{self.time_text_unit_tex}$')
 
         super()._update_data()
