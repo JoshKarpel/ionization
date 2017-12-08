@@ -48,7 +48,7 @@ class PulseParameterScanMixin:
                     continue
 
                 for plot_parameter_value in plot_parameter_set:
-                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__grouped_by_{line_parameter}'
+                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__scanning_{scan_parameter}_grouped_by_{line_parameter}'
 
                     lines = []
                     line_labels = []

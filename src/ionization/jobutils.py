@@ -234,10 +234,8 @@ def ask_evolution_method_ide(parameters, *, spec_type):
 
 def ask_evolution_method_tdse(parameters, *, spec_type):
     choices = sorted(list(spec_type.evolution_method.choices))
-    method_key = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
-    try:
-        method = choices[method_key]
-    except KeyError:
+    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
+    if method not in choices:
         raise InvalidChoice(f'{method} is not one of {choices}')
 
     parameters.append(

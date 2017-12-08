@@ -2,6 +2,7 @@ import datetime as dt
 import functools as ft
 import logging
 import os
+import sys
 
 import simulacra as si
 import simulacra.cluster as clu
@@ -104,7 +105,7 @@ def generate_processing_report(job_processors):
     total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
     footer = f' {" " * len_of_longest_jp_name} │ {str(total_processed).center(8)} │ {str(total_jobs).center(5)} │ {total_runtime}'
 
-    report = '\n'.join(('\n', header, bar, *lines, bar, footer, bar.replace('┼', '┴'), '\n'))
+    report = '\n'.join(('', header, bar, *lines, bar, footer, bar.replace('┼', '┴'), ''))
 
     return report
 
@@ -121,6 +122,11 @@ if __name__ == '__main__':
                 wait_after_success = dt.timedelta(hours = 1),
                 wait_after_failure = dt.timedelta(hours = 1),
             )
+        except KeyboardInterrupt:
+            logger.info('Detected keyboard interrupt, exiting')
+            for process_name in DROPBOX_PROCESS_NAMES:
+                si.utils.resume_processes_by_name(process_name)
+            sys.exit(0)
         except Exception as e:
             logger.exception('Encountered unhandled exception during loop')
             raise e
