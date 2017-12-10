@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 from tqdm import tqdm
 
 import simulacra as si

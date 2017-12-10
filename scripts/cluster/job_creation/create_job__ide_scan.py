@@ -1,11 +1,6 @@
-import argparse
-import os
-import shutil
-import datetime
+#!/usr/bin/env python
 
 from tqdm import tqdm
-
-import numpy as np
 
 import simulacra as si
 import simulacra.cluster as clu

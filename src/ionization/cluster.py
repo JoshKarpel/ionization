@@ -17,16 +17,14 @@ logger.setLevel(logging.DEBUG)
 parameter_name_to_unit_name = {
     'pulse_width': 'asec',
     'fluence': 'Jcm2',
+    'amplitude': 'atomic_electric_field',
     'phase': 'rad',
     'delta_r': 'bohr_radius',
     'delta_t': 'asec',
-    'amplitude': 'atomic_electric_field',
 }
 
 
 class PulseParameterScanMixin:
-    scan_parameters = ['pulse_width', 'fluence', 'phase', 'amplitude']
-
     def make_summary_plots(self):
         super().make_summary_plots()
 
@@ -48,7 +46,7 @@ class PulseParameterScanMixin:
                     continue
 
                 for plot_parameter_value in plot_parameter_set:
-                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__scanning_{scan_parameter}_grouped_by_{line_parameter}'
+                    plot_name = f'{ionization_metric}__{plot_parameter}={u.uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__scanning_{scan_parameter}_grouped_by_{line_parameter}'
 
                     lines = []
                     line_labels = []
@@ -62,7 +60,7 @@ class PulseParameterScanMixin:
 
                         lines.append(np.array([getattr(result, ionization_metric) for result in results]))
 
-                        label = fr"{line_parameter_name}$\, = {uround(line_parameter_value, line_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
+                        label = fr"{line_parameter_name}$\, = {u.uround(line_parameter_value, line_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
                         line_labels.append(label)
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
@@ -81,22 +79,24 @@ class PulseParameterScanMixin:
                         log_str = ''
                         if any((log_x, log_y)):
                             log_str = '__log'
-
                             if log_x:
                                 log_str += 'X'
-
                             if log_y:
                                 log_str += 'Y'
 
                         si.vis.xy_plot(
-                            '1d__' + plot_name + log_str,
+                            f'1d__{plot_name}{log_str}',
                             x,
                             *lines,
                             line_labels = line_labels,
-                            title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                            x_label = scan_parameter_name, x_unit = scan_parameter_unit,
-                            y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y, x_log_axis = log_x,
+                            x_label = scan_parameter_name,
+                            x_unit = scan_parameter_unit,
+                            x_log_axis = log_x,
                             y_label = ionization_metric_name,
+                            y_lower_limit = y_lower_limit,
+                            y_upper_limit = y_upper_limit,
+                            y_log_axis = log_y,
+                            title = f"{plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
                             legend_on_right = True,
                             target_dir = self.summaries_dir,
                         )
@@ -119,7 +119,7 @@ class PulseParameterScanMixin:
                     x_mesh, y_mesh = np.meshgrid(x, y, indexing = 'ij')
 
                     for plot_parameter_value in plot_parameter_set:
-                        plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__{x_parameter}_vs_{y_parameter}'
+                        plot_name = f'{ionization_metric}__{plot_parameter}={u.uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__{x_parameter}_vs_{y_parameter}'
 
                         results = self.select_by_kwargs(**{plot_parameter: plot_parameter_value})
 
@@ -155,8 +155,8 @@ class PulseParameterScanMixin:
                                     x_label = x_parameter_name, y_label = y_parameter_name,
                                     x_log_axis = log_x, y_log_axis = log_y,
                                     z_log_axis = log_z, z_upper_limit = 1,
-                                    z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                    target_dir = self.summaries_dir
+                                    z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                                    target_dir = self.summaries_dir,
                                 )
                             except ValueError as ex:
                                 logger.exception(f'Failed to make plot {plot_name} because of {ex}')
@@ -227,7 +227,7 @@ class MeshSimulationResult(PulseSimulationResult):
 
 
 class PulseJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
-    pass
+    scan_parameters = ['pulse_width', 'fluence', 'phase', 'amplitude']
 
 
 class MeshJobProcessor(PulseJobProcessor):
@@ -273,7 +273,7 @@ class IDEJobProcessor(PulseJobProcessor):
     ionization_metrics = ['final_bound_state_overlap']
 
 
-class ConvergenceSimulationResult(MeshSimulationResult):
+class MeshConvergenceSimulationResult(MeshSimulationResult):
     def __init__(self, sim, job_processor):
         super().__init__(sim, job_processor)
 
@@ -283,8 +283,8 @@ class ConvergenceSimulationResult(MeshSimulationResult):
         self.delta_t = copy(sim.spec.time_step)
 
 
-class ConvergenceJobProcessor(MeshJobProcessor):
-    simulation_result_type = ConvergenceSimulationResult
+class MeshConvergenceJobProcessor(MeshJobProcessor):
+    simulation_result_type = MeshConvergenceSimulationResult
 
     scan_parameters = ['delta_r', 'delta_t']
 
@@ -306,7 +306,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
 
                 for plot_parameter_value in plot_parameter_set:
-                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}'
+                    plot_name = f'{ionization_metric}__{plot_parameter}={u.uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}'
 
                     selector = {
                         plot_parameter: plot_parameter_value,
@@ -318,17 +318,6 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                     x = np.array([getattr(result, scan_parameter) for result in results])
 
                     for log_x, log_y in itertools.product((False, True), repeat = 2):
-                        if any((log_x, log_y)):
-                            log_str = '__log'
-
-                            if log_x:
-                                log_str += 'X'
-
-                            if log_y:
-                                log_str += 'Y'
-                        else:
-                            log_str = ''
-
                         if not log_y:
                             y_upper_limit = 1
                             y_lower_limit = 0
@@ -336,16 +325,29 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                             y_upper_limit = None
                             y_lower_limit = None
 
-                        si.vis.xy_plot('1d__' + plot_name + log_str,
-                                       x,
-                                       line,
-                                       title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                       x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
-                                       y_lower_limit = y_lower_limit, y_upper_limit = y_upper_limit, y_log_axis = log_y,
-                                       y_label = ionization_metric_name,
-                                       legend_on_right = True,
-                                       target_dir = self.summaries_dir
-                                       )
+                        log_str = ''
+                        if any((log_x, log_y)):
+                            log_str = '__log'
+                            if log_x:
+                                log_str += 'X'
+                            if log_y:
+                                log_str += 'Y'
+
+                        si.vis.xy_plot(
+                            f'1d__{plot_name}{log_str}',
+                            x,
+                            line,
+                            title = f"{plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                            x_label = scan_parameter_name,
+                            x_unit = scan_parameter_unit,
+                            x_log_axis = log_x,
+                            y_label = ionization_metric_name,
+                            y_lower_limit = y_lower_limit,
+                            y_upper_limit = y_upper_limit,
+                            y_log_axis = log_y,
+                            legend_on_right = True,
+                            target_dir = self.summaries_dir,
+                        )
 
     def make_pulse_parameter_scans_1d_relative(self):
         for ionization_metric in self.ionization_metrics:
@@ -357,7 +359,7 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
 
                 for plot_parameter_value in plot_parameter_set:
-                    plot_name = f'{ionization_metric}__{plot_parameter}={uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__rel'
+                    plot_name = f'{ionization_metric}__{plot_parameter}={u.uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__rel'
 
                     selector = {
                         plot_parameter: plot_parameter_value,
@@ -370,27 +372,27 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                     x = np.array([getattr(result, scan_parameter) for result in results])
 
                     for log_x, log_y in itertools.product((False, True), repeat = 2):
+                        log_str = ''
                         if any((log_x, log_y)):
                             log_str = '__log'
-
                             if log_x:
                                 log_str += 'X'
-
                             if log_y:
                                 log_str += 'Y'
-                        else:
-                            log_str = ''
 
-                        si.vis.xy_plot('1d__' + plot_name + log_str,
-                                       x,
-                                       line,
-                                       title = f"{plot_parameter_name}$\, = {uround(plot_parameter_value, plot_parameter_unit, 3)} \, {UNIT_NAME_TO_LATEX[plot_parameter_unit]}$ (Diff from Best)",
-                                       x_label = scan_parameter_name, x_unit = scan_parameter_unit, x_log_axis = log_x,
-                                       y_lower_limit = None, y_upper_limit = None, y_log_axis = log_y,
-                                       y_label = ionization_metric_name,
-                                       legend_on_right = True,
-                                       target_dir = self.summaries_dir
-                                       )
+                        si.vis.xy_plot(
+                            f'1d__{plot_name}{log_str}',
+                            x,
+                            line,
+                            title = f"{plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$ (Diff from Best)",
+                            x_label = scan_parameter_name,
+                            x_unit = scan_parameter_unit,
+                            y_label = ionization_metric_name,
+                            x_log_axis = log_x,
+                            y_log_axis = log_y,
+                            legend_on_right = True,
+                            target_dir = self.summaries_dir,
+                        )
 
     def make_pulse_parameter_scans_2d(self):
         for ionization_metric in self.ionization_metrics:
@@ -416,20 +418,6 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                         z_mesh[ii, jj] = xy_to_metric[(x_value, y_value)]
 
                 for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
-                    if any((log_x, log_y, log_z)):
-                        log_str = '__log'
-
-                        if log_x:
-                            log_str += 'X'
-
-                        if log_y:
-                            log_str += 'Y'
-
-                        if log_z:
-                            log_str += 'Z'
-                    else:
-                        log_str = ''
-
                     if log_z:
                         z_lower_limit = np.nanmin(z_mesh)
                         z_upper_limit = np.nanmax(z_mesh)
@@ -437,14 +425,31 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                         z_lower_limit = 0
                         z_upper_limit = 1
 
-                    si.vis.xyz_plot('2d__' + plot_name + log_str,
-                                    x_mesh, y_mesh, z_mesh,
-                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                    x_label = x_parameter_name, y_label = y_parameter_name,
-                                    x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
-                                    z_lower_limit = z_lower_limit, z_upper_limit = z_upper_limit,
-                                    z_label = ionization_metric_name,
-                                    target_dir = self.summaries_dir)
+                    log_str = ''
+                    if any((log_x, log_y, log_z)):
+                        log_str = '__log'
+                        if log_x:
+                            log_str += 'X'
+                        if log_y:
+                            log_str += 'Y'
+                        if log_z:
+                            log_str += 'Z'
+
+                    si.vis.xyz_plot(
+                        f'2d__{plot_name}{log_str}',
+                        x_mesh, y_mesh, z_mesh,
+                        x_unit = x_parameter_unit,
+                        y_unit = y_parameter_unit,
+                        x_label = x_parameter_name,
+                        y_label = y_parameter_name,
+                        z_label = ionization_metric_name,
+                        x_log_axis = log_x,
+                        y_log_axis = log_y,
+                        z_log_axis = log_z,
+                        z_lower_limit = z_lower_limit,
+                        z_upper_limit = z_upper_limit,
+                        target_dir = self.summaries_dir,
+                    )
 
     def make_pulse_parameter_scans_2d_relative(self):
         for ionization_metric in self.ionization_metrics:
@@ -477,25 +482,30 @@ class ConvergenceJobProcessor(MeshJobProcessor):
                 z_mesh = ma.masked_less_equal(z_mesh, 0)
 
                 for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
+                    log_str = ''
                     if any((log_x, log_y, log_z)):
                         log_str = '__log'
-
                         if log_x:
                             log_str += 'X'
-
                         if log_y:
                             log_str += 'Y'
-
                         if log_z:
                             log_str += 'Z'
-                    else:
-                        log_str = ''
 
-                    si.vis.xyz_plot('2d__' + plot_name + log_str,
-                                    x_mesh, y_mesh, z_mesh,
-                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                    x_label = x_parameter_name, y_label = y_parameter_name,
-                                    x_log_axis = log_x, y_log_axis = log_y, z_log_axis = log_z,
-                                    z_lower_limit = None, z_upper_limit = None,
-                                    z_label = ionization_metric_name + ' (Diff from Best)',
-                                    target_dir = self.summaries_dir)
+                    si.vis.xyz_plot(
+                        f'2d__{plot_name}{log_str}',
+                        x_mesh,
+                        y_mesh,
+                        z_mesh,
+                        x_unit = x_parameter_unit,
+                        y_unit = y_parameter_unit,
+                        x_label = x_parameter_name,
+                        y_label = y_parameter_name,
+                        z_label = ionization_metric_name + ' (Diff from Best)',
+                        x_log_axis = log_x,
+                        y_log_axis = log_y,
+                        z_log_axis = log_z,
+                        z_lower_limit = None,
+                        z_upper_limit = None,
+                        target_dir = self.summaries_dir,
+                    )
