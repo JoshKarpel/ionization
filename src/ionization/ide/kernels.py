@@ -59,15 +59,16 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            kernel = self.kernel_function(time_difference)
-            kernel *= np.exp(1j * self.omega_bound * time_difference)
-            kernel *= self.kernel_prefactor
+            kernel = self.kernel_prefactor * self.kernel_function(time_difference) * np.exp(1j * self.omega_bound * time_difference)
 
-        return np.where(
+        kernel = np.where(
             time_difference != 0,
             kernel,
             self.kernel_at_time_difference_zero_with_prefactor
         )
+        kernel[time_difference > 5 * u.fsec] = 0
+
+        return kernel
 
     @property
     @si.utils.memoize

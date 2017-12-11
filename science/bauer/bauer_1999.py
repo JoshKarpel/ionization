@@ -88,7 +88,7 @@ def get_pulse_identifier(pulse):
 
 
 def calculate_landau_rate(field_amplitude):
-    scaled_energy = np.abs(ion.HydrogenBoundState(1, 0).energy) / hartree
+    scaled_energy = np.abs(ion.states.HydrogenBoundState(1, 0).energy) / hartree
     scaled_field = np.abs(field_amplitude) / atomic_electric_field
 
     return np.where(
@@ -99,7 +99,7 @@ def calculate_landau_rate(field_amplitude):
 
 
 def calculate_keldysh_rate(field_amplitude):
-    scaled_energy = np.abs(ion.HydrogenBoundState(1, 0).energy) / hartree
+    scaled_energy = np.abs(ion.states.HydrogenBoundState(1, 0).energy) / hartree
     scaled_field = np.abs(field_amplitude) / atomic_electric_field
 
     return np.where(
@@ -349,22 +349,22 @@ if __name__ == '__main__':
         print(calculate_landau_critical_rate(2.4) / atomic_electric_field)
         print(calculate_landau_critical_rate(2.33) / atomic_electric_field)
 
-        tdse_sims, mesh_identifier = run_tdse_sims(
-            amplitudes = np.array([.3, .5]) * atomic_electric_field,
-            number_of_cycleses = [6, 12],
-            omegas = np.array([.2]) * atomic_angular_frequency,
-            r_bound = 100 * bohr_radius,
-            mask_inner = 75 * bohr_radius,
-            mask_outer = 100 * bohr_radius,
-            r_points = 1000,
-            l_points = 500,
-        )
-
-        ide_sims, ide_time_step = run_ide_sims(tdse_sims)
-
-        plot_ionization_rates()
-
-        for prefactor in (2.4, 2.33):
-            sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
-            ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
-            make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)
+        # tdse_sims, mesh_identifier = run_tdse_sims(
+        #     amplitudes = np.array([.3, .5]) * atomic_electric_field,
+        #     number_of_cycleses = [6, 12],
+        #     omegas = np.array([.2]) * atomic_angular_frequency,
+        #     r_bound = 100 * bohr_radius,
+        #     mask_inner = 75 * bohr_radius,
+        #     mask_outer = 100 * bohr_radius,
+        #     r_points = 1000,
+        #     l_points = 500,
+        # )
+        #
+        # ide_sims, ide_time_step = run_ide_sims(tdse_sims)
+        #
+        # plot_ionization_rates()
+        #
+        # for prefactor in (2.4, 2.33):
+        #     sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
+        #     ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
+        #     make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)
