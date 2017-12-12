@@ -115,6 +115,7 @@ def generate_processing_report(job_processors):
         *lines_in_progress,
         bar,
         *lines_finished,
+        bar,
         footer,
         bar.replace('┼', '┴'),
         ''
