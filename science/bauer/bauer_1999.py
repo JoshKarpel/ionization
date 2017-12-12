@@ -219,10 +219,10 @@ def run_tdse_sims(amplitudes = np.array([.3, .5]) * atomic_electric_field,
             time_final = times[-1],
             time_step = 1 * asec,
             electric_potential = pulse,
-            mask = ion.RadialCosineMask(inner_radius = mask_inner, outer_radius = mask_outer),
+            mask = ion.potentials.RadialCosineMask(inner_radius = mask_inner, outer_radius = mask_outer),
             use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 20 * eV,
-            numeric_eigenstate_max_angular_momentum = 20,
+            numeric_eigenstate_max_energy = 1 * eV,
+            numeric_eigenstate_max_angular_momentum = 5,
             checkpoints = True,
             checkpoint_dir = SIM_LIB,
             checkpoint_every = datetime.timedelta(minutes = 1),
@@ -233,7 +233,7 @@ def run_tdse_sims(amplitudes = np.array([.3, .5]) * atomic_electric_field,
 
 def run_ide_sims(tdse_sims):
     specs = []
-    dt = 1 * asec
+    dt = .5 * asec
     for sim in tdse_sims:
         specs.append(ide.IntegroDifferentialEquationSpecification(
             sim.name.replace('tdse', 'ide') + f'__dt={uround(dt, asec)}',
@@ -241,6 +241,7 @@ def run_ide_sims(tdse_sims):
             time_initial = sim.times[0],
             time_final = sim.times[-1],
             time_step = dt,
+            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
             checkpoints = True,
             checkpoint_dir = SIM_LIB,
             checkpoint_every = datetime.timedelta(minutes = 1),
@@ -270,6 +271,7 @@ def run_ide_sims_with_decay(tdse_sims, prefactor = 2.4):
             time_initial = sim.times[0],
             time_final = sim.times[-1],
             time_step = dt,
+            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
             checkpoints = True,
             checkpoint_dir = SIM_LIB,
             checkpoint_every = datetime.timedelta(minutes = 1),
@@ -349,22 +351,22 @@ if __name__ == '__main__':
         print(calculate_landau_critical_rate(2.4) / atomic_electric_field)
         print(calculate_landau_critical_rate(2.33) / atomic_electric_field)
 
-        # tdse_sims, mesh_identifier = run_tdse_sims(
-        #     amplitudes = np.array([.3, .5]) * atomic_electric_field,
-        #     number_of_cycleses = [6, 12],
-        #     omegas = np.array([.2]) * atomic_angular_frequency,
-        #     r_bound = 100 * bohr_radius,
-        #     mask_inner = 75 * bohr_radius,
-        #     mask_outer = 100 * bohr_radius,
-        #     r_points = 1000,
-        #     l_points = 500,
-        # )
-        #
-        # ide_sims, ide_time_step = run_ide_sims(tdse_sims)
-        #
-        # plot_ionization_rates()
-        #
-        # for prefactor in (2.4, 2.33):
-        #     sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
-        #     ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
-        #     make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)
+        tdse_sims, mesh_identifier = run_tdse_sims(
+            amplitudes = np.array([.3, .5]) * atomic_electric_field,
+            number_of_cycleses = [6, 12],
+            omegas = np.array([.2]) * atomic_angular_frequency,
+            r_bound = 100 * bohr_radius,
+            mask_inner = 75 * bohr_radius,
+            mask_outer = 100 * bohr_radius,
+            r_points = 1000,
+            l_points = 500,
+        )
+
+        ide_sims, ide_time_step = run_ide_sims(tdse_sims)
+
+        plot_ionization_rates()
+
+        for prefactor in [2.4]:
+            sim_to_empirical = {sim: calculate_empirical_ionization_from_sim(sim, prefactor = prefactor) for sim in tdse_sims}
+            ide_sims_with_decay, ide_time_step = run_ide_sims_with_decay(tdse_sims, prefactor = prefactor)
+            make_comparison_plot(tdse_sims, ide_sims, ide_sims_with_decay, sim_to_empirical, mesh_identifier, prefactor, ide_time_step)

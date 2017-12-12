@@ -36,36 +36,35 @@ def synchronize_with_cluster(cluster_interface):
 
 
 def process_job(job_name, jobs_dir = None):
-    with cp_logger as logger:
-        if jobs_dir is None:
-            jobs_dir = os.getcwd()
-        job_dir = os.path.join(jobs_dir, job_name)
+    if jobs_dir is None:
+        jobs_dir = os.getcwd()
+    job_dir = os.path.join(jobs_dir, job_name)
 
-        job_info = clu.load_job_info_from_file(job_dir)
+    job_info = clu.load_job_info_from_file(job_dir)
 
-        try:
-            jp = clu.JobProcessor.load(os.path.join(job_dir, f'{job_name}.job'))
+    try:
+        jp = clu.JobProcessor.load(os.path.join(job_dir, f'{job_name}.job'))
 
-            logger.debug('Loaded existing job processor for job {}'.format(job_name))
-        except FileNotFoundError:
-            jp_type = job_info['job_processor_type']
-            jp = jp_type(job_name, job_dir)
+        logger.debug('Loaded existing job processor for job {}'.format(job_name))
+    except FileNotFoundError:
+        jp_type = job_info['job_processor_type']
+        jp = jp_type(job_name, job_dir)
 
-            logger.debug(f'Created new job processor of type {jp_type} for job {job_name}')
+        logger.debug(f'Created new job processor of type {jp_type} for job {job_name}')
 
-        if len(jp.unprocessed_sim_names) > 0:
-            with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
-                jp.load_sims(force_reprocess = False)
+    if len(jp.unprocessed_sim_names) > 0:
+        with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
+            jp.load_sims(force_reprocess = False)
 
-        jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
+    jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
 
-        try:
-            if len(jp.unprocessed_sim_names) < jp.sim_count:
-                jp.summarize()
-        except Exception as e:
-            logger.exception(e)
+    try:
+        if len(jp.unprocessed_sim_names) < jp.sim_count:
+            jp.summarize()
+    except Exception as e:
+        logger.exception(e)
 
-        return jp
+    return jp
 
 
 def process_jobs(jobs_dir):
@@ -74,7 +73,7 @@ def process_jobs(jobs_dir):
     for job_name in (f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))):
         try:
             logger.debug('Found job {}'.format(job_name))
-            jp = si.utils.run_in_process(process_job, args = (job_name, jobs_dir))
+            jp = process_job(job_name, jobs_dir)
             job_processors.append(jp)
         except Exception as e:
             logger.exception('Encountered exception while processing job {}'.format(job_name))
@@ -99,16 +98,33 @@ def generate_processing_report(job_processors):
 
     bar = ''.join('─' if char != '│' else '┼' for char in header)
 
-    lines = []
+    lines_in_progress = []
+    lines_finished = []
     for jp in job_processors:
-        lines.append(f' {jp.name.ljust(len_of_longest_jp_name)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}')
+        s = f' {jp.name.ljust(len_of_longest_jp_name)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}'
+
+        if len(jp.unprocessed_sim_names) > 0:
+            lines_in_progress.append(s)
+        else:
+            lines_finished.append(s)
 
     total_processed = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
     total_jobs = sum(jp.sim_count for jp in job_processors)
     total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
     footer = f' {" " * len_of_longest_jp_name} │ {str(total_processed).center(8)} │ {str(total_jobs).center(5)} │ {total_runtime}'
 
-    report = '\n'.join(('', header, bar, *lines, bar, footer, bar.replace('┼', '┴'), ''))
+    report_components = [
+        '',
+        header,
+        bar,
+        *lines_in_progress,
+        bar,
+        *lines_finished,
+        footer,
+        bar.replace('┼', '┴'),
+        ''
+    ]
+    report = '\n'.join(report_components)
 
     return report
 
