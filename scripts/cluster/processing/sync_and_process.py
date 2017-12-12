@@ -70,13 +70,10 @@ def process_job(job_name, jobs_dir = None):
 def process_jobs(jobs_dir):
     job_processors = []
 
-    for job_name in (f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))):
-        try:
-            logger.debug('Found job {}'.format(job_name))
-            jp = process_job(job_name, jobs_dir)
-            job_processors.append(jp)
-        except Exception as e:
-            logger.exception('Encountered exception while processing job {}'.format(job_name))
+    job_names = [f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))]
+    logger.debug(f'Found jobs: {", ".join(job_names)}')
+
+    job_processors = [process_job(job_name, jobs_dir) for job_name in job_names]
 
     total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
     total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
@@ -84,9 +81,7 @@ def process_jobs(jobs_dir):
     logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
 
     report = generate_processing_report(job_processors)
-
     print(report)
-
     with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
         f.write(report)
 
