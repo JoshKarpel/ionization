@@ -58,7 +58,6 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         return self._evaluate_kernel_function(time_difference)
 
-    @si.utils.memoize
     def _evaluate_kernel_function(self, time_difference):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -124,7 +123,6 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
 
         return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
-    @si.utils.memoize
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
         vp_previous = vector_potential(previous_time)
 
