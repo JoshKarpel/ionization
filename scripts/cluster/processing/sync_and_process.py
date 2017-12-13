@@ -12,13 +12,16 @@ import simulacra.cluster as clu
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-log_file = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
-cp_logger = si.utils.LogManager(
+LOG_FILE = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
+LOGMAN = si.utils.LogManager(
     '__main__', 'simulacra', 'ionization',
     stdout_logs = True,
     stdout_level = logging.INFO,
     file_logs = False,
-    file_level = logging.DEBUG, file_name = log_file, file_dir = os.path.join(os.getcwd(), 'logs'), file_mode = 'a',
+    file_level = logging.DEBUG,
+    file_name = LOG_FILE,
+    file_dir = os.path.join(os.getcwd(), 'logs'),
+    file_mode = 'a',
 )
 
 DROPBOX_PROCESS_NAMES = ['Dropbox.exe']
@@ -36,35 +39,36 @@ def synchronize_with_cluster(cluster_interface):
 
 
 def process_job(job_name, jobs_dir = None):
-    if jobs_dir is None:
-        jobs_dir = os.getcwd()
-    job_dir = os.path.join(jobs_dir, job_name)
+    with LOGMAN as logger:
+        if jobs_dir is None:
+            jobs_dir = os.getcwd()
+        job_dir = os.path.join(jobs_dir, job_name)
 
-    job_info = clu.load_job_info_from_file(job_dir)
+        job_info = clu.load_job_info_from_file(job_dir)
 
-    try:
-        jp = clu.JobProcessor.load(os.path.join(job_dir, f'{job_name}.job'))
+        try:
+            jp = clu.JobProcessor.load(os.path.join(job_dir, f'{job_name}.job'))
 
-        logger.debug('Loaded existing job processor for job {}'.format(job_name))
-    except FileNotFoundError:
-        jp_type = job_info['job_processor_type']
-        jp = jp_type(job_name, job_dir)
+            logger.debug('Loaded existing job processor for job {}'.format(job_name))
+        except FileNotFoundError:
+            jp_type = job_info['job_processor_type']
+            jp = jp_type(job_name, job_dir)
 
-        logger.debug(f'Created new job processor of type {jp_type} for job {job_name}')
+            logger.debug(f'Created new job processor of type {jp_type} for job {job_name}')
 
-    if len(jp.unprocessed_sim_names) > 0:
-        with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
-            jp.load_sims(force_reprocess = False)
+        if len(jp.unprocessed_sim_names) > 0:
+            with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
+                jp.load_sims(force_reprocess = False)
 
-    jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
+        jp.save(target_dir = os.path.join(os.getcwd(), 'job_processors'))
 
-    try:
-        if len(jp.unprocessed_sim_names) < jp.sim_count:
-            jp.summarize()
-    except Exception as e:
-        logger.exception(e)
+        try:
+            if len(jp.unprocessed_sim_names) < jp.sim_count:
+                jp.summarize()
+        except Exception as e:
+            logger.exception(e)
 
-    return jp
+        return jp
 
 
 def process_jobs(jobs_dir):
@@ -126,7 +130,7 @@ def generate_processing_report(job_processors):
 
 
 if __name__ == '__main__':
-    with cp_logger as logger:
+    with LOGMAN as logger:
         try:
             ci = clu.ClusterInterface('submit-5.chtc.wisc.edu', username = 'karpel', key_path = 'E:\chtc_ssh_private')
             jobs_dir = "E:\Dropbox\Research\Cluster\cluster_mirror\home\karpel\jobs"
