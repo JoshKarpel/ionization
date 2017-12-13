@@ -2,7 +2,7 @@ import logging
 import os
 
 import simulacra as si
-from simulacra.units import *
+import simulacra.units as u
 
 import ionization as ion
 
@@ -13,15 +13,15 @@ if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
         sim = ion.SphericalHarmonicSpecification(
             'speed_test',
-            r_bound = 100 * bohr_radius,
+            r_bound = 100 * u.bohr_radius,
             r_points = 1000, l_bound = 100,
             test_states = (), use_numeric_eigenstates = False,
-            time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
+            time_initial = 0, time_final = 1000 * u.asec, time_step = 1 * u.asec,
             store_data_every = -1,
             evolution_gauge = 'LEN',
             # evolution_gauge = 'VEL',
-            evolution_method = 'CN',
-            # evolution_method = 'SO',
+            # evolution_method = 'CN',
+            evolution_method = 'SO',
         ).to_simulation()
 
         # sim.info().log()

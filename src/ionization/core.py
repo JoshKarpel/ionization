@@ -3551,12 +3551,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def get_g_for_state(self, state):
         """
-
-        :param state:
-        :return:
+        Get g for a state.
         """
-        # don't memoize this, instead rely on the memoization in get_radial_function_for_state, more compact in memory (at the cost of some runtime in having to reassemble g occasionally)
-
         if isinstance(state, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in state):
             if state.analytic and self.spec.use_numeric_eigenstates:
                 try:
@@ -3588,9 +3584,17 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         a and b can be QuantumStates or g_meshes.
 
-        :param a: a QuantumState or g
-        :param b: a QuantumState or g
-        :return: the inner product between a and b
+        Parameters
+        ----------
+        a
+            A :class:`QuantumState` or a g mesh.
+        b
+            A :class:`QuantumState` or a g mesh.
+
+        Returns
+        -------
+        :class:`complex`
+            The inner product between `a` and `b`.
         """
         if isinstance(a, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in a) and b is None:  # shortcut
             ip = 0
@@ -3644,10 +3648,6 @@ class SphericalHarmonicMesh(QuantumMesh):
         @si.utils.memoize
         def bessel(wavenumber):
             return special.spherical_jn(l_mesh, np.real(wavenumber * self.r_mesh))
-
-        # for ii, theta in enumerate(thetas):
-        #     for jj, wavenumber in enumerate(wavenumbers):
-        #         inner_product_mesh[ii, jj] = np.sum(multiplier * sph_harm(theta) * bessel(wavenumber))
 
         for (ii, theta), (jj, wavenumber) in itertools.product(enumerate(thetas), enumerate(wavenumbers)):
             inner_product_mesh[ii, jj] = np.sum(multiplier * sph_harm(theta) * bessel(wavenumber))
@@ -4018,14 +4018,16 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        a = interaction_hamiltonians_matrix_operators.data[0][:-1] * tau
+        a = tau * interaction_hamiltonians_matrix_operators.data[0][:-1]
 
         a_even, a_odd = a[::2], a[1::2]
 
-        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
-        even_offdiag = np.zeros(len(a), dtype = np.complex128)
-        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
-        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+        len_a = len(a)
+
+        even_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        even_offdiag = np.zeros(len_a, dtype = np.complex128)
+        odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        odd_offdiag = np.zeros(len_a, dtype = np.complex128)
 
         if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
             even_diag[:-1] = np.cos(a_even).repeat(2)
@@ -4047,8 +4049,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             odd_offdiag[1::2] = -1j * np.sin(a_odd)
 
-        even = sparse.diags([even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
-        odd = sparse.diags([odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+        even = sparse.diags((even_offdiag, even_diag, even_offdiag), offsets = (-1, 0, 1))
+        odd = sparse.diags((odd_offdiag, odd_diag, odd_offdiag), offsets = (-1, 0, 1))
 
         return (
             DotOperator(even, wrapping_direction = 'l'),
@@ -4056,7 +4058,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         )
 
     def _make_split_operators_VEL_h1(self, h1, tau):
-        a = h1.data[-1][1:] * tau * (-1j)
+        a = (tau * (-1j)) * h1.data[-1][1:]
 
         a_even, a_odd = a[::2], a[1::2]
 

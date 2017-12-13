@@ -52,13 +52,10 @@ class ForwardEulerMethod(EvolutionMethod):
         fs_curr = sim.f(times)
         f_curr = fs_curr[-1]
 
-        kernel = sim.evaluate_kernel(time_curr, times)
-
-        integral = sim.integrate(
-            y = fs_curr * kernel * np.array(b),
+        derivative = sim.spec.integral_prefactor * f_curr * sim.integrate(
+            y = fs_curr * sim.evaluate_kernel(time_curr, times) * np.array(b),
             x = times
         )
-        derivative = sim.spec.integral_prefactor * f_curr * integral
 
         b_next = b[-1] + (time_step * derivative)
         t_next = time_curr + time_step
@@ -85,15 +82,12 @@ class BackwardEulerMethod(EvolutionMethod):
         fs_curr = fs_next[:-1]
         f_next = fs_next[-1]
 
-        kernel = sim.evaluate_kernel(time_curr + time_step, times)
-
-        integral = sim.integrate(
-            y = fs_curr * kernel * np.array(b),
+        derivative = sim.spec.integral_prefactor * f_next * sim.integrate(
+            y = fs_curr * sim.evaluate_kernel(time_curr + time_step, times) * np.array(b),
             x = times
         )
-        derivative = sim.spec.integral_prefactor * f_next * integral
 
-        b_next = (b[-1] + (time_step * derivative)) / (1 - sim.spec.integral_prefactor * sim.evaluate_kernel(0, 0) * ((time_step * f_next) ** 2))
+        b_next = (b[-1] + (time_step * derivative)) / (1 - sim.spec.integral_prefactor * sim.evaluate_kernel(time_curr, np.array([time_curr])) * ((time_step * f_next) ** 2))
         t_next = time_curr + time_step
 
         return b_next, t_next
@@ -119,22 +113,18 @@ class TrapezoidMethod(EvolutionMethod):
 
         fs_curr_times_b = fs_curr * np.array(b)
 
-        kernel_1 = sim.evaluate_kernel(time_curr + time_step, times)
-        integral_forward = sim.integrate(
-            y = fs_curr_times_b * kernel_1,
+        derivative_forward = sim.spec.integral_prefactor * f_next * sim.integrate(
+            y = fs_curr_times_b * sim.evaluate_kernel(time_curr + time_step, times),
             x = times
         )
-        derivative_forward = sim.spec.integral_prefactor * f_next * integral_forward
 
-        kernel_2 = sim.evaluate_kernel(time_curr, times)
-        integral_backward = sim.integrate(
-            y = fs_curr_times_b * kernel_2,
+        derivative_backward = sim.spec.integral_prefactor * f_curr * sim.integrate(
+            y = fs_curr_times_b * sim.evaluate_kernel(time_curr, times),
             x = times
         )
-        derivative_backward = sim.spec.integral_prefactor * f_curr * integral_backward
 
         b_next = (b[-1] + (time_step * (derivative_forward + derivative_backward) / 2))
-        b_next /= (1 - (.5 * sim.spec.integral_prefactor * sim.evaluate_kernel(0, 0) * ((time_step * f_next) ** 2)))
+        b_next /= (1 - (.5 * sim.spec.integral_prefactor * sim.evaluate_kernel(time_curr, np.array([time_curr])) * ((time_step * f_next) ** 2)))
 
         t_next = time_curr + time_step
 
@@ -165,9 +155,9 @@ class RungeKuttaFourMethod(EvolutionMethod):
         f_half = fs_half[-1]
 
         fs_next = sim.f(times_next)
-        f_next = fs_next[-1]
         f_curr = fs_next[-2]
         fs_curr = fs_next[:-1]
+        f_next = fs_next[-1]
 
         kernel_curr = sim.evaluate_kernel(time_curr, times)
         kernel_half = sim.evaluate_kernel(time_half, times_half)
@@ -175,27 +165,36 @@ class RungeKuttaFourMethod(EvolutionMethod):
 
         fs_curr_times_b = fs_curr * np.array(b)
 
-        # integrate through the current time step
-        integrand_for_k1 = fs_curr_times_b * kernel_curr
-        integral_for_k1 = sim.integrate(y = integrand_for_k1, x = times)
-        k1 = sim.spec.integral_prefactor * f_curr * integral_for_k1
-        b_midpoint_for_k2 = b_curr + (time_step * k1 / 2)  # time_step / 2 here because we moved forward to midpoint
+        # STEP 1
+        k1 = (sim.spec.integral_prefactor * f_curr) * sim.integrate(
+            y = fs_curr_times_b * kernel_curr,
+            x = times
+        )
+        b_midpoint_for_k2 = b_curr + ((time_step / 2) * k1)
 
-        integrand_for_k2 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k2) * kernel_half
-        integral_for_k2 = sim.integrate(y = integrand_for_k2, x = times_half)
-        k2 = sim.spec.integral_prefactor * f_half * integral_for_k2  # time_step / 2 because it's half of an interval that we're integrating over
-        b_midpoint_for_k3 = b_curr + (time_step * k2 / 2)  # estimate midpoint based on estimate of slope at midpoint
+        # STEP 2
+        k2 = sim.spec.integral_prefactor * f_half * sim.integrate(
+            y = np.append(fs_curr_times_b, f_half * b_midpoint_for_k2) * kernel_half,
+            x = times_half
+        )
+        b_midpoint_for_k3 = b_curr + ((time_step / 2) * k2)
 
-        integrand_for_k3 = np.append(fs_curr_times_b, f_half * b_midpoint_for_k3) * kernel_half
-        integral_for_k3 = sim.integrate(y = integrand_for_k3, x = times_half)
-        k3 = sim.spec.integral_prefactor * f_half * integral_for_k3
+        # STEP 3
+        k3 = sim.spec.integral_prefactor * f_half * sim.integrate(
+            y = np.append(fs_curr_times_b, f_half * b_midpoint_for_k3) * kernel_half,
+            x = times_half
+        )
         b_end_for_k4 = b_curr + (time_step * k3)
 
-        integrand_for_k4 = np.append(fs_curr_times_b, f_next * b_end_for_k4) * kernel_next
-        integral_for_k4 = sim.integrate(y = integrand_for_k4, x = times_next)
-        k4 = sim.spec.integral_prefactor * f_next * integral_for_k4
+        # STEP 4
 
-        b_next = b_curr + (time_step * (k1 + (2 * k2) + (2 * k3) + k4) / 6)
+        k4 = sim.spec.integral_prefactor * f_next * sim.integrate(
+            y = np.append(fs_curr_times_b, f_next * b_end_for_k4) * kernel_next,
+            x = times_next
+        )
+
+        # FINAL ESTIMATE
+        b_next = b_curr + ((time_step / 6) * (k1 + (2 * (k2 + k3)) + k4))
         t_next = time_next
 
         return b_next, t_next

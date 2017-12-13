@@ -54,6 +54,7 @@ class LengthGaugeHydrogenKernel(Kernel):
         self.kernel_prefactor = (512 / (3 * u.pi)) * (u.bohr_radius ** 7)
         self.kernel_at_time_difference_zero_with_prefactor = u.bohr_radius ** 2
 
+    @si.utils.memoize
     def __call__(self, time_current, time_previous, electric_potential, vector_potential):
         time_difference = time_current - time_previous
 
@@ -82,13 +83,18 @@ class LengthGaugeHydrogenKernel(Kernel):
         integrand = ((k ** 4) / ((1 + ((a * k) ** 2)) ** 6)) * (sym.exp(-sym.I * hb * (k ** 2) * td / (2 * m)))
 
         kernel = sym.integrate(integrand, (k, 0, sym.oo))
+        kernel = kernel.subs([
+            (a, u.bohr_radius),
+            (m, u.electron_mass),
+            (hb, u.hbar),
+        ])
+        kernel = kernel.evalf()  # partial evaluation of coefficients
 
         kernel_func = sym.lambdify(
-            (a, m, hb, td),
+            (td,),
             kernel,
             modules = ['numpy', {'erfc': special.erfc}]
         )
-        kernel_func = functools.partial(kernel_func, u.bohr_radius, u.electron_mass, u.hbar)
 
         return kernel_func
 
@@ -111,6 +117,7 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
 
         self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
+    @si.utils.memoize
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 

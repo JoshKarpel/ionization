@@ -1,12 +1,14 @@
 import logging
 import os
+import itertools
 
 import numpy as np
 
 import simulacra as si
-from simulacra.units import *
+import simulacra.units as u
 
 import ionization as ion
+import ionization.ide as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -43,16 +45,20 @@ def run_from_lib(spec):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        dt = 1 * asec
+        dt = 1 * u.asec
         methods = [
-            ion.ide.ForwardEulerMethod(),
-            ion.ide.BackwardEulerMethod(),
-            ion.ide.TrapezoidMethod(),
-            ion.ide.RungeKuttaFourMethod(),
+            ide.ForwardEulerMethod(),
+            ide.BackwardEulerMethod(),
+            ide.TrapezoidMethod(),
+            ide.RungeKuttaFourMethod(),
+        ]
+        kernels = [
+            ide.LengthGaugeHydrogenKernel(),
+            ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
         ]
 
-        pw = 100 * asec
-        flu = 2 * Jcm2
+        pw = 100 * u.asec
+        flu = 2 * u.Jcm2
         cep = 0
         tb = 4
         pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
@@ -67,14 +73,14 @@ if __name__ == '__main__':
             time_final = tb * pulse.pulse_width,
             time_step = dt,
             electric_potential = pulse,
-            kernel = ion.ide.LengthGaugeHydrogenKernel(),
         )
 
         specs = []
-        for method in methods:
-            spec = ion.ide.IntegroDifferentialEquationSpecification(
+        for method, kernel in itertools.product(methods, kernels):
+            spec = ide.IntegroDifferentialEquationSpecification(
                 f'{method.__class__.__name__}',
                 evolution_method = method,
+                kernel = kernel,
                 **shared_spec_kwargs
             )
 
@@ -99,17 +105,27 @@ if __name__ == '__main__':
             **PLOT_KWARGS,
         )
 
-        method_to_final_b2 = {r.spec.evolution_method.__class__: r.b2[-1] for r in results}
+        method_to_final_b2 = {(r.spec.evolution_method.__class__, r.spec.kernel.__class__): r.b2[-1] for r in results}
         expected = {
-            ion.ide.ForwardEulerMethod: 0.11392725334866653,
-            ion.ide.BackwardEulerMethod: 0.10407548854993905,
-            ion.ide.TrapezoidMethod: 0.10891475259299933,
-            ion.ide.RungeKuttaFourMethod: 0.10898054046019617
+            (ide.ForwardEulerMethod, ide.LengthGaugeHydrogenKernel): 0.11392725334866653,
+            (ide.ForwardEulerMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.004501898847336752,
+            (ide.BackwardEulerMethod, ide.LengthGaugeHydrogenKernel): 0.10407548854993905,
+            (ide.BackwardEulerMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.003139175620954904,
+            (ide.TrapezoidMethod, ide.LengthGaugeHydrogenKernel): 0.10891475259299933,
+            (ide.TrapezoidMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.003781133375283872,
+            (ide.RungeKuttaFourMethod, ide.LengthGaugeHydrogenKernel): 0.10898054046019617,
+            (ide.RungeKuttaFourMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.0037476145627075106,
         }
 
         summary = 'Results:\n'
-        summary += '\n'.join(f'{method.__name__}: {final_b2} | {expected[method]}' for method, final_b2 in method_to_final_b2.items())
+        summary += '\n'.join(f'{method.__name__} + {kernel.__name__}: {final_b2} | {expected[method, kernel]}' for (method, kernel), final_b2 in method_to_final_b2.items())
         print(summary)
 
-        for method in methods:
-            np.testing.assert_allclose(method_to_final_b2[method.__class__], expected[method.__class__])
+        for method, kernel in itertools.product(methods, kernels):
+            key = (method.__class__, kernel.__class__)
+            np.testing.assert_allclose(
+                method_to_final_b2[key],
+                expected[key]
+            )
+
+        print('\nAll good!')
