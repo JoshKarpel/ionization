@@ -73,7 +73,7 @@ def process_jobs(jobs_dir):
     job_names = [f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))]
     logger.debug(f'Found jobs: {", ".join(job_names)}')
 
-    job_processors = [process_job(job_name, jobs_dir) for job_name in job_names]
+    job_processors = [si.utils.run_in_process(process_job, args = (job_name, jobs_dir)) for job_name in job_names]
 
     total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
     total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
