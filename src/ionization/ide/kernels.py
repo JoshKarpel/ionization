@@ -1,6 +1,5 @@
 import logging
 from abc import ABC, abstractmethod
-import functools
 import warnings
 
 import numpy as np
@@ -54,13 +53,16 @@ class LengthGaugeHydrogenKernel(Kernel):
         self.kernel_prefactor = (512 / (3 * u.pi)) * (u.bohr_radius ** 7)
         self.kernel_at_time_difference_zero_with_prefactor = u.bohr_radius ** 2
 
-    @si.utils.memoize
     def __call__(self, time_current, time_previous, electric_potential, vector_potential):
         time_difference = time_current - time_previous
 
+        return self._evaluate_kernel_function(time_difference)
+
+    @si.utils.memoize
+    def _evaluate_kernel_function(self, time_difference):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            kernel = self.kernel_prefactor * self.kernel_function(time_difference) * np.exp(1j * self.omega_bound * time_difference)
+            kernel = self.kernel_prefactor * np.exp(1j * self.omega_bound * time_difference) * self.kernel_function(time_difference)
 
         kernel = np.where(
             time_difference != 0,
@@ -117,12 +119,12 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
 
         self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
-    @si.utils.memoize
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
 
         return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
+    @si.utils.memoize
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
         vp_previous = vector_potential(previous_time)
 

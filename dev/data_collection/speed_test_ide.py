@@ -17,8 +17,8 @@ if __name__ == '__main__':
             time_initial = 0, time_final = 4000 * u.asec, time_step = 1 * u.asec,
             # store_data_every = -1,
             evolution_method = ide.RungeKuttaFourMethod(),
-            kernel = ide.LengthGaugeHydrogenKernel(),
-            # kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+            # kernel = ide.LengthGaugeHydrogenKernel(),
+            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
         ).to_simulation()
 
         # sim.info().log()
