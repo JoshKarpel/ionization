@@ -116,7 +116,7 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
     def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
         super().__init__(bound_state_energy = bound_state_energy)
 
-        self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
+        self.phase_prefactor = -1j * (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
@@ -124,9 +124,10 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
-        vp_previous = vector_potential(previous_time)
-
+        vp_current = vector_potential(current_time)
         time_difference = current_time - previous_time
+
+        # strategy: flip integrals around in time (adds negative sign), then unflip the resulting array to get the desired integrals
 
         vp_integral = -integ.cumtrapz(
             y = vector_potential(previous_time)[::-1],
@@ -134,12 +135,13 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
             initial = 0,
         )[::-1]
 
-        vp2_integral = integ.cumtrapz(
+        vp2_integral = -integ.cumtrapz(
             y = vector_potential(previous_time)[::-1] ** 2,
             x = previous_time[::-1],
             initial = 0,
         )[::-1]
 
-        integral = vp2_integral - (2 * vp_previous * vp_integral) + ((vp_previous ** 2) * time_difference)
+        integral = ((vp_current ** 2) * time_difference) - (2 * vp_current * vp_integral) + vp2_integral
+        integral %= u.twopi  # it's a phase, so we're free to do this, which should make it more stable
 
-        return np.exp(-1j * self.phase_prefactor * integral)
+        return np.exp(self.phase_prefactor * integral)

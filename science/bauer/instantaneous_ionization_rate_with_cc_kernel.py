@@ -116,6 +116,8 @@ def landau_if_below_critical_field(field_amplitude):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
+        empirical_prefactor = 1.2
+
         amplitudes = np.array([.3, .5]) * u.atomic_electric_field
         number_of_cycleses = [6, 12]
         omegas = np.array([.2]) * u.atomic_angular_frequency
@@ -126,7 +128,7 @@ if __name__ == '__main__':
 
         for amplitude, number_of_cycles, omega in itertools.product(amplitudes, number_of_cycleses, omegas):
             pulse = BauerGaussianPulse(amplitude = amplitude, number_of_cycles = number_of_cycles, omega = omega)
-            times = np.linspace(-t_extra_lower * pulse.pulse_center, (2 + t_extra_upper) * pulse.pulse_center, 10000)
+            times = np.linspace(-t_extra_lower * pulse.pulse_center, (2 + t_extra_upper) * pulse.pulse_center, 5000)
 
             efield_vs_time = pulse.get_electric_field_amplitude(times)
 
@@ -185,7 +187,7 @@ if __name__ == '__main__':
 
             ax_rate.plot(
                 times / x_unit,
-                -2.4 * ((efield_vs_time / u.atomic_electric_field) ** 2),
+                -empirical_prefactor * ((efield_vs_time / u.atomic_electric_field) ** 2),
                 color = 'C4'
             )
 

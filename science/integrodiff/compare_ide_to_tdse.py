@@ -23,7 +23,7 @@ PLOT_KWARGS = dict(
 if __name__ == '__main__':
     with LOGMAN as logger:
         time_bound = 3.5
-        pulse = ion.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width = 200 * asec,
             fluence = 5 * Jcm2,
             phase = pi / 2,
@@ -46,18 +46,19 @@ if __name__ == '__main__':
             use_numeric_eigenstates = True,
             numeric_eigenstate_max_energy = 20 * eV,
             numeric_eigenstate_max_angular_momentum = 20,
-            mask = ion.RadialCosineMask(inner_radius = 75 * bohr_radius, outer_radius = 100 * bohr_radius),
+            mask = ion.potentials.RadialCosineMask(inner_radius = 75 * bohr_radius, outer_radius = 100 * bohr_radius),
             **shared_kwargs,
         )
 
         ide_spec = ide.IntegroDifferentialEquationSpecification(
             'ide',
             time_step = .5 * asec,
+            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
             **shared_kwargs,
         )
 
         sims = [spec.to_simulation() for spec in (
-            # tdse_spec,
+            tdse_spec,
             ide_spec,
         )]
         for sim in sims:
