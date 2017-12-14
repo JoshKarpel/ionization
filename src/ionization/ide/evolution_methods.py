@@ -23,6 +23,7 @@ class EvolutionMethod(ABC):
     Any subclass must have a class attribute called `time_step_type` that is assigned to a member of :class:`TimeStepType`.
     Which one obviously depends on what kind of time step the method uses.
     """
+    time_step_type = None
 
     @abstractmethod
     def evolve(self, sim, b, times, time_step):
@@ -31,7 +32,7 @@ class EvolutionMethod(ABC):
     def info(self):
         info = si.Info(header = f'Evolution Method: {self.__class__.__name__}')
 
-        info.add_field('Time Step Type', self.time_step_type)
+        info.add_field('Time Step Type', self.time_step_type.value.title())
 
         return info
 

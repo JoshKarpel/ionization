@@ -47,13 +47,16 @@ class Coulomb(potential.PotentialEnergy):
 
 
 class SoftCoulomb(potential.PotentialEnergy):
-    """A class representing the electric potential energy caused by the Coulomb potential."""
+    """A class representing the electric potential energy caused by the softened Coulomb potential."""
 
     def __init__(self, charge = 1 * u.proton_charge, softening_distance = .05 * u.bohr_radius):
         """
-        Construct a Coulomb from a charge.
-
-        :param charge: the charge of the particle providing the potential
+        Parameters
+        ----------
+        charge
+            The charge of the source.
+        softening_distance
+            The distance over which the charge is "smeared" to soften the Coulomb singularity.
         """
         super().__init__()
 
@@ -61,10 +64,10 @@ class SoftCoulomb(potential.PotentialEnergy):
         self.softening_distance = softening_distance
 
     def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'))
+        return si.utils.field_str(self, ('charge', 'proton_charge'), ('softening_distance', 'bohr_radius'))
 
     def __repr__(self):
-        return si.utils.field_str(self, 'charge')
+        return si.utils.field_str(self, 'charge', 'softening_distance')
 
     def __call__(self, *, r, test_charge, **kwargs):
         """
@@ -72,10 +75,16 @@ class SoftCoulomb(potential.PotentialEnergy):
 
         Accepts only keyword arguments.
 
-        :param r: the radial distance coordinate
-        :param test_charge: the test charge
-        :param kwargs: absorbs any other keyword arguments
-        :return:
+        Parameters
+        ----------
+        r
+            The position of the test particle.
+        test_charge
+            The charge of the test particle.
+        kwargs
+
+        Returns
+        -------
         """
         return u.coulomb_constant * self.charge * test_charge / np.sqrt((r ** 2) + (self.softening_distance ** 2))
 

@@ -110,7 +110,7 @@ class LengthGaugeHydrogenKernel(Kernel):
 class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
     """
     The kernel for the hydrogen ground state with plane wave continuum states.
-    This version uses an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
+    This version adds an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
     """
 
     def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):

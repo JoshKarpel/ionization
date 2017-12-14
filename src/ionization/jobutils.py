@@ -13,14 +13,10 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import core, states, potentials, ide
+from . import core, states, potentials, ide, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-
-class InvalidChoice(Exception):
-    pass
 
 
 def parse_args(**kwargs):
@@ -200,7 +196,7 @@ def ask_evolution_gauge(parameters, *, spec_type):
     choices = sorted(list(spec_type.evolution_gauge.choices))
     gauge = clu.ask_for_input(f'Evolution Gauge? [{"/".join(choices)}]', default = choices[0])
     if gauge not in choices:
-        raise InvalidChoice(f'{gauge} is not one of {choices}')
+        raise exceptions.InvalidChoice(f'{gauge} is not one of {choices}')
     parameters.append(
         clu.Parameter(
             name = 'evolution_gauge',
@@ -221,7 +217,7 @@ def ask_evolution_method_ide(parameters, *, spec_type):
     try:
         method = choices[method_key]()
     except KeyError:
-        raise InvalidChoice(f'{method} is not one of {choices}')
+        raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
     parameters.append(
         clu.Parameter(
@@ -236,7 +232,7 @@ def ask_evolution_method_tdse(parameters, *, spec_type):
     choices = sorted(list(spec_type.evolution_method.choices))
     method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
     if method not in choices:
-        raise InvalidChoice(f'{method} is not one of {choices}')
+        raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
     parameters.append(
         clu.Parameter(
@@ -256,7 +252,7 @@ def ask_ide_kernel(parameters):
     try:
         kernel = choices[kernel_key]()
     except KeyError:
-        raise InvalidChoice(f'{kernel_key} is not one of {choices.keys()}')
+        raise exceptions.InvalidChoice(f'{kernel_key} is not one of {choices.keys()}')
 
     parameters.append(
         clu.Parameter(

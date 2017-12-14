@@ -34,10 +34,7 @@ class ImaginaryGaussianRing(potential.PotentialEnergy):
         return f'{self.__class__.__name__}(center = {self.center}, width = {self.width}, decay_time = {self.decay_time})'
 
     def __str__(self):
-        return '{}(center = {} a_0, width = {} a_0, decay time = {} as)'.format(self.__class__.__name__,
-                                                                                u.uround(self.center, u.bohr_radius, 3),
-                                                                                u.uround(self.width, u.bohr_radius, 3),
-                                                                                u.uround(self.decay_time, u.asec))
+        return f'{self.__class__.__name__}(center = {u.uround(self.center, u.bohr_radius)} a_0, width = {u.uround(self.width, u.bohr_radius)} a_0, decay time = {u.uround(self.decay_time, u.asec)} as)'
 
     def __call__(self, *, r, **kwargs):
         rel = r - self.center

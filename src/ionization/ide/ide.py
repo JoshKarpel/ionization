@@ -37,7 +37,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         The square of the absolute value of the solution vs time (i.e., the probability that the system is in the bound state).
     """
 
-    def __init__(self, spec):
+    def __init__(self, spec: si.Specification):
         super().__init__(spec)
 
         self.latest_checkpoint_time = datetime.datetime.utcnow()
@@ -165,9 +165,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                                                axis,
                                                time_unit = 'asec',
                                                legend_kwargs = None,
-                                               show_y_label = False,
-                                               show_electric_field = True,
-                                               show_vector_potential = True):
+                                               show_y_label: bool = False,
+                                               show_electric_field: bool = True,
+                                               show_vector_potential: bool = True):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if legend_kwargs is None:

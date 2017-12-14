@@ -329,8 +329,8 @@ class DeltaKickSpecification(si.Specification):
     """
     simulation_type = DeltaKickSimulation
 
-    integration_method = si.utils.RestrictedValues('integration_method', ['simpson', 'trapezoid'])
-    pulse_decomposition_strategy = si.utils.RestrictedValues('pulse_decomposition_strategy', ['amplitude', 'fluence'])
+    integration_method = si.utils.RestrictedValues(['simpson', 'trapezoid'])
+    pulse_decomposition_strategy = si.utils.RestrictedValues(['amplitude', 'fluence'])
 
     def __init__(self, name,
                  time_initial = 0 * u.asec, time_final = 200 * u.asec, time_step = 1 * u.asec,
@@ -341,8 +341,7 @@ class DeltaKickSpecification(si.Specification):
                  integral_prefactor = -(u.electron_charge / u.hbar) ** 2,
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
-                 kernel = kernels.hydrogen_kernel_LEN,
-                 kernel_kwargs = {'omega_b': states.HydrogenBoundState(1, 0).energy / u.hbar},
+                 kernel = kernels.LengthGaugeHydrogenKernel(),
                  evolution_gauge = 'LEN',
                  **kwargs):
         """
@@ -373,11 +372,9 @@ class DeltaKickSpecification(si.Specification):
             If True, DC correction is performed on the electric field.
         kernel
             The kernel function of the IDE.
-        kernel_kwargs
-            Additional keyword arguments to pass to `kernel`.
         integration_method : {``'trapz'``, ``'simps'``}
             Which integration method to use, when applicable.
-        evolution_method : {``'FE'``, ``'BE'``, ``'TRAP'``, ``'RK4'``, ``'ARK4'``}
+        evolution_method
             Which evolution algorithm/method to use.
         evolution_gauge : {``'LEN'``, ``'VEL'``}
             Which gauge to perform time evolution in.
@@ -415,9 +412,6 @@ class DeltaKickSpecification(si.Specification):
         self.electric_potential_dc_correction = electric_potential_dc_correction
 
         self.kernel = kernel
-        self.kernel_kwargs = dict()
-        if kernel_kwargs is not None:
-            self.kernel_kwargs.update(kernel_kwargs)
 
         self.evolution_gauge = evolution_gauge
 
@@ -446,7 +440,7 @@ class DeltaKickSpecification(si.Specification):
         info_ide = si.Info(header = 'IDE Parameters')
         info_ide.add_field('Initial State', f'a = {self.b_initial}')
         info_ide.add_field('Prefactor', self.integral_prefactor)
-        info_ide.add_field('Kernel', f'{self.kernel.__name__} with kwargs {self.kernel_kwargs}')
+        info_ide.add_info(self.kernel.info())
         info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
 
         info_potential = self.electric_potential.info()
