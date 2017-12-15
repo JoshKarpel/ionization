@@ -198,7 +198,7 @@ def run_tdse_sims(amplitudes = np.array([.3, .5]) * atomic_electric_field,
         pulse = BauerGaussianPulse(amplitude = amplitude, number_of_cycles = number_of_cycles, omega = omega)
         pulse_identifier = get_pulse_identifier(pulse)
 
-        times = np.linspace(0, pulse.pulse_center * 2, 1000)
+        times = np.linspace(-pulse.pulse_center, pulse.pulse_center * 3, 1000)
 
         si.vis.xy_plot(
             f'field__{pulse_identifier}',
