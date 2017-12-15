@@ -20,7 +20,7 @@ def electric_field():
     )
 
 
-NUM_TIMES = 10000
+NUM_TIMES = 1000
 
 
 @pytest.fixture(scope = 'module')
@@ -39,6 +39,7 @@ def vector_potential(electric_field, times):
 
 @hyp.settings(
     deadline = None,
+    max_examples = 100,
 )
 @hyp.given(current_time_index = st.integers(min_value = 1, max_value = NUM_TIMES - 1))
 @pytest.mark.parametrize(
@@ -48,7 +49,37 @@ def vector_potential(electric_field, times):
         ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
     ]
 )
-def test_hydrogen_kernel_at_time_difference_zero(kernel, electric_field, vector_potential, times, current_time_index):
+def test_hydrogen_kernel_at_time_difference_zero_is_correct(kernel, electric_field, vector_potential, times, current_time_index):
     current_time = times[current_time_index]
 
     assert kernel(current_time, np.array([current_time]), electric_field, vector_potential) == u.bohr_radius ** 2
+
+
+@hyp.settings(
+    deadline = None,
+    max_examples = 100,
+)
+@hyp.given(current_time_index = st.integers(min_value = 1, max_value = NUM_TIMES - 1))
+def test_approximate_continuum_continuum_interaction_phase_is_zero_at_time_difference_zero(vector_potential, times, current_time_index):
+    kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+
+    current_time = times[current_time_index]
+    previous_times = times[:current_time_index + 1]
+
+    # the last entry is the one at time difference zero
+    time_diff_zero_phase_factor = kernel._vector_potential_phase_factor(current_time, previous_times, vector_potential)[-1]
+
+    assert time_diff_zero_phase_factor == np.exp(0)  # i.e., 1
+
+
+@hyp.settings(
+    deadline = None,
+    max_examples = 100,
+)
+@hyp.given(current_time_index = st.integers(min_value = 1, max_value = NUM_TIMES - 1))
+def test_integral_of_vector_potential_squared_in_phase_factor_is_never_negative(vector_potential, times, current_time_index):
+    kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+
+    previous_times = times[:current_time_index + 1]
+
+    assert all(kernel._integrate_vector_potential_over_previous_times(previous_times, vector_potential, power = 2) >= 0)

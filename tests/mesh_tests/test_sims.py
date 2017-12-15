@@ -7,7 +7,7 @@ import numpy as np
 import ionization as ion
 import simulacra.units as u
 
-from . import testutils
+from tests import testutils
 
 SPEC_TYPES = [
     ion.LineSpecification,
@@ -68,28 +68,6 @@ class TestMeshSavingAndLoading:
     'initial_state',
     LOW_N_HYDROGEN_BOUND_STATES
 )
-def test_initial_norm_is_one_for_3d_meshes_with_numeric_eigenstates(initial_state):
-    sim = ion.SphericalHarmonicSpecification(
-        'test',
-        initial_state = initial_state,
-        time_initial = 0,
-        time_final = 100 * u.asec,
-        time_step = 1 * u.asec,
-        r_bound = 100 * u.bohr_radius,
-        r_points = 500,
-        l_bound = 30,
-        use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * u.eV,
-        numeric_eigenstate_max_angular_momentum = 10,
-    ).to_simulation()
-
-    np.testing.assert_allclose(sim.mesh.norm(), 1, atol = 1e-15)
-
-
-@pytest.mark.parametrize(
-    'initial_state',
-    LOW_N_HYDROGEN_BOUND_STATES
-)
 def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_numeric_eigenstates(initial_state):
     sim = ion.SphericalHarmonicSpecification(
         'test',
@@ -141,7 +119,6 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
     np.testing.assert_allclose(initial_state_overlaps, final_state_overlaps, atol = 1e-14)
 
 
-# TODO: test each evolution method
 @pytest.mark.parametrize(
     'initial_state, evolution_gauge',
     itertools.product(

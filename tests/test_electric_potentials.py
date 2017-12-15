@@ -210,5 +210,3 @@ def test_electric_field_is_zero_at_pulse_center_for_sine_like_pulse(pulse_type, 
     )
 
     np.testing.assert_allclose(pulse.get_electric_field_amplitude(pulse_center), 0, atol = 1e-9 * pulse.amplitude)  # smaller than part per billion of the pulse amplitude
-
-

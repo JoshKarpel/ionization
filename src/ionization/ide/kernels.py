@@ -127,21 +127,18 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         vp_current = vector_potential(current_time)
         time_difference = current_time - previous_time
 
-        # strategy: flip integrals around in time (adds negative sign), then unflip the resulting array to get the desired integrals
-
-        vp_integral = -integ.cumtrapz(
-            y = vector_potential(previous_time)[::-1],
-            x = previous_time[::-1],
-            initial = 0,
-        )[::-1]
-
-        vp2_integral = -integ.cumtrapz(
-            y = vector_potential(previous_time)[::-1] ** 2,
-            x = previous_time[::-1],
-            initial = 0,
-        )[::-1]
+        vp_integral = self._integrate_vector_potential_over_previous_times(previous_time, vector_potential, power = 1)
+        vp2_integral = self._integrate_vector_potential_over_previous_times(previous_time, vector_potential, power = 2)
 
         integral = ((vp_current ** 2) * time_difference) - (2 * vp_current * vp_integral) + vp2_integral
-        integral %= u.twopi  # it's a phase, so we're free to do this, which should make it more stable
+        integral %= u.twopi  # it's a phase, so we're free to do this, which should make the exp more stable
 
         return np.exp(self.phase_prefactor * integral)
+
+    def _integrate_vector_potential_over_previous_times(self, previous_time, vector_potential, power = 1):
+        # strategy: flip integrals around in time (adds negative sign), then unflip the resulting array to get the desired integrals
+        return -integ.cumtrapz(
+            y = vector_potential(previous_time)[::-1] ** power,
+            x = previous_time[::-1],
+            initial = 0,
+        )[::-1]
