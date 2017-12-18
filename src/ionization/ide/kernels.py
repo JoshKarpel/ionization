@@ -46,9 +46,9 @@ class Kernel(ABC):
 class LengthGaugeHydrogenKernel(Kernel):
     """The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge."""
 
-    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
-        self.bound_state_energy = bound_state_energy
-        self.omega_bound = bound_state_energy / u.hbar
+    def __init__(self):
+        self.bound_state_energy = states.HydrogenBoundState(1).energy
+        self.omega_bound = self.bound_state_energy / u.hbar
 
         self.kernel_prefactor = (512 / (3 * u.pi)) * (u.bohr_radius ** 7)
         self.kernel_at_time_difference_zero_with_prefactor = u.bohr_radius ** 2
@@ -113,8 +113,8 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
     This version adds an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
     """
 
-    def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
-        super().__init__(bound_state_energy = bound_state_energy)
+    def __init__(self):
+        super().__init__()
 
         self.phase_prefactor = -1j * (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
@@ -142,3 +142,42 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
             x = previous_time[::-1],
             initial = 0,
         )[::-1]
+
+
+class FullHydrogenKernel(Kernel):
+    def __init__(self):
+        super().__init__()
+
+        self.bound_state_energy = states.HydrogenBoundState(1).energy
+        self.omega_bound = self.bound_state_energy / u.hbar
+
+        self.x_conversion = u.bohr_radius / u.hbar
+
+        self.matrix_element_prefactor = 1  # get this right
+        self.phase_integral_prefactor = -1j / (2 * u.electron_mass * u.hbar)
+
+    def __call__(self, current_time, previous_time, electric_potential, vector_potential):
+        raise NotImplementedError
+
+    def x(self, p):
+        return self.x_conversion * p
+
+    def z_dipole_matrix_element(self, p, theta_p):
+        x2 = (self.x(p)) ** 2
+        return self.matrix_element_prefactor * np.cos(theta_p) * x2 / ((1 + x2) ** 3)
+
+    def phase_factor(self, p, theta_p, current_time, previous_time, vector_potential):
+        return np.exp(self.phase_integral(p, theta_p, current_time, previous_time, vector_potential) % u.twopi)
+
+    def phase_integral(self, p, theta_p, current_time, previous_time, vector_potential):
+        integral = -integ.cumtrapz(
+            y = self.phase_integrand(p, theta_p, current_time, previous_time, vector_potential)[::-1],
+            x = previous_time[::-1],
+            initial = 0,
+        )
+
+        return self.phase_integral_prefactor * integral
+
+    def phase_integrand(self, p, theta_p, current_time, previous_time, vector_potential):
+        vp_diff = vector_potential(current_time) - vector_potential(previous_time)
+        return (p ** 2) + (vp_diff ** 2) + (2 * p * np.cos(theta_p) * vp_diff)
