@@ -753,24 +753,29 @@ class ElectricFieldSimulation(si.Simulation):
                 loc = 'upper left',
                 borderaxespad = 0.075,
                 fontsize = 9,
-                ncol = 1 + (len(overlaps) // 12))
+                ncol = 1 + (len(overlaps) // 12)
+            )
 
-            ax_overlaps.tick_params(labelleft = True,
-                                    labelright = True,
-                                    labeltop = True,
-                                    labelbottom = False,
-                                    bottom = True,
-                                    top = True,
-                                    left = True,
-                                    right = True)
-            ax_field.tick_params(labelleft = True,
-                                 labelright = True,
-                                 labeltop = False,
-                                 labelbottom = True,
-                                 bottom = True,
-                                 top = True,
-                                 left = True,
-                                 right = True)
+            ax_overlaps.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = True,
+                labelbottom = False,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
+            ax_field.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = False,
+                labelbottom = True,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4
@@ -3427,9 +3432,9 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         :param r_bound:
         :param r_points:
         :param l_bound:
-        :param evolution_equations: 'L' (recommended) or 'H'
-        :param evolution_method: 'SO' (recommended) or 'CN'
-        :param evolution_gauge: 'V' (recommended) or 'L'
+        :param evolution_equations: `'LAG'` (recommended) or `'HAM'`
+        :param evolution_method: `'SO'` (recommended) or `'CN'`
+        :param evolution_gauge: `'L'` or `'V'`
         :param kwargs: passed to ElectricFieldSpecification
         """
         super().__init__(
@@ -3460,9 +3465,9 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius, 3)} a_0 | {u.uround(self.r_bound, u.nm, 3)} nm')
+        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius)} a_0 | {u.uround(self.r_bound, u.nm)} nm')
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius)} a_0 | ~{u.uround(self.r_bound / self.r_points, u.nm)} a_0')
         info_mesh.add_field('L Bound', self.l_bound)
         info_mesh.add_field('Total Mesh Points', self.r_points * self.l_bound)
 
@@ -3470,7 +3475,7 @@ class SphericalHarmonicSpecification(ElectricFieldSpecification):
 
         info_eigenstates = si.Info(header = f'Numeric Eigenstates: {self.use_numeric_eigenstates}')
         if self.use_numeric_eigenstates:
-            info_eigenstates.add_field('Max Energy', f'{u.uround(self.numeric_eigenstate_max_energy, u.eV)} eV')
+            info_eigenstates.add_field('Max Energy', f'{u.uround(self.numeric_eigenstate_max_energy, u.eV)} eV | {u.uround(self.numeric_eigenstate_max_energy, u.hartree)} hartree')
             info_eigenstates.add_field('Max Angular Momentum', self.numeric_eigenstate_max_angular_momentum)
 
         info.add_info(info_eigenstates)
@@ -3549,16 +3554,27 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
-    def get_g_for_state(self, state):
+    def get_g_for_state(self, state: states.QuantumState):
         """
-        Get g for a state.
+        Return the g mesh for a state.
+
+        Parameters
+        ----------
+        state : :class:`QuantumState`
+            A quantum state that can be represented on this mesh.
+
+        Returns
+        -------
+        :class:`np.ndarray`
+            The g mesh associated with `state` for this mesh.
         """
         if isinstance(state, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in state):
             if state.analytic and self.spec.use_numeric_eigenstates:
                 try:
                     state = self.analytic_to_numeric[state]
-                except (AttributeError, KeyError):
+                except KeyError:
                     logger.debug(f'Analytic to numeric eigenstate lookup failed for state {state}')
+
             g = np.zeros(self.mesh_shape, dtype = np.complex128)
 
             for s in state:
@@ -3584,12 +3600,14 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         a and b can be QuantumStates or g_meshes.
 
+        The inner product is Hermitian: inner_product(a, b) = conj(inner_product(b, a)).
+
         Parameters
         ----------
         a
-            A :class:`QuantumState` or a g mesh.
+            The first QuantumState or g mesh.
         b
-            A :class:`QuantumState` or a g mesh.
+            The second QuantumState or g mesh.
 
         Returns
         -------
@@ -3611,8 +3629,24 @@ class SphericalHarmonicMesh(QuantumMesh):
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
     def dipole_moment_inner_product(self, a = None, b = None):
+        """
+        Return the dipole moment operator matrix element between two QuantumStates or g meshes.
+
+        Parameters
+        ----------
+        a
+            The first QuantumState or g mesh.
+        b
+            The second QuantumState or g mesh.
+
+        Returns
+        -------
+        :class:`complex`
+            The dipole moment operator matrix element between `a` and `b`.
+        """
         operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
         b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
+        # TODO: check sign
         return -self.inner_product(a = a, b = b)
 
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):

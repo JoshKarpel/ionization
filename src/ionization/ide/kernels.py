@@ -116,7 +116,7 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
     def __init__(self):
         super().__init__()
 
-        self.phase_prefactor = -1j * (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
+        self.phase_prefactor = (u.electron_charge ** 2) / (2 * u.electron_mass * u.hbar)
 
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         kernel = super().__call__(current_time, previous_time, electric_potential, vector_potential)
@@ -124,6 +124,9 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         return kernel * self._vector_potential_phase_factor(current_time, previous_time, vector_potential)
 
     def _vector_potential_phase_factor(self, current_time, previous_time, vector_potential):
+        return np.exp(-1j * self._vector_potential_phase_factor_integral(current_time, previous_time, vector_potential))
+
+    def _vector_potential_phase_factor_integral(self, current_time, previous_time, vector_potential):
         vp_current = vector_potential(current_time)
         time_difference = current_time - previous_time
 
@@ -131,9 +134,8 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
         vp2_integral = self._integrate_vector_potential_over_previous_times(previous_time, vector_potential, power = 2)
 
         integral = ((vp_current ** 2) * time_difference) - (2 * vp_current * vp_integral) + vp2_integral
-        integral %= u.twopi  # it's a phase, so we're free to do this, which should make the exp more stable
 
-        return np.exp(self.phase_prefactor * integral)
+        return np.mod(self.phase_prefactor * integral, u.twopi)
 
     def _integrate_vector_potential_over_previous_times(self, previous_time, vector_potential, power = 1):
         # strategy: flip integrals around in time (adds negative sign), then unflip the resulting array to get the desired integrals

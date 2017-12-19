@@ -10,9 +10,11 @@ import numpy as _np
 import pyximport
 
 pyx_dir = os.path.join(os.path.dirname(__file__), '.pyxbld')
-pyximport.install(setup_args = {"include_dirs": _np.get_include()},
-                  build_dir = pyx_dir,
-                  language_level = 3)
+pyximport.install(
+    setup_args = {"include_dirs": _np.get_include()},
+    build_dir = pyx_dir,
+    language_level = 3
+)
 
 from .core import *
 from . import exceptions

@@ -78,7 +78,7 @@ if __name__ == '__main__':
         specs = []
         for method, kernel in itertools.product(methods, kernels):
             spec = ide.IntegroDifferentialEquationSpecification(
-                f'{method.__class__.__name__}',
+                f'{method.__class__.__name__}_{kernel.__class__.__name__}',
                 evolution_method = method,
                 kernel = kernel,
                 **shared_spec_kwargs
