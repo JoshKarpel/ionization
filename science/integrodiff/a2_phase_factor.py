@@ -212,6 +212,10 @@ def animate_kernel_over_time(pulse, kernel):
         ax_kernel.grid(True, **si.vis.GRID_KWARGS)
         ax_fields.grid(True, **si.vis.GRID_KWARGS)
 
+        ax_fields.set_xlabel(fr'$t \; {time_unit_tex}$')
+        ax_kernel.set_ylabel(r"$K_b(t, t') \; (a_0^2)$")
+        ax_solution.set_ylabel(r'$\left|b(t)\right|^2$')
+
         def update_func(index):
             current_time = times[index]
             previous_time = times[:index + 1]
@@ -253,7 +257,10 @@ def animate_kernel_over_time(pulse, kernel):
 if __name__ == '__main__':
     with LOGMAN as logger:
         pulses = [
-            BauerGaussianPulse(),
+            BauerGaussianPulse(amplitude = amplitude, number_of_cycles = number_of_cycles, omega = omega)
+            for amplitude in np.array([.3, .5]) * u.atomic_electric_field
+            for number_of_cycles in [6, 12]
+            for omega in np.array([.2]) * u.atomic_angular_frequency
         ]
         kernels = [
             ide.LengthGaugeHydrogenKernel(),
