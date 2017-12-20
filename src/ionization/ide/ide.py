@@ -19,6 +19,14 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
+def interpolate_vector_potential(electric_potential, times):
+    return interp.CubicSpline(
+        x = times,
+        y = electric_potential.get_vector_potential_amplitude_numeric_cumulative(times),
+        bc_type = 'natural',
+    )
+
+
 class IntegroDifferentialEquationSimulation(si.Simulation):
     """
     A class that encapsulates a simulation of an IDE with the form
@@ -56,11 +64,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
-        self.interpolated_vector_potential = interp.CubicSpline(
-            x = dummy_times,
-            y = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(dummy_times),
-            bc_type = 'natural',
-        )
+        self.interpolated_vector_potential = interpolate_vector_potential(self.spec.electric_potential, dummy_times)
 
         if self.spec.integration_method == 'simpson':
             self.integrate = integ.simps

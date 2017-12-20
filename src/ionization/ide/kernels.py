@@ -147,7 +147,7 @@ class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(Leng
 
 
 class FullHydrogenKernel(Kernel):
-    def __init__(self):
+    def __init__(self, theta_p_points = 200):
         super().__init__()
 
         self.bound_state_energy = states.HydrogenBoundState(1).energy
@@ -155,30 +155,84 @@ class FullHydrogenKernel(Kernel):
 
         self.x_conversion = u.bohr_radius / u.hbar
 
-        self.matrix_element_prefactor = 1  # get this right
-        self.phase_integral_prefactor = -1j / (2 * u.electron_mass * u.hbar)
+        self.matrix_element_prefactor = 1j * np.sqrt(512 * 3 * (u.bohr_radius ** 7) / (3 * u.pi * 4 * u.pi * (u.hbar ** 5)))
+        self.phase_integral_prefactor = 1 / (2 * u.electron_mass * u.hbar)
+
+        self.p = np.linspace(0, 20, 500) * u.atomic_momentum
+        self.theta_p = np.linspace(0, u.pi, theta_p_points)
+
+        self.p_mesh, self.theta_p_mesh = np.meshgrid(self.p, self.theta_p, indexing = 'ij')
 
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         raise NotImplementedError
 
-    def x(self, p):
-        return self.x_conversion * p
+    def z_dipole_matrix_element_per_momentum(self, p, theta_p):
+        return self.matrix_element_prefactor * np.cos(theta_p) * p / (1 + ((p * u.bohr_radius / u.hbar) ** 2)) ** 3
 
-    def z_dipole_matrix_element(self, p, theta_p):
-        x2 = (self.x(p)) ** 2
-        return self.matrix_element_prefactor * np.cos(theta_p) * x2 / ((1 + x2) ** 3)
+    def kernel(self, current_time, previous_time, vector_potential):
+        warnings.warn('MATRIX ELEMENT DOESNT HAVE qA in it yet')
+        # PREVIOUS TIME IS A VECTOR
+
+        kernel = np.empty_like(previous_time, dtype = np.complex128)
+        for t_prime_index, t_prime in previous_time:
+            integrand_vs_p = self.integrand_vs_p(current_time, previous_time, vector_potential)
+
+            kernel[t_prime_index] = integ.simps(
+                y = integrand_vs_p,
+                x = self.p
+            )
+
+        return kernel
+
+    def integrand_vs_p(self, current_time, previous_time, vector_potential):
+        integrand_vs_p = np.empty_like(self.p, dtype = np.complex128)
+
+        for p_index, p in enumerate(self.p):
+            integrand_for_p_vs_theta_p = np.empty_like(self.theta_p, dtype = np.complex128)
+
+            first_matrix_element = self.z_dipole_matrix_element_per_momentum(p, self.theta_p)
+            second_matrix_element = self.z_dipole_matrix_element_per_momentum(p, self.theta_p)  # eventually depends on A(t, t')
+
+            matrix_elements = np.conj(first_matrix_element) * second_matrix_element
+
+            for theta_p_index, theta_p in enumerate(self.theta_p):
+                # print('theta_p', theta_p_index, theta_p / u.pi)
+                phase_factor = self.phase_factor(p, theta_p, current_time, previous_time, vector_potential)  # very inefficient
+
+                integrand_for_p_vs_theta_p[theta_p_index] = matrix_elements[theta_p_index] * phase_factor * np.sin(theta_p)
+
+            # twopi from phi integral
+            integrand_vs_p[p_index] = u.twopi * (p ** 2) * integ.simps(
+                y = integrand_for_p_vs_theta_p,
+                x = self.theta_p
+            )
+
+        return integrand_vs_p
 
     def phase_factor(self, p, theta_p, current_time, previous_time, vector_potential):
-        return np.exp(self.phase_integral(p, theta_p, current_time, previous_time, vector_potential) % u.twopi)
+        """VECTORIZED IN PREVIOUS TIME"""
+        return np.exp(-1j * self.phase_integral(p, theta_p, current_time, previous_time, vector_potential))
+
+    # REMEMBER: p and previous_time might both be arrays!
 
     def phase_integral(self, p, theta_p, current_time, previous_time, vector_potential):
-        integral = -integ.cumtrapz(
-            y = self.phase_integrand(p, theta_p, current_time, previous_time, vector_potential)[::-1],
-            x = previous_time[::-1],
-            initial = 0,
+        """VECTORIZED IN PREVIOUS TIME"""
+        # print(self.phase_integrand(p, theta_p, current_time, previous_time, vector_potential))
+        # integral = -integ.cumtrapz(
+        #     y = self.phase_integrand(p, theta_p, current_time, previous_time, vector_potential)[::-1],
+        #     x = previous_time[::-1],
+        #     initial = 0,
+        # )
+
+        # print(vector_potential.x)
+        integral, *err = integ.quad(
+            lambda t: self.phase_integrand(p, theta_p, current_time, t, vector_potential),
+            previous_time,
+            current_time,
+            # points = vector_potential.x
         )
 
-        return self.phase_integral_prefactor * integral
+        return np.mod(self.phase_integral_prefactor * integral, u.twopi)
 
     def phase_integrand(self, p, theta_p, current_time, previous_time, vector_potential):
         vp_diff = vector_potential(current_time) - vector_potential(previous_time)
