@@ -84,22 +84,36 @@ def get_pulse_identifier(pulse):
 
 
 def animate_kernel_over_time(pulse, kernel):
-    ident = f'{kernel.__class__.__name__}___{get_pulse_identifier(pulse)}'
-    spec = ide.IntegroDifferentialEquationSpecification(
-        ident,
+    shared_kwargs = dict(
         electric_potential = pulse,
-        kernel = kernel,
         time_initial = -.3 * pulse.pulse_center,
         time_final = 2.3 * pulse.pulse_center,
     )
-    sim = run(spec)
+    ide_spec = ide.IntegroDifferentialEquationSpecification(
+        f'IDE___{get_pulse_identifier(pulse)}__{kernel.__class__.__name__}',
+        kernel = kernel,
+        **shared_kwargs
+    )
+    ide_sim = run(ide_spec)
 
-    times = sim.times
+    tdse_spec = ion.SphericalHarmonicSpecification(
+        f'TDSE___{get_pulse_identifier(pulse)}',
+        r_bound = 100 * u.bohr_radius,
+        r_points = 500,
+        l_bound = 300,
+        use_numeric_eigenstates = True,
+        numeric_eigenstate_max_energy = 20 * u.eV,
+        numeric_eigenstate_max_angular_momentum = 3,
+        **shared_kwargs,
+    )
+    tdse_sim = run(tdse_spec)
+
+    times = ide_sim.times
 
     time_unit, time_unit_tex = u.get_unit_value_and_latex_from_unit('asec')
 
     figman = si.vis.FigureManager(
-        f'kernel_over_time__{ident}',
+        f'kernel_over_time__{get_pulse_identifier(pulse)}__{kernel.__class__.__name__}',
         save_on_exit = False,
         close_after_exit = False,
         **ANIM_KWARGS
@@ -150,9 +164,16 @@ def animate_kernel_over_time(pulse, kernel):
             animated = True,
         )
 
-        solution_line, = ax_solution.plot(
-            sim.times / time_unit,
-            sim.b2,
+        ide_solution_line, = ax_solution.plot(
+            ide_sim.times / time_unit,
+            ide_sim.b2,
+            color = 'black',
+            alpha = 0.5,
+            linestyle = '--',
+        )
+        tdse_solution_line, = ax_solution.plot(
+            tdse_sim.data_times / time_unit,
+            tdse_sim.state_overlaps_vs_time[tdse_sim.spec.initial_state],
             color = 'black',
             alpha = 0.5,
         )
@@ -220,7 +241,7 @@ def animate_kernel_over_time(pulse, kernel):
             current_time = times[index]
             previous_time = times[:index + 1]
 
-            y = sim.evaluate_kernel(current_time, previous_time)
+            y = ide_sim.evaluate_kernel(current_time, previous_time)
             x = previous_time
 
             kernel_line_re.set_data(x / time_unit, np.real(y) / (u.bohr_radius ** 2))
@@ -228,7 +249,7 @@ def animate_kernel_over_time(pulse, kernel):
             kernel_line_abs.set_data(x / time_unit, np.abs(y) / (u.bohr_radius ** 2))
 
             if hasattr(kernel, '_vector_potential_phase_factor_integral'):
-                phase_factor = np.real(kernel._vector_potential_phase_factor(current_time, previous_time, sim.interpolated_vector_potential))
+                phase_factor = np.real(kernel._vector_potential_phase_factor(current_time, previous_time, ide_sim.interpolated_vector_potential))
                 phase_factor_line.set_data(x / time_unit, phase_factor)
 
             time_line_upper.set_xdata(current_time / time_unit)

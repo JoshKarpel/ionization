@@ -51,7 +51,7 @@ if __name__ == '__main__':
         si.vis.xy_plot(
             'matrix_element_aligned',
             p,
-            kernel.z_dipole_matrix_element(p, 0),
+            np.abs(kernel.z_dipole_matrix_element(p, 0)) ** 2,
             x_unit = 'atomic_momentum',
             x_label = r'$p$',
             y_label = r'$d_z(p)$',
