@@ -14,11 +14,20 @@ from . import core, ide, jobutils
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-parameter_name_to_unit_name = {
+PARAMETER_TO_SYMBOL = {
+    'pulse_width': r'\tau',
+    'fluence': r'H',
+    'amplitude': r'\mathcal{E}_0',
+    'phase': r'\varphi',
+    'delta_r': r'\Delta r',
+    'delta_t': r'\Delta t',
+}
+
+PARAMETER_TO_UNIT_NAME = {
     'pulse_width': 'asec',
     'fluence': 'Jcm2',
     'amplitude': 'atomic_electric_field',
-    'phase': 'rad',
+    'phase': 'pi',
     'delta_r': 'bohr_radius',
     'delta_t': 'asec',
 }
@@ -31,18 +40,20 @@ class PulseParameterScanMixin:
         if len(self.unprocessed_sim_names) == 0:
             logger.info(f'Generating pulse parameter scans for job {self.name}')
             self.make_pulse_parameter_scans_1d()
-            # self.make_pulse_parameter_scans_2d()
+            self.make_pulse_parameter_scans_2d()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
             for plot_parameter, line_parameter, scan_parameter in itertools.permutations(self.scan_parameters, r = 3):
-                plot_parameter_name, line_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), line_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
-                plot_parameter_unit, line_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[line_parameter], parameter_name_to_unit_name[scan_parameter]
+                plot_parameter_unit, line_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[line_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
                 plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
 
-                if len(scan_parameter_set) < 2 or len(line_parameter_set) > 8 or len(plot_parameter_set) > 10:  # skip
+                if any((len(scan_parameter_set) < 2,
+                        len(line_parameter_set) > 8,
+                        len(plot_parameter_set) > 10)):  # skip
+                    logger.debug(f'Skipped plotting {scan_parameter} scan grouped by {line_parameter} at constant {plot_parameter} for job {self.name} because the scan would not be dense enough, or would have too many lines')
                     continue
 
                 for plot_parameter_value in plot_parameter_set:
@@ -60,7 +71,7 @@ class PulseParameterScanMixin:
 
                         lines.append(np.array([getattr(result, ionization_metric) for result in results]))
 
-                        label = fr"{line_parameter_name}$\, = {u.uround(line_parameter_value, line_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
+                        label = fr"${PARAMETER_TO_SYMBOL[line_parameter]} \, = {u.uround(line_parameter_value, line_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[line_parameter_unit]}$"
                         line_labels.append(label)
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
@@ -85,19 +96,19 @@ class PulseParameterScanMixin:
                                 log_str += 'Y'
 
                         si.vis.xy_plot(
-                            f'1d__{plot_name}{log_str}',
+                            f'{self.name}__1d__{plot_name}{log_str}',
                             x,
                             *lines,
                             line_labels = line_labels,
-                            x_label = scan_parameter_name,
+                            x_label = fr'${PARAMETER_TO_SYMBOL[scan_parameter]}$',
                             x_unit = scan_parameter_unit,
                             x_log_axis = log_x,
                             y_label = ionization_metric_name,
                             y_lower_limit = y_lower_limit,
                             y_upper_limit = y_upper_limit,
                             y_log_axis = log_y,
-                            title = f"{plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                            legend_on_right = True,
+                            title = self.name + '\n' + fr"${PARAMETER_TO_SYMBOL[plot_parameter]} \, = {u.uround(plot_parameter_value, plot_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                            legend_on_right = True if len(line_labels) > 5 else False,
                             target_dir = self.summaries_dir,
                         )
 
@@ -105,14 +116,14 @@ class PulseParameterScanMixin:
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            # for plot_parameter, x_parameter, y_parameter in it.permutations(self.scan_parameters):
             for plot_parameter in self.scan_parameters:
-                for x_parameter, y_parameter in itertools.combinations((p for p in self.scan_parameters if p != plot_parameter), r = 2):  # overkill, but whatever
-                    plot_parameter_name, x_parameter_name, y_parameter_name = plot_parameter.replace('_', ' ').title(), x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
-                    plot_parameter_unit, x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
+                for x_parameter, y_parameter in itertools.combinations((p for p in self.scan_parameters if p != plot_parameter), r = 2):
+                    plot_parameter_unit, x_parameter_unit, y_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[x_parameter], PARAMETER_TO_UNIT_NAME[y_parameter]
                     plot_parameter_set, x_parameter_set, y_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(x_parameter), self.parameter_set(y_parameter)
 
-                    if len(x_parameter_set) < 10 or len(y_parameter_set) < 10:  # skip
+                    if any((len(x_parameter_set) < 10,
+                            len(y_parameter_set) < 10)):  # skip
+                        logger.debug(f'Skipped plotting {x_parameter} vs {y_parameter} at constant {plot_parameter} for job {self.name} because it would not be dense enough')
                         continue
 
                     x, y = np.array(sorted(x_parameter_set)), np.array(sorted(y_parameter_set))
@@ -126,9 +137,13 @@ class PulseParameterScanMixin:
                         xy_to_metric = {(getattr(r, x_parameter), getattr(r, y_parameter)): getattr(r, ionization_metric) for r in results}
                         z_mesh = np.empty_like(x_mesh)
 
-                        for ii, x_value in enumerate(x):
-                            for jj, y_value in enumerate(y):
-                                z_mesh[ii, jj] = xy_to_metric[x_value, y_value]
+                        try:
+                            for ii, x_value in enumerate(x):
+                                for jj, y_value in enumerate(y):
+                                        z_mesh[ii, jj] = xy_to_metric[x_value, y_value]
+                        except KeyError:
+                            logger.debug(f'Skipped plotting {x_parameter} vs {y_parameter} at constant {plot_parameter} for job {self.name} due to alignment error (job is probably not a heatmap)')
+                            continue
 
                         for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
                             if (x_parameter == 'phase' and log_x) or (y_parameter == 'phase' and log_y):  # skip log phase plots
@@ -137,29 +152,28 @@ class PulseParameterScanMixin:
                             log_str = ''
                             if any((log_x, log_y, log_z)):
                                 log_str = '__log'
-
                                 if log_x:
                                     log_str += 'X'
-
                                 if log_y:
                                     log_str += 'Y'
-
                                 if log_z:
                                     log_str += 'Z'
 
-                            try:
-                                si.vis.xyz_plot(
-                                    '2d__' + plot_name + log_str,
-                                    x_mesh, y_mesh, z_mesh,
-                                    x_unit = x_parameter_unit, y_unit = y_parameter_unit,
-                                    x_label = x_parameter_name, y_label = y_parameter_name,
-                                    x_log_axis = log_x, y_log_axis = log_y,
-                                    z_log_axis = log_z, z_upper_limit = 1,
-                                    z_label = f"{ionization_metric_name} for {plot_parameter_name}$\, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
-                                    target_dir = self.summaries_dir,
-                                )
-                            except ValueError as ex:
-                                logger.exception(f'Failed to make plot {plot_name} because of {ex}')
+                            si.vis.xyz_plot(
+                                f'{self.name}__2d__{plot_name}{log_str}',
+                                x_mesh, y_mesh, z_mesh,
+                                x_label = fr'${PARAMETER_TO_SYMBOL[x_parameter]}$',
+                                y_label = fr'${PARAMETER_TO_SYMBOL[y_parameter]}$',
+                                z_label = ionization_metric_name,
+                                x_unit = x_parameter_unit,
+                                y_unit = y_parameter_unit,
+                                x_log_axis = log_x,
+                                y_log_axis = log_y,
+                                z_log_axis = log_z,
+                                z_upper_limit = 1,
+                                title = self.name + '\n' + fr'${PARAMETER_TO_SYMBOL[plot_parameter]} \, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$',
+                                target_dir = self.summaries_dir,
+                            )
 
 
 class PulseSimulationResult(clu.SimulationResult):
@@ -302,7 +316,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
 
             for plot_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
                 plot_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
-                plot_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[scan_parameter]
+                plot_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
 
                 for plot_parameter_value in plot_parameter_set:
@@ -355,7 +369,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
 
             for plot_parameter, scan_parameter in itertools.permutations(self.scan_parameters):
                 plot_parameter_name, scan_parameter_name = plot_parameter.replace('_', ' ').title(), scan_parameter.replace('_', ' ').title()
-                plot_parameter_unit, scan_parameter_unit = parameter_name_to_unit_name[plot_parameter], parameter_name_to_unit_name[scan_parameter]
+                plot_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
                 plot_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(scan_parameter)
 
                 for plot_parameter_value in plot_parameter_set:
@@ -400,7 +414,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
 
             for x_parameter, y_parameter in itertools.combinations(self.scan_parameters, r = 2):
                 x_parameter_name, y_parameter_name = x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
-                x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
+                x_parameter_unit, y_parameter_unit = PARAMETER_TO_UNIT_NAME[x_parameter], PARAMETER_TO_UNIT_NAME[y_parameter]
                 x_parameter_set, y_parameter_set = self.parameter_set(x_parameter), self.parameter_set(y_parameter)
 
                 plot_name = ionization_metric
@@ -457,7 +471,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
 
             for x_parameter, y_parameter in itertools.combinations(self.scan_parameters, r = 2):
                 x_parameter_name, y_parameter_name = x_parameter.replace('_', ' ').title(), y_parameter.replace('_', ' ').title()
-                x_parameter_unit, y_parameter_unit = parameter_name_to_unit_name[x_parameter], parameter_name_to_unit_name[y_parameter]
+                x_parameter_unit, y_parameter_unit = PARAMETER_TO_UNIT_NAME[x_parameter], PARAMETER_TO_UNIT_NAME[y_parameter]
                 x_parameter_set, y_parameter_set = self.parameter_set(x_parameter), self.parameter_set(y_parameter)
 
                 plot_name = f'{ionization_metric}__{x_parameter}_x_{y_parameter}__rel'
