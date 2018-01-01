@@ -92,6 +92,10 @@ def process_jobs(jobs_dir):
 
 def generate_processing_report(job_processors):
     len_of_longest_jp_name = max(len(jp.name) for jp in job_processors) if job_processors else 10
+    total_processed = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
+    total_jobs = sum(jp.sim_count for jp in job_processors)
+    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
+    len_job_num = len(str(total_jobs)) + 1
 
     header = f' {"Job Name".center(len_of_longest_jp_name)} │ Finished │ Total │ Runtime'
 
@@ -100,17 +104,14 @@ def generate_processing_report(job_processors):
     lines_in_progress = []
     lines_finished = []
     for jp in job_processors:
-        s = f' {jp.name.ljust(len_of_longest_jp_name)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(8)} │ {str(jp.sim_count).center(5)} │ {jp.running_time}'
+        s = f' {jp.name.ljust(len_of_longest_jp_name)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(len_job_num)} │ {str(jp.sim_count).center(len_job_num)} │ {jp.running_time}'
 
         if len(jp.unprocessed_sim_names) > 0:
             lines_in_progress.append(s)
         else:
             lines_finished.append(s)
 
-    total_processed = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
-    total_jobs = sum(jp.sim_count for jp in job_processors)
-    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
-    footer = f' {" " * len_of_longest_jp_name} │ {str(total_processed).center(8)} │ {str(total_jobs).center(5)} │ {total_runtime}'
+    footer = f' {" " * len_of_longest_jp_name} │ {str(total_processed).center(len_job_num)} │ {str(total_jobs).center(len_job_num)} │ {total_runtime}'
 
     report_components = [
         '',
