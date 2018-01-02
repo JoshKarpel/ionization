@@ -753,24 +753,29 @@ class ElectricFieldSimulation(si.Simulation):
                 loc = 'upper left',
                 borderaxespad = 0.075,
                 fontsize = 9,
-                ncol = 1 + (len(overlaps) // 12))
+                ncol = 1 + (len(overlaps) // 12)
+            )
 
-            ax_overlaps.tick_params(labelleft = True,
-                                    labelright = True,
-                                    labeltop = True,
-                                    labelbottom = False,
-                                    bottom = True,
-                                    top = True,
-                                    left = True,
-                                    right = True)
-            ax_field.tick_params(labelleft = True,
-                                 labelright = True,
-                                 labeltop = False,
-                                 labelbottom = True,
-                                 bottom = True,
-                                 top = True,
-                                 left = True,
-                                 right = True)
+            ax_overlaps.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = True,
+                labelbottom = False,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
+            ax_field.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = False,
+                labelbottom = True,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True
+            )
 
             # Find at most n+1 ticks on the y-axis at 'nice' locations
             max_yticks = 4

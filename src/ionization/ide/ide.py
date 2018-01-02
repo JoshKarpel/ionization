@@ -441,7 +441,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_algorithm)
 
         info_ide = si.Info(header = 'IDE Parameters')
-        info_ide.add_field('Initial State', f'a = {self.b_initial}')
+        info_ide.add_field('Initial State', f'b = {self.b_initial}')
         info_ide.add_field('Prefactor', self.integral_prefactor)
         info_ide.add_info(self.kernel.info())
         info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')

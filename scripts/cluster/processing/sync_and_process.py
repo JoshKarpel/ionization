@@ -134,7 +134,7 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         try:
             ci = clu.ClusterInterface('submit-5.chtc.wisc.edu', username = 'karpel', key_path = 'E:\chtc_ssh_private', local_mirror_root = 'mirror')
-            jobs_dir = "E:\Dropbox\Research\Cluster\cluster_mirror\home\karpel\jobs"
+            jobs_dir = "E:\Dropbox\Research\Cluster\mirror\home\karpel\jobs"
 
             si.utils.try_loop(
                 ft.partial(synchronize_with_cluster, ci),
