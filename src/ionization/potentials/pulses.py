@@ -184,7 +184,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         self.amplitude = amplitude
 
     def __str__(self):
-        out = '{}(omega = 2pi * {} u.THz, wavelength = {} u.nm, photon energy = {} u.eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
+        out = '{}(omega = 2pi * {} THz, wavelength = {} u.nm, photon energy = {} u.eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
                                                                                                                                        u.uround(self.frequency, u.THz),
                                                                                                                                        u.uround(self.wavelength, u.nm, 3),
                                                                                                                                        u.uround(self.photon_energy, u.eV),
@@ -355,9 +355,9 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field('Amplitude', f'{u.uround(self.amplitude, u.atomic_electric_field)} AEF')
-        info.add_field('Intensity', f'{u.uround(self.intensity, TW / (cm ** 2))} TW/cm^2')
-        info.add_field('Photon Energy', f'{u.uround(self.photon_energy, u.eV)} u.eV')
-        info.add_field('Frequency', f'{u.uround(self.frequency, u.THz)} u.THz')
+        info.add_field('Intensity', f'{u.uround(self.intensity, u.TW / (u.cm ** 2))} TW/cm^2')
+        info.add_field('Photon Energy', f'{u.uround(self.photon_energy, u.eV)} eV')
+        info.add_field('Frequency', f'{u.uround(self.frequency, u.THz)} THz')
         info.add_field('Period', f'{u.uround(self.period, u.asec)} as | {u.uround(self.period, u.fsec)} fs')
         info.add_field('Wavelength', f'{u.uround(self.wavelength, u.nm)} u.nm | {u.uround(self.wavelength, bohr_radius)} a_0')
 
@@ -754,12 +754,12 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
         info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
-        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
-        info.add_field('Photon Energy Range', f'{u.uround(self.photon_energy_min, u.eV)} u.eV to {u.uround(self.photon_energy_max, u.eV)} u.eV')
-        info.add_field('Photon Energy Bandwidth', f'{u.uround(self.photon_energy_bandwidth, u.eV)} u.eV')
-        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
-        info.add_field('Frequency Range', f'{u.uround(self.frequency_min, u.THz)} u.THz to {u.uround(self.frequency_max, u.THz)} u.THz')
-        info.add_field('Frequency Bandwidth', f'{u.uround(self.frequency_delta, u.THz)} u.THz')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} eV')
+        info.add_field('Photon Energy Range', f'{u.uround(self.photon_energy_min, u.eV)} eV to {u.uround(self.photon_energy_max, u.eV)} eV')
+        info.add_field('Photon Energy Bandwidth', f'{u.uround(self.photon_energy_bandwidth, u.eV)} eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} THz')
+        info.add_field('Frequency Range', f'{u.uround(self.frequency_min, u.THz)} THz to {u.uround(self.frequency_max, u.THz)} THz')
+        info.add_field('Frequency Bandwidth', f'{u.uround(self.frequency_delta, u.THz)} THz')
         info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
@@ -1027,7 +1027,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
                                  ('pulse_center', 'asec'),
                                  ('fluence', 'J/cm^2'),
                                  'phase',
-                                 ('frequency_carrier', 'u.THz'),
+                                 ('frequency_carrier', 'THz'),
                                  ('photon_energy_carrier', 'eV'),
                                  )
 
@@ -1077,13 +1077,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, u.fsec)} fs | {u.uround(self.pulse_width, u.atomic_time)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
-        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
-        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
-        info.add_field('Photon Energy FWHM (Amplitude)', f'{u.uround(self.photon_energy_fwhm, u.eV)} u.eV')
-        info.add_field('Photon Energy FWHM (Power)', f'{u.uround(self.photon_energy_fwhm_power, u.eV)} u.eV')
-        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
-        info.add_field('Frequency FWHM (Amplitude)', f'{u.uround(self.frequency_fwhm, u.THz)} u.THz')
-        info.add_field('Frequency FWHM (Power)', f'{u.uround(self.frequency_fwhm_power, u.THz)} u.THz')
+        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} pi')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} eV')
+        info.add_field('Photon Energy FWHM (Amplitude)', f'{u.uround(self.photon_energy_fwhm, u.eV)} eV')
+        info.add_field('Photon Energy FWHM (Power)', f'{u.uround(self.photon_energy_fwhm_power, u.eV)} eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} THz')
+        info.add_field('Frequency FWHM (Amplitude)', f'{u.uround(self.frequency_fwhm, u.THz)} THz')
+        info.add_field('Frequency FWHM (Power)', f'{u.uround(self.frequency_fwhm_power, u.THz)} THz')
         info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
@@ -1257,7 +1257,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
                                  ('pulse_center', 'asec'),
                                  ('fluence', 'J/cm^2'),
                                  'phase',
-                                 ('frequency_carrier', 'u.THz'),
+                                 ('frequency_carrier', 'THz'),
                                  ('photon_energy_carrier', 'eV'),
                                  )
 
@@ -1290,11 +1290,11 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Pulse Width', f'{u.uround(self.pulse_width, u.asec)} as | {u.uround(self.pulse_width, u.fsec, 3)} fs | {u.uround(self.pulse_width, u.atomic_time, 3)} a.u.')
         info.add_field('Electric Field Amplitude Prefactor', f'{u.uround(self.amplitude, u.atomic_electric_field)} a.u.')
         info.add_field('Fluence', f'{u.uround(self.fluence, u.Jcm2)} J/cm^2')
-        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} u.pi')
-        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} u.eV')
-        info.add_field('Photon Energy FWHM', f'{u.uround(self.photon_energy_fwhm, u.eV)} u.eV')
-        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} u.THz')
-        info.add_field('Frequency FWHM', f'{u.uround(self.frequency_fwhm, u.THz)} u.THz')
+        info.add_field('Carrier-Envelope Phase', f'{u.uround(self.phase, u.pi)} pi')
+        info.add_field('Carrier Photon Energy', f'{u.uround(self.photon_energy_carrier, u.eV)} eV')
+        info.add_field('Photon Energy FWHM', f'{u.uround(self.photon_energy_fwhm, u.eV)} eV')
+        info.add_field('Carrier Frequency', f'{u.uround(self.frequency_carrier, u.THz)} THz')
+        info.add_field('Frequency FWHM', f'{u.uround(self.frequency_fwhm, u.THz)} THz')
         info.add_field('Keldysh Parameter (hydrogen ground state)', f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)')
 
         info.add_info(self.window.info())
