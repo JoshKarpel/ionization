@@ -133,7 +133,7 @@ def generate_processing_report(job_processors):
 if __name__ == '__main__':
     with LOGMAN as logger:
         try:
-            ci = clu.ClusterInterface('submit-5.chtc.wisc.edu', username = 'karpel', key_path = 'E:\chtc_ssh_private')
+            ci = clu.ClusterInterface('submit-5.chtc.wisc.edu', username = 'karpel', key_path = 'E:\chtc_ssh_private', local_mirror_root = 'mirror')
             jobs_dir = "E:\Dropbox\Research\Cluster\cluster_mirror\home\karpel\jobs"
 
             si.utils.try_loop(
