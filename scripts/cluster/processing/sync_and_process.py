@@ -97,7 +97,11 @@ def generate_processing_report(job_processors):
     total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
     len_job_num = len(str(total_jobs)) + 1
 
-    header = f' {"Job Name".center(len_of_longest_jp_name)} │ {"Processed".center(len_job_num)} │ {"Total".center(len_job_num)} │ Runtime'
+    job_name = 'Job Name'.center(len_of_longest_jp_name)
+    processed = 'Processed'.center(len_job_num)
+    total = 'Total'.center(len_job_num)
+    len_job_num = max(len_job_num, len(processed), len(total))
+    header = f' {job_name} │ {processed} │ {total} │ Runtime'
 
     bar = ''.join('─' if char != '│' else '┼' for char in header)
 
