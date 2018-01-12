@@ -140,7 +140,7 @@ class PulseParameterScanMixin:
                         try:
                             for ii, x_value in enumerate(x):
                                 for jj, y_value in enumerate(y):
-                                        z_mesh[ii, jj] = xy_to_metric[x_value, y_value]
+                                    z_mesh[ii, jj] = xy_to_metric[x_value, y_value]
                         except KeyError:
                             logger.debug(f'Skipped plotting {x_parameter} vs {y_parameter} at constant {plot_parameter} for job {self.name} due to alignment error (job is probably not a heatmap)')
                             continue

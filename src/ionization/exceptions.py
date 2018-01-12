@@ -11,8 +11,9 @@ class InvalidMaskParameter(IonizationException):
 
 
 class IllegalQuantumState(IonizationException):
-    """An exception indicating that there was an attempt to cosntruct a state with an illegal quantum number."""
+    """An exception indicating that there was an attempt to construct a state with an illegal quantum number."""
     pass
+
 
 class InvalidChoice(IonizationException):
     pass
