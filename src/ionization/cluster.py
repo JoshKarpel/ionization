@@ -50,7 +50,7 @@ class PulseParameterScanMixin:
                 plot_parameter_unit, line_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[line_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
                 plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
 
-                if any((len(scan_parameter_set) < 2,
+                if any((len(scan_parameter_set) < 10,
                         len(line_parameter_set) > 8,
                         len(plot_parameter_set) > 10)):  # skip
                     logger.debug(f'Skipped plotting {scan_parameter} scan grouped by {line_parameter} at constant {plot_parameter} for job {self.name} because the scan would not be dense enough, or would have too many lines')
@@ -75,6 +75,10 @@ class PulseParameterScanMixin:
                         line_labels.append(label)
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
+
+                    s_x = sorted(x)
+                    if s_x[0] == s_x[-1]:
+                        continue
 
                     for log_x, log_y in itertools.product((True, False), repeat = 2):
                         if scan_parameter == 'phase' and log_x:
@@ -158,6 +162,11 @@ class PulseParameterScanMixin:
                                     log_str += 'Y'
                                 if log_z:
                                     log_str += 'Z'
+
+                            if log_x and not np.all(x_mesh > 0):
+                                continue
+                            if log_y and not np.all(y_mesh > 0):
+                                continue
 
                             si.vis.xyz_plot(
                                 f'{self.name}__2d__{plot_name}{log_str}',
