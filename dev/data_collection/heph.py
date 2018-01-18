@@ -31,6 +31,6 @@ if __name__ == '__main__':
         report_filepath = os.path.join(OUT_DIR, 'report.txt')
         si.utils.ensure_dir_exists(report_filepath)
         with open(os.path.join(OUT_DIR, 'report.txt'), mode = 'w', encoding = 'utf-8') as f:
-            f.write(tracer.report())
+            f.write(tracer.report_text())
         with open(os.path.join(OUT_DIR, 'report.html'), mode = 'w', encoding = 'utf-8') as f:
             f.write(tracer.report_html())
