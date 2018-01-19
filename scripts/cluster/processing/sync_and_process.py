@@ -145,8 +145,8 @@ if __name__ == '__main__':
             si.utils.try_loop(
                 ft.partial(synchronize_with_cluster, ci),
                 ft.partial(process_jobs, jobs_dir),
-                wait_after_success = dt.timedelta(hours = 1),
-                wait_after_failure = dt.timedelta(hours = 1),
+                wait_after_success = dt.timedelta(hours = 3),
+                wait_after_failure = dt.timedelta(minutes = 10),
             )
         except KeyboardInterrupt:
             logger.info('Detected keyboard interrupt, exiting')

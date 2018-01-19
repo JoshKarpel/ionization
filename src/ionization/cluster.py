@@ -33,6 +33,22 @@ PARAMETER_TO_UNIT_NAME = {
 }
 
 
+def modulation_depth(cosine, sine):
+    """
+    (c-s) / (c+s)
+
+    Parameters
+    ----------
+    cosine
+    sine
+
+    Returns
+    -------
+
+    """
+    return (cosine - sine) / (cosine + sine)
+
+
 class PulseParameterScanMixin:
     def make_summary_plots(self):
         super().make_summary_plots()
@@ -41,6 +57,7 @@ class PulseParameterScanMixin:
             logger.info(f'Generating pulse parameter scans for job {self.name}')
             self.make_pulse_parameter_scans_1d()
             self.make_pulse_parameter_scans_2d()
+            self.make_pulse_parameter_scans_2d__modulation_depth()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
@@ -183,6 +200,77 @@ class PulseParameterScanMixin:
                                 title = self.name + '\n' + fr'${PARAMETER_TO_SYMBOL[plot_parameter]} \, = {u.uround(plot_parameter_value, plot_parameter_unit, 3)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$',
                                 target_dir = self.summaries_dir,
                             )
+
+    def make_pulse_parameter_scans_2d__modulation_depth(self):
+        # Modulation depth scans are doing using these two phases. Abort if we don't have them
+        phases = self.parameter_set('phase')
+        if 0 not in phases in u.pi / 2 not in phases:
+            logger.debug('Skipping modulation depth heatmaps because both cosine and sine pulses not both present')
+            return
+
+        # no scans over phase
+        scan_parameters = [s for s in self.scan_parameters if s != 'phase']
+
+        for ionization_metric in self.ionization_metrics:
+            ionization_metric_name = ionization_metric.replace('_', ' ').title()
+
+            for x_parameter, y_parameter in itertools.combinations(scan_parameters, r = 2):
+                x_parameter_unit, y_parameter_unit = PARAMETER_TO_UNIT_NAME[x_parameter], PARAMETER_TO_UNIT_NAME[y_parameter]
+                x_parameter_set, y_parameter_set = self.parameter_set(x_parameter), self.parameter_set(y_parameter)
+
+                if any((len(x_parameter_set) < 10,
+                        len(y_parameter_set) < 10)):  # skip
+                    logger.debug(f'Skipped plotting {x_parameter} vs {y_parameter} modulation depth heatmap for job {self.name} because it would not be dense enough')
+                    continue
+
+                x, y = np.array(sorted(x_parameter_set)), np.array(sorted(y_parameter_set))
+                x_mesh, y_mesh = np.meshgrid(x, y, indexing = 'ij')
+
+                plot_name = f'{ionization_metric}_modulation_depth__{x_parameter}_vs_{y_parameter}'
+
+                xy_to_metric_cos = {(getattr(r, x_parameter), getattr(r, y_parameter)): getattr(r, ionization_metric) for r in self.data.values() if r.phase == 0}
+                xy_to_metric_sin = {(getattr(r, x_parameter), getattr(r, y_parameter)): getattr(r, ionization_metric) for r in self.data.values() if r.phase == u.pi / 2}
+                z_mesh = np.empty_like(x_mesh)
+
+                try:
+                    for ii, x_value in enumerate(x):
+                        for jj, y_value in enumerate(y):
+                            z_mesh[ii, jj] = modulation_depth(xy_to_metric_cos[x_value, y_value], xy_to_metric_sin[x_value, y_value])
+                except KeyError:
+                    logger.debug(f'Skipped plotting {x_parameter} vs {y_parameter} modulation depth heatmap for job {self.name} due to alignment error (job is probably not a heatmap)')
+                    continue
+
+                for log_x, log_y, log_z in itertools.product((True, False), repeat = 3):
+                    log_str = ''
+                    if any((log_x, log_y, log_z)):
+                        log_str = '__log'
+                        if log_x:
+                            log_str += 'X'
+                        if log_y:
+                            log_str += 'Y'
+                        if log_z:
+                            log_str += 'Z'
+
+                    if log_x and not np.all(x_mesh > 0):
+                        continue
+                    if log_y and not np.all(y_mesh > 0):
+                        continue
+
+                    si.vis.xyz_plot(
+                        f'{self.name}__2d__{plot_name}{log_str}',
+                        x_mesh, y_mesh, z_mesh,
+                        x_label = fr'${PARAMETER_TO_SYMBOL[x_parameter]}$',
+                        y_label = fr'${PARAMETER_TO_SYMBOL[y_parameter]}$',
+                        z_label = 'Modulation Depth',
+                        x_unit = x_parameter_unit,
+                        y_unit = y_parameter_unit,
+                        x_log_axis = log_x,
+                        y_log_axis = log_y,
+                        z_log_axis = log_z,
+                        z_upper_limit = 1,
+                        title = self.name,
+                        target_dir = self.summaries_dir,
+                    )
 
 
 class PulseSimulationResult(clu.SimulationResult):
