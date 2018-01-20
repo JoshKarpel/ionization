@@ -11,6 +11,8 @@ import simulacra.units as u
 
 from . import core, ide, jobutils
 
+import matplotlib.pyplot as plt
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -19,6 +21,7 @@ PARAMETER_TO_SYMBOL = {
     'fluence': r'H',
     'amplitude': r'\mathcal{E}_0',
     'phase': r'\varphi',
+    'number_of_cycles': r'N_c',
     'delta_r': r'\Delta r',
     'delta_t': r'\Delta t',
 }
@@ -28,6 +31,7 @@ PARAMETER_TO_UNIT_NAME = {
     'fluence': 'Jcm2',
     'amplitude': 'atomic_electric_field',
     'phase': 'pi',
+    'number_of_cycles': None,
     'delta_r': 'bohr_radius',
     'delta_t': 'asec',
 }
@@ -269,6 +273,7 @@ class PulseParameterScanMixin:
                         z_log_axis = log_z,
                         z_upper_limit = 1,
                         title = self.name,
+                        colormap = plt.get_cmap('RdBu_r'),
                         target_dir = self.summaries_dir,
                     )
 
