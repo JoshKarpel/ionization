@@ -31,7 +31,7 @@ PARAMETER_TO_UNIT_NAME = {
     'fluence': 'Jcm2',
     'amplitude': 'atomic_electric_field',
     'phase': 'pi',
-    'number_of_cycles': None,
+    'number_of_cycles': '',
     'delta_r': 'bohr_radius',
     'delta_t': 'asec',
 }
@@ -60,32 +60,50 @@ class PulseParameterScanMixin:
         if len(self.unprocessed_sim_names) == 0:
             logger.info(f'Generating pulse parameter scans for job {self.name}')
             self.make_pulse_parameter_scans_1d()
-            self.make_pulse_parameter_scans_2d()
-            self.make_pulse_parameter_scans_2d__modulation_depth()
+            # self.make_pulse_parameter_scans_2d()
+            # self.make_pulse_parameter_scans_2d__modulation_depth()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
             ionization_metric_name = ionization_metric.replace('_', ' ').title()
 
-            for plot_parameter, line_parameter, scan_parameter in itertools.permutations(self.scan_parameters, r = 3):
-                plot_parameter_unit, line_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[plot_parameter], PARAMETER_TO_UNIT_NAME[line_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
-                plot_parameter_set, line_parameter_set, scan_parameter_set = self.parameter_set(plot_parameter), self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
-
-                if any((len(scan_parameter_set) < 10,
-                        len(line_parameter_set) > 8,
-                        len(plot_parameter_set) > 10)):  # skip
-                    logger.debug(f'Skipped plotting {scan_parameter} scan grouped by {line_parameter} at constant {plot_parameter} for job {self.name} because the scan would not be dense enough, or would have too many lines')
+            for line_parameter, scan_parameter in itertools.permutations(self.scan_parameters, r = 2):
+                line_parameter_unit, scan_parameter_unit = PARAMETER_TO_UNIT_NAME[line_parameter], PARAMETER_TO_UNIT_NAME[scan_parameter]
+                try:
+                    line_parameter_set, scan_parameter_set = self.parameter_set(line_parameter), self.parameter_set(scan_parameter)
+                except AttributeError:
+                    logger.debug(f'Skipped plotting {line_parameter} grouped by {scan_parameter} job {self.name} does not track one of {line_parameter} or {scan_parameter}')
                     continue
 
-                for plot_parameter_value in plot_parameter_set:
-                    plot_name = f'{ionization_metric}__{plot_parameter}={u.uround(plot_parameter_value, plot_parameter_unit, 3)}{plot_parameter_unit}__scanning_{scan_parameter}_grouped_by_{line_parameter}'
+                if any((len(scan_parameter_set) < 10,
+                        len(line_parameter_set) > 8)):  # skip
+                    logger.debug(f'Skipped plotting {scan_parameter} scan grouped by {line_parameter} for job {self.name} because the scan would not be dense enough, or would have too many lines')
+                    continue
 
+                plot_parameters = [p for p in self.scan_parameters if p not in (line_parameter, scan_parameter)]
+                plot_parameter_to_set = {}
+                for plot_parameter in plot_parameters:
+                    try:
+                        parameter_set = self.parameter_set(plot_parameter)
+                        if len(parameter_set) > 10:  # would create too many unique plots
+                            continue
+                        plot_parameter_to_set[plot_parameter] = parameter_set
+                    except AttributeError:
+                        logger.debug(f'Job {self.name} does not track parameter {plot_parameter}')
+                        continue
+
+                plot_parameters = tuple(plot_parameter_to_set.keys())
+                plot_parameter_value_groups = (plot_parameter_values for plot_parameter_values in itertools.product(*plot_parameter_to_set.values()))
+
+                for plot_parameter_values in plot_parameter_value_groups:
                     lines = []
                     line_labels = []
 
+                    base_selector = dict(zip(plot_parameters, plot_parameter_values))
+
                     for line_parameter_value in sorted(line_parameter_set):
                         selector = {
-                            plot_parameter: plot_parameter_value,
+                            **base_selector,
                             line_parameter: line_parameter_value,
                         }
                         results = sorted(self.select_by_kwargs(**selector), key = lambda result: getattr(result, scan_parameter))
@@ -96,10 +114,25 @@ class PulseParameterScanMixin:
                         line_labels.append(label)
 
                     x = np.array([getattr(result, scan_parameter) for result in results])
+                    if len(x) < 10:  # not enough points
+                        continue
 
                     s_x = sorted(x)
                     if s_x[0] == s_x[-1]:
                         continue
+
+                    plot_name = '__'.join((
+                        ionization_metric,
+                        '__'.join((
+                            f'{p}={u.uround(plot_parameter_value, PARAMETER_TO_UNIT_NAME[p], 3)}{PARAMETER_TO_UNIT_NAME[p]}'
+                            for p, plot_parameter_value in zip(plot_parameters, plot_parameter_values)
+                        )),
+                        f'scanning_{scan_parameter}_grouped_by_{line_parameter}',
+                    ))
+                    plot_param_string = ', '.join(
+                        fr"${PARAMETER_TO_SYMBOL[p]} \, = {u.uround(plot_parameter_value, PARAMETER_TO_UNIT_NAME[p])} \, {u.UNIT_NAME_TO_LATEX[PARAMETER_TO_UNIT_NAME[p]]}$"
+                        for p, plot_parameter_value in zip(plot_parameters, plot_parameter_values)
+                    )
 
                     for log_x, log_y in itertools.product((True, False), repeat = 2):
                         if scan_parameter == 'phase' and log_x:
@@ -132,7 +165,7 @@ class PulseParameterScanMixin:
                             y_lower_limit = y_lower_limit,
                             y_upper_limit = y_upper_limit,
                             y_log_axis = log_y,
-                            title = self.name + '\n' + fr"${PARAMETER_TO_SYMBOL[plot_parameter]} \, = {u.uround(plot_parameter_value, plot_parameter_unit)} \, {u.UNIT_NAME_TO_LATEX[plot_parameter_unit]}$",
+                            title = self.name + '\n' + plot_param_string,
                             legend_on_right = True if len(line_labels) > 5 else False,
                             target_dir = self.summaries_dir,
                         )
@@ -343,7 +376,7 @@ class MeshSimulationResult(PulseSimulationResult):
 
 
 class PulseJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
-    scan_parameters = ['pulse_width', 'fluence', 'phase', 'amplitude']
+    scan_parameters = ['pulse_width', 'fluence', 'phase', 'amplitude', 'number_of_cycles']
 
 
 class MeshJobProcessor(PulseJobProcessor):
