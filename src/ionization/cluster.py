@@ -60,8 +60,8 @@ class PulseParameterScanMixin:
         if len(self.unprocessed_sim_names) == 0:
             logger.info(f'Generating pulse parameter scans for job {self.name}')
             self.make_pulse_parameter_scans_1d()
-            # self.make_pulse_parameter_scans_2d()
-            # self.make_pulse_parameter_scans_2d__modulation_depth()
+            self.make_pulse_parameter_scans_2d()
+            self.make_pulse_parameter_scans_2d__modulation_depth()
 
     def make_pulse_parameter_scans_1d(self):
         for ionization_metric in self.ionization_metrics:
@@ -138,12 +138,18 @@ class PulseParameterScanMixin:
                         if scan_parameter == 'phase' and log_x:
                             continue
 
-                        if not log_y:
-                            y_upper_limit = 1
-                            y_lower_limit = 0
-                        else:
+                        if log_x and not np.all(x > 0):
+                            continue
+
+                        if log_y and not all(np.all(y > 0) for y in lines):
+                            continue
+
+                        if log_y:
                             y_upper_limit = None
                             y_lower_limit = None
+                        else:
+                            y_upper_limit = 1
+                            y_lower_limit = 0
 
                         log_str = ''
                         if any((log_x, log_y)):
