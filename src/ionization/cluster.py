@@ -159,6 +159,8 @@ class PulseParameterScanMixin:
                 for ionization_metric in self.ionization_metrics:
                     base_selector = dict(zip(plot_parameters, plot_parameter_values))
                     x_data, y_data, line_labels = self._get_lines(line_parameter, scan_parameter, ionization_metric, base_selector)
+                    if any(x[0] == x[-1] for x in x_data):
+                        continue
 
                     str_for_filename, str_for_plot = self._get_plot_parameter_strings(plot_parameters, plot_parameter_values)
                     filename = '__'.join((
