@@ -19,5 +19,5 @@ from . import exceptions
 
 from . import potentials
 from . import states
-from . import animators
+from . import animation
 from . import ide

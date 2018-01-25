@@ -50,7 +50,7 @@ if __name__ == '__main__':
             fig_dpi_scale = 2,
         )
 
-        axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
+        axman_lower_right = animation.animators.ElectricPotentialPlotAxis(
             show_electric_field = True,
             show_vector_potential = False,
             show_y_label = False,
@@ -58,7 +58,7 @@ if __name__ == '__main__':
             legend_kwargs = {'fontsize': 30},
             grid_kwargs = {'linewidth': 1},
         )
-        axman_upper_right = ion.animators.WavefunctionStackplotAxis(
+        axman_upper_right = animation.animators.WavefunctionStackplotAxis(
             states = [state_a, state_b],
             show_norm = False,
             legend_kwargs = {'fontsize': 30, 'borderaxespad': .15},
@@ -66,9 +66,9 @@ if __name__ == '__main__':
         )
 
         animators = [
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = f'__g_{plot_radius}',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
@@ -80,9 +80,9 @@ if __name__ == '__main__':
                 axman_colorbar = None,
                 **animator_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = f'__g2_{plot_radius}',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g2',
                     plot_limit = plot_radius * bohr_radius,
                     shading = shading,

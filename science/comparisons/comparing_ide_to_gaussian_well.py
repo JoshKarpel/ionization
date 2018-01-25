@@ -101,11 +101,11 @@ if __name__ == '__main__':
             analytic_eigenstate_type = ion.GaussianWellState,
             mask = ion.RadialCosineMask(inner_radius = 175 * bohr_radius, outer_radius = 200 * bohr_radius),
             animators = [
-                ion.animators.RectangleSplitLowerAnimator(
+                animation.animators.RectangleSplitLowerAnimator(
                     postfix = '__g2',
-                    axman_wavefunction = ion.animators.LineMeshAxis(),
-                    axman_lower_left = ion.animators.ElectricPotentialPlotAxis(show_vector_potential = False),
-                    axman_lower_right = ion.animators.WavefunctionStackplotAxis(states = [variational_ground_state]),
+                    axman_wavefunction = animation.animators.LineMeshAxis(),
+                    axman_lower_left = animation.animators.ElectricPotentialPlotAxis(show_vector_potential = False),
+                    axman_lower_right = animation.animators.WavefunctionStackplotAxis(states = [variational_ground_state]),
                     fig_dpi_scale = 1,
                     target_dir = OUT_DIR,
                 ),
