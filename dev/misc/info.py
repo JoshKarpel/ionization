@@ -1,14 +1,8 @@
 import os
-import itertools
-
-import numpy as np
 
 import simulacra as si
 from simulacra.units import *
 import ionization as ion
-
-import matplotlib as mpl
-
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -20,8 +14,8 @@ if __name__ == '__main__':
         pot += ion.SincPulse(window = ion.RectangularTimeWindow())
 
         animators = [
-            ion.animators.PolarAnimator(postfix = 'hi',
-                                        axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis())
+            animation.animators.PolarAnimator(postfix = 'hi',
+                                              axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis())
         ]
 
         spec = ion.SphericalHarmonicSpecification('test',

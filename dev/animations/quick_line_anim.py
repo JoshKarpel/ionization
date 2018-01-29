@@ -6,9 +6,6 @@ from simulacra.units import *
 
 import ionization as ion
 
-import matplotlib.pyplot as plt
-
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
@@ -32,21 +29,21 @@ if __name__ == '__main__':
         pot = ion.HarmonicOscillator.from_energy_spacing_and_mass(1 * eV)
 
         animators = [
-            ion.animators.RectangleAnimator(
+            animation.animators.RectangleAnimator(
                 postfix = 'psi2',
-                axman_wavefunction = ion.animators.LineMeshAxis(
+                axman_wavefunction = animation.animators.LineMeshAxis(
                     which = 'psi2'
                 ),
-                axman_lower = ion.animators.ElectricPotentialPlotAxis(),
+                axman_lower = animation.animators.ElectricPotentialPlotAxis(),
                 **anim_kwargs,
             ),
-            ion.animators.RectangleSplitLowerAnimator(
+            animation.animators.RectangleSplitLowerAnimator(
                 postfix = 'psi2_split',
-                axman_wavefunction = ion.animators.LineMeshAxis(
+                axman_wavefunction = animation.animators.LineMeshAxis(
                     which = 'psi2'
                 ),
-                axman_lower_left = ion.animators.ElectricPotentialPlotAxis(),
-                axman_lower_right = ion.animators.WavefunctionStackplotAxis(
+                axman_lower_left = animation.animators.ElectricPotentialPlotAxis(),
+                axman_lower_right = animation.animators.WavefunctionStackplotAxis(
                     states = (ion.QHOState.from_potential(pot, mass = electron_mass, n = n) for n in range(4)),
                     show_norm = False,
                     legend_kwargs = {'fontsize': 12},

@@ -6,15 +6,10 @@ import itertools as it
 import logging
 import os
 
-import numpy as np
-import scipy.sparse as sparse
-
 import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-
-import matplotlib.pyplot as plt
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -66,14 +61,14 @@ if __name__ == '__main__':
             time_step = 5 * asec,
             electric_potential_dc_correction = True,
             animators = [
-                ion.animators.RectangleAnimator(
+                animation.animators.RectangleAnimator(
                     length = 30,
                     fps = 30,
                     target_dir = OUT_DIR,
-                    axman_wavefunction = ion.animators.LineMeshAxis(
+                    axman_wavefunction = animation.animators.LineMeshAxis(
                         norm = si.vis.AbsoluteRenormalize(),
                     ),
-                    axman_lower = ion.animators.ElectricPotentialPlotAxis(
+                    axman_lower = animation.animators.ElectricPotentialPlotAxis(
                         show_vector_potential = True,
                     )
                 )

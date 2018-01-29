@@ -2,9 +2,6 @@ import itertools
 import logging
 import os
 
-import numpy as np
-import scipy.sparse as sparse
-
 import simulacra as si
 from simulacra.units import *
 
@@ -59,34 +56,34 @@ if __name__ == '__main__':
             time_initial = -150 * asec, time_final = 150 * asec,
             electric_potential_dc_correction = True,
             animators = [
-                ion.animators.PolarAnimator(
+                animation.animators.PolarAnimator(
                     postfix = 'g2',
                     length = 10,
                     fps = 30,
                     target_dir = OUT_DIR,
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g2'
                     ),
-                    axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
+                    axman_lower_right = animation.animators.ElectricPotentialPlotAxis(
                         show_vector_potential = True
                     ),
-                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(
+                    axman_upper_right = animation.animators.WavefunctionStackplotAxis(
                     ),
                 ),
-                ion.animators.PolarAnimator(
+                animation.animators.PolarAnimator(
                     postfix = 'g',
                     length = 10,
                     fps = 30,
                     target_dir = OUT_DIR,
-                    axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                    axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                         which = 'g',
                         colormap = plt.get_cmap('richardson'),
                         norm = si.vis.RichardsonNormalization(),
                     ),
-                    axman_lower_right = ion.animators.ElectricPotentialPlotAxis(
+                    axman_lower_right = animation.animators.ElectricPotentialPlotAxis(
                         show_vector_potential = True,
                     ),
-                    axman_upper_right = ion.animators.WavefunctionStackplotAxis(
+                    axman_upper_right = animation.animators.WavefunctionStackplotAxis(
                     ),
                 )
             ]

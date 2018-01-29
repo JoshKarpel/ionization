@@ -47,8 +47,8 @@ if __name__ == '__main__':
             time_initial = 0,
             time_final = 1 * fsec,
             animators = [
-                ion.animators.RectangleAnimator(
-                    axman_wavefunction = ion.animators.LineMeshAxis(),
+                animation.animators.RectangleAnimator(
+                    axman_wavefunction = animation.animators.LineMeshAxis(),
                     target_dir = OUT_DIR
                 )
             ],

@@ -1,8 +1,6 @@
 import logging
 import os
 
-import numpy as np
-
 import simulacra as si
 from simulacra.units import *
 
@@ -33,13 +31,13 @@ if __name__ == '__main__':
         efield = ion.SineWave.from_photon_energy(1 * eV, amplitude = .01 * atomic_electric_field)
 
         animators = [
-            ion.animators.RectangleSplitLowerAnimator(
+            animation.animators.RectangleSplitLowerAnimator(
                 postfix = 'psi2_split',
-                axman_wavefunction = ion.animators.LineMeshAxis(
+                axman_wavefunction = animation.animators.LineMeshAxis(
                     which = 'psi2'
                 ),
-                axman_lower_left = ion.animators.ElectricPotentialPlotAxis(),
-                axman_lower_right = ion.animators.WavefunctionStackplotAxis(
+                axman_lower_left = animation.animators.ElectricPotentialPlotAxis(),
+                axman_lower_right = animation.animators.WavefunctionStackplotAxis(
                     states = (ion.QHOState.from_potential(truncated_qho_pot, mass = electron_mass, n = n) for n in range(4)),
                     show_norm = False,
                     legend_kwargs = {'fontsize': 12},

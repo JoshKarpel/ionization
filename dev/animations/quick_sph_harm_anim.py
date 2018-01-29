@@ -19,34 +19,34 @@ if __name__ == '__main__':
             target_dir = OUT_DIR,
         )
 
-        epot_axman = ion.animators.ElectricPotentialPlotAxis(
+        epot_axman = animation.animators.ElectricPotentialPlotAxis(
             show_electric_field = True,
             show_vector_potential = False,
             show_y_label = False,
             show_ticks_right = True,
         )
-        test_state_axman = ion.animators.TestStateStackplotAxis(
+        test_state_axman = animation.animators.TestStateStackplotAxis(
             states = tuple(ion.HydrogenBoundState(n, l) for n in range(5) for l in range(n))[:8]
         )
 
-        wavefunction_axman = ion.animators.WavefunctionStackplotAxis(states = (
+        wavefunction_axman = animation.animators.WavefunctionStackplotAxis(states = (
             ion.HydrogenBoundState(1, 0), ion.HydrogenBoundState(2, 0), ion.HydrogenBoundState(3, 1),
         ))
 
         animators = [
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g2',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     shading = 'flat'
                 ),
                 axman_lower_right = deepcopy(epot_axman),
                 axman_upper_right = deepcopy(test_state_axman),
-                axman_colorbar = ion.animators.ColorBarAxis(),
+                axman_colorbar = animation.animators.ColorBarAxis(),
                 **anim_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
@@ -56,21 +56,21 @@ if __name__ == '__main__':
                 axman_colorbar = None,
                 **anim_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g_angmom',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
                     shading = 'flat'),
                 axman_lower_right = deepcopy(epot_axman),
-                axman_upper_right = ion.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
+                axman_upper_right = animation.animators.AngularMomentumDecompositionAxis(maximum_l = 10),
                 axman_colorbar = None,
                 **anim_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g_wavefunction',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
@@ -80,9 +80,9 @@ if __name__ == '__main__':
                 axman_colorbar = None,
                 **anim_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g_wavefunction_again',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),
@@ -92,9 +92,9 @@ if __name__ == '__main__':
                 axman_colorbar = None,
                 **anim_kwargs,
             ),
-            ion.animators.PolarAnimator(
+            animation.animators.PolarAnimator(
                 postfix = 'g_wavefunction_again_hires',
-                axman_wavefunction = ion.animators.SphericalHarmonicPhiSliceMeshAxis(
+                axman_wavefunction = animation.animators.SphericalHarmonicPhiSliceMeshAxis(
                     which = 'g',
                     colormap = plt.get_cmap('richardson'),
                     norm = si.vis.RichardsonNormalization(),

@@ -6,9 +6,6 @@ from simulacra.units import *
 
 import ionization as ion
 
-import matplotlib.pyplot as plt
-
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
@@ -30,20 +27,20 @@ if __name__ == '__main__':
         )
 
         animators = [
-            ion.animators.RectangleAnimator(
+            animation.animators.RectangleAnimator(
                     postfix = 'g2',
-                    axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(shading = 'flat'),
-                    axman_lower = ion.animators.ElectricPotentialPlotAxis(),
+                    axman_wavefunction = animation.animators.CylindricalSliceMeshAxis(shading = 'flat'),
+                    axman_lower = animation.animators.ElectricPotentialPlotAxis(),
                     **anim_kwargs,
             ),
-            ion.animators.RectangleAnimator(
+            animation.animators.RectangleAnimator(
                     postfix = 'g',
-                    axman_wavefunction = ion.animators.CylindricalSliceMeshAxis(
+                    axman_wavefunction = animation.animators.CylindricalSliceMeshAxis(
                             which = 'g',
                             colormap = si.vis.RichardsonColormap(),
                             norm = si.vis.RichardsonNormalization(),
                             shading = 'flat'),
-                    axman_lower = ion.animators.ElectricPotentialPlotAxis(),
+                    axman_lower = animation.animators.ElectricPotentialPlotAxis(),
                     **anim_kwargs,
             )
         ]
