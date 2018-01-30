@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -e
+
 tar -xzf python.tar.gz
 tar -xzf simulacra.tar.gz
 tar -xzf ionization.tar.gz
