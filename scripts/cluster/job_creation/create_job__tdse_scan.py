@@ -70,7 +70,7 @@ if __name__ == '__main__':
         total_spacetime_pts = 0
         for spec in specs:
             time_points = (spec.time_final - spec.time_initial) / spec.time_step
-            space_points = spec.r_points * spec.l_points
+            space_points = spec.r_points * spec.l_bound
             total_spacetime_pts += int(time_points * space_points)
 
         EST_SPEED = 2_000_000  # spacetime points / second
