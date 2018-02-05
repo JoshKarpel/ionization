@@ -67,6 +67,16 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
+        total_spacetime_pts = 0
+        for spec in specs:
+            time_points = (spec.time_final - spec.time_initial) / spec.time_step
+            space_points = spec.r_points * spec.l_points
+            total_spacetime_pts += int(time_points * space_points)
+
+        EST_SPEED = 2_000_000  # spacetime points / second
+        est_runtime_in_sec = total_spacetime_pts / EST_SPEED
+        print(f'Estimated Job Runtime: {u.uround(est_runtime_in_sec, "days")} days')
+
         ju.create_job_files(
             args = args,
             specs = specs,

@@ -15,7 +15,7 @@ if __name__ == '__main__':
             'speed_test',
             r_bound = 100 * u.bohr_radius,
             r_points = 1000, l_bound = 100,
-            test_states = (), use_numeric_eigenstates = False,
+            test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 11) for l in range(n)], use_numeric_eigenstates = False,
             time_initial = 0, time_final = 1000 * u.asec, time_step = 1 * u.asec,
             store_data_every = -1,
             evolution_gauge = 'LEN',
