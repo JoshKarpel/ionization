@@ -114,13 +114,27 @@ def get_tdse_spec(pulse, times):
 
 def plot_tdse_energy_expectation(sims):
     si.vis.xxyy_plot(
-        'tdse_power',
+        'tdse_energy',
         [s.data_times for s in sims],
         [s.internal_energy_expectation_value_vs_time for s in sims],
         x_label = r'$ t $',
         x_unit = 'asec',
         y_label = r'$ \left\langle E(t) \right\rangle $',
         y_unit = 'hartree',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+    powers = [np.gradient(s.internal_energy_expectation_value_vs_time, s.data_times) for s in sims]
+
+    si.vis.xxyy_plot(
+        'tdse_power',
+        [s.data_times for s in sims],
+        powers,
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ \partial_t \left\langle E(t) \right\rangle $',
+        y_unit = u.hartree / u.asec,
         line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
         **PLOT_KWARGS
     )
