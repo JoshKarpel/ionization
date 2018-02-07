@@ -94,12 +94,13 @@ def get_tdse_spec(pulse, times):
     spec = ion.SphericalHarmonicSpecification(
         pulse_identifier(pulse),
         r_bound = 100 * u.bohr_radius,
-        r_points = 1000,
-        l_bound = 300,
+        r_points = 500,
+        l_bound = 200,
         time_initial = times[0],
         time_final = times[-1],
         electric_potential = pulse,
         store_energy_expectation_value = True,
+        store_electric_dipole_moment_expectation_value = True,
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 20 * u.eV,
         numeric_eigenstate_max_angular_momentum = 3,
@@ -112,29 +113,126 @@ def get_tdse_spec(pulse, times):
     return spec
 
 
-def plot_tdse_energy_expectation(sims):
+def plot_tdse_expectation_values(sims):
+    plot_tdse_initial_state_overlap(sims)
+    plot_tdse_energy_and_power_expectation_values(sims)
+    plot_tdse_z_and_vz_expectation_values(sims)
+
+
+def plot_tdse_initial_state_overlap(sims):
     si.vis.xxyy_plot(
-        'tdse_energy',
+        'tdse_ionization',
         [s.data_times for s in sims],
-        [s.internal_energy_expectation_value_vs_time for s in sims],
+        [s.state_overlaps_vs_time[s.spec.initial_state] for s in sims],
         x_label = r'$ t $',
         x_unit = 'asec',
-        y_label = r'$ \left\langle E(t) \right\rangle $',
+        y_label = r'$ \left\langle \psi_{100}(t) | \Psi(t) \right\rangle $',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+    ionization_rate = [np.gradient(s.state_overlaps_vs_time[s.spec.initial_state], s.data_times) for s in sims]
+
+    si.vis.xxyy_plot(
+        'tdse_ionization_rate',
+        [s.data_times for s in sims],
+        ionization_rate,
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ \partial_t \left\langle \psi_{100}(t) | \Psi(t)  \right\rangle $',
+        y_unit = 'per_asec',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+
+def plot_tdse_energy_and_power_expectation_values(sims):
+    si.vis.xxyy_plot(
+        'tdse_energy',
+        [s.data_times for s in sims] * 2,
+        [
+            *[s.total_energy_expectation_value_vs_time for s in sims],
+            *[s.internal_energy_expectation_value_vs_time for s in sims],
+        ],
+        line_kwargs = [
+            {'color': 'C0', 'linestyle': '-'},
+            {'color': 'C1', 'linestyle': '-'},
+            {'color': 'C0', 'linestyle': '--'},
+            {'color': 'C1', 'linestyle': '--'},
+        ],
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ \left\langle H(t) \right\rangle $',
         y_unit = 'hartree',
         line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
         **PLOT_KWARGS
     )
 
-    powers = [np.gradient(s.internal_energy_expectation_value_vs_time, s.data_times) for s in sims]
+    total_powers = [np.gradient(s.total_energy_expectation_value_vs_time, s.data_times) for s in sims]
+    internal_powers = [np.gradient(s.internal_energy_expectation_value_vs_time, s.data_times) for s in sims]
 
     si.vis.xxyy_plot(
         'tdse_power',
-        [s.data_times for s in sims],
-        powers,
+        [s.data_times for s in sims] * 2,
+        [
+            *total_powers,
+            *internal_powers,
+        ],
+        line_kwargs = [
+            {'color': 'C0', 'linestyle': '-'},
+            {'color': 'C1', 'linestyle': '-'},
+            {'color': 'C0', 'linestyle': '--'},
+            {'color': 'C1', 'linestyle': '--'},
+        ],
         x_label = r'$ t $',
         x_unit = 'asec',
-        y_label = r'$ \partial_t \left\langle E(t) \right\rangle $',
-        y_unit = u.hartree / u.asec,
+        y_label = r'$ \partial_t \left\langle H(t) \right\rangle $',
+        y_unit = 'atomic_power',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+
+def plot_tdse_z_and_vz_expectation_values(sims):
+    z = [s.electric_dipole_moment_expectation_value_vs_time / s.spec.test_charge for s in sims]
+
+    si.vis.xxyy_plot(
+        'tdse_z',
+        [s.data_times for s in sims],
+        z,
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ \left\langle z(t) \right\rangle $',
+        y_unit = 'bohr_radius',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+    v_z = [np.gradient(s.electric_dipole_moment_expectation_value_vs_time / s.spec.test_charge, s.data_times) for s in sims]
+
+    si.vis.xxyy_plot(
+        'tdse_vz',
+        [s.data_times for s in sims],
+        v_z,
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ \partial_t \left\langle z(t) \right\rangle $',
+        y_unit = 'atomic_velocity',
+        line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
+        **PLOT_KWARGS
+    )
+
+    force_times_v_z = [sim.spec.test_charge * sim.spec.electric_potential.get_electric_field_amplitude(sim.data_times) * v
+                       for v, sim in zip(v_z, sims)]
+
+    si.vis.xxyy_plot(
+        'tdse_force_times_vz',
+        [s.data_times for s in sims],
+        force_times_v_z,
+        x_label = r'$ t $',
+        x_unit = 'asec',
+        y_label = r'$ q \, \mathcal{E}(t) \, \partial_t \left\langle v_z(t) \right\rangle $',
+        y_unit = 'atomic_power',
         line_labels = [rf'$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $' for s in sims],
         **PLOT_KWARGS
     )
@@ -144,7 +242,7 @@ def plot_power_model(pulses, times):
     bs = [solve_power_model(pulse, times) for pulse in pulses]
     abs_b_squared = [np.abs(b) ** 2 for b in bs]
 
-    bs_with_window = [solve_power_model(pulse, times, lookback = 150 * u.asec) for pulse in pulses]
+    bs_with_window = [solve_power_model(pulse, times, lookback = 50 * u.asec) for pulse in pulses]
     abs_b_squared_with_lookback = [np.abs(b) ** 2 for b in bs_with_window]
 
     si.vis.xy_plot(
@@ -177,9 +275,17 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         pulses = [
             ion.potentials.SincPulse(phase = 0),
-            ion.potentials.SincPulse(phase = u.pi / 2),
+            # ion.potentials.SincPulse(phase = u.pi / 2),
+            ion.potentials.SincPulse(phase = u.pi / 3),
         ]
-        times = np.linspace(-20 * pulses[0].pulse_width, 20 * pulses[0].pulse_width, 10000)
+        window = ion.potentials.SymmetricExponentialTimeWindow(
+            window_time = 30 * pulses[0].pulse_width,
+            window_width = .2 * pulses[0].pulse_width,
+        )
+        for pulse in pulses:
+            pulse.window = window
+        times = np.linspace(-35 * pulses[0].pulse_width, 35 * pulses[0].pulse_width, 10000)
+
         corrected_pulses = [ion.potentials.DC_correct_electric_potential(pulse, times) for pulse in pulses]
         plot_f_and_v(*corrected_pulses, times)
         plot_power_model(corrected_pulses, times)
@@ -187,7 +293,7 @@ if __name__ == '__main__':
         # tdse_sims = [run(get_tdse_spec(pulse, times)) for pulse in pulses]
         tdse_specs = [get_tdse_spec(pulse, times) for pulse in pulses]
         tdse_sims = si.utils.multi_map(run, tdse_specs, processes = 2)
-        plot_tdse_energy_expectation(tdse_sims)
+        plot_tdse_expectation_values(tdse_sims)
 
         # pulses = [
         #     ion.potentials.GaussianPulse.from_number_of_cycles(number_of_cycles = 3, phase = 0),

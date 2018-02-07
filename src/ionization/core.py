@@ -1958,11 +1958,6 @@ class LineMesh(QuantumMesh):
         self.update_mesh(colormesh, self.fft(), **kwargs)
 
 
-# class LineSnapshot(Snapshot):
-#     def __init__(self):
-#         pass
-
-
 class CylindricalSliceSpecification(ElectricFieldSpecification):
     def __init__(self, name,
                  z_bound = 20 * u.bohr_radius, rho_bound = 20 * u.bohr_radius,
