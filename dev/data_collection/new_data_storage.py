@@ -39,7 +39,7 @@ if __name__ == '__main__':
                 ion.mesh.RadialPositionExpectationValue,
                 ion.mesh.DirectionalRadialProbabilityCurrent,
             ),
-        ).to_simulation()
+        ).to_sim()
         # sim2 = ion.mesh.SphericalHarmonicSpecification(
         #     'test2',
         #     time_initial = 0 * u.asec,
@@ -47,7 +47,7 @@ if __name__ == '__main__':
         #     time_step = 1 * u.asec,
         #     test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 3) for l in range(n)],
         #     initial_state = ion.states.HydrogenBoundState(2, 0),
-        # ).to_simulation()
+        # ).to_sim()
 
         # print(sim.spec.datastore_types)
         # print(sim.datastores)

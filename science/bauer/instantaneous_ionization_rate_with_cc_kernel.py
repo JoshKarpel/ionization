@@ -90,7 +90,7 @@ def instantaneous_tunneling_rate_from_cc_kernel(pulse, times):
         electric_potential = pulse,
         # kernel = ion.ide.LengthGaugeHydrogenKernel(),
         kernel = ion.ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
-    ).to_simulation()
+    ).to_sim()
 
     kernel_integrals = np.empty_like(times, dtype = np.complex128)
     for current_time_idx, current_time in enumerate(times):

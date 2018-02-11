@@ -36,7 +36,7 @@ if __name__ == '__main__':
         analytic_test_states = [ion.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
 
         sims = [
-            ion.SphericalHarmonicSpecification('dt={}as_every{}'.format(dt, store_every), store_data_every = store_every, **spec_kwargs).to_simulation(),
+            ion.SphericalHarmonicSpecification('dt={}as_every{}'.format(dt, store_every), store_data_every = store_every, **spec_kwargs).to_sim(),
         ]
 
         for sim in sims:

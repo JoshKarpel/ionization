@@ -17,7 +17,7 @@ def run_sim(spec):
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w') as logger:
         # sim = ion.ElectricFieldSimulation(spec)
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         ###
         if sim.spec.do_imag_ev:

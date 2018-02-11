@@ -21,7 +21,7 @@ if __name__ == '__main__':
             time_initial = 0, time_final = 1000 * asec, time_step = 1 * asec,
             electric_potential = ion.SineWave.from_photon_energy(10 * eV, amplitude = 1 * atomic_electric_field),
             store_data_every = -1,
-        ).to_simulation()
+        ).to_sim()
 
         sim.file_name = 'pre'
         sim.info().log()

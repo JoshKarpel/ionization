@@ -163,7 +163,7 @@ logman = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdo
 
 def run(spec):
     with logman as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
 

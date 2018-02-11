@@ -54,7 +54,7 @@ if __name__ == '__main__':
                 snapshot_type = ion.SphericalHarmonicSnapshot
         )
 
-        sim = ion.SphericalHarmonicSpecification('SumOfSines__flu={}jcm2__{}at{}x{}__data_rate={}'.format(flu, bound, points_per_bohr_radius, l_bound, store_every), **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification('SumOfSines__flu={}jcm2__{}at{}x{}__data_rate={}'.format(flu, bound, points_per_bohr_radius, l_bound, store_every), **spec_kwargs).to_sim()
 
         print(sim.info())
         sim.run()

@@ -63,7 +63,7 @@ def run(solver):
             solver.elapsed_time = timer.wall_time_elapsed
             return solver
         else:
-            sim = solver.to_simulation()
+            sim = solver.to_sim()
 
             logger.debug(sim.info())
             sim.run()

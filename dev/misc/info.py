@@ -29,7 +29,7 @@ if __name__ == '__main__':
         spec.info().log()
         print()
 
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         print()
         sim.info().log()

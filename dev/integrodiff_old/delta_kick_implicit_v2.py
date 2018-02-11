@@ -40,7 +40,7 @@ def run_hyd_ide_sim(pulse, tb, dt = 1 * asec):
         time_initial = -pulse.pulse_width * tb,
         time_final = pulse.pulse_width * tb,
         time_step = dt,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run_simulation()
 

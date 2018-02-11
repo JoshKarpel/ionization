@@ -33,7 +33,7 @@ if __name__ == '__main__':
             electric_potential = ion.GaussianPulse(pulse_width = 100 * asec, fluence = 1 * Jcm2,
                                                    window = ion.SymmetricExponentialTimeWindow(window_time = 300 * asec, window_width = 20 * asec)),
             electric_potential_dc_correction = True,
-        ).to_simulation()
+        ).to_sim()
 
         sim.run()
 

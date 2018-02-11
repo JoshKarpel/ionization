@@ -39,7 +39,7 @@ if __name__ == '__main__':
             numeric_eigenstate_max_angular_momentum = 10,
             electric_potential_dc_correction = True,
             store_data_every = 20,
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
 

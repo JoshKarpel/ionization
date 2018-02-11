@@ -30,7 +30,7 @@ if __name__ == '__main__':
                     checkpoint_dir = OUT_DIR,
                     store_data_every = 1,
                     checkpoint_every = 50,
-            ).to_simulation()
+            ).to_sim()
 
         sim.info().log()
         if sim.status != si.Status.FINISHED:

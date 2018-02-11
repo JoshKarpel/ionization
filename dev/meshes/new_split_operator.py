@@ -32,7 +32,7 @@ if __name__ == '__main__':
                                                  use_numeric_eigenstates = True,
                                                  numeric_eigenstate_max_energy = 10 * eV,
                                                  numeric_eigenstate_max_angular_momentum = 5,
-                                                 ).to_simulation()
+                                                 ).to_sim()
 
         path = sim.save(save_mesh = True, target_dir = OUT_DIR)
 

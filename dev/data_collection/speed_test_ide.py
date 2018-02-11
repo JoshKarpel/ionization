@@ -19,7 +19,7 @@ if __name__ == '__main__':
             evolution_method = ide.RungeKuttaFourMethod(),
             # kernel = ide.LengthGaugeHydrogenKernel(),
             kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
-        ).to_simulation()
+        ).to_sim()
 
         # sim.info().log()
         with si.utils.BlockTimer() as timer:

@@ -52,7 +52,7 @@ if __name__ == '__main__':
                     target_dir = OUT_DIR
                 )
             ],
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
 

@@ -38,7 +38,7 @@ if __name__ == '__main__':
             numeric_eigenstate_max_angular_momentum = 10,
             mask = ion.RadialCosineMask(inner_radius = 40 * bohr_radius, outer_radius = 50 * bohr_radius),
             store_radial_probability_current = True,
-        ).to_simulation()
+        ).to_sim()
 
         # sim.run_simulation()
         sim.radial_probability_current_vs_time__pos_z = np.ones_like(sim.radial_probability_current_vs_time__pos_z)

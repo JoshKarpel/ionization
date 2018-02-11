@@ -24,7 +24,7 @@ if __name__ == '__main__':
                                                  use_numeric_eigenstates = True,
                                                  numeric_eigenstate_max_energy = energy * eV,
                                                  numeric_eigenstate_max_angular_momentum = l_max,
-                                                 ).to_simulation()
+                                                 ).to_sim()
 
         print('max?:', ((bound * points_per_bohr_radius) - 2) * (l_max + 1))
         print('total:', len(sim.spec.test_states))

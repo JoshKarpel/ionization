@@ -38,7 +38,7 @@ if __name__ == '__main__':
                                     initial_state = init,
                                     time_initial = 0, time_final = 10 * fsec, time_step = 10 * asec,
                                     animators = ani
-                                    ).to_simulation()
+                                    ).to_sim()
 
         # delta = 2 * bohr_radius
         # sim.mesh.psi = np.exp(-0.5 * ((sim.mesh.x / delta) ** 2)).astype(np.complex128)

@@ -78,7 +78,7 @@ if __name__ == '__main__':
                                     mask = ion.RadialCosineMask(inner_radius = space_bound * .8, outer_radius = space_bound),
                                     animators = ani,
                                     evolution_method = 'SO',
-                                    ).to_simulation()
+                                    ).to_sim()
 
         print(sim.info())
 

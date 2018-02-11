@@ -26,7 +26,7 @@ PLOT_KWARGS = dict(
 
 def run(spec):
     with logman as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         logger.debug(sim.info())
         sim.run()

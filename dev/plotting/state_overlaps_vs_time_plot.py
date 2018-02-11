@@ -21,7 +21,7 @@ if __name__ == '__main__':
                 numeric_eigenstate_max_energy = 10 * eV,
                 time_initial = -250 * asec, time_final = 250 * asec,
                 electric_potential = ion.Rectangle(start_time = -200 * asec, end_time = 200 * asec, amplitude = .1 * atomic_electric_field)
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
         sim.run(progress_bar = True)

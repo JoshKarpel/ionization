@@ -37,7 +37,7 @@ def test_with_no_potential_final_state_is_initial_state_length_gauge(evolution_m
         time_initial = 0 * u.asec,
         time_final = 100 * u.asec,
         evolution_method = evolution_method_type(),
-    ).to_simulation()
+    ).to_sim()
 
     sim.run()
 
@@ -74,7 +74,7 @@ def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_a
         time_step = 1 * u.asec,
         electric_potential = pulse,
         kernel = ide.LengthGaugeHydrogenKernel(),
-    ).to_simulation()
+    ).to_sim()
 
     sim.run()
 

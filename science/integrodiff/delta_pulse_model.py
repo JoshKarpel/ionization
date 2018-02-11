@@ -327,7 +327,7 @@ if __name__ == '__main__':
         #     # error_on = 'da/dt',
         #     # epsilon = 1e-6,
         #     store_data_every = 1,
-        # ).to_simulation()
+        # ).to_sim()
         #
         # sim.run_simulation()
         # sim.plot_wavefunction_vs_time(

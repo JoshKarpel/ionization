@@ -33,7 +33,7 @@ if __name__ == '__main__':
             'callback_test',
             store_data_callbacks = [cb],
             store_data_every = 2,
-        ).to_simulation()
+        ).to_sim()
 
         sim.run()
 

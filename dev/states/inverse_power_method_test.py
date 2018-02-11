@@ -40,7 +40,7 @@ if __name__ == '__main__':
         pre_post_norm_differences = []
 
         for step in steps:
-            sim = ion.SphericalHarmonicSpecification('ipm_{}'.format(step), **spec_kwargs).to_simulation()
+            sim = ion.SphericalHarmonicSpecification('ipm_{}'.format(step), **spec_kwargs).to_sim()
 
             g_analytic = sim.spec.initial_state.radial_function(sim.mesh.r) * sim.mesh.r / np.sqrt(sim.mesh.norm)  # analytic mesh reference
 

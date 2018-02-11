@@ -19,7 +19,7 @@ logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.D
 
 def run(spec):
     with logman as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
         sim.run()
@@ -107,7 +107,7 @@ if __name__ == '__main__':
             store_data_every = 10,
         )
 
-        dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_simulation()
+        dummy = ion.SphericalHarmonicSpecification('dummy', **spec_kwargs).to_sim()
 
         state_a = dummy.mesh.analytic_to_numeric[state_a]
         state_b = dummy.mesh.analytic_to_numeric[state_b]
@@ -141,7 +141,7 @@ if __name__ == '__main__':
             si.utils.multi_map(run, specs, processes = 1)
         else:
             with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
-                sim = specs[0].to_simulation()
+                sim = specs[0].to_sim()
                 sim.info().log()
                 sim.run(progress_bar = True)
                 sim.info().log()

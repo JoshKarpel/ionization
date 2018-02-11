@@ -33,7 +33,7 @@ if __name__ == '__main__':
                    }
 
     OUT_DIR = os.path.join(OUT_DIR, 'bound={}_ppbr={}'.format(bound, points_per_bohr_radius))
-    sim = ion.SphericalHarmonicSpecification('eig', **spec_kwargs).to_simulation()
+    sim = ion.SphericalHarmonicSpecification('eig', **spec_kwargs).to_sim()
 
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG, file_logs = True, file_mode = 'w', file_dir = OUT_DIR, file_name = 'log') as logger:
 
@@ -114,7 +114,7 @@ if __name__ == '__main__':
 
 
         electric_field = ion.SineWave.from_photon_energy(rydberg + 5 * eV, amplitude = .25 * atomic_electric_field)
-        sim = ion.SphericalHarmonicSpecification('test', electric_potential = electric_field, **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification('test', electric_potential = electric_field, **spec_kwargs).to_sim()
 
         sim.run()
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)

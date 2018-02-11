@@ -54,7 +54,7 @@ class BauerGaussianPulse(ion.potentials.UniformLinearlyPolarizedElectricPotentia
 
 def run(spec):
     with LOGMAN as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.run()
 

@@ -42,7 +42,7 @@ if __name__ == '__main__':
                                                       internal_potential = internal_potential,
                                                       electric_potential = external_potential)
 
-        sim = sph_spec.to_simulation()
+        sim = sph_spec.to_sim()
 
         print(sim.mesh.norm_by_l)
 

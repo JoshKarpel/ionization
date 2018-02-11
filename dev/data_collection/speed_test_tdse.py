@@ -33,7 +33,7 @@ if __name__ == '__main__':
                 ion.mesh.TotalEnergyExpectationValue,
                 ion.mesh.RadialPositionExpectationValue,
             ),
-        ).to_simulation()
+        ).to_sim()
 
         # sim.info().log()
         with si.utils.BlockTimer() as timer:

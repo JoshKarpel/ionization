@@ -31,7 +31,7 @@ def run_hyd_ide_sim(pulse, tb):
         time_initial = -pulse.pulse_width * tb,
         time_final = pulse.pulse_width * tb,
         time_step = 1 * asec,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run_simulation()
 
@@ -46,7 +46,7 @@ def run_dk_sim(pulse, tb):
         integral_prefactor = -(electron_charge / hbar) ** 2,
         time_initial = -pulse.pulse_width * tb,
         time_final = pulse.pulse_width * tb,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run()
 

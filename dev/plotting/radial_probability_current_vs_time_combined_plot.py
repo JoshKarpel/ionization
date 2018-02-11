@@ -39,7 +39,7 @@ if __name__ == '__main__':
         numeric_eigenstate_max_angular_momentum = 10,
         mask = ion.RadialCosineMask(inner_radius = 40 * bohr_radius, outer_radius = 50 * bohr_radius),
         store_radial_probability_current = True,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run(progress_bar = True)
     time.sleep(.5)

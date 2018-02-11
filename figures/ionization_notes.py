@@ -45,7 +45,7 @@ import matplotlib.pyplot as plt
 
 
 def run(spec):
-    sim = spec.to_simulation()
+    sim = spec.to_sim()
     sim.run()
     return sim
 

@@ -76,6 +76,6 @@ if __name__ == '__main__':
         #                                              r_bound = 100 * bohr_radius, r_points = 100 * 4, l_bound = 50,
         #                                              internal_potential = ion.NoPotentialEnergy(),
         #                                              initial_state = ion.HydrogenCoulombState(energy = 50 * eV, l = l),
-        #                                              ).to_simulation()
+        #                                              ).to_sim()
         #     print(repr(sim.spec.initial_state))
         #     sim.mesh.plot_g(target_dir = OUT_DIR)

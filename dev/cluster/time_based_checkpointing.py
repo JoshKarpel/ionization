@@ -25,7 +25,7 @@ if __name__ == '__main__':
             checkpoints = True,
             checkpoint_dir = OUT_DIR,
             checkpoint_every = datetime.timedelta(seconds = 5),
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
         sim.run()

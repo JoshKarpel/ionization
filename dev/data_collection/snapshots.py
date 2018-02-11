@@ -26,7 +26,7 @@ if __name__ == '__main__':
                                                  use_numeric_eigenstates = True, numeric_eigenstate_max_energy = 50 * eV, numeric_eigenstate_max_angular_momentum = 10,
                                                  snapshot_indices = [50, -1], snapshot_times = [10 * asec],
                                                  snapshot_type = ion.SphericalHarmonicSnapshot,
-                                                 ).to_simulation()
+                                                 ).to_sim()
 
         sim.run()
         saved_sim_path = sim.save(target_dir = OUT_DIR)

@@ -13,7 +13,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 def run(spec):
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG, file_logs = False, file_dir = OUT_DIR, file_level = logging.DEBUG) as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.run()
 

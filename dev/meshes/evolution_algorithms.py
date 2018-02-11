@@ -23,7 +23,7 @@ logman = si.utils.LogManager('simulacra', 'ionization',
 def run_spec(spec):
     with logman as logger:
         try:
-            sim = spec.to_simulation()
+            sim = spec.to_sim()
 
             # sim.info().log()
             sim.run()

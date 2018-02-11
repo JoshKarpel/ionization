@@ -47,7 +47,7 @@ if __name__ == '__main__':
             except (FileNotFoundError, EOFError):
                 spec = si.Specification.load(os.path.join(os.getcwd(), f'{args.sim_name}.spec'))
                 ensure_compatibility_spec(spec)
-                sim = spec.to_simulation()
+                sim = spec.to_sim()
                 logger.info(f'Checkpoint not found, started simulation {sim}')
 
             # run the simulation and save it

@@ -57,7 +57,7 @@ if __name__ == '__main__':
             **shared_kwargs,
         )
 
-        sims = [spec.to_simulation() for spec in (
+        sims = [spec.to_sim() for spec in (
             tdse_spec,
             ide_spec,
         )]

@@ -55,7 +55,7 @@ if __name__ == '__main__':
 
         sim = ion.LineSpecification('eig',
                                     evolution_method = 'CN',
-                                    **spec_kwargs).to_simulation()
+                                    **spec_kwargs).to_sim()
 
         for numeric_eigenstate in sorted(sim.spec.test_states, key = lambda s: s.energy):
             # print(numeric_eigenstate, numeric_eigenstate.analytic_state)

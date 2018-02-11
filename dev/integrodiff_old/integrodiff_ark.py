@@ -37,7 +37,7 @@ if __name__ == '__main__':
                                                                    evolution_method = 'ARK4',
                                                                    integration_method = 'simpson',
                                                                    maximum_time_step = 1 * asec,
-                                                                   ).to_simulation()
+                                                                   ).to_sim()
 
         logger.debug(sim.info())
         sim.run()

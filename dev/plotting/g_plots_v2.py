@@ -64,7 +64,7 @@ if __name__ == '__main__':
             use_numeric_eigenstates = True,
             numeric_eigenstate_max_energy = 20 * eV,
             numeric_eigenstate_max_angular_momentum = max(s.l for s in states) + 1,
-        ).to_simulation()
+        ).to_sim()
 
         for state in states:
             logger.info(f'Generating plots for {state} on {sim.mesh.__class__.__name__}')

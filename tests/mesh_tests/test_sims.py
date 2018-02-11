@@ -50,7 +50,7 @@ def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_num
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
-    ).to_simulation()
+    ).to_sim()
 
     np.testing.assert_allclose(sim.mesh.norm(), 1)
 
@@ -74,7 +74,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run()
 
@@ -109,7 +109,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         use_numeric_eigenstates = True,
         numeric_eigenstate_max_energy = 10 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
-    ).to_simulation()
+    ).to_sim()
 
     sim.run()
 

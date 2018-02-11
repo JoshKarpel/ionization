@@ -60,7 +60,7 @@ if __name__ == '__main__':
                 ),
         )
 
-        sim = ion.SphericalHarmonicSpecification(f'R={r_bound}_amp={amp}_phase={uround(phase, pi, 3)}pi_tB={t_bound}_tE={t_extra}', **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(f'R={r_bound}_amp={amp}_phase={uround(phase, pi, 3)}pi_tB={t_bound}_tE={t_extra}', **spec_kwargs).to_sim()
 
         OUT_DIR = os.path.join(OUT_DIR, sim.name)
 

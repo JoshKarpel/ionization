@@ -12,7 +12,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 # def make_movie(spec):
 #     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
 #                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.DEBUG) as logger:
-#         sim = spec.to_simulation()
+#         sim = spec.to_sim()
 #
 #         sim.info().log()
 #         sim.run_simulation()
@@ -50,7 +50,7 @@ if __name__ == '__main__':
                                                 z_bound = 20 * bohr_radius, rho_bound = 20 * bohr_radius,
                                                 z_points = 200, rho_points = 100,
                                                 electric_potential = ion.Rectangle(start_time = 100 * asec, end_time = 150 * asec, amplitude = 1 * atomic_electric_field),
-                                                animators = animators).to_simulation()
+                                                animators = animators).to_sim()
 
         sim.info().log()
         sim.run()

@@ -14,7 +14,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 def run_sim(spec):
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w') as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
 
@@ -41,7 +41,7 @@ if __name__ == '__main__':
                                                       internal_potential = internal_potential,
                                                       electric_potential = external_potential)
 
-        sim = sph_spec.to_simulation()
+        sim = sph_spec.to_sim()
 
         sim.info().log()
 

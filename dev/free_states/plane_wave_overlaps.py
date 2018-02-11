@@ -52,7 +52,7 @@ if __name__ == '__main__':
                 store_data_every = -1,
         )
 
-        sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_sim()
 
         sim.run()
         print(sim.info())

@@ -93,7 +93,7 @@ if __name__ == '__main__':
         )
 
         # sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
 

@@ -23,7 +23,7 @@ if __name__ == '__main__':
                 store_data_every = 1,
                 evolution_gauge = 'LEN',
                 evolution_method = 'SO',
-            ).to_simulation()
+            ).to_sim()
 
             sim.run()
             # sim.run_simulation(progress_bar = True)
