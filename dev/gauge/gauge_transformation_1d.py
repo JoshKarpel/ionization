@@ -59,7 +59,7 @@ def run_sim(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation(callback = wrapped_plot_g_1d, progress_bar = True)
+        sim.run(callback = wrapped_plot_g_1d, progress_bar = True)
         sim.info().log()
 
         sim.plot_state_overlaps_vs_time(

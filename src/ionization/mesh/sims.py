@@ -3,6 +3,7 @@ import functools
 import itertools
 import datetime
 import logging
+import sys
 from copy import copy, deepcopy
 from typing import Union, Optional, Iterable, Dict, Callable
 
@@ -52,19 +53,6 @@ class MeshSimulation(si.Simulation):
         self.data_indices = time_indices[self.data_mask]
         self.data_time_steps = len(self.data_times)
 
-        # data storage initialization
-        self.norm_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        self.inner_products_vs_time = {state: np.zeros(self.data_time_steps, dtype = np.complex128) * np.NaN
-                                       for state in self.spec.test_states}
-
-        self.electric_field_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-        self.vector_potential_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        # optional data storage initialization
-        if self.spec.store_norm_diff_mask:
-            self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
         self.data = data.Data(self)
         self.datastores = {datastore_type.__name__: datastore_type(self) for datastore_type in self.spec.datastore_types}
 
@@ -92,32 +80,6 @@ class MeshSimulation(si.Simulation):
 
         mem_matrix_operators = 6 * mem_mesh
         mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric and state.g is not None)
-        # mem_inner_products = sum(overlap.nbytes for overlap in self.data.inner_products_vs_time.values())
-        #
-        # mem_other_time_data = sum(x.nbytes for x in (
-        #     self.electric_field_amplitude_vs_time,
-        #     self.vector_potential_amplitude_vs_time,
-        #     self.norm_vs_time,
-        # ))
-        #
-        # for attr in (
-        #         'radial_position_expectation_value_vs_time',
-        #         'internal_energy_expectation_value_vs_time',
-        #         'total_energy_expectation_value_vs_time',
-        #         'electric_dipole_moment_expectation_value_vs_time'
-        #         'norm_diff_mask_vs_time',
-        #         'radial_probability_current_vs_time__pos_z',
-        #         'radial_probability_current_vs_time__neg_z',
-        # ):
-        #     try:
-        #         mem_other_time_data += getattr(self, attr).nbytes
-        #     except AttributeError:  # apparently we're not storing that data
-        #         pass
-
-        # try:
-        #     mem_other_time_data += sum(h.nbytes for h in self.norm_by_harmonic_vs_time.values())
-        # except AttributeError:
-        #     pass
 
         mem_misc = sum(x.nbytes for x in (
             self.times,
@@ -130,8 +92,6 @@ class MeshSimulation(si.Simulation):
             mem_mesh,
             mem_matrix_operators,
             mem_numeric_eigenstates,
-            mem_inner_products,
-            mem_other_time_data,
             mem_misc,
         ))
 
@@ -139,8 +99,7 @@ class MeshSimulation(si.Simulation):
         info_mem.add_field('g', si.utils.bytes_to_str(mem_mesh))
         info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
         info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
-        info_mem.add_field('State Inner Products', si.utils.bytes_to_str(mem_inner_products))
-        info_mem.add_field('Other Time-Indexed Data', si.utils.bytes_to_str(mem_other_time_data))
+        info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores.items())
         info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
 
         info.add_info(info_mem)
@@ -198,24 +157,24 @@ class MeshSimulation(si.Simulation):
     def initialize_mesh(self):
         self.mesh = self.spec.mesh_type(self)
 
-        logger.debug('Initialized mesh for {} {}'.format(self.__class__.__name__, self.name))
+        logger.debug(f'Initialized mesh for {self}')
 
     def store_data(self):
         """Update the time-indexed data arrays with the current values."""
         for datastore in self.datastores.values():
             datastore.store()
 
-        norm = self.mesh.norm()
-        self.norm_vs_time[self.data_time_index] = norm
-        if norm > 1.001 * self.norm_vs_time[0]:
-            logger.warning(f'Wavefunction norm ({norm}) has exceeded initial norm ({self.norm_vs_time[0]}) by more than .1% for {self.__class__.__name__} {self.name}')
+        logger.debug(f'{self} stored data for time index {self.time_index} (data time index {self.data_time_index})')
+
+    def check(self):
+        norm = self.data.norm[self.data_time_index]
+        if norm > 1.001 * self.data.norm[0]:
+            logger.warning(f'Wavefunction norm ({norm}) has exceeded initial norm ({self.norm_vs_time[0]}) by more than .1% for {self}')
         try:
-            if norm > 1.001 * self.norm_vs_time[self.data_time_index - 1]:
-                logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.norm_vs_time[self.data_time_index - 1]}) by more than .1% for {self.__class__.__name__} {self.name}')
+            if norm > 1.001 * self.data.norm[self.data_time_index - 1]:
+                logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.norm_vs_time[self.data_time_index - 1]}) by more than .1% for {self}')
         except IndexError:
             pass
-
-        logger.debug(f'{self.__class__.__name__} {self.name} stored data for time index {self.time_index} (data time index {self.data_time_index})')
 
     def take_snapshot(self):
         snapshot = self.spec.snapshot_type(self, self.time_index, **self.spec.snapshot_kwargs)
@@ -224,9 +183,9 @@ class MeshSimulation(si.Simulation):
 
         self.snapshots[self.time_index] = snapshot
 
-        logger.info(f'Stored {snapshot.__class__.__name__} of {self.name} at time {u.uround(self.time, u.asec)} as (time index {self.time_index})')
+        logger.info(f'Stored {snapshot.__class__.__name__} for {self} at time {u.uround(self.time, u.asec)} as (time index {self.time_index})')
 
-    def run_simulation(self, progress_bar: bool = False, callback: Callable = None):
+    def run(self, progress_bar: bool = False, callback: Callable = None):
         """
         Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
         """
@@ -241,8 +200,11 @@ class MeshSimulation(si.Simulation):
                 pbar = tqdm(total = self.time_steps - 1, ascii = True)
 
             while True:
-                if self.time in self.data_times:
+                is_data_time = self.time in self.data_times
+
+                if is_data_time:
                     self.store_data()
+                    self.check()
 
                 if self.time in self.snapshot_times:
                     self.take_snapshot()
@@ -251,29 +213,27 @@ class MeshSimulation(si.Simulation):
                     if self.time_index == 0 or self.time_index == self.time_steps or self.time_index % animator.decimation == 0:
                         animator.send_frame_to_ffmpeg()
 
-                if self.time in self.data_times:  # having to repeat this is clunky, but I need the data for the animators to work and I can't change the data index until the animators are done
-                    self.data_time_index += 1
-
                 if callback is not None:
                     callback(self)
+
+                if is_data_time:  # having to repeat this is clunky, but I need the data for the animators to work and I can't change the data index until the animators are done
+                    self.data_time_index += 1
 
                 if self.time_index == self.time_steps - 1:
                     break
 
                 self.time_index += 1
 
-                norm_diff_mask = self.mesh.evolve(self.times[self.time_index] - self.times[self.time_index - 1])  # evolve the mesh forward to the next time step
-                if self.spec.store_norm_diff_mask:
-                    self.norm_diff_mask_vs_time[self.data_time_index] = norm_diff_mask  # move to store data so it has the right index?
+                self.mesh.evolve(self.times[self.time_index] - self.times[self.time_index - 1])  # evolve the mesh forward to the next time step
 
-                logger.debug(f'{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
+                logger.debug(f'{self} evolved to time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)')
 
                 if self.spec.checkpoints:
                     now = datetime.datetime.utcnow()
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
                         self.latest_checkpoint_time = now
-                        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
+                        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)')
                         self.status = si.Status.RUNNING
 
                 try:
@@ -287,7 +247,7 @@ class MeshSimulation(si.Simulation):
                 pass
 
             self.status = si.Status.FINISHED
-            logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
+            logger.info(f'Finished performing time evolution on {self}')
         except Exception as e:
             raise e
         finally:
@@ -296,6 +256,10 @@ class MeshSimulation(si.Simulation):
                 animator.cleanup()
 
             self.spec.animators = ()
+
+    @property
+    def percent_completed(self):
+        return round(100 * self.time_index / (self.time_steps - 1), 2)
 
     @property
     def bound_states(self) -> Iterable[states.QuantumState]:
@@ -1005,7 +969,7 @@ class MeshSpecification(si.Specification):
             snapshot_kwargs = dict()
         self.snapshot_kwargs = snapshot_kwargs
 
-        self.datastore_types = datastore_types
+        self.datastore_types = sorted(set(datastore_types).union({data.Norm}), key = lambda x: x.__name__)
 
     def info(self) -> si.Info:
         info = super().info()
@@ -1259,50 +1223,16 @@ class SphericalSliceSpecification(MeshSpecification):
 class SphericalHarmonicSimulation(MeshSimulation):
     """Adds options and data storage that are specific to SphericalHarmonicMesh-using simulations."""
 
-    def __init__(self, spec: 'SphericalHarmonicSpecification'):
-        super().__init__(spec)
+    def check(self):
+        super().check()
 
-        if self.spec.store_norm_by_l:
-            self.norm_by_harmonic_vs_time = {sph_harm: np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN for sph_harm in self.spec.spherical_harmonics}
+        g_for_largest_l = self.mesh.g[-1]
+        norm_in_largest_l = self.mesh.state_overlap(g_for_largest_l, g_for_largest_l)
 
-        if self.spec.store_radial_probability_current:
-            self.radial_probability_current_vs_time__pos_z = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
-            self.radial_probability_current_vs_time__neg_z = np.zeros((self.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
-
-    def store_data(self):
-        super().store_data()
-
-        if self.spec.store_norm_by_l:
-            norm_by_l = self.mesh.norm_by_l
-            for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
-                self.norm_by_harmonic_vs_time[sph_harm][self.data_time_index] = l_norm
-
-            norm_in_largest_l = self.norm_by_harmonic_vs_time[self.spec.spherical_harmonics[-1]][self.data_time_index]
-        else:
-            largest_l_mesh = self.mesh.g[-1]
-            norm_in_largest_l = self.mesh.state_overlap(largest_l_mesh, largest_l_mesh)
-
-        if norm_in_largest_l > self.norm_vs_time[self.data_time_index] / 1e9:
+        if norm_in_largest_l > self.data.norm[self.data_time_index] / 1e9:
             msg = f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound'
             logger.warning(msg)
             self.warnings['norm_in_largest_l'].append(core.warning_record(self.time_index, msg))
-
-        if self.spec.store_radial_probability_current:
-            radial_current_density = self.mesh.get_radial_probability_current_density_mesh__spatial()
-
-            theta = self.mesh.theta_calc
-            d_theta = np.abs(theta[1] - theta[0])
-            sin_theta = np.sin(theta)
-            mask = theta <= u.pi / 2
-
-            integrand = radial_current_density * sin_theta * d_theta * u.twopi  # sin(theta) d_theta from theta integral, twopi from phi integral
-
-            self.radial_probability_current_vs_time__pos_z[self.data_time_index] = np.sum(integrand[:, mask], axis = 1) * (self.mesh.r ** 2)
-            self.radial_probability_current_vs_time__neg_z[self.data_time_index] = np.sum(integrand[:, ~mask], axis = 1) * (self.mesh.r ** 2)
-
-    @property
-    def radial_probability_current_vs_time(self) -> np.array:
-        return self.radial_probability_current_vs_time__pos_z + self.radial_probability_current_vs_time__neg_z
 
     def plot_radial_probability_current_vs_time(
             self,

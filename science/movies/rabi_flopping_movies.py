@@ -22,7 +22,7 @@ def run(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
 
@@ -143,5 +143,5 @@ if __name__ == '__main__':
             with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
                 sim = specs[0].to_simulation()
                 sim.info().log()
-                sim.run_simulation(progress_bar = True)
+                sim.run(progress_bar = True)
                 sim.info().log()

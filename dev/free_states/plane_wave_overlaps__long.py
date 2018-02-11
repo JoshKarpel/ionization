@@ -65,7 +65,7 @@ if __name__ == '__main__':
         OUT_DIR = os.path.join(OUT_DIR, sim.name)
 
         print(sim.info())
-        sim.run_simulation()
+        sim.run()
         sim.save(target_dir = OUT_DIR)
         print(sim.info())
 

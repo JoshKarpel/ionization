@@ -54,7 +54,7 @@ if __name__ == '__main__':
 
         sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
         print(sim.info())
 
         # sim.mesh.plot_g(target_dir = OUT_DIR)

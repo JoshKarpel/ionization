@@ -18,7 +18,7 @@ def run_sim(spec):
 
         sim.info().log()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.info().log()
 
@@ -45,7 +45,7 @@ if __name__ == '__main__':
 
         sim.info().log()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.info().log()
 

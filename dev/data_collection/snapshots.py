@@ -28,7 +28,7 @@ if __name__ == '__main__':
                                                  snapshot_type = ion.SphericalHarmonicSnapshot,
                                                  ).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
         saved_sim_path = sim.save(target_dir = OUT_DIR)
 
         print(sim.info())

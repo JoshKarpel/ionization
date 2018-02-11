@@ -109,7 +109,7 @@ FAST_SIM_OPTIONS = dict(
 
 def run(spec):
     sim = spec.to_simulation()
-    sim.run_simulation()
+    sim.run()
     return sim
 
 
@@ -128,7 +128,7 @@ def title_bg():
         rho_points = 40 * 10,
         **FAST_SIM_OPTIONS,
     ).to_simulation()
-    sim.run_simulation(progress_bar = True)
+    sim.run(progress_bar = True)
 
     sim.mesh.plot_g(
         plot_limit = 25 * bohr_radius,
@@ -173,7 +173,7 @@ def spherical_harmonic_mesh():
         l_bound = 40,
         **FAST_SIM_OPTIONS,
     ).to_simulation()
-    sim.run_simulation(progress_bar = True)
+    sim.run(progress_bar = True)
 
     sim.mesh.plot_g_repr(
         plot_limit = 25 * bohr_radius,

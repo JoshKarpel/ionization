@@ -32,7 +32,7 @@ def run(spec):
                          target_dir = OUT_DIR)
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         # sim.save(target_dir = OUT_DIR)
         sim.info().log()
 

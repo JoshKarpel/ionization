@@ -18,7 +18,7 @@ def run(spec):
         sim = spec.to_simulation()
 
         logger.debug(sim.info())
-        sim.run_simulation()
+        sim.run()
         logger.debug(sim.info())
 
         logger.info('{} took {} seconds for {} steps, {} computations'.format(sim.name, sim.elapsed_time.total_seconds(), sim.time_steps, sim.computed_time_steps))

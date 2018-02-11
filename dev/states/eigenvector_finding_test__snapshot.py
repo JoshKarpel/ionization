@@ -116,7 +116,7 @@ if __name__ == '__main__':
         electric_field = ion.SineWave.from_photon_energy(rydberg + 5 * eV, amplitude = .25 * atomic_electric_field)
         sim = ion.SphericalHarmonicSpecification('test', electric_potential = electric_field, **spec_kwargs).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, log = True)
         print(sim.info())

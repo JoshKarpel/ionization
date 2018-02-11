@@ -46,6 +46,6 @@ if __name__ == '__main__':
 
         print(sim.mesh.norm_by_l)
 
-        sim.run_simulation()
+        sim.run()
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)
         sim.plot_angular_momentum_vs_time(target_dir = OUT_DIR)

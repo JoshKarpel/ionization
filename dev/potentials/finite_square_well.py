@@ -86,7 +86,7 @@ if __name__ == '__main__':
                          x_unit = 'bohr_radius', y_unit = 'eV', x_lower_limit = -3 * width, x_upper_limit = 3 * width,
                          target_dir = OUT_DIR)
 
-        sim.run_simulation()
+        sim.run()
 
         print(sim.info())
 

@@ -60,7 +60,7 @@ def run_sim(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation(callback = wrapped_plot_g_1d)
+        sim.run(callback = wrapped_plot_g_1d)
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(

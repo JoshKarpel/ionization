@@ -35,7 +35,7 @@ if __name__ == '__main__':
             store_data_every = 2,
         ).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
 
         print(type(sim))
         print(sim.foo)

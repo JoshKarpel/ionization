@@ -32,7 +32,7 @@ def run(spec):
         sim = spec.to_simulation()
 
         logger.debug(sim.info())
-        sim.run_simulation()
+        sim.run()
         logger.debug(sim.info())
 
         for kwargs in PLOT_KWARGS:

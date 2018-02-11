@@ -48,7 +48,7 @@ def run_dk_sim(pulse, tb):
         time_final = pulse.pulse_width * tb,
     ).to_simulation()
 
-    sim.run_simulation()
+    sim.run()
 
     return sim
 

@@ -39,7 +39,7 @@ def run_sim(spec):
 
         sim.info().log()
 
-        sim.run_simulation()
+        sim.run()
 
         laser_frequency = sim.spec.electric_potential.frequency_carrier
         laser_period = sim.spec.electric_potential.period_carrier

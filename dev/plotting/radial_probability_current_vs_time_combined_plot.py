@@ -41,7 +41,7 @@ if __name__ == '__main__':
         store_radial_probability_current = True,
     ).to_simulation()
 
-    sim.run_simulation(progress_bar = True)
+    sim.run(progress_bar = True)
     time.sleep(.5)
 
     ### MAKE PLOTS ###

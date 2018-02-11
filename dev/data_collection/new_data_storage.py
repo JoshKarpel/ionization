@@ -27,44 +27,46 @@ if __name__ == '__main__':
             time_final = 5 * u.asec,
             time_step = 1 * u.asec,
             test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 3) for l in range(n)],
+            datastore_types = [],
         ).to_simulation()
-        sim2 = ion.mesh.SphericalHarmonicSpecification(
-            'test2',
-            time_initial = 0 * u.asec,
-            time_final = 5 * u.asec,
-            time_step = 1 * u.asec,
-            test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 3) for l in range(n)],
-            initial_state = ion.states.HydrogenBoundState(2, 0),
-        ).to_simulation()
+        # sim2 = ion.mesh.SphericalHarmonicSpecification(
+        #     'test2',
+        #     time_initial = 0 * u.asec,
+        #     time_final = 5 * u.asec,
+        #     time_step = 1 * u.asec,
+        #     test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 3) for l in range(n)],
+        #     initial_state = ion.states.HydrogenBoundState(2, 0),
+        # ).to_simulation()
 
         # print(sim.spec.datastore_types)
         # print(sim.datastores)
 
         # print(sim.data)
-        # print(sim.data.norm)
+        print('norm', sim.data.norm)
         # print(sim.data.inner_products)
         # print(sim.data.state_overlaps)
 
-        print('initial', sim.data.initial_state_overlap)
-        for k, v in sim.data.state_overlaps.items():
-            print(k, v)
+        # print('initial', sim.data.initial_state_overlap)
+        # for k, v in sim.data.state_overlaps.items():
+        #     print(k, v)
 
-        sim.run_simulation()
+        sim.run()
 
-        print('initial', sim.data.initial_state_overlap)
-        for k, v in sim.data.state_overlaps.items():
-            print(k, v)
-
-        print()
-
-        print('initial', sim2.data.initial_state_overlap)
-        for k, v in sim2.data.state_overlaps.items():
-            print(k, v)
+        print('norm', sim.data.norm)
+        # print('initial', sim.data.initial_state_overlap)
+        # for k, v in sim.data.state_overlaps.items():
+        #     print(k, v)
 
         print()
 
-        print('initial', sim.data.initial_state_inner_product)
-        for k, v in sim.data.inner_products.items():
-            print(k, v)
+        # print('initial', sim2.data.initial_state_overlap)
+        # for k, v in sim2.data.state_overlaps.items():
+        #     print(k, v)
+        #
+        # print()
 
-        print(sim.info())
+        # print('initial', sim.data.initial_state_inner_product)
+        # for k, v in sim.data.inner_products.items():
+        #     print(k, v)
+        #
+        # print(sim.info())

@@ -25,7 +25,7 @@ def run(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         if 'msh' in sim.name:

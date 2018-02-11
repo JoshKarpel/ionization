@@ -35,7 +35,7 @@ if __name__ == '__main__':
             electric_potential_dc_correction = True,
         ).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
 
         print(sim.info())
 

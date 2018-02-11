@@ -34,7 +34,7 @@ if __name__ == '__main__':
 
         sim.info().log()
         if sim.status != si.Status.FINISHED:
-            sim.run_simulation(progress_bar = True)
+            sim.run(progress_bar = True)
             sim.info().log()
 
             sim.save(target_dir = OUT_DIR, save_mesh = True)

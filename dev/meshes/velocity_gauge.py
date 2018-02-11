@@ -22,7 +22,7 @@ def run_sim(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         # sim.plot_test_state_overlaps_vs_time(target_dir = OUT_DIR)

@@ -49,7 +49,7 @@ if __name__ == '__main__':
             g_pre = g_discrete
 
             sim.mesh.g_mesh[0, :] = g_discrete
-            sim.run_simulation()
+            sim.run()
 
             g_post = sim.mesh.g_mesh[0, :]
 

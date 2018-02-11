@@ -18,7 +18,7 @@ def run_spec(spec):
         sim = spec.to_simulation()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)

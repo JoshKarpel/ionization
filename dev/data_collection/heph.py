@@ -25,7 +25,7 @@ if __name__ == '__main__':
                 evolution_method = 'SO',
             ).to_simulation()
 
-            sim.run_simulation()
+            sim.run()
             # sim.run_simulation(progress_bar = True)
 
         report_filepath = os.path.join(OUT_DIR, 'report.txt')

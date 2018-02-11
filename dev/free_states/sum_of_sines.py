@@ -57,7 +57,7 @@ if __name__ == '__main__':
         sim = ion.SphericalHarmonicSpecification('SumOfSines__flu={}jcm2__{}at{}x{}__data_rate={}'.format(flu, bound, points_per_bohr_radius, l_bound, store_every), **spec_kwargs).to_simulation()
 
         print(sim.info())
-        sim.run_simulation()
+        sim.run()
         print(sim.info())
 
         # path = sim.save(target_dir = OUT_DIR, save_mesh = True)

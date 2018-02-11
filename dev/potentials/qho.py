@@ -47,7 +47,7 @@ if __name__ == '__main__':
 
         sim.mesh.plot_g2(name_postfix = '_init', target_dir = OUT_DIR)
 
-        sim.run_simulation()
+        sim.run()
 
         print(sim.info())
         print('norm', sim.mesh.norm())

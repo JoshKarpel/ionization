@@ -25,7 +25,7 @@ def run_spec(spec):
             sim = spec.to_simulation()
 
             sim.info().log()
-            sim.run_simulation()
+            sim.run()
             sim.save(target_dir = LIB_DIR)
             sim.info().log()
 

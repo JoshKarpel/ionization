@@ -167,7 +167,7 @@ def run(spec):
 
         sim.info().log()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.plot_b2_vs_time(y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
                             field_axis_label = r'${}(t)$'.format(ion.LATEX_EFIELD),

@@ -24,7 +24,7 @@ def run(spec):
     with LOGMAN as logger:
         sim = spec.to_simulation()
 
-        sim.run_simulation()
+        sim.run()
 
         return sim
 

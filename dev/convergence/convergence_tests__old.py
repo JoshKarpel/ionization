@@ -389,7 +389,7 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
 
             sim = ion.ElectricFieldSimulation(spec)
 
-            sim.run_simulation()
+            sim.run()
 
             norms[state][ii] = sim.mesh.norm
             energies[state][ii] = sim.mesh.energy_expectation_value
@@ -484,7 +484,7 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
 
         times = sim.times.copy()
 
-        sim.run_simulation()
+        sim.run()
 
         norms[state] = sim.norm_vs_time
         # energies[state] = sim.mesh.energy_expectation_value
@@ -565,7 +565,7 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
 def run_test(spec):
     with si.utils.LogManager() as logger:
         sim = test.StaticConvergenceTestingSimulation(spec)
-        sim.run_simulation()
+        sim.run()
 
         sim.plot_error_vs_time(save = True, target_dir = os.path.join(OUT_DIR, 'individual_error_vs_time'))
 

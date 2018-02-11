@@ -41,7 +41,7 @@ if __name__ == '__main__':
         # sim = si.Simulation.load(path)
 
         sim.info().log()
-        sim.run_simulation(progress_bar = False)
+        sim.run(progress_bar = False)
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(collapse_bound_state_angular_momenta = False, target_dir = OUT_DIR)

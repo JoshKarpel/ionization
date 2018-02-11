@@ -55,7 +55,7 @@ if __name__ == '__main__':
             kernel = ide.gaussian_kernel_LEN, kernel_kwargs = {'tau_alpha': ide.gaussian_tau_alpha_LEN(test_width, test_mass)},
         ).to_simulation()
 
-        sim.run_simulation()
+        sim.run()
 
         for k in sim.kicks:
             print(k.time / asec, k.amplitude / (atomic_electric_field * atomic_time))

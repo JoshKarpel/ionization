@@ -73,7 +73,7 @@ if __name__ == '__main__':
 
             # logger.info('Running Simulations...')
             for sim in sims:
-                sim.run_simulation()
+                sim.run()
 
             for log in [True, False]:
                 if log:

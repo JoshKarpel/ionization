@@ -246,23 +246,8 @@ class QuantumMesh:
             raise NotImplementedError
 
     def evolve(self, time_step):
-        if self.spec.store_norm_diff_mask:
-            pre_evolve_norm = self.norm()
-            self.evolution_method(time_step)
-            norm_diff_evolve = pre_evolve_norm - self.norm()
-            if norm_diff_evolve / pre_evolve_norm > .001:
-                logger.warning('Evolution may be dangerously non-unitary, norm decreased by {} ({} %) during evolution step'.format(norm_diff_evolve, norm_diff_evolve / pre_evolve_norm))
-
-            pre_mask_norm = self.norm()
-            self.g *= self.spec.mask(r = self.r_mesh)
-            norm_diff_by_mask = pre_mask_norm - self.norm()
-            logger.debug('Applied mask {} to g for {} {}, removing {} norm'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name, norm_diff_by_mask))
-            return norm_diff_by_mask
-        else:
-            self.evolution_method(time_step)
-            if not isinstance(self.spec.mask, potentials.NoMask):
-                self.g *= self.spec.mask(r = self.r_mesh)
-                logger.debug('Applied mask {} to g for {} {}'.format(self.spec.mask, self.sim.__class__.__name__, self.sim.name))
+        self.evolution_method(time_step)
+        self.g *= self.spec.mask(r = self.r_mesh)
 
     def get_mesh_slicer(self, plot_limit):
         raise NotImplementedError

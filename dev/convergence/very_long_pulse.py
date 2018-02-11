@@ -62,7 +62,7 @@ if __name__ == '__main__':
             target_dir = OUT_DIR,
         )
 
-        sim.run_simulation(progress_bar = True)
+        sim.run(progress_bar = True)
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 
         sim.info().log()

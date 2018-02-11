@@ -40,7 +40,7 @@ if __name__ == '__main__':
                                                                    ).to_simulation()
 
         logger.debug(sim.info())
-        sim.run_simulation()
+        sim.run()
         logger.debug(sim.info())
 
         sim.plot_b2_vs_time(target_dir = OUT_DIR,

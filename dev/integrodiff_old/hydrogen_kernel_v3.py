@@ -29,7 +29,7 @@ def run(spec):
         sim = spec.to_simulation()
 
         logger.debug(sim.info())
-        sim.run_simulation()
+        sim.run()
         logger.debug(sim.info())
 
         sim.plot_b2_vs_time(**PLOT_KWARGS)

@@ -40,7 +40,7 @@ if __name__ == '__main__':
         ]
 
         for sim in sims:
-            sim.run_simulation()
+            sim.run()
 
             sim.save(target_dir = OUT_DIR, save_mesh = False)
 

@@ -53,7 +53,7 @@ if __name__ == '__main__':
                                                 animators = animators).to_simulation()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         # window = ion.LinearRampTimeWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)

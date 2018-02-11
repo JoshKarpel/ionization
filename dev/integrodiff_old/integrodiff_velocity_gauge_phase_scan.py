@@ -19,7 +19,7 @@ def run(spec):
     with log as logger:
         sim = spec.to_simulation()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.info().log()
 
