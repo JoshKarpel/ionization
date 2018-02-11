@@ -17,3 +17,6 @@ class IllegalQuantumState(IonizationException):
 
 class InvalidChoice(IonizationException):
     pass
+
+class InvalidWrappingDirection(IonizationException):
+    pass

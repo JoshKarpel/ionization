@@ -8,6 +8,8 @@ import simulacra.units as u
 
 import ionization as ion
 
+import hephaestus
+
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
@@ -27,7 +29,16 @@ if __name__ == '__main__':
             time_final = 5 * u.asec,
             time_step = 1 * u.asec,
             test_states = [ion.states.HydrogenBoundState(n, l) for n in range(1, 3) for l in range(n)],
-            datastore_types = [],
+            datastore_types = (
+                ion.mesh.Norm,
+                ion.mesh.InnerProducts,
+                ion.mesh.Fields,
+                ion.mesh.ElectricDipoleMomentZExpectationValue,
+                ion.mesh.InternalEnergyExpectationValue,
+                ion.mesh.TotalEnergyExpectationValue,
+                ion.mesh.RadialPositionExpectationValue,
+                ion.mesh.DirectionalRadialProbabilityCurrent,
+            ),
         ).to_simulation()
         # sim2 = ion.mesh.SphericalHarmonicSpecification(
         #     'test2',
@@ -50,7 +61,11 @@ if __name__ == '__main__':
         # for k, v in sim.data.state_overlaps.items():
         #     print(k, v)
 
+        # with hephaestus.Tracer() as tracer:
         sim.run()
+
+        # with open('report.html', mode = 'w') as f:
+        #     f.write(tracer.report_html())
 
         print('norm', sim.data.norm)
         # print('initial', sim.data.initial_state_overlap)
@@ -69,4 +84,4 @@ if __name__ == '__main__':
         # for k, v in sim.data.inner_products.items():
         #     print(k, v)
         #
-        # print(sim.info())
+        print(sim.info())

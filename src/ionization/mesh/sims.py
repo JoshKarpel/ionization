@@ -36,7 +36,7 @@ class MeshSimulation(si.Simulation):
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
 
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+            logger.warning(f'Replaced electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
         self.time_index = 0
         self.data_time_index = 0
@@ -98,7 +98,8 @@ class MeshSimulation(si.Simulation):
         info_mem = si.Info(header = f'Memory Usage (approx.): {si.utils.bytes_to_str(mem_total)}')
         info_mem.add_field('g', si.utils.bytes_to_str(mem_mesh))
         info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
-        info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
+        if self.spec.use_numeric_eigenstates:
+            info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
         info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores.items())
         info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
 
@@ -163,7 +164,7 @@ class MeshSimulation(si.Simulation):
             logger.warning(f'Wavefunction norm ({norm}) has exceeded initial norm ({self.norm_vs_time[0]}) by more than .1% for {self}')
         try:
             if norm > 1.001 * self.data.norm[self.data_time_index - 1]:
-                logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.norm_vs_time[self.data_time_index - 1]}) by more than .1% for {self}')
+                logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.data.norm[self.data_time_index - 1]}) by more than .1% for {self}')
         except IndexError:
             pass
 
@@ -174,7 +175,7 @@ class MeshSimulation(si.Simulation):
 
         self.snapshots[self.time_index] = snapshot
 
-        logger.info(f'Stored {snapshot.__class__.__name__} for {self} at time {u.uround(self.time, u.asec)} as (time index {self.time_index})')
+        logger.info(f'Stored {snapshot.__class__.__name__} for {self} at time index {self.time_index} (t = {u.uround(self.time, u.asec)} as)')
 
     def run(self, progress_bar: bool = False, callback: Callable = None):
         """
@@ -319,7 +320,7 @@ class MeshSimulation(si.Simulation):
             cutoff_key = ''
 
         grouped_states[cutoff_key] = cutoff
-        group_labels[cutoff_key] = label_format_str.format(r'\geq {}'.format(cutoff_value))
+        group_labels[cutoff_key] = label_format_str.format(rf'\geq {cutoff_value}')
 
         return grouped_states, group_labels
 
@@ -360,9 +361,9 @@ class MeshSimulation(si.Simulation):
             )
 
         if show_y_label:
-            axis.set_ylabel('${}(t)$'.format(vis.LATEX_EFIELD), fontsize = 13, color = vis.COLOR_EFIELD)
+            axis.set_ylabel(rf'${vis.LATEX_EFIELD}(t)$', fontsize = 13, color = vis.COLOR_EFIELD)
 
-        axis.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
+        axis.set_xlabel(rf'Time $t$ (${time_unit_latex}$)', fontsize = 13)
 
         axis.tick_params(labelright = True)
 
@@ -386,15 +387,17 @@ class MeshSimulation(si.Simulation):
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-            self.attach_electric_potential_plot_to_axis(ax_field,
-                                                        show_electric_field = show_electric_field,
-                                                        show_vector_potential = show_vector_potential,
-                                                        # legend_kwargs = dict(
-                                                        #     bbox_to_anchor = (1.1, .9),
-                                                        #     loc = 'upper left',
-                                                        #     borderaxespad = 0.1,
-                                                        #     fontsize = 10)
-                                                        )
+            self.attach_electric_potential_plot_to_axis(
+                ax_field,
+                show_electric_field = show_electric_field,
+                show_vector_potential = show_vector_potential,
+                # legend_kwargs = dict(
+                #     bbox_to_anchor = (1.1, .9),
+                #     loc = 'upper left',
+                #     borderaxespad = 0.1,
+                #     fontsize = 10,
+                # ),
+            )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -407,7 +410,7 @@ class MeshSimulation(si.Simulation):
                     state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
 
             overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
-            labels = [r'$\left| \left\langle \psi|{} \right\rangle \right|^2$'.format(state.latex) for state, overlap in sorted(state_overlaps.items())]
+            labels = [rf'$ \left| \left\langle \psi | {{{state.latex}}} \right\rangle \right|^2 $' for state, overlap in sorted(state_overlaps.items())]
 
             ax_overlaps.stackplot(self.data_times / time_unit_value,
                                   *overlaps,
@@ -508,26 +511,26 @@ class MeshSimulation(si.Simulation):
                     else:
                         extra_bound_overlap += state_overlaps[state]
                 overlaps += [overlap for n, overlap in sorted(overlaps_by_n.items())]
-                labels += [r'$\left| \left\langle \Psi | \psi_{{ {}, \ell }} \right\rangle \right|^2$'.format(n) for n in sorted(overlaps_by_n)]
+                labels += [rf'$ \left| \left\langle \Psi | \psi_{{ {n}, \ell }} \right\rangle \right|^2 $' for n in sorted(overlaps_by_n)]
                 colors += [matplotlib.colors.to_rgba('C' + str(n - 1), alpha = 1) for n in sorted(overlaps_by_n)]
             else:
                 for state in sorted(self.bound_states):
                     if state.n <= bound_state_max_n:
                         overlaps.append(state_overlaps[state])
-                        labels.append(r'$\left| \left\langle \Psi | {} \right\rangle \right|^2$'.format(state.latex))
+                        labels.append(rf'$ \left| \left\langle \Psi | {{{state.latex}}} \right\rangle \right|^2 $')
                         colors.append(matplotlib.colors.to_rgba('C' + str((state.n - 1) % 10), alpha = 1 - state.l / state.n))
                     else:
                         extra_bound_overlap += state_overlaps[state]
 
             overlaps.append(extra_bound_overlap)
-            labels.append(r'$\left| \left\langle \Psi | \psi_{{n \geq {} }}  \right\rangle \right|^2$'.format(bound_state_max_n + 1))
+            labels.append(rf'$ \left| \left\langle \Psi | \psi_{{n \geq {bound_state_max_n + 1} }}  \right\rangle \right|^2 $')
             colors.append('.4')
 
             free_state_color_cycle = itertools.cycle(['#8dd3c7', '#ffffb3', '#bebada', '#fb8072', '#80b1d3', '#fdb462', '#b3de69', '#fccde5', '#d9d9d9', '#bc80bd', '#ccebc5', '#ffed6f'])
             for group, states in sorted(grouped_free_states.items()):
                 if len(states) != 0:
                     overlaps.append(np.sum(state_overlaps[s] for s in states))
-                    labels.append(r'$\left| \left\langle \Psi | {}  \right\rangle \right|^2$'.format(group_free_states_labels[group]))
+                    labels.append(rf'$\left| \left\langle \Psi | {{{group_free_states_labels[group]}}}  \right\rangle \right|^2$')
                     colors.append(free_state_color_cycle.__next__())
 
             overlaps = [overlap for overlap in overlaps]
@@ -660,7 +663,7 @@ class MeshSimulation(si.Simulation):
             if energy_upper_bound is None:
                 energy_upper_bound = max([np.nanmax(e) for e in energies])
 
-            labels = [r'$\ell = {}$'.format(l) for l in range(angular_momentum_cutoff)] + [r'$\ell \geq {}$'.format(angular_momentum_cutoff)]
+            labels = [rf'$ \ell = {l} $' for l in range(angular_momentum_cutoff)] + [rf'$ \ell \geq {angular_momentum_cutoff} $']
         else:
             overlap_by_energy = collections.defaultdict(float)
             for state, overlap_vs_time in state_overlaps.items():
@@ -693,16 +696,16 @@ class MeshSimulation(si.Simulation):
             x_range = energy_upper_bound - energy_lower_bound
             ax.set_xlim(energy_lower_bound - .05 * x_range, energy_upper_bound + .05 * x_range)
 
-            ax.set_xlabel('Energy $E$ (${}$)'.format(energy_unit_str))
-            ax.set_ylabel('Wavefunction Overlap'.format(energy_unit_str))
-            ax.set_title('Wavefunction Overlap by Energy at $t={} \, {}$'.format(u.uround(self.times[time_index], time_unit, 3), time_unit_str))
+            ax.set_xlabel(rf'Energy $E$ (${energy_unit_str}$)')
+            ax.set_ylabel(r'Wavefunction Overlap')
+            ax.set_title(rf'Wavefunction Overlap by Energy at $ t = {u.uround(self.times[time_index], time_unit)} \, {time_unit_str} $')
 
             if group_angular_momentum:
                 ax.legend(loc = 'best', ncol = 1 + len(energies) // 8)
 
             ax.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-            figman.name += '__{}_states__index={}'.format(states, time_index)
+            figman.name += f'__{states}_states__index={time_index}'
 
             if log:
                 figman.name += '__log'
@@ -899,7 +902,6 @@ class MeshSpecification(si.Specification):
         :param checkpoint_every: how many time steps to calculate between checkpoints
         :param checkpoint_dir: a directory path to store the checkpoint file in
         :param animators: a list of Animators which will be run during time evolution
-        :param store_norm_diff_by_mask: if True, the Simulation will store the amount of norm removed by the mask at each data time step
         :param store_data_every: decimate by this is if >= 1, else store only initial and final
         :param snapshot_times:
         :param snapshot_indices:
@@ -934,8 +936,6 @@ class MeshSpecification(si.Specification):
 
         self.animators = deepcopy(tuple(animators))
 
-        self.store_norm_diff_mask = store_norm_diff_mask
-
         self.store_data_every = int(store_data_every)
 
         self.snapshot_times = set(snapshot_times)
@@ -958,7 +958,7 @@ class MeshSpecification(si.Specification):
                 working_in = self.checkpoint_dir
             else:
                 working_in = 'cwd'
-            info_checkpoint.header += ': every {} time steps, working in {}'.format(self.checkpoint_every, working_in)
+            info_checkpoint.header += f': every {self.checkpoint_every} time steps, working in {working_in}'
         else:
             info_checkpoint.header += ': disabled'
 
@@ -1428,10 +1428,10 @@ class SphericalHarmonicSimulation(MeshSimulation):
 
         if renormalize:
             overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$' for sph_harm in self.spec.spherical_harmonics]
         else:
             overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(sph_harm.latex) for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2$' for sph_harm in self.spec.spherical_harmonics]
         num_colors = len(overlaps)
         ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
         ax_momentums.stackplot(self.times / u.asec, *overlaps, alpha = 1, labels = l_labels)
@@ -1453,7 +1453,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
         if renormalize:
             y_label += r'$/\left\langle \Psi|\Psi \right\rangle$'
         ax_momentums.set_ylabel(y_label, fontsize = 15)
-        ax_field.set_ylabel('${}(t)$ (a.u.)'.format(vis.LATEX_EFIELD), fontsize = 11)
+        ax_field.set_ylabel(rf'${vis.LATEX_EFIELD}(t)$ (a.u.)', fontsize = 11)
 
         ax_momentums.legend(bbox_to_anchor = (1.1, 1), loc = 'upper left', borderaxespad = 0., fontsize = 10, ncol = 1 + (len(self.spec.spherical_harmonics) // 17))
 
@@ -1483,7 +1483,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
         prefix = self.file_name
         if use_name:
             prefix = self.name
-        si.vis.save_current_figure(name = prefix + '__angular_momentum_vs_time{}'.format(postfix), **kwargs)
+        si.vis.save_current_figure(name = prefix + f'__angular_momentum_vs_time{postfix}', **kwargs)
 
         plt.close()
 

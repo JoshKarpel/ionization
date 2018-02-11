@@ -22,7 +22,7 @@ class Snapshot:
         return self.sim.times[self.time_index]
 
     def __str__(self):
-        return 'Snapshot of {} at time {} as (time index = {})'.format(self.sim.name, u.uround(self.sim.times[self.time_index], u.asec, 3), self.time_index)
+        return f'Snapshot of {self} at time {u.uround(self.sim.times[self.time_index])} as (time index = {self.time_index})'
 
     def __repr__(self):
         return si.utils.field_str(self, 'sim', 'time_index')

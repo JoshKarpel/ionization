@@ -16,7 +16,7 @@ import scipy.integrate as integ
 import simulacra as si
 import simulacra.units as u
 
-from .. import potentials, states, vis, core, cy
+from .. import states, vis, core, cy, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -139,11 +139,7 @@ class QuantumMesh:
 
     def __eq__(self, other):
         """
-        Return whether the provided meshes are equal.
         QuantumMeshes should evaluate equal if and only if their Simulations are equal and their g (the only thing which carries state information) are the same.
-
-        :param other:
-        :return:
         """
         return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g, other.g)
 
@@ -152,10 +148,10 @@ class QuantumMesh:
         return hash(self.sim)
 
     def __str__(self):
-        return '{} for {}'.format(self.__class__.__name__, str(self.sim))
+        return f'{self.__class__.__name__} for {self.sim}'
 
     def __repr__(self):
-        return '{}(parameters = {}, simulation = {})'.format(self.__class__.__name__, repr(self.spec), repr(self.sim))
+        return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
 
     def get_g_for_state(self, state):
         raise NotImplementedError
@@ -202,6 +198,9 @@ class QuantumMesh:
     def norm(self, state = None):
         return np.abs(self.inner_product(a = state, b = state))
 
+    def __abs__(self):
+        return self.norm()
+
     def energy_expectation_value(self, include_interaction = False):
         raise NotImplementedError
 
@@ -210,12 +209,6 @@ class QuantumMesh:
 
     def z_dipole_moment_inner_product(self, a = None, b = None):
         raise NotImplementedError
-
-    def __abs__(self):
-        return self.norm()
-
-    def copy(self):
-        return deepcopy(self)
 
     @property
     def psi(self):
@@ -406,7 +399,7 @@ class LineMesh(QuantumMesh):
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
-            logger.warning('Replaced test states for {} with numeric eigenbasis'.format(self))
+            logger.warning(f'Replaced test states for {self} with numeric eigenbasis')
 
         self.g = self.get_g_for_state(self.spec.initial_state)
 
@@ -421,10 +414,10 @@ class LineMesh(QuantumMesh):
     def energies(self):
         return ((self.wavenumbers * u.hbar) ** 2) / (2 * self.spec.test_mass)
 
-    def flatten_mesh(self, mesh, flatten_along):
+    def flatten_mesh(self, mesh, flatten_along = None):
         return mesh
 
-    def wrap_vector(self, vector, wrap_along):
+    def wrap_vector(self, vector, wrap_along = None):
         return vector
 
     @si.utils.memoize
@@ -769,7 +762,7 @@ class CylindricalSliceMesh(QuantumMesh):
         elif flatten_along is None:
             return mesh
         else:
-            raise ValueError("{} is not a valid specifier for flatten_along (valid specifiers: 'z', 'rho')".format(flatten_along))
+            raise exceptions.InvalidWrappingDirection(f"{flatten_along} is not a valid specifier for flatten_along (valid specifiers: 'z', 'rho')")
 
         return mesh.flatten(flat)
 
@@ -781,7 +774,7 @@ class CylindricalSliceMesh(QuantumMesh):
         elif wrap_along is None:
             return vector
         else:
-            raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'rho')".format(wrap_along))
+            raise exceptions.InvalidWrappingDirection(f"{wrap_along} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'rho')")
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
@@ -1063,8 +1056,8 @@ class CylindricalSliceMesh(QuantumMesh):
             # if overlay_probability_current:
             #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            axis.set_xlabel(r'$z$ (${}$)'.format(unit_name), fontsize = axis_label_size)
-            axis.set_ylabel(r'$\rho$ (${}$)'.format(unit_name), fontsize = axis_label_size)
+            axis.set_xlabel(rf'$z$ (${unit_name}$)', fontsize = axis_label_size)
+            axis.set_ylabel(rf'$\rho$ (${unit_name}$)', fontsize = axis_label_size)
             if title is not None and title != '' and show_axes and show_title:
                 title = axis.set_title(title, fontsize = title_size)
                 title.set_y(title_y_adjust)  # move title up a bit
@@ -1161,7 +1154,7 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
         elif flatten_along is None:
             return mesh
         else:
-            raise ValueError("{} is not a valid specifier for flatten_along (valid specifiers: 'z', 'chi')".format(flatten_along))
+            raise exceptions.InvalidWrappingDirection(f"{flatten_along} is not a valid specifier for flatten_along (valid specifiers: 'z', 'chi')")
 
         return mesh.flatten(flat)
 
@@ -1173,7 +1166,7 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
         elif wrap_along is None:
             return vector
         else:
-            raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'chi')".format(wrap_along))
+            raise exceptions.InvalidWrappingDirection(f"{wrap_along} is not a valid specifier for wrap_vector (valid specifiers: 'z', 'chi')")
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
@@ -1423,7 +1416,7 @@ class SphericalSliceMesh(QuantumMesh):
         elif flatten_along is None:
             return mesh
         else:
-            raise ValueError("{} is not a valid specifier for flatten_mesh (valid specifiers: 'r', 'theta')".format(flatten_along))
+            raise ValueError(f"{flatten_along} is not a valid specifier for flatten_mesh (valid specifiers: 'r', 'theta')")
 
         return mesh.flatten(flat)
 
@@ -1435,7 +1428,7 @@ class SphericalSliceMesh(QuantumMesh):
         elif wrap_along is None:
             return vector
         else:
-            raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'r', 'theta')".format(wrap_along))
+            raise ValueError(f"{wrap_along} is not a valid specifier for wrap_vector (valid specifiers: 'r', 'theta')")
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
@@ -1681,7 +1674,7 @@ class SphericalSliceMesh(QuantumMesh):
         cbar.ax.tick_params(labelsize = 10)
 
         axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[color_map], **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
-        angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
+        angle_labels = [f'{s}\u00b0' for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
         axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
         axis.tick_params(axis = 'both', which = 'major', labelsize = 10)  # increase size of tick labels
@@ -1698,12 +1691,12 @@ class SphericalSliceMesh(QuantumMesh):
 
         tick_labels = axis.get_yticklabels()
         for t in tick_labels:
-            t.set_text(t.get_text() + r'${}$'.format(unit_name))
+            t.set_text(t.get_text() + rf'${unit_name}$')
         axis.set_yticklabels(tick_labels)
 
         axis.set_rmax((self.r_max - (self.delta_r / 2)) / unit_value)
 
-        si.vis.save_current_figure(name = '{}_{}'.format(self.spec.name, name), **kwargs)
+        si.vis.save_current_figure(name = f'{self.spec.name}_{name}', **kwargs)
 
         plt.close()
 
@@ -1727,13 +1720,11 @@ class SphericalHarmonicMesh(QuantumMesh):
         self.mesh_shape = np.shape(self.r_mesh)
 
         if self.spec.use_numeric_eigenstates:
-            logger.debug('Calculating numeric eigenstates')
-
             self.analytic_to_numeric = self.get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy, self.spec.numeric_eigenstate_max_angular_momentum)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
             self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
-            logger.warning('Replaced test states for {} with numeric eigenbasis'.format(self))
+            logger.warning(f'Replaced test states for {self} with numeric eigenbasis')
 
         self.g = self.get_g_for_state(self.spec.initial_state)
 
@@ -1761,7 +1752,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             elif flatten_along is None:
                 return mesh
             else:
-                raise ValueError("{} is not a valid specifier for flatten_mesh (valid specifiers: 'l', 'r')".format(flatten_along))
+                raise exceptions.InvalidWrappingDirection(f"{flatten_along} is not a valid specifier for flatten_mesh (valid specifiers: 'l', 'r')")
 
             return mesh.flatten(flat)
         except AttributeError:  # occurs if the "mesh" is actually an int or float, in which case we should should just return it
@@ -1775,7 +1766,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         elif wrap_along is None:
             return vector
         else:
-            raise ValueError("{} is not a valid specifier for wrap_vector (valid specifiers: 'l', 'r')".format(wrap_along))
+            raise exceptions.InvalidWrappingDirection(f"{wrap_along} is not a valid specifier for wrap_vector (valid specifiers: 'l', 'r')")
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
@@ -1801,7 +1792,6 @@ class SphericalHarmonicMesh(QuantumMesh):
     @si.utils.memoize
     def get_radial_g_for_state(self, state):
         """Return the radial g function evaluated on the radial mesh for a state that has a radial function."""
-        # logger.debug('Calculating radial wavefunction for state {}'.format(state))
         g = state.radial_function(self.r) * self.g_factor
         g /= np.sqrt(self.norm(g))
         g *= state.amplitude
@@ -2101,10 +2091,10 @@ class SphericalHarmonicMesh(QuantumMesh):
         vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
         return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
 
-    def get_numeric_eigenstate_basis(self, max_energy: float, l_max: int):
+    def get_numeric_eigenstate_basis(self, max_energy: float, max_angular_momentum: int):
         analytic_to_numeric = {}
 
-        for l in range(l_max + 1):
+        for l in range(max_angular_momentum + 1):
             h = self._get_internal_hamiltonian_matrix_operator_single_l(l = l)
 
             estimated_spacing = u.twopi / self.r_max
@@ -2145,9 +2135,9 @@ class SphericalHarmonicMesh(QuantumMesh):
 
                 analytic_to_numeric[analytic_state] = numeric_state
 
-            logger.debug('Generated numerical eigenbasis for l = {}, energy <= {} eV'.format(l, u.uround(max_energy, 'eV', 3)))
+            logger.debug(f'Generated numerical eigenbasis for l = {l}, energy <= {u.uround(max_energy, u.eV)} eV')
 
-        logger.debug('Generated numerical eigenbasis for l <= {}, energy <= {} eV. Found {} states.'.format(l_max, u.uround(max_energy, 'eV', 3), len(analytic_to_numeric)))
+        logger.debug(f'Generated numerical eigenbasis for l <= {max_angular_momentum}, energy <= {u.uround(max_energy, u.eV)} eV. Found {len(analytic_to_numeric)} states.')
 
         return analytic_to_numeric
 
@@ -2705,7 +2695,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                 cbar.ax.tick_params(labelsize = tick_label_size)
 
             axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap.name], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
-            angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
+            angle_labels = [f'{s}\u00b0' for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
             axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.09, labels = angle_labels)
 
             axis.tick_params(axis = 'both', which = 'major', labelsize = tick_label_size)  # increase size of tick labels
@@ -2722,7 +2712,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             tick_labels = axis.get_yticklabels()
             for t in tick_labels:
-                t.set_text(t.get_text() + fr'${unit_latex}$')
+                t.set_text(t.get_text() + rf'${unit_latex}$')
             axis.set_yticklabels(tick_labels)
 
             if plot_limit is not None and plot_limit < self.r_max:
@@ -2857,7 +2847,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             )
 
             axis.set_xlabel(r'$\ell$', fontsize = axis_label_size)
-            axis.set_ylabel(fr'$r$ (${unit_latex}$)', fontsize = axis_label_size)
+            axis.set_ylabel(rf'$r$ (${unit_latex}$)', fontsize = axis_label_size)
             if title is not None and title != '' and show_axes and show_title:
                 title = axis.set_title(title, fontsize = title_size)
                 title.set_y(title_y_adjust)  # move title up a bit
@@ -3001,7 +2991,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             axis.set_theta_zero_location('N')
             axis.set_theta_direction('clockwise')
 
-            figman.name += '__{}'.format(r_type)
+            figman.name += f'__{r_type}'
 
             norm = None
             if log:
@@ -3023,7 +3013,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             cbar.ax.tick_params(labelsize = 10)
 
             axis.grid(True, color = si.vis.COLOR_OPPOSITE_VIRIDIS, **si.vis.COLORMESH_GRID_KWARGS)  # change grid color to make it show up against the colormesh
-            angle_labels = ['{}\u00b0'.format(s) for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
+            angle_labels = [f'{s}\u00b0' for s in (0, 30, 60, 90, 120, 150, 180, 150, 120, 90, 60, 30)]  # \u00b0 is unicode degree symbol
             axis.set_thetagrids(np.arange(0, 359, 30), frac = 1.075, labels = angle_labels)
 
             axis.tick_params(axis = 'both', which = 'major', labelsize = 8)  # increase size of tick labels
@@ -3040,7 +3030,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             tick_labels = axis.get_yticklabels()
             for t in tick_labels:
-                t.set_text(t.get_text() + r'${}$'.format(r_unit_name))
+                t.set_text(t.get_text() + rf'${r_unit_name}$')
             axis.set_yticklabels(tick_labels)
 
             axis.set_rmax(np.nanmax(r_mesh) / r_unit_value)
