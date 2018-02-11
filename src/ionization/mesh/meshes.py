@@ -205,7 +205,10 @@ class QuantumMesh:
     def energy_expectation_value(self, include_interaction = False):
         raise NotImplementedError
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def radial_position_expectation_value(self):
+        return np.real(self.inner_product(b = self.r_mesh * self.g)) / self.norm()
+
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         raise NotImplementedError
 
     def __abs__(self):
@@ -467,7 +470,7 @@ class LineMesh(QuantumMesh):
 
         return np.real(energy) / self.norm()
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
 
     def fft(self, mesh = None):
@@ -805,7 +808,7 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return g
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
@@ -1197,7 +1200,7 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
 
         return g
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
@@ -1472,7 +1475,7 @@ class SphericalSliceMesh(QuantumMesh):
 
         return g
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
@@ -1852,7 +1855,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def norm_by_l(self):
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
-    def dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a = None, b = None):
         operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
         b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
         return -self.inner_product(a = a, b = b)

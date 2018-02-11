@@ -40,7 +40,7 @@ if __name__ == '__main__':
         print(sim.mesh.get_g_for_state(a_state))
         print((a_state.radial_function(sim.mesh.r) * sim.mesh.g_factor)[:30])
 
-        dipole_moment = np.abs(sim.mesh.dipole_moment_inner_product(mesh_a = sim.mesh.get_g_for_state(ion.HydrogenBoundState(2, 1))))
+        dipole_moment = np.abs(sim.mesh.z_dipole_moment_inner_product(mesh_a = sim.mesh.get_g_for_state(ion.HydrogenBoundState(2, 1))))
         print(dipole_moment)
 
         print()

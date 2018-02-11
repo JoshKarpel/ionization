@@ -112,7 +112,7 @@ if __name__ == '__main__':
         state_a = dummy.mesh.analytic_to_numeric[state_a]
         state_b = dummy.mesh.analytic_to_numeric[state_b]
 
-        dipole_moment = np.abs(dummy.mesh.dipole_moment_inner_product(b = state_b))
+        dipole_moment = np.abs(dummy.mesh.z_dipole_moment_inner_product(b = state_b))
 
         # print(f'calculated dipole moment between {state_a} and {state_b} is {dipole_moment / (proton_charge * bohr_radius)}')
         # print(np.sqrt(2) * (2 ** 7) / (3 ** 5))

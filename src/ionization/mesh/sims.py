@@ -62,16 +62,6 @@ class MeshSimulation(si.Simulation):
         self.vector_potential_amplitude_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
         # optional data storage initialization
-        if self.spec.store_radial_position_expectation_value:
-            self.radial_position_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        if self.spec.store_electric_dipole_moment_expectation_value:
-            self.electric_dipole_moment_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
-        if self.spec.store_energy_expectation_value:
-            self.internal_energy_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-            self.total_energy_expectation_value_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
-
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
@@ -102,32 +92,32 @@ class MeshSimulation(si.Simulation):
 
         mem_matrix_operators = 6 * mem_mesh
         mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric and state.g is not None)
-        mem_inner_products = sum(overlap.nbytes for overlap in self.inner_products_vs_time.values())
+        # mem_inner_products = sum(overlap.nbytes for overlap in self.data.inner_products_vs_time.values())
+        #
+        # mem_other_time_data = sum(x.nbytes for x in (
+        #     self.electric_field_amplitude_vs_time,
+        #     self.vector_potential_amplitude_vs_time,
+        #     self.norm_vs_time,
+        # ))
+        #
+        # for attr in (
+        #         'radial_position_expectation_value_vs_time',
+        #         'internal_energy_expectation_value_vs_time',
+        #         'total_energy_expectation_value_vs_time',
+        #         'electric_dipole_moment_expectation_value_vs_time'
+        #         'norm_diff_mask_vs_time',
+        #         'radial_probability_current_vs_time__pos_z',
+        #         'radial_probability_current_vs_time__neg_z',
+        # ):
+        #     try:
+        #         mem_other_time_data += getattr(self, attr).nbytes
+        #     except AttributeError:  # apparently we're not storing that data
+        #         pass
 
-        mem_other_time_data = sum(x.nbytes for x in (
-            self.electric_field_amplitude_vs_time,
-            self.vector_potential_amplitude_vs_time,
-            self.norm_vs_time,
-        ))
-
-        for attr in (
-                'radial_position_expectation_value_vs_time',
-                'internal_energy_expectation_value_vs_time',
-                'total_energy_expectation_value_vs_time',
-                'electric_dipole_moment_expectation_value_vs_time'
-                'norm_diff_mask_vs_time',
-                'radial_probability_current_vs_time__pos_z',
-                'radial_probability_current_vs_time__neg_z',
-        ):
-            try:
-                mem_other_time_data += getattr(self, attr).nbytes
-            except AttributeError:  # apparently we're not storing that data
-                pass
-
-        try:
-            mem_other_time_data += sum(h.nbytes for h in self.norm_by_harmonic_vs_time.values())
-        except AttributeError:
-            pass
+        # try:
+        #     mem_other_time_data += sum(h.nbytes for h in self.norm_by_harmonic_vs_time.values())
+        # except AttributeError:
+        #     pass
 
         mem_misc = sum(x.nbytes for x in (
             self.times,
@@ -224,25 +214,6 @@ class MeshSimulation(si.Simulation):
                 logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.norm_vs_time[self.data_time_index - 1]}) by more than .1% for {self.__class__.__name__} {self.name}')
         except IndexError:
             pass
-
-        if self.spec.store_radial_position_expectation_value:
-            self.radial_position_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.inner_product(b = self.mesh.r_mesh * self.mesh.g)) / self.mesh.norm()
-
-        if self.spec.store_energy_expectation_value:
-            self.internal_energy_expectation_value_vs_time[self.data_time_index] = self.mesh.energy_expectation_value(include_interaction = False)
-            self.total_energy_expectation_value_vs_time[self.data_time_index] = self.mesh.energy_expectation_value(include_interaction = True)
-
-        if self.spec.store_electric_dipole_moment_expectation_value:
-            self.electric_dipole_moment_expectation_value_vs_time[self.data_time_index] = np.real(self.mesh.dipole_moment_inner_product())
-
-        for state in self.spec.test_states:
-            self.inner_products_vs_time[state][self.data_time_index] = self.mesh.inner_product(state)
-
-        self.electric_field_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_electric_field_amplitude(t = self.data_times[self.data_time_index])
-        self.vector_potential_amplitude_vs_time[self.data_time_index] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.times_to_current)
-
-        for callback in self.spec.store_data_callbacks:
-            callback(self)
 
         logger.debug(f'{self.__class__.__name__} {self.name} stored data for time index {self.time_index} (data time index {self.data_time_index})')
 
@@ -949,17 +920,13 @@ class MeshSpecification(si.Specification):
                  checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
                  checkpoint_dir: Optional[str] = None,
                  animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
-                 store_radial_position_expectation_value = False,
-                 store_electric_dipole_moment_expectation_value = False,
-                 store_energy_expectation_value = False,
                  store_norm_diff_mask = False,
-                 store_data_callbacks = (),
                  store_data_every: int = 1,
                  snapshot_times = (),
                  snapshot_indices = (),
                  snapshot_type = None,
                  snapshot_kwargs: Optional[dict] = None,
-                 datastore_types = (data.Norm, data.InnerProducts),
+                 datastore_types: Iterable[data.Datastore] = data.DEFAULT_DATASTORES,
                  **kwargs):
         """
         Initialize an ElectricFieldSpecification instance from the given parameters.
@@ -1025,12 +992,7 @@ class MeshSpecification(si.Specification):
 
         self.animators = deepcopy(tuple(animators))
 
-        self.store_radial_position_expectation_value = store_radial_position_expectation_value
-        self.store_electric_dipole_moment_expectation_value = store_electric_dipole_moment_expectation_value
-        self.store_energy_expectation_value = store_energy_expectation_value
         self.store_norm_diff_mask = store_norm_diff_mask
-
-        self.store_data_callbacks = store_data_callbacks
 
         self.store_data_every = int(store_data_every)
 
@@ -1095,19 +1057,19 @@ class MeshSpecification(si.Specification):
         info.add_info(info_potentials)
 
         info_analysis = si.Info(header = 'Analysis')
-        info_analysis.add_field('Test Charge', f'{u.uround(self.test_charge, u.proton_charge, 3)} e')
-        info_analysis.add_field('Test Mass', f'{u.uround(self.test_mass, u.electron_mass, 3)} m_e | {u.uround(self.test_mass, u.electron_mass_reduced, 3)} mu_e')
+
+        info_test_particle = si.Info(header = 'Test Particle')
+        info_test_particle.add_field('Charge', f'{u.uround(self.test_charge, u.proton_charge, 3)} e')
+        info_test_particle.add_field('Mass', f'{u.uround(self.test_mass, u.electron_mass, 3)} m_e | {u.uround(self.test_mass, u.electron_mass_reduced, 3)} mu_e')
+        info_analysis.add_info(info_test_particle)
+
         if len(self.test_states) > 10:
             info_analysis.add_field(f'Test States (first 5 of {len(self.test_states)})', ', '.join(str(s) for s in sorted(self.test_states)[:5]))
         else:
             info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
-        info_analysis.add_field('Store Radial Position EV', self.store_radial_position_expectation_value)
-        info_analysis.add_field('Store Dipole Moment EV', self.store_electric_dipole_moment_expectation_value)
-        info_analysis.add_field('Store Energy EV', self.store_energy_expectation_value)
-        try:
-            info_analysis.add_field('Store Radial Probability Current', self.store_radial_probability_current)
-        except AttributeError:
-            pass
+
+        info_analysis.add_field('Datastores', ', '.join(ds.__name__ for ds in self.datastore_types))
+
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
         info_analysis.add_field('Snapshot Times', (f'{u.uround(st, u.asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')

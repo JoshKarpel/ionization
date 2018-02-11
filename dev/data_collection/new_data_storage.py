@@ -61,14 +61,10 @@ if __name__ == '__main__':
         for k, v in sim2.data.state_overlaps.items():
             print(k, v)
 
-        # print()
-        # print(sim.data.norm)
-        # print(sim.datastores[0].norm)
-        #
-        # print()
-        # print(sim.data.inner_products)
-        # print(sim.datastores[1].inner_products)
-        #
-        # print()
-        # print(sim.data.state_overlaps())
-        # print(sim.datastores[1].state_overlaps())
+        print()
+
+        print('initial', sim.data.initial_state_inner_product)
+        for k, v in sim.data.inner_products.items():
+            print(k, v)
+
+        print(sim.info())
