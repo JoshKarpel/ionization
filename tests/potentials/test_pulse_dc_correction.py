@@ -10,10 +10,10 @@ import ionization as ion
 @pytest.mark.parametrize(
     'spec_type',
     [
-        ion.LineSpecification,
-        ion.CylindricalSliceSpecification,
-        ion.SphericalSliceSpecification,
-        ion.SphericalHarmonicSpecification,
+        ion.mesh.LineSpecification,
+        ion.mesh.CylindricalSliceSpecification,
+        ion.mesh.SphericalSliceSpecification,
+        ion.mesh.SphericalHarmonicSpecification,
         ion.ide.IntegroDifferentialEquationSpecification,
     ]
 )

@@ -7,7 +7,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from ionization import core
+from ... import vis
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -86,8 +86,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             self.electric_field_line, = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
                 self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
-                label = fr'${core.LATEX_EFIELD}(t)$',
-                color = core.COLOR_ELECTRIC_FIELD, linewidth = self.linewidth,
+                label = fr'${vis.LATEX_EFIELD}(t)$',
+                color = vis.COLOR_EFIELD, linewidth = self.linewidth,
                 animated = True,
             )
 
@@ -97,8 +97,8 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             self.vector_potential_line, = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
                 u.proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
-                label = fr'$q \, {core.LATEX_AFIELD}(t)$',
-                color = core.COLOR_VECTOR_POTENTIAL, linewidth = self.linewidth, linestyle = '--',
+                label = fr'$q \, {vis.LATEX_AFIELD}(t)$',
+                color = vis.COLOR_AFIELD, linewidth = self.linewidth, linestyle = '--',
                 animated = True,
             )
 
@@ -426,7 +426,7 @@ class ColorBarAxis(si.vis.AxisManager):
 class QuantumMeshAxis(si.vis.AxisManager):
     def __init__(self,
                  which = 'g2',
-                 colormap = core.COLORMAP_WAVEFUNCTION,
+                 colormap = vis.COLORMAP_WAVEFUNCTION,
                  norm = si.vis.AbsoluteRenormalize(),
                  plot_limit = None,
                  distance_unit = 'bohr_radius',
@@ -545,7 +545,7 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
         unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
 
         if self.which == 'g':
-            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
+            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
 
         self.mesh = self.attach_method(
             self.axis,
@@ -592,16 +592,18 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
 
     def initialize_axis(self):
         if self.which == 'g':
-            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / core.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
+            self.norm.equator_magnitude = np.max(np.abs(self.sim.mesh.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR)
 
-        self.mesh = self.attach_method(self.axis,
-                                       colormap = self.colormap,
-                                       norm = self.norm,
-                                       shading = self.shading,
-                                       plot_limit = self.plot_limit,
-                                       distance_unit = self.distance_unit,
-                                       slicer = self.slicer,
-                                       animated = True)
+        self.mesh = self.attach_method(
+            self.axis,
+            colormap = self.colormap,
+            norm = self.norm,
+            shading = self.shading,
+            plot_limit = self.plot_limit,
+            distance_unit = self.distance_unit,
+            slicer = self.slicer,
+            animated = True,
+        )
         self.redraw.append(self.mesh)
 
         unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)

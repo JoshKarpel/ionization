@@ -10,24 +10,24 @@ import simulacra.units as u
 from tests import testutils
 
 SPEC_TYPES = [
-    ion.LineSpecification,
-    ion.CylindricalSliceSpecification,
-    ion.SphericalSliceSpecification,
-    ion.SphericalHarmonicSpecification,
+    ion.mesh.LineSpecification,
+    ion.mesh.CylindricalSliceSpecification,
+    ion.mesh.SphericalSliceSpecification,
+    ion.mesh.SphericalHarmonicSpecification,
 ]
 
 THREE_DIMENSIONAL_SPEC_TYPES = [
-    ion.CylindricalSliceSpecification,
-    ion.SphericalSliceSpecification,
-    ion.SphericalHarmonicSpecification,
+    ion.mesh.CylindricalSliceSpecification,
+    ion.mesh.SphericalSliceSpecification,
+    ion.mesh.SphericalHarmonicSpecification,
 ]
 
 SPEC_TYPES_WITH_NUMERIC_EIGENSTATES = [
-    ion.LineSpecification,
-    ion.SphericalHarmonicSpecification,
+    ion.mesh.LineSpecification,
+    ion.mesh.SphericalHarmonicSpecification,
 ]
 
-LOW_N_HYDROGEN_BOUND_STATES = [ion.states.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
+LOW_N_HYDROGEN_BOUND_STATES = [ion.mesh.states.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
 
 EVOLUTION_GAUGES = ['LEN', 'VEL']
 
@@ -69,7 +69,7 @@ class TestMeshSavingAndLoading:
     LOW_N_HYDROGEN_BOUND_STATES
 )
 def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_numeric_eigenstates(initial_state):
-    sim = ion.SphericalHarmonicSpecification(
+    sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
         evolution_gauge = 'LEN',
@@ -92,7 +92,7 @@ def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_num
     LOW_N_HYDROGEN_BOUND_STATES
 )
 def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_crank_nicholson_evolution(initial_state):
-    sim = ion.SphericalHarmonicSpecification(
+    sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
         evolution_gauge = 'LEN',
@@ -127,7 +127,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
     )
 )
 def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_split_operator_evolution(initial_state, evolution_gauge):
-    sim = ion.SphericalHarmonicSpecification(
+    sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
         evolution_gauge = evolution_gauge,

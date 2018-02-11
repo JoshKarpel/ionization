@@ -16,7 +16,11 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class UniformLinearlyPolarizedElectricPotential(potential.PotentialEnergy):
+class ElectricPotential(potential.PotentialEnergy):
+    pass
+
+
+class UniformLinearlyPolarizedElectricPotential(ElectricPotential):
     def __init__(self, window = windows.NoTimeWindow()):
         super().__init__()
 
@@ -185,11 +189,11 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     def __str__(self):
         out = '{}(omega = 2pi * {} THz, wavelength = {} u.nm, photon energy = {} u.eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
-                                                                                                                                       u.uround(self.frequency, u.THz),
-                                                                                                                                       u.uround(self.wavelength, u.nm, 3),
-                                                                                                                                       u.uround(self.photon_energy, u.eV),
-                                                                                                                                       u.uround(self.amplitude, u.atomic_electric_field, 3),
-                                                                                                                                       u.uround(self.phase, u.twopi, 3))
+                                                                                                                                     u.uround(self.frequency, u.THz),
+                                                                                                                                     u.uround(self.wavelength, u.nm, 3),
+                                                                                                                                     u.uround(self.photon_energy, u.eV),
+                                                                                                                                     u.uround(self.amplitude, u.atomic_electric_field, 3),
+                                                                                                                                     u.uround(self.phase, u.twopi, 3))
 
         return out + super().__str__()
 
