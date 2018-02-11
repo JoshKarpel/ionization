@@ -17,7 +17,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import potentials, states, vis, core
-from . import meshes, anim, snapshots
+from . import meshes, anim, snapshots, data
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -75,6 +75,9 @@ class MeshSimulation(si.Simulation):
         if self.spec.store_norm_diff_mask:
             self.norm_diff_mask_vs_time = np.zeros(self.data_time_steps, dtype = np.float64) * np.NaN
 
+        self.data = data.Data(self)
+        self.datastores = {datastore_type.__name__: datastore_type(self) for datastore_type in self.spec.datastore_types}
+
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
 
@@ -88,6 +91,9 @@ class MeshSimulation(si.Simulation):
         self.snapshots = dict()
 
         self.warnings = collections.defaultdict(list)
+
+    def get_blank_data(self, dtype = np.float64) -> np.array:
+        return np.zeros(self.data_time_steps, dtype = dtype) * np.NaN
 
     def info(self) -> si.Info:
         info = super().info()
@@ -206,6 +212,9 @@ class MeshSimulation(si.Simulation):
 
     def store_data(self):
         """Update the time-indexed data arrays with the current values."""
+        for datastore in self.datastores.values():
+            datastore.store()
+
         norm = self.mesh.norm()
         self.norm_vs_time[self.data_time_index] = norm
         if norm > 1.001 * self.norm_vs_time[0]:
@@ -950,6 +959,7 @@ class MeshSpecification(si.Specification):
                  snapshot_indices = (),
                  snapshot_type = None,
                  snapshot_kwargs: Optional[dict] = None,
+                 datastore_types = (data.Norm, data.InnerProducts),
                  **kwargs):
         """
         Initialize an ElectricFieldSpecification instance from the given parameters.
@@ -1032,6 +1042,8 @@ class MeshSpecification(si.Specification):
         if snapshot_kwargs is None:
             snapshot_kwargs = dict()
         self.snapshot_kwargs = snapshot_kwargs
+
+        self.datastore_types = datastore_types
 
     def info(self) -> si.Info:
         info = super().info()
