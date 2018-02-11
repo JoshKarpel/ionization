@@ -17,7 +17,7 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from .. import potentials, states, vis, core
+from .. import potentials, states, vis, core, exceptions
 from . import meshes, anim, snapshots, data
 
 logger = logging.getLogger(__name__)
@@ -42,7 +42,7 @@ class MeshSimulation(si.Simulation):
         self.data_time_index = 0
         self.time_steps = len(self.times)
 
-        self.initialize_mesh()
+        self.mesh = self.spec.mesh_type(self)
 
         # simulation data storage
         time_indices = np.array(range(0, self.time_steps))
@@ -119,20 +119,16 @@ class MeshSimulation(si.Simulation):
         return self.times[:self.time_index + 1]
 
     @property
-    def state_overlaps_vs_time(self) -> Dict[states.QuantumState, np.array]:
-        return {state: np.abs(inner_product) ** 2 for state, inner_product in self.inner_products_vs_time.items()}
-
-    @property
     def total_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for overlap in self.state_overlaps_vs_time.values())
+        return np.sum(overlap for overlap in self.data.state_overlaps_vs_time.values())
 
     @property
     def total_bound_state_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for state, overlap in self.state_overlaps_vs_time.items() if state.bound)
+        return np.sum(overlap for state, overlap in self.data.state_overlaps_vs_time.items() if state.bound)
 
     @property
     def total_free_state_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for state, overlap in self.state_overlaps_vs_time.items() if state.free)
+        return np.sum(overlap for state, overlap in self.data.state_overlaps_vs_time.items() if state.free)
 
     def get_times(self) -> np.array:
         if not callable(self.spec.time_step):
@@ -153,11 +149,6 @@ class MeshSimulation(si.Simulation):
             times = np.array(times)
 
         return times
-
-    def initialize_mesh(self):
-        self.mesh = self.spec.mesh_type(self)
-
-        logger.debug(f'Initialized mesh for {self}')
 
     def store_data(self):
         """Update the time-indexed data arrays with the current values."""
@@ -822,18 +813,17 @@ class MeshSimulation(si.Simulation):
         """
 
         if not save_mesh:
-            try:
-                for state in self.spec.test_states:  # remove numeric eigenstate information
-                    state.g = None
+            for state in self.spec.test_states:  # remove numeric eigenstate information
+                state.g = None
 
+            try:
                 mesh = self.mesh.copy()
                 self.mesh = None
-
             except AttributeError:  # mesh is already None
                 mesh = None
 
         if len(self.spec.animators) > 0:
-            raise si.SimulacraException('Cannot pickle Simulation with Animators')
+            raise exceptions.IonizationException('Cannot pickle simulation containing animators')
 
         out = super().save(target_dir = target_dir, file_extension = file_extension, **kwargs)
 
@@ -841,16 +831,6 @@ class MeshSimulation(si.Simulation):
             self.mesh = mesh
 
         return out
-
-    @classmethod
-    def load(cls, file_path: str, initialize_mesh: bool = False):
-        """Return a simulation loaded from the file_path."""
-        sim = super().load(file_path)
-
-        if initialize_mesh:
-            sim.initialize_mesh()
-
-        return sim
 
 
 class MeshSpecification(si.Specification):
@@ -869,7 +849,6 @@ class MeshSpecification(si.Specification):
                  test_charge: float = u.electron_charge,
                  initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
                  test_states: Iterable[states.QuantumState] = tuple(),
-                 dipole_gauges = (),
                  internal_potential: potentials.PotentialEnergy = potentials.Coulomb(charge = u.proton_charge),
                  electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction: bool = False,
@@ -935,7 +914,6 @@ class MeshSpecification(si.Specification):
         self.test_states = tuple(sorted(tuple(test_states)))  # consume input iterators
         if len(self.test_states) == 0:
             self.test_states = [self.initial_state]
-        self.dipole_gauges = tuple(sorted(tuple(dipole_gauges)))
 
         self.internal_potential = internal_potential
         self.electric_potential = electric_potential

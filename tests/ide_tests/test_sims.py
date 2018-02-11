@@ -39,7 +39,7 @@ def test_with_no_potential_final_state_is_initial_state_length_gauge(evolution_m
         evolution_method = evolution_method_type(),
     ).to_simulation()
 
-    sim.run_simulation()
+    sim.run()
 
     np.testing.assert_allclose(sim.b[-1], b_initial)
 
@@ -76,6 +76,6 @@ def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_a
         kernel = ide.LengthGaugeHydrogenKernel(),
     ).to_simulation()
 
-    sim.run_simulation()
+    sim.run()
 
     np.testing.assert_allclose(sim.b2[-1], EXPECTED_TEST_RESULTS[evolution_method_type])

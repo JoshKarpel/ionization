@@ -65,7 +65,7 @@ if __name__ == '__main__':
         specs = []
         for evolution_method in ('CN', 'SO', 'S'):
             specs.append(
-                ion.LineSpecification(
+                ion.mesh.LineSpecification(
                     f'Line_HAM_{evolution_method}_LEN',
                     evolution_equations = 'HAM',
                     evolution_method = evolution_method,
@@ -74,7 +74,7 @@ if __name__ == '__main__':
                 )
             )
         specs.append(
-            ion.CylindricalSliceSpecification(
+            ion.mesh.CylindricalSliceSpecification(
                 f'CylindricalSlice_HAM_CN_LEN',
                 evolution_equations = 'HAM',
                 evolution_method = 'CN',
@@ -83,7 +83,7 @@ if __name__ == '__main__':
             )
         )
         specs.append(
-            ion.SphericalSliceSpecification(
+            ion.mesh.SphericalSliceSpecification(
                 f'SphericalSlice_HAM_CN_LEN',
                 evolution_equations = 'HAM',
                 evolution_method = 'CN',
@@ -92,7 +92,7 @@ if __name__ == '__main__':
             )
         )
         specs.append(
-            ion.SphericalHarmonicSpecification(
+            ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_CN_LEN',
                 evolution_equations = 'LAG',
                 evolution_method = 'CN',
@@ -102,46 +102,35 @@ if __name__ == '__main__':
         )
         for evolution_gauge in ('LEN', 'VEL'):
             specs.append(
-                ion.SphericalHarmonicSpecification(
+                ion.mesh.SphericalHarmonicSpecification(
                     f'SphericalHarmonic_LAG_SO_{evolution_gauge}',
                     evolution_equations = 'LAG',
                     evolution_method = 'SO',
                     evolution_gauge = evolution_gauge,
+                    use_numeric_eigenstates = True,
+                    numeric_eigenstate_max_energy = 20 * u.eV,
+                    numeric_eigenstate_max_angular_momentum = 3,
                     **shared_spec_kwargs
                 )
             )
 
-        results = si.utils.multi_map(run, specs, processes = 3)
-        for r in results:
-            print(r.info())
-            print()
+        results = si.utils.multi_map(run, specs, processes = 4)
 
-        si.vis.xxyy_plot(
-            'method_comparison',
-            [
-                *[r.data_times for r in results]
-            ],
-            [
-                *[r.state_overlaps_vs_time[r.spec.initial_state] for r in results]
-            ],
-            line_labels = [', '.join((r.__class__.__name__, r.spec.evolution_method, r.spec.evolution_gauge)) for r in results],
-            x_unit = 'asec',
-            x_label = r'$t$',
-            **PLOT_KWARGS,
-        )
+        identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.evolution_equations, r.spec.evolution_method, r.spec.evolution_gauge): r.data.initial_state_overlap[-1] for r in results}
 
-        identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.evolution_equations, r.spec.evolution_method, r.spec.evolution_gauge): r.state_overlaps_vs_time[r.spec.initial_state][-1] for r in results}
-        for k, v in identifier_to_final_initial_overlap.items():
-            print(k, v)
+        ### look at results before comparison
+        # for k, v in identifier_to_final_initial_overlap.items():
+        #     print(k, v)
+
         expected_results = {
-            (ion.LineMesh, 'HAM', 'CN', 'LEN'): 0.0143651217635,
-            (ion.LineMesh, 'HAM', 'SO', 'LEN'): 0.0143755731217,
-            (ion.LineMesh, 'HAM', 'S', 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
-            (ion.CylindricalSliceMesh, 'HAM', 'CN', 'LEN'): 0.293741923689,
-            (ion.SphericalSliceMesh, 'HAM', 'CN', 'LEN'): 0.178275457029,
-            (ion.SphericalHarmonicMesh, 'LAG', 'CN', 'LEN'): 0.31291499645,
-            (ion.SphericalHarmonicMesh, 'LAG', 'SO', 'LEN'): 0.312873123597,
-            (ion.SphericalHarmonicMesh, 'LAG', 'SO', 'VEL'): 0.319447857317,
+            (ion.mesh.LineMesh, 'HAM', 'CN', 'LEN'): 0.0143651217635,
+            (ion.mesh.LineMesh, 'HAM', 'SO', 'LEN'): 0.0143755731217,
+            (ion.mesh.LineMesh, 'HAM', 'S', 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
+            (ion.mesh.CylindricalSliceMesh, 'HAM', 'CN', 'LEN'): 0.293741923689,
+            (ion.mesh.SphericalSliceMesh, 'HAM', 'CN', 'LEN'): 0.178275457029,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', 'CN', 'LEN'): 0.31291499645,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', 'SO', 'LEN'): 0.312928752359,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', 'SO', 'VEL'): 0.319513371899,
         }
 
         summary = 'Results:\n'
