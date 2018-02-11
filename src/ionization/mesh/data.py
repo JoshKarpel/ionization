@@ -1,5 +1,5 @@
 import sys
-from abc import ABC, abstractmethod
+import abc
 
 import numpy as np
 
@@ -19,7 +19,7 @@ class Data:
         return f'{self.__class__.__name__}(sim = {repr(self.sim)}'
 
 
-class Datastore(ABC):
+class Datastore(abc.ABC):
     """Handles storing and reporting a type of time-indexed data for a MeshSimulation."""
 
     def __init__(self, sim: 'sims.MeshSimulation'):
@@ -30,17 +30,17 @@ class Datastore(ABC):
         self.init()
         self.attach()
 
-    @abstractmethod
+    @abc.abstractmethod
     def init(self):
         """Initialize the data storage containers."""
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def store(self):
         """Store data for the current time step."""
         raise NotImplementedError
 
-    @abstractmethod
+    @abc.abstractmethod
     def attach(self):
         """Attach references to the simulation's Data object."""
         raise NotImplementedError

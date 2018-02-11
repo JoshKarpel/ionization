@@ -6,6 +6,7 @@ import logging
 import sys
 from copy import copy, deepcopy
 from typing import Union, Optional, Iterable, Dict, Callable
+import abc
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -24,7 +25,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class MeshSimulation(si.Simulation):
+class MeshSimulation(si.Simulation, abc.ABC):
     def __init__(self, spec: 'MeshSpecification'):
         super().__init__(spec)
 
@@ -836,8 +837,8 @@ class MeshSimulation(si.Simulation):
         return out
 
 
-class MeshSpecification(si.Specification):
-    """A base Specification for a Simulation with an electric field."""
+class MeshSpecification(si.Specification, abc.ABC):
+    """A base Specification for a Simulation with a QuantumMesh."""
 
     simulation_type = MeshSimulation
     mesh_type = meshes.QuantumMesh
@@ -852,7 +853,7 @@ class MeshSpecification(si.Specification):
                  test_charge: float = u.electron_charge,
                  initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
                  test_states: Iterable[states.QuantumState] = tuple(),
-                 internal_potential: potentials.PotentialEnergy = potentials.Coulomb(charge = u.proton_charge),
+                 internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
                  electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction: bool = False,
                  mask: potentials.Mask = potentials.NoMask(),
@@ -866,7 +867,6 @@ class MeshSpecification(si.Specification):
                  checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
                  checkpoint_dir: Optional[str] = None,
                  animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
-                 store_norm_diff_mask = False,
                  store_data_every: int = 1,
                  snapshot_times = (),
                  snapshot_indices = (),
@@ -875,38 +875,34 @@ class MeshSpecification(si.Specification):
                  datastore_types: Iterable[data.Datastore] = data.DEFAULT_DATASTORES,
                  **kwargs):
         """
-        Initialize an ElectricFieldSpecification instance from the given parameters.
-
-        This class should generally not be instantiated directly - its subclasses contain information about the mesh that is necessary to create an actual ElectricFieldSimulation.
-
-        :param name: the name of the Specification
-        :param mesh_type: the type of QuantumMesh that will be used in the Simulation.
-        :param test_mass: the mass of the test particle
-        :param test_charge: the charge of the test particle
-        :param initial_state: the initial QuantumState of the test particle
-        :param test_states: a list of states to perform inner products with during time evolution
-        :param dipole_gauges: a list of dipole gauges to check the expectation value of during time evolution
-        :param internal_potential: the time-independent part of the potential the particle experiences
-        :param electric_potential: the electric field (possibly time-dependent) that the particle experiences
-        :param electric_potential_dc_correction: if True, perform DC correction on the electric field
-        :param mask: a mask function to be applied to the QuantumMesh after every time step
-        :param evolution_method: which evolution method to use. Options are 'CN' (Crank-Nicolson), 'SO' (Split-Operator), and 'S' (Spectral). Only certain options are available for certain meshes.
-        :param evolution_equations: which form of the evolution equations to use. Options are 'L' (Lagrangian) and 'H' (Hamiltonian). Most meshes use 'H'.
-        :param evolution_gauge: which form of the interaction operator to use. Options are 'L' (Length) or 'V' (Velocity).
-        :param time_initial: the initial time
-        :param time_final: the final time
-        :param time_step: the time step
-        :param minimum_time_final: the minimum final time the Simulation will run to (i.e., if this is longer than time_final, more time will be added to the Simulation)
-        :param extra_time_step: the time step to use during extra time from minimum_final_time
-        :param checkpoints: if True, a checkpoint file will be maintained during time evolution
-        :param checkpoint_every: how many time steps to calculate between checkpoints
-        :param checkpoint_dir: a directory path to store the checkpoint file in
-        :param animators: a list of Animators which will be run during time evolution
-        :param store_data_every: decimate by this is if >= 1, else store only initial and final
-        :param snapshot_times:
-        :param snapshot_indices:
-        :param snapshot_types:
-        :param kwargs:
+        Parameters
+        ----------
+        name
+        test_mass
+        test_charge
+        initial_state
+        test_states
+        internal_potential
+        electric_potential
+        electric_potential_dc_correction
+        mask
+        evolution_method
+        evolution_equations
+        evolution_gauge
+        time_initial
+        time_final
+        time_step
+        checkpoints
+        checkpoint_every
+        checkpoint_dir
+        animators
+        store_data_every
+        snapshot_times
+        snapshot_indices
+        snapshot_type
+        snapshot_kwargs
+        datastore_types
+        kwargs
         """
         super().__init__(name, **kwargs)
 
@@ -975,10 +971,10 @@ class MeshSpecification(si.Specification):
 
         info_evolution = si.Info(header = 'Time Evolution')
         info_evolution.add_field('Initial State', str(self.initial_state))
-        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec, 3)} as | {u.uround(self.time_initial, u.fsec, 3)} fs | {u.uround(self.time_initial, u.atomic_time, 3)} a.u.')
-        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec, 3)} as | {u.uround(self.time_final, u.fsec, 3)} fs | {u.uround(self.time_final, u.atomic_time, 3)} a.u.')
+        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec)} as | {u.uround(self.time_initial, u.fsec)} fs | {u.uround(self.time_initial, u.atomic_time, 3)} a.u.')
+        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec)} as | {u.uround(self.time_final, u.fsec, 3)} fs | {u.uround(self.time_final, u.atomic_time, 3)} a.u.')
         if not callable(self.time_step):
-            info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec, 3)} as | {u.uround(self.time_step, u.atomic_time, 3)} a.u.')
+            info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec)} as | {u.uround(self.time_step, u.atomic_time)} a.u.')
         else:
             info_evolution.add_field('Time Step', f'determined by {self.time_step}')
 
@@ -1001,8 +997,8 @@ class MeshSpecification(si.Specification):
         info_analysis = si.Info(header = 'Analysis')
 
         info_test_particle = si.Info(header = 'Test Particle')
-        info_test_particle.add_field('Charge', f'{u.uround(self.test_charge, u.proton_charge, 3)} e')
-        info_test_particle.add_field('Mass', f'{u.uround(self.test_mass, u.electron_mass, 3)} m_e | {u.uround(self.test_mass, u.electron_mass_reduced, 3)} mu_e')
+        info_test_particle.add_field('Charge', f'{u.uround(self.test_charge, u.proton_charge)} e')
+        info_test_particle.add_field('Mass', f'{u.uround(self.test_mass, u.electron_mass)} m_e | {u.uround(self.test_mass, u.electron_mass_reduced)} mu_e')
         info_analysis.add_info(info_test_particle)
 
         if len(self.test_states) > 10:
@@ -1014,7 +1010,7 @@ class MeshSpecification(si.Specification):
 
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
-        info_analysis.add_field('Snapshot Times', (f'{u.uround(st, u.asec, 3)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
+        info_analysis.add_field('Snapshot Times', (f'{u.uround(st, u.asec)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
 
         info.add_info(info_analysis)
 
@@ -1053,9 +1049,9 @@ class LineSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('X Boundary', f'{u.uround(self.x_bound, u.bohr_radius, 3)} a_0 | {u.uround(self.x_bound, u.nm, 3)} nm')
+        info_mesh.add_field('X Boundary', f'{u.uround(self.x_bound, u.bohr_radius)} a_0 | {u.uround(self.x_bound, u.nm)} nm')
         info_mesh.add_field('X Points', self.x_points)
-        info_mesh.add_field('X Mesh Spacing', f'~{u.uround(self.x_bound / self.x_points, u.bohr_radius, 3)} a_0 | {u.uround(self.x_bound / self.x_points, u.nm, 3)} nm')
+        info_mesh.add_field('X Mesh Spacing', f'~{u.uround(self.x_bound / self.x_points, u.bohr_radius)} a_0 | {u.uround(self.x_bound / self.x_points, u.nm)} nm')
 
         info.add_info(info_mesh)
 
@@ -1098,12 +1094,12 @@ class CylindricalSliceSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius)} a_0')
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius, 3)} a_0')
-        info_mesh.add_field('Rho Boundary', f'{u.uround(self.rho_bound, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('Rho Boundary', f'{u.uround(self.rho_bound, u.bohr_radius)} a_0')
         info_mesh.add_field('Rho Points', self.rho_points)
-        info_mesh.add_field('Rho Mesh Spacing', f'~{u.uround(self.rho_bound / self.rho_points, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('Rho Mesh Spacing', f'~{u.uround(self.rho_bound / self.rho_points, u.bohr_radius)} a_0')
         info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
 
         info.add_info(info_mesh)
@@ -1185,12 +1181,12 @@ class SphericalSliceSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius)} a_0')
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius)} a_0')
         info_mesh.add_field('Theta Points', self.theta_points)
-        info_mesh.add_field('Theta Mesh Spacing', f'~{u.uround(u.pi / self.theta_points, u.bohr_radius, 3)} a_0')
-        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{u.uround(u.pi * self.r_bound / self.theta_points, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('Theta Mesh Spacing', f'~{u.uround(u.pi / self.theta_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{u.uround(u.pi * self.r_bound / self.theta_points, u.bohr_radius)} a_0')
         info_mesh.add_field('Total Mesh Points', int(self.r_points * self.theta_points))
 
         info.add_info(info_mesh)

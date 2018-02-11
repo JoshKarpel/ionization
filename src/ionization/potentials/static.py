@@ -6,7 +6,7 @@ import simulacra.units as u
 from . import potential
 
 
-class Coulomb(potential.PotentialEnergy):
+class CoulombPotential(potential.PotentialEnergy):
     """A class representing the electric potential energy caused by the Coulomb potential."""
 
     def __init__(self, charge = 1 * u.proton_charge):
@@ -46,7 +46,7 @@ class Coulomb(potential.PotentialEnergy):
         return info
 
 
-class SoftCoulomb(potential.PotentialEnergy):
+class SoftCoulombPotential(potential.PotentialEnergy):
     """A class representing the electric potential energy caused by the softened Coulomb potential."""
 
     def __init__(self, charge = 1 * u.proton_charge, softening_distance = .05 * u.bohr_radius):

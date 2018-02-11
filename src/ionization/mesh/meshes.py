@@ -1,7 +1,7 @@
 import itertools
 import logging
-from copy import copy, deepcopy
-from typing import Union, Optional, Iterable
+from typing import Union, Optional, Iterable, NewType, Tuple, Dict
+import abc
 
 import matplotlib
 import matplotlib.pyplot as plt
@@ -17,6 +17,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import states, vis, core, cy, exceptions
+from . import sims
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -38,15 +39,35 @@ def add_to_diagonal_sparse_matrix_diagonal_inplace(dia_matrix: sparse.dia_matrix
     return dia_matrix
 
 
-class MeshOperator:
-    def __init__(self, operator, *, wrapping_direction):
+CoordinateMesh = NewType('CoordinateMesh', np.array)
+CoordinateVector = NewType('CoordinateVector', np.array)
+
+GMesh = NewType('GMesh', np.array)
+G2Mesh = NewType('G2Mesh', np.array)
+PsiMesh = NewType('PsiMesh', np.array)
+Psi2Mesh = NewType('Psi2Mesh', np.array)
+WavefunctionMesh = Union[GMesh, G2Mesh, PsiMesh, Psi2Mesh]
+
+GVector = NewType('GVector', np.array)
+G2Vector = NewType('G2Vector', np.array)
+PsiVector = NewType('PsiVector', np.array)
+Psi2Vector = NewType('Psi2Vector', np.array)
+WavefunctionVector = Union[GVector, G2Vector, PsiVector, Psi2Vector]
+
+StateOrGMesh = Optional[Union[states.QuantumState, GMesh]]  # None => the current g mesh
+
+SparseMatrixOperator = NewType('SparseMatrixOperator', sparse.dia_matrix)
+
+
+class MeshOperator(abc.ABC):
+    def __init__(self, operator: SparseMatrixOperator, *, wrapping_direction: str):
         self.operator = operator
         self.wrapping_direction = wrapping_direction
 
     def __repr__(self):
         return f"{self.__class__.__name__}(operator = {repr(self.operator)}, wrapping_direction = '{self.wrapping_direction}')"
 
-    def apply(self, mesh: 'QuantumMesh', g: np.array, current_wrapping_direction):
+    def apply(self, mesh: 'QuantumMesh', g: GVector, current_wrapping_direction):
         if current_wrapping_direction != self.wrapping_direction:
             g = mesh.flatten_mesh(mesh.wrap_vector(g, current_wrapping_direction), self.wrapping_direction)
 
@@ -54,22 +75,23 @@ class MeshOperator:
 
         return result, self.wrapping_direction
 
-    def _apply(self, g: np.array):
+    @abc.abstractmethod
+    def _apply(self, g: GVector):
         raise NotImplementedError
 
 
 class DotOperator(MeshOperator):
-    def _apply(self, g: np.array) -> np.array:
+    def _apply(self, g: GVector) -> GVector:
         return self.operator.dot(g)
 
 
 class TDMAOperator(MeshOperator):
-    def _apply(self, g: np.array) -> np.array:
+    def _apply(self, g: GVector) -> GVector:
         return cy.tdma(self.operator, g)
 
 
 class SimilarityOperator(DotOperator):
-    def __init__(self, operator: MeshOperator, *, wrapping_direction: str, parity: str):
+    def __init__(self, operator: SparseMatrixOperator, *, wrapping_direction: str, parity: str):
         super().__init__(operator, wrapping_direction = wrapping_direction)
 
         self.parity = parity
@@ -114,7 +136,7 @@ class SimilarityOperator(DotOperator):
         return result, self.wrapping_direction
 
 
-def apply_operators(mesh, g: np.array, *operators):
+def apply_operators(mesh, g: GMesh, *operators: MeshOperator):
     """Operators should be entered in operation (the order they would act on something on their right)"""
     current_wrapping_direction = None
 
@@ -124,8 +146,8 @@ def apply_operators(mesh, g: np.array, *operators):
     return mesh.wrap_vector(g, current_wrapping_direction)
 
 
-class QuantumMesh:
-    def __init__(self, simulation):
+class QuantumMesh(abc.ABC):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         self.sim = simulation
         self.spec = simulation.spec
 
@@ -153,10 +175,11 @@ class QuantumMesh:
     def __repr__(self):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
 
-    def get_g_for_state(self, state):
+    @abc.abstractmethod
+    def get_g_for_state(self, state: StateOrGMesh) -> GMesh:
         raise NotImplementedError
 
-    def state_to_mesh(self, state_or_mesh):
+    def state_to_mesh(self, state_or_mesh: StateOrGMesh) -> GMesh:
         """Return the mesh associated with the given state, or simply passes the mesh through."""
         if state_or_mesh is None:
             return self.g
@@ -169,7 +192,7 @@ class QuantumMesh:
         else:
             return state_or_mesh
 
-    def get_g_with_states_removed(self, states, g = None):
+    def get_g_with_states_removed(self, states: Iterable[StateOrGMesh], g: StateOrGMesh = None) -> GMesh:
         """
         Get a g mesh with the contributions from the states removed.
 
@@ -187,39 +210,39 @@ class QuantumMesh:
 
         return g
 
-    def inner_product(self, a = None, b = None):
+    def inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None) -> complex:
         """Inner product between two meshes. If either mesh is None, the state on the g is used for that state."""
         return np.sum(np.conj(self.state_to_mesh(a)) * self.state_to_mesh(b)) * self.inner_product_multiplier
 
-    def state_overlap(self, a = None, b = None):
+    def state_overlap(self, a: StateOrGMesh = None, b: StateOrGMesh = None) -> float:
         """State overlap between two states. If either state is None, the state on the g is used for that state."""
         return np.abs(self.inner_product(a, b)) ** 2
 
-    def norm(self, state = None):
+    def norm(self, state: StateOrGMesh = None) -> float:
         return np.abs(self.inner_product(a = state, b = state))
 
-    def __abs__(self):
+    def __abs__(self) -> float:
         return self.norm()
 
-    def energy_expectation_value(self, include_interaction = False):
+    def energy_expectation_value(self, include_interaction: bool = False):
         raise NotImplementedError
 
-    def radial_position_expectation_value(self):
+    def radial_position_expectation_value(self) -> float:
         return np.real(self.inner_product(b = self.r_mesh * self.g)) / self.norm()
 
-    def z_dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
         raise NotImplementedError
 
     @property
-    def psi(self):
+    def psi(self) -> PsiMesh:
         return self.g / self.g_factor
 
     @property
-    def g2(self):
+    def g2(self) -> G2Mesh:
         return np.abs(self.g) ** 2
 
     @property
-    def psi2(self):
+    def psi2(self) -> Psi2Mesh:
         return np.abs(self.psi) ** 2
 
     @si.utils.memoize
@@ -238,57 +261,73 @@ class QuantumMesh:
         except AttributeError:
             raise NotImplementedError
 
-    def evolve(self, time_step):
+    def evolve(self, time_step: float):
         self.evolution_method(time_step)
         self.g *= self.spec.mask(r = self.r_mesh)
 
-    def get_mesh_slicer(self, plot_limit):
+    def get_mesh_slicer(self, plot_limit: float):
         raise NotImplementedError
 
-    def attach_mesh_to_axis(self, axis, mesh,
-                            distance_unit = 'bohr_radius',
+    def attach_mesh_to_axis(self,
+                            axis: plt.Axes,
+                            mesh: WavefunctionMesh,
+                            distance_unit: str = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'flat',
-                            plot_limit = None,
-                            slicer = 'get_mesh_slicer',
+                            shading: str = 'flat',
+                            plot_limit: Optional[float] = None,
+                            slicer: str = 'get_mesh_slicer',
                             **kwargs):
         raise NotImplementedError
 
-    def attach_g2_to_axis(self, axis, **kwargs):
+    def attach_g2_to_axis(self,
+                          axis: plt.Axes,
+                          **kwargs):
         return self.attach_mesh_to_axis(axis, self.g2, **kwargs)
 
-    def attach_psi2_to_axis(self, axis, **kwargs):
+    def attach_psi2_to_axis(self,
+                            axis,
+                            **kwargs):
         return self.attach_mesh_to_axis(axis, self.psi2, **kwargs)
 
-    def attach_g_to_axis(self, axis,
+    def attach_g_to_axis(self,
+                         axis: plt.Axes,
                          colormap = plt.get_cmap('richardson'),
                          norm = None,
                          **kwargs):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        return self.attach_mesh_to_axis(axis, self.g,
-                                        colormap = colormap,
-                                        norm = norm,
-                                        **kwargs)
+        return self.attach_mesh_to_axis(
+            axis,
+            self.g,
+            colormap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
-    def attach_psi_to_axis(self, axis,
+    def attach_psi_to_axis(self,
+                           axis: plt.Axes,
                            colormap = plt.get_cmap('richardson'),
                            norm = None,
                            **kwargs):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        return self.attach_mesh_to_axis(axis, self.psi,
-                                        colormap = colormap,
-                                        norm = norm,
-                                        **kwargs)
+        return self.attach_mesh_to_axis(
+            axis,
+            self.psi,
+            colormap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
-    def update_mesh(self, colormesh, updated_mesh,
-                    plot_limit = None,
-                    shading = 'flat',
-                    slicer = 'get_mesh_slicer',
+    def update_mesh(self,
+                    colormesh,
+                    updated_mesh,
+                    plot_limit: Optional[float] = None,
+                    shading: str = 'flat',
+                    slicer: str = 'get_mesh_slicer',
                     **kwargs
                     ):
         _slice = getattr(self, slicer)(plot_limit)
@@ -313,35 +352,41 @@ class QuantumMesh:
     def update_psi_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.psi, **kwargs)
 
-    def plot_mesh(self, mesh,
-                  name = '',
-                  title = None,
-                  distance_unit = 'bohr_radius',
+    def plot_mesh(self,
+                  mesh: WavefunctionMesh,
+                  name: str = '',
+                  title: Optional[str] = None,
+                  distance_unit: str = 'bohr_radius',
                   colormap = vis.COLORMAP_WAVEFUNCTION,
                   norm = si.vis.AbsoluteRenormalize(),
-                  shading = 'flat',
-                  plot_limit = None,
-                  slicer = 'get_mesh_slicer',
+                  shading: str = 'flat',
+                  plot_limit: Optional[float] = None,
+                  slicer: str = 'get_mesh_slicer',
                   **kwargs):
         """kwargs go to figman"""
         raise NotImplementedError
 
-    def plot_g2(self, name_postfix = '', title = None, **kwargs):
+    def plot_g2(self,
+                name_postfix: str = '',
+                title: Optional[str] = None,
+                **kwargs):
         if title is None:
             title = r'$|g|^2$'
         name = 'g2' + name_postfix
 
         self.plot_mesh(self.g2, name = name, title = title, **kwargs)
 
-    def plot_psi2(self, name_postfix = '', **kwargs):
+    def plot_psi2(self,
+                  name_postfix: str = '',
+                  **kwargs):
         title = r'$|\Psi|^2$'
         name = 'psi2' + name_postfix
 
         self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
 
     def plot_g(self,
-               title = None,
-               name_postfix = '',
+               title: Optional[str] = None,
+               name_postfix: str = '',
                colormap = plt.get_cmap('richardson'),
                norm = None,
                **kwargs):
@@ -352,11 +397,13 @@ class QuantumMesh:
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        self.plot_mesh(self.g, name = name, title = title,
-                       colormap = colormap,
-                       norm = norm,
-                       show_colorbar = False,
-                       **kwargs)
+        self.plot_mesh(
+            self.g, name = name, title = title,
+            colormap = colormap,
+            norm = norm,
+            show_colorbar = False,
+            **kwargs
+        )
 
     def plot_psi(self,
                  name_postfix = '',
@@ -369,17 +416,19 @@ class QuantumMesh:
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        self.plot_mesh(self.psi, name = name, title = title,
-                       colormap = colormap,
-                       norm = norm,
-                       show_colorbar = False,
-                       **kwargs)
+        self.plot_mesh(
+            self.psi, name = name, title = title,
+            colormap = colormap,
+            norm = norm,
+            show_colorbar = False,
+            **kwargs
+        )
 
 
 class LineMesh(QuantumMesh):
     mesh_storage_method = ['x']
 
-    def __init__(self, simulation):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
         self.x_mesh = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
@@ -699,7 +748,7 @@ class LineMesh(QuantumMesh):
 class CylindricalSliceMesh(QuantumMesh):
     mesh_storage_method = ('z', 'rho')
 
-    def __init__(self, simulation):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
         self.z = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
@@ -1089,7 +1138,7 @@ class CylindricalSliceMesh(QuantumMesh):
 class WarpedCylindricalSliceMesh(QuantumMesh):
     mesh_storage_method = ('z', 'rho')
 
-    def __init__(self, simulation):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
         self.z = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
@@ -1367,7 +1416,7 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
 class SphericalSliceMesh(QuantumMesh):
     mesh_storage_method = ('r', 'theta')
 
-    def __init__(self, simulation):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
         self.r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
@@ -1704,7 +1753,7 @@ class SphericalSliceMesh(QuantumMesh):
 class SphericalHarmonicMesh(QuantumMesh):
     mesh_storage_method = ('l', 'r')
 
-    def __init__(self, simulation):
+    def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
         self.r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
@@ -1730,19 +1779,19 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @property
     @si.utils.memoize
-    def r_mesh(self):
+    def r_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.l, self.r, indexing = 'ij')[1]
 
     @property
     @si.utils.memoize
-    def l_mesh(self):
+    def l_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.l, self.r, indexing = 'ij')[0]
 
     @property
     def g_factor(self):
         return self.r
 
-    def flatten_mesh(self, mesh, flatten_along):
+    def flatten_mesh(self, mesh: WavefunctionMesh, flatten_along) -> WavefunctionVector:
         """Return a mesh flattened along one of the mesh coordinates ('theta' or 'r')."""
         try:
             if flatten_along == 'l':
@@ -1758,7 +1807,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         except AttributeError:  # occurs if the "mesh" is actually an int or float, in which case we should should just return it
             return mesh
 
-    def wrap_vector(self, vector, wrap_along):
+    def wrap_vector(self, vector: WavefunctionVector, wrap_along) -> WavefunctionMesh:
         if wrap_along == 'l':
             wrap = 'F'
         elif wrap_along == 'r':
@@ -1770,7 +1819,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return np.reshape(vector, self.mesh_shape, wrap)
 
-    def get_g_for_state(self, state):
+    def get_g_for_state(self, state: StateOrGMesh) -> GMesh:
         """
         Get g for a state.
         """
@@ -1790,7 +1839,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             raise NotImplementedError('States with non-definite angular momentum components are not currently supported by SphericalHarmonicMesh')
 
     @si.utils.memoize
-    def get_radial_g_for_state(self, state):
+    def get_radial_g_for_state(self, state: states.QuantumState):
         """Return the radial g function evaluated on the radial mesh for a state that has a radial function."""
         g = state.radial_function(self.r) * self.g_factor
         g /= np.sqrt(self.norm(g))
@@ -1798,7 +1847,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return g
 
-    def inner_product(self, a = None, b = None):
+    def inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None) -> complex:
         """
         Return the inner product between two states (a and b) on the mesh.
 
@@ -1827,15 +1876,15 @@ class SphericalHarmonicMesh(QuantumMesh):
             return super().inner_product(a, b)
 
     @property
-    def norm_by_l(self):
+    def norm_by_l(self) -> np.array:
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
-    def z_dipole_moment_inner_product(self, a = None, b = None):
+    def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
         operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
         b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
         return -self.inner_product(a = a, b = b)
 
-    def inner_product_with_plane_waves(self, thetas, wavenumbers, g = None):
+    def inner_product_with_plane_waves(self, thetas, wavenumbers, g: Optional[GMesh] = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
 
@@ -1874,7 +1923,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return theta_mesh, wavenumber_mesh, inner_product_mesh
 
-    def inner_product_with_plane_waves_at_infinity(self, thetas, wavenumbers, g = None):
+    def inner_product_with_plane_waves_at_infinity(self, thetas, wavenumbers, g: Optional[GMesh] = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
 
@@ -1890,77 +1939,78 @@ class SphericalHarmonicMesh(QuantumMesh):
         -------
 
         """
-        l_mesh = self.l_mesh
-
-        # multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g
-
-        thetas, wavenumbers = np.array(thetas), np.array(wavenumbers)
-        theta_mesh, wavenumber_mesh = np.meshgrid(thetas, wavenumbers, indexing = 'ij')
-
-        inner_product_mesh = np.zeros(np.shape(wavenumber_mesh), dtype = np.complex128)
-
-        # @si.utils.memoize
-        # def sph_harm(theta):
-        #     return special.sph_harm(0, l_mesh, 0, theta)
+        raise NotImplementedError
+        # l_mesh = self.l_mesh
+        #
+        # # multiplier = np.sqrt(2 / pi) * self.g_factor * (-1j ** (l_mesh % 4)) * self.inner_product_multiplier * g
+        #
+        # thetas, wavenumbers = np.array(thetas), np.array(wavenumbers)
+        # theta_mesh, wavenumber_mesh = np.meshgrid(thetas, wavenumbers, indexing = 'ij')
+        #
+        # inner_product_mesh = np.zeros(np.shape(wavenumber_mesh), dtype = np.complex128)
+        #
+        # # @si.utils.memoize
+        # # def sph_harm(theta):
+        # #     return special.sph_harm(0, l_mesh, 0, theta)
+        # #
+        # # @si.utils.memoize
+        # # def bessel(wavenumber):
+        # #     return special.spherical_jn(l_mesh, np.real(wavenumber * self.r_mesh))
+        #
+        # # @si.utils.memoize
+        # # def poly(l, theta):
+        # #     return special.legendre(l)(np.cos(theta))
+        # #
+        # # @si.utils.memoize
+        # # def phase(l, k):
+        # #     return np.exp(1j * states.coulomb_phase_shift(l, k))
+        # #
+        # # # sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
+        # #
+        # # for ii, theta in enumerate(thetas):
+        # #     for jj, wavenumber in enumerate(wavenumbers):
+        # #         print(ii, jj)
+        # #
+        # #         total = 0
+        # #         for l in self.l:
+        # #             total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
+        # #
+        # #         inner_product_mesh[ii, jj] = total / np.sqrt(4 * pi * wavenumber)
+        #
+        # if g is None:
+        #     g = self.g
+        #
+        # sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
         #
         # @si.utils.memoize
-        # def bessel(wavenumber):
-        #     return special.spherical_jn(l_mesh, np.real(wavenumber * self.r_mesh))
-
-        # @si.utils.memoize
-        # def poly(l, theta):
-        #     return special.legendre(l)(np.cos(theta))
+        # def poly(theta):
+        #     return special.lpn(l_mesh, np.cos(theta))
         #
         # @si.utils.memoize
-        # def phase(l, k):
-        #     return np.exp(1j * states.coulomb_phase_shift(l, k))
-        #
-        # # sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
+        # def phase(k):
+        #     return np.exp(1j * states.coulomb_phase_shift(l_mesh, k))
         #
         # for ii, theta in enumerate(thetas):
         #     for jj, wavenumber in enumerate(wavenumbers):
         #         print(ii, jj)
         #
-        #         total = 0
-        #         for l in self.l:
-        #             total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
+        #         # total = 0
+        #         # for l in self.l:
+        #         #     total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
         #
-        #         inner_product_mesh[ii, jj] = total / np.sqrt(4 * pi * wavenumber)
+        #         state = states.HydrogenCoulombState.from_wavenumber(wavenumber, l = 0)
+        #         for l in self.l[1:]:
+        #             state += states.HydrogenCoulombState.from_wavenumber(wavenumber, l)
+        #
+        #         print(state)
+        #         state_mesh = self.get_g_for_state(state)
+        #         ip = self.inner_product(poly(theta) * phase(wavenumber) * sqrt_mesh * state_mesh, g)
+        #
+        #         inner_product_mesh[ii, jj] = ip / np.sqrt(4 * u.pi * wavenumber)
+        #
+        # return theta_mesh, wavenumber_mesh, inner_product_mesh
 
-        if g is None:
-            g = self.g
-
-        sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
-
-        @si.utils.memoize
-        def poly(theta):
-            return special.lpn(l_mesh, np.cos(theta))
-
-        @si.utils.memoize
-        def phase(k):
-            return np.exp(1j * states.coulomb_phase_shift(l_mesh, k))
-
-        for ii, theta in enumerate(thetas):
-            for jj, wavenumber in enumerate(wavenumbers):
-                print(ii, jj)
-
-                # total = 0
-                # for l in self.l:
-                #     total += phase(l, wavenumber) * np.sqrt((2 * l) + 1) * poly(l, theta) * self.inner_product(states.HydrogenCoulombState.from_wavenumber(wavenumber, l), g)
-
-                state = states.HydrogenCoulombState.from_wavenumber(wavenumber, l = 0)
-                for l in self.l[1:]:
-                    state += states.HydrogenCoulombState.from_wavenumber(wavenumber, l)
-
-                print(state)
-                state_mesh = self.get_g_for_state(state)
-                ip = self.inner_product(poly(theta) * phase(wavenumber) * sqrt_mesh * state_mesh, g)
-
-                inner_product_mesh[ii, jj] = ip / np.sqrt(4 * u.pi * wavenumber)
-
-        return theta_mesh, wavenumber_mesh, inner_product_mesh
-
-    def _get_kinetic_energy_matrix_operators_HAM(self) -> sparse.dia_matrix:
+    def _get_kinetic_energy_matrix_operators_HAM(self) -> SparseMatrixOperator:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
 
         r_diagonal = r_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
@@ -1985,7 +2035,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         """For radial probability current."""
         return 1 / ((j ** 2) - 0.25)
 
-    def _get_kinetic_energy_matrix_operator_single_l(self, l) -> sparse.dia_matrix:
+    def _get_kinetic_energy_matrix_operator_single_l(self, l) -> SparseMatrixOperator:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
         effective_potential = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
 
@@ -1998,7 +2048,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
 
-    def _get_internal_hamiltonian_matrix_operator_single_l(self, l) -> sparse.dia_matrix:
+    def _get_internal_hamiltonian_matrix_operator_single_l(self, l) -> SparseMatrixOperator:
         r_kinetic = self._get_kinetic_energy_matrix_operator_single_l(l)
         potential = self.spec.internal_potential(r = self.r, test_charge = self.spec.test_charge)
 
@@ -2006,7 +2056,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_kinetic
 
-    def _get_kinetic_energy_matrix_operators_LAG(self, include_effective_potential = True) -> sparse.dia_matrix:
+    def _get_kinetic_energy_matrix_operators_LAG(self, include_effective_potential = True) -> SparseMatrixOperator:
         """Get the radial kinetic energy matrix operator."""
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
 
@@ -2035,7 +2085,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return r_kinetic
 
     @si.utils.memoize
-    def get_internal_hamiltonian_matrix_operators(self):
+    def get_internal_hamiltonian_matrix_operators(self) -> SparseMatrixOperator:
         r_kinetic = self.get_kinetic_energy_matrix_operators().copy()
 
         potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
@@ -2045,7 +2095,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return r_kinetic
 
     @si.utils.memoize
-    def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self) -> sparse.dia_matrix:
+    def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self) -> SparseMatrixOperator:
         l_prefactor = -self.spec.test_charge * self.flatten_mesh(self.r_mesh, 'l')[:-1]
 
         l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
@@ -2058,12 +2108,12 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
 
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self) -> sparse.dia_matrix:
+    def _get_interaction_hamiltonian_matrix_operators_LEN(self) -> SparseMatrixOperator:
         """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
         return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time + (self.spec.time_step / 2))
 
     @si.utils.memoize
-    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self) -> (sparse.dia_matrix, sparse.dia_matrix):
+    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
         h1_prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
 
         h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
@@ -2087,11 +2137,11 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return h1, h2
 
-    def _get_interaction_hamiltonian_matrix_operators_VEL(self):
+    def _get_interaction_hamiltonian_matrix_operators_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
         vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
         return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
 
-    def get_numeric_eigenstate_basis(self, max_energy: float, max_angular_momentum: int):
+    def get_numeric_eigenstate_basis(self, max_energy: float, max_angular_momentum: int) -> Dict[states.QuantumState, states.NumericSphericalHarmonicState]:
         analytic_to_numeric = {}
 
         for l in range(max_angular_momentum + 1):
@@ -2157,7 +2207,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         # return tg_mesh
 
-    def hg_mesh(self, include_interaction = False):
+    def hg_mesh(self, include_interaction: bool = False):
         hamiltonian_r = self.get_internal_hamiltonian_matrix_operators()
 
         hg = self.wrap_vector(hamiltonian_r.dot(self.flatten_mesh(self.g, 'r')), 'r')
@@ -2181,7 +2231,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         raise NotImplementedError
 
     @si.utils.memoize
-    def _get_radial_probability_current_operator__spatial(self):
+    def _get_radial_probability_current_operator__spatial(self) -> SparseMatrixOperator:
         r_prefactor = u.hbar / (2 * self.spec.test_mass * (self.delta_r ** 3))  # / extra 2 from taking Im later
 
         r_offdiagonal = np.zeros((self.spec.r_points * self.spec.theta_points) - 1, dtype = np.complex128)
@@ -2197,7 +2247,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_current_operator
 
-    def get_radial_probability_current_density_mesh__spatial(self):
+    def get_radial_probability_current_density_mesh__spatial(self) -> SparseMatrixOperator:
         r_current_operator = self._get_radial_probability_current_operator__spatial()
 
         g_spatial = self.space_g_calc
@@ -2210,7 +2260,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return current_mesh_r
 
-    def _evolve_CN(self, time_step):
+    def _evolve_CN(self, time_step: float):
         if self.spec.evolution_gauge == "VEL":
             raise NotImplementedError
 
@@ -2233,10 +2283,10 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-    def _make_split_operator_evolution_operators(self, interaction_hamiltonian_matrix_operators, tau):
+    def _make_split_operator_evolution_operators(self, interaction_hamiltonian_matrix_operators, tau: float):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonian_matrix_operators, tau)
 
-    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau):
+    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau: float):
         """Calculate split operator evolution matrices for the interaction term in the length gauge."""
         a = tau * interaction_hamiltonians_matrix_operators.data[0][:-1]
 
@@ -2277,7 +2327,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             DotOperator(odd, wrapping_direction = 'l'),
         )
 
-    def _make_split_operators_VEL_h1(self, h1, tau):
+    def _make_split_operators_VEL_h1(self, h1, tau: float):
         a = (tau * (-1j)) * h1.data[-1][1:]
 
         a_even, a_odd = a[::2], a[1::2]
@@ -2315,7 +2365,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             DotOperator(odd, wrapping_direction = 'l'),
         )
 
-    def _make_split_operators_VEL_h2(self, h2, tau):
+    def _make_split_operators_VEL_h2(self, h2, tau: float):
         len_r = len(self.r)
 
         a = h2.data[-1][len_r + 1:] * tau * (-1j)
@@ -2452,7 +2502,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return operators
 
-    def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau):
+    def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau: float):
         """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
         h1, h2 = interaction_hamiltonians_matrix_operators
 
@@ -2481,8 +2531,8 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         self.g = apply_operators(self, self.g, *operators)
 
-    def _apply_length_gauge_transformation(self, vamp, g):
-        bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vamp * self.r_mesh / u.hbar)
+    def _apply_length_gauge_transformation(self, vector_potential_amplitude: float, g: GMesh):
+        bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vector_potential_amplitude * self.r_mesh / u.hbar)
 
         g_transformed = np.zeros(np.shape(g), dtype = np.complex128)
         for l_result in self.l:
@@ -2494,7 +2544,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return g_transformed
 
-    def gauge_transformation(self, *, g = None, leaving_gauge = None):
+    def gauge_transformation(self, *, g: Optional[GMesh] = None, leaving_gauge: Optional[str] = None):
         if g is None:
             g = self.g
         if leaving_gauge is None:
@@ -2512,7 +2562,7 @@ class SphericalHarmonicMesh(QuantumMesh):
             return dipole_to_velocity * self._apply_length_gauge_transformation(vamp[-1], g)
 
     @si.utils.memoize
-    def get_mesh_slicer(self, distance_from_center = None):
+    def get_mesh_slicer(self, distance_from_center: Optional[float] = None):
         """Returns a slice object that slices a mesh to the given distance of the center."""
         if distance_from_center is None:
             mesh_slicer = (slice(None, None, 1), slice(None, None, 1))
@@ -2523,7 +2573,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return mesh_slicer
 
     @si.utils.memoize
-    def get_mesh_slicer_spatial(self, distance_from_center = None):
+    def get_mesh_slicer_spatial(self, distance_from_center: Optional[float] = None):
         """Returns a slice object that slices a mesh to the given distance of the center."""
         if distance_from_center is None:
             mesh_slicer = slice(None, None, 1)
@@ -2535,32 +2585,32 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @property
     @si.utils.memoize
-    def theta_plot(self):
+    def theta_plot(self) -> CoordinateVector:
         return np.linspace(0, u.twopi, self.theta_points)
 
     @property
     @si.utils.memoize
-    def theta_calc(self):
+    def theta_calc(self) -> CoordinateVector:
         return np.linspace(0, u.pi, self.theta_points)
 
     @property
     @si.utils.memoize
-    def theta_plot_mesh(self):
+    def theta_plot_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.r, self.theta_plot, indexing = 'ij')[1]
 
     @property
     @si.utils.memoize
-    def r_theta_mesh(self):
+    def r_theta_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.r, self.theta_plot, indexing = 'ij')[0]
 
     @property
     @si.utils.memoize
-    def theta_calc_mesh(self):
+    def theta_calc_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.r, self.theta_calc, indexing = 'ij')[1]
 
     @property
     @si.utils.memoize
-    def r_theta_calc_mesh(self):
+    def r_theta_calc_mesh(self) -> CoordinateMesh:
         return np.meshgrid(self.r, self.theta_calc, indexing = 'ij')[0]
 
     @property
@@ -2575,14 +2625,14 @@ class SphericalHarmonicMesh(QuantumMesh):
         l_mesh, theta_mesh = np.meshgrid(self.l, self.theta_calc, indexing = 'ij')
         return special.sph_harm(0, l_mesh, 0, theta_mesh)
 
-    def reconstruct_spatial_mesh__plot(self, mesh):
+    def reconstruct_spatial_mesh__plot(self, mesh: WavefunctionMesh):
         """Reconstruct the spatial (r, theta) representation of a mesh from the (l, r) representation."""
         # l: l, angular momentum index
         # r: r, radial position index
         # t: theta, polar angle index
         return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_plot_mesh)
 
-    def reconstruct_spatial_mesh__calc(self, mesh):
+    def reconstruct_spatial_mesh__calc(self, mesh: WavefunctionMesh):
         """Reconstruct the spatial (r, theta) representation of a mesh from the (l, r) representation."""
         # l: l, angular momentum index
         # r: r, radial position index
@@ -2591,72 +2641,71 @@ class SphericalHarmonicMesh(QuantumMesh):
 
     @property
     @si.utils.watcher(lambda s: s.sim.time)
-    def space_g(self):
+    def space_g(self) -> GMesh:
         return self.reconstruct_spatial_mesh__plot(self.g)
 
     @property
     @si.utils.watcher(lambda s: s.sim.time)
-    def space_g_calc(self):
+    def space_g_calc(self) -> GMesh:
         return self.reconstruct_spatial_mesh__calc(self.g)
 
-    # @property
-    # def space_psi(self):
-    #     return self.space_g / self.g_factor
-
     @property
-    def space_psi(self):
+    def space_psi(self) -> PsiMesh:
         return self.space_g / self.r_theta_mesh
 
     @property
-    def g2(self):
+    def g2(self) -> G2Mesh:
         return np.abs(self.space_g) ** 2
 
     @property
-    def psi2(self):
+    def psi2(self) -> Psi2Mesh:
         return np.abs(self.space_psi) ** 2
 
-    def attach_mesh_to_axis(self, axis, mesh,
-                            distance_unit = 'bohr_radius',
+    def attach_mesh_to_axis(self,
+                            axis: plt.Axes,
+                            mesh: WavefunctionMesh,
+                            distance_unit: str = 'bohr_radius',
                             colormap = plt.get_cmap('inferno'),
                             norm = si.vis.AbsoluteRenormalize(),
-                            shading = 'flat',
-                            plot_limit = None,
-                            slicer = 'get_mesh_slicer_spatial',
+                            shading: str = 'flat',
+                            plot_limit: Optional[float] = None,
+                            slicer: str = 'get_mesh_slicer_spatial',
                             **kwargs):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.theta_plot_mesh[_slice],
-                                     self.r_theta_mesh[_slice] / unit_value,
-                                     mesh[_slice],
-                                     shading = shading,
-                                     cmap = colormap,
-                                     norm = norm,
-                                     **kwargs)
+        color_mesh = axis.pcolormesh(
+            self.theta_plot_mesh[_slice],
+            self.r_theta_mesh[_slice] / unit_value,
+            mesh[_slice],
+            shading = shading,
+            cmap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
         return color_mesh
 
-    # def attach_probability_current_to_axis(self, axis, plot_limit = None, distance_unit = 'bohr_radius'):
-    #     raise NotImplementedError
-
-    def plot_mesh(self, mesh,
-                  name = '',
-                  title = None,
-                  distance_unit = 'bohr_radius',
+    def plot_mesh(self,
+                  mesh: WavefunctionMesh,
+                  name: str = '',
+                  title: Optional[str] = None,
+                  distance_unit: str = 'bohr_radius',
                   colormap = vis.COLORMAP_WAVEFUNCTION,
                   norm = si.vis.AbsoluteRenormalize(),
-                  shading = 'flat',
-                  plot_limit = None,
-                  slicer = 'get_mesh_slicer_spatial',
-                  aspect_ratio = 1,
-                  show_colorbar = True,
-                  show_title = True,
-                  show_axes = True,
-                  title_size = 20,
-                  tick_label_size = 10,
-                  grid_kwargs = None,
-                  # overlay_probability_current = False, probability_current_time_step = 0,
+                  shading: str = 'flat',
+                  plot_limit: Optional[float] = None,
+                  slicer: str = 'get_mesh_slicer_spatial',
+                  aspect_ratio: float = 1,
+                  show_colorbar: bool = True,
+                  show_title: bool = True,
+                  show_axes: bool = True,
+                  title_size: float = 20,
+                  tick_label_size: float = 10,
+                  grid_kwargs: Optional[dict] = None,
+                  # overlay_probability_current = False,
+                  # probability_current_time_step = 0,
                   **kwargs):
         if grid_kwargs is None:
             grid_kwargs = {}
@@ -2723,19 +2772,24 @@ class SphericalHarmonicMesh(QuantumMesh):
             if not show_axes:
                 axis.axis('off')
 
-    def attach_g_to_axis(self, axis,
+    def attach_g_to_axis(self,
+                         axis: plt.Axes,
                          colormap = plt.get_cmap('richardson'),
                          norm = None,
                          **kwargs):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        return self.attach_mesh_to_axis(axis, self.space_g,
-                                        colormap = colormap,
-                                        norm = norm,
-                                        **kwargs)
+        return self.attach_mesh_to_axis(
+            axis,
+            self.space_g,
+            colormap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
-    def plot_g(self, name_postfix = '',
+    def plot_g(self,
+               name_postfix: str = '',
                colormap = plt.get_cmap('richardson'),
                norm = None,
                **kwargs):
@@ -2745,25 +2799,34 @@ class SphericalHarmonicMesh(QuantumMesh):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        self.plot_mesh(self.space_g, name = name, title = title,
-                       colormap = colormap,
-                       norm = norm,
-                       show_colorbar = False,
-                       **kwargs)
+        self.plot_mesh(
+            self.space_g,
+            name = name,
+            title = title,
+            colormap = colormap,
+            norm = norm,
+            show_colorbar = False,
+            **kwargs
+        )
 
-    def attach_psi_to_axis(self, axis,
+    def attach_psi_to_axis(self,
+                           axis: plt.Axes,
                            colormap = plt.get_cmap('richardson'),
                            norm = None,
                            **kwargs):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        return self.attach_mesh_to_axis(axis, self.space_psi,
-                                        colormap = colormap,
-                                        norm = norm,
-                                        **kwargs)
+        return self.attach_mesh_to_axis(
+            axis,
+            self.space_psi,
+            colormap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
-    def plot_psi(self, name_postfix = '',
+    def plot_psi(self,
+                 name_postfix: str = '',
                  colormap = plt.get_cmap('richardson'),
                  norm = None,
                  **kwargs):
@@ -2773,11 +2836,15 @@ class SphericalHarmonicMesh(QuantumMesh):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.space_psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        self.plot_mesh(self.space_psi, name = name, title = title,
-                       colormap = colormap,
-                       norm = norm,
-                       show_colorbar = False,
-                       **kwargs)
+        self.plot_mesh(
+            self.space_psi,
+            name = name,
+            title = title,
+            colormap = colormap,
+            norm = norm,
+            show_colorbar = False,
+            **kwargs
+        )
 
     def update_g_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.space_g, **kwargs)
@@ -2785,46 +2852,52 @@ class SphericalHarmonicMesh(QuantumMesh):
     def update_psi_mesh(self, colormesh, **kwargs):
         self.update_mesh(colormesh, self.space_psi, **kwargs)
 
-    def attach_mesh_repr_to_axis(self, axis, mesh,
-                                 distance_unit = 'bohr_radius',
+    # I have no idea what this method does, sinec it doesn't use mesh...
+    def attach_mesh_repr_to_axis(self,
+                                 axis: plt.Axes,
+                                 mesh,
+                                 distance_unit: str = 'bohr_radius',
                                  colormap = plt.get_cmap('inferno'),
                                  norm = si.vis.AbsoluteRenormalize(),
-                                 shading = 'flat',
-                                 plot_limit = None,
-                                 slicer = 'get_mesh_slicer',
+                                 shading: str = 'flat',
+                                 plot_limit: Optional[float] = None,
+                                 slicer: str = 'get_mesh_slicer',
                                  **kwargs):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self, slicer)(plot_limit)
 
-        color_mesh = axis.pcolormesh(self.l_mesh[_slice],
-                                     self.r_mesh[_slice] / unit_value,
-                                     self.g[_slice],
-                                     shading = shading,
-                                     cmap = colormap,
-                                     norm = norm,
-                                     **kwargs)
+        color_mesh = axis.pcolormesh(
+            self.l_mesh[_slice],
+            self.r_mesh[_slice] / unit_value,
+            self.g[_slice],
+            shading = shading,
+            cmap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
         return color_mesh
 
-    def plot_mesh_repr(self, mesh,
-                       name = '',
-                       title = None,
-                       distance_unit = 'bohr_radius',
+    def plot_mesh_repr(self,
+                       mesh,
+                       name: str = '',
+                       title: Optional[str] = None,
+                       distance_unit: str = 'bohr_radius',
                        colormap = vis.COLORMAP_WAVEFUNCTION,
                        norm = si.vis.AbsoluteRenormalize(),
-                       shading = 'flat',
-                       plot_limit = None,
-                       slicer = 'get_mesh_slicer',
-                       aspect_ratio = si.vis.GOLDEN_RATIO,
-                       show_colorbar = True,
-                       show_title = True,
-                       show_axes = True,
-                       title_y_adjust = 1.1,
-                       title_size = 12,
-                       axis_label_size = 12,
-                       tick_label_size = 10,
-                       grid_kwargs = None,
+                       shading: str = 'flat',
+                       plot_limit: Optional[float] = None,
+                       slicer: str = 'get_mesh_slicer',
+                       aspect_ratio: float = si.vis.GOLDEN_RATIO,
+                       show_colorbar: bool = True,
+                       show_title: bool = True,
+                       show_axes: bool = True,
+                       title_y_adjust: float = 1.1,
+                       title_size: float = 12,
+                       axis_label_size: float = 12,
+                       tick_label_size: float = 10,
+                       grid_kwargs: Optional[dict] = None,
                        **kwargs):
         if grid_kwargs is None:
             grid_kwargs = {}
@@ -2874,10 +2947,11 @@ class SphericalHarmonicMesh(QuantumMesh):
             if not show_axes:
                 axis.axis('off')
 
-    def plot_g_repr(self, name_postfix = '',
+    def plot_g_repr(self,
+                    name_postfix: str = '',
+                    title: Optional[str] = None,
                     colormap = plt.get_cmap('richardson'),
                     norm = None,
-                    title = None,
                     **kwargs):
         if title is None:
             title = r'$g$'
@@ -2886,44 +2960,42 @@ class SphericalHarmonicMesh(QuantumMesh):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        self.plot_mesh_repr(self.g, name = name, title = title,
-                            colormap = colormap,
-                            norm = norm,
-                            show_colorbar = False,
-                            **kwargs)
+        self.plot_mesh_repr(
+            self.g,
+            name = name,
+            title = title,
+            colormap = colormap,
+            norm = norm,
+            show_colorbar = False,
+            **kwargs
+        )
 
     def attach_g_repr_to_axis(self,
-                              axis,
+                              axis: plt.Axes,
                               colormap = plt.get_cmap('richardson'),
                               norm = None,
-                              **kwargs
-                              ):
+                              **kwargs):
 
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
-        return self.attach_mesh_repr_to_axis(axis, self.g,
-                                             colormap = colormap,
-                                             norm = norm,
-                                             **kwargs)
+        return self.attach_mesh_repr_to_axis(
+            axis,
+            self.g,
+            colormap = colormap,
+            norm = norm,
+            **kwargs
+        )
 
-    def plot_electron_momentum_spectrum(self, r_type = 'wavenumber', r_scale = 'per_nm',
-                                        r_lower_lim = u.twopi * .01 * u.per_nm, r_upper_lim = u.twopi * 10 * u.per_nm, r_points = 100,
-                                        theta_points = 360,
-                                        g = None,
+    def plot_electron_momentum_spectrum(self,
+                                        r_type: str = 'wavenumber',
+                                        r_scale: str = 'per_nm',
+                                        r_lower_lim: float = u.twopi * .01 * u.per_nm,
+                                        r_upper_lim: float = u.twopi * 10 * u.per_nm,
+                                        r_points: int = 100,
+                                        theta_points: int = 360,
+                                        g: GMesh = None,
                                         **kwargs):
-        """
-
-        :param r_type:
-        :param r_scale:
-        :param r_lower_lim:
-        :param r_upper_lim:
-        :param r_points:
-        :param theta_points:
-        :param g:
-        :param kwargs:
-        :return:
-        """
         if r_type not in ('wavenumber', 'energy', 'momentum'):
             raise ValueError("Invalid argument to plot_electron_spectrum: r_type must be either 'wavenumber', 'energy', or 'momentum'")
 
@@ -2953,9 +3025,13 @@ class SphericalHarmonicMesh(QuantumMesh):
                                                                 r_type, r_scale,
                                                                 **kwargs)
 
-    def plot_electron_momentum_spectrum_from_meshes(self, theta_mesh, r_mesh, inner_product_mesh,
-                                                    r_type, r_scale,
-                                                    log = False,
+    def plot_electron_momentum_spectrum_from_meshes(self,
+                                                    theta_mesh,
+                                                    r_mesh,
+                                                    inner_product_mesh,
+                                                    r_type: str,
+                                                    r_scale: float,
+                                                    log: bool = False,
                                                     **kwargs):
         """
         Generate a polar plot of the wavefunction decomposed into plane waves.
