@@ -1,5 +1,6 @@
 import collections
 import logging
+import enum
 
 import numpy as np
 from scipy.misc import factorial
@@ -17,7 +18,6 @@ def electron_energy_from_wavenumber(k):
 
 def electron_wavenumber_from_energy(energy):
     return np.sqrt(2 * u.electron_mass * energy + 0j) / u.hbar
-
 
 
 def triangle_coef(a, b, c):
@@ -96,3 +96,8 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 
 
 warning_record = collections.namedtuple('warning_record', ['data_time_index', 'message'])
+
+
+class Gauge(enum.Enum):
+    LENGTH = 'len'
+    VELOCITY = 'vel'

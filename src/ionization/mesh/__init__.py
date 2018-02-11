@@ -1,5 +1,5 @@
 from .sims import *
-from .mesh import *
+from .meshes import *
 from .snapshots import *
 
 from . import anim
