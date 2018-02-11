@@ -59,7 +59,7 @@ def get_power(pulse, times, lookback = None):
     return force * velocity
 
 
-def plot_f_and_v(cos_pulse, sin_pulse, times):
+def plot_power(cos_pulse, sin_pulse, times):
     pulses = [cos_pulse, sin_pulse]
 
     powers = [get_power(pulse, times) for pulse in pulses]
@@ -271,8 +271,62 @@ def plot_power_model(pulses, times):
     )
 
 
+def peak_power_vs_cep():
+    pw = 200 * u.asec
+    ceps = np.linspace(0, u.pi, 1000)
+
+    pulses = [ion.potentials.SincPulse(pulse_width = pw, phase = cep) for cep in ceps]
+    times = np.linspace(-50 * pw, 50 * pw, 20000)
+
+    powers = [get_power(pulse, times) for pulse in pulses]
+    peak_power = [np.max(np.abs(power)) for power in powers]
+
+    si.vis.xy_plot(
+        'peak_power_vs_cep',
+        ceps,
+        peak_power,
+        x_label = r'$ \varphi $',
+        y_label = r'Peak Power',
+        x_unit = 'rad',
+        y_unit = 'atomic_power',
+        **PLOT_KWARGS
+    )
+
+
+def power_vs_cep_movie():
+    pw = 200 * u.asec
+    ceps = np.linspace(0, u.pi, 1000)
+
+    times = np.linspace(-50 * pw, 50 * pw, 20000)
+
+    def y(times, cep):
+        pulse = ion.potentials.SincPulse(pulse_width = pw, phase = cep,)
+        return get_power(pulse, times)
+
+    si.vis.xyt_plot(
+        'power_vs_cep_movie',
+        times,
+        ceps,
+        y,
+        length = 10,
+        t_fmt_string = r'$ \varphi = {} $',
+        x_label = r'$ t $',
+        y_label = r'$ F(t) \cdot v_{\mathrm{cl}}(t) $',
+        y_unit = 'atomic_power',
+        x_unit = 'asec',
+        x_lower_limit = -5 * pw,
+        x_upper_limit = 5 * pw,
+        progress_bar = True,
+        target_dir = OUT_DIR,
+        fig_dpi_scale = 5,
+    )
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
+        peak_power_vs_cep()
+        power_vs_cep_movie()
+
         pulses = [
             ion.potentials.SincPulse(phase = 0),
             # ion.potentials.SincPulse(phase = u.pi / 2),
@@ -287,7 +341,7 @@ if __name__ == '__main__':
         times = np.linspace(-35 * pulses[0].pulse_width, 35 * pulses[0].pulse_width, 10000)
 
         corrected_pulses = [ion.potentials.DC_correct_electric_potential(pulse, times) for pulse in pulses]
-        plot_f_and_v(*corrected_pulses, times)
+        plot_power(*corrected_pulses, times)
         plot_power_model(corrected_pulses, times)
 
         # tdse_sims = [run(get_tdse_spec(pulse, times)) for pulse in pulses]
