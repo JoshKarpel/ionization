@@ -363,7 +363,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Photon Energy', f'{u.uround(self.photon_energy, u.eV)} eV')
         info.add_field('Frequency', f'{u.uround(self.frequency, u.THz)} THz')
         info.add_field('Period', f'{u.uround(self.period, u.asec)} as | {u.uround(self.period, u.fsec)} fs')
-        info.add_field('Wavelength', f'{u.uround(self.wavelength, u.nm)} u.nm | {u.uround(self.wavelength, bohr_radius)} a_0')
+        info.add_field('Wavelength', f'{u.uround(self.wavelength, u.nm)} u.nm | {u.uround(self.wavelength, u.bohr_radius)} a_0')
 
         info.add_info(self.window.info())
 

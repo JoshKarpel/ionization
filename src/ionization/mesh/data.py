@@ -25,7 +25,6 @@ class Datastore(abc.ABC):
     def __init__(self, sim: 'sims.MeshSimulation'):
         self.sim = sim
         self.spec = sim.spec
-        self.mesh = sim.mesh
 
         self.init()
         self.attach()
@@ -56,7 +55,7 @@ class Norm(Datastore):
         self.norm = self.sim.get_blank_data()
 
     def store(self):
-        self.norm[self.sim.data_time_index] = self.mesh.norm()
+        self.norm[self.sim.data_time_index] = self.sim.mesh.norm()
 
     def attach(self):
         self.sim.data.norm = self.norm
@@ -73,7 +72,7 @@ class InnerProducts(Datastore):
 
     def store(self):
         for state in self.spec.test_states:
-            self.inner_products[state][self.sim.data_time_index] = self.mesh.inner_product(state)
+            self.inner_products[state][self.sim.data_time_index] = self.sim.mesh.inner_product(state)
 
     def state_overlaps(self):
         return {state: np.abs(inner_product) ** 2 for state, inner_product in self.inner_products.items()}
@@ -119,7 +118,7 @@ class RadialPositionExpectationValue(Datastore):
         self.radial_position_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.radial_position_expectation_value[self.sim.data_time_index] = self.mesh.radial_position_expectation_value()
+        self.radial_position_expectation_value[self.sim.data_time_index] = self.sim.mesh.radial_position_expectation_value()
 
     def attach(self):
         self.sim.data.radial_position_expectation_value = self.radial_position_expectation_value
@@ -135,7 +134,7 @@ class InternalEnergyExpectationValue(Datastore):
         self.internal_energy_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.internal_energy_expectation_value[self.sim.data_time_index] = self.mesh.energy_expectation_value(include_interaction = False)
+        self.internal_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.energy_expectation_value(include_interaction = False)
 
     def attach(self):
         self.sim.data.internal_energy_expectation_value = self.internal_energy_expectation_value
@@ -151,7 +150,7 @@ class TotalEnergyExpectationValue(Datastore):
         self.total_energy_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.total_energy_expectation_value[self.sim.data_time_index] = self.mesh.energy_expectation_value(include_interaction = True)
+        self.total_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.energy_expectation_value(include_interaction = True)
 
     def attach(self):
         self.sim.data.total_energy_expectation_value = self.total_energy_expectation_value
@@ -167,7 +166,7 @@ class ElectricDipoleMomentZExpectationValue(Datastore):
         self.z_dipole_moment_expectation_value = self.sim.get_blank_data(dtype = np.complex128)
 
     def store(self):
-        self.z_dipole_moment_expectation_value[self.sim.data_time_index] = np.real(self.mesh.z_dipole_moment_inner_product())
+        self.z_dipole_moment_expectation_value[self.sim.data_time_index] = np.real(self.sim.mesh.z_dipole_moment_inner_product())
 
     def attach(self):
         self.sim.data.z_dipole_moment_expectation_value = self.z_dipole_moment_expectation_value
@@ -183,7 +182,7 @@ class NormByL(Datastore):
         self.norm_by_l = {sph_harm: self.sim.get_blank_data() for sph_harm in self.spec.spherical_harmonics}
 
     def store(self):
-        norm_by_l = self.mesh.norm_by_l
+        norm_by_l = self.sim.mesh.norm_by_l
         for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
             self.norm_by_l[sph_harm][self.sim.data_time_index] = l_norm
 
@@ -204,18 +203,18 @@ class DirectionalRadialProbabilityCurrent(Datastore):
         self.radial_probability_current__pos_z = np.zeros((self.sim.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
         self.radial_probability_current__neg_z = np.zeros((self.sim.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
 
-        theta = self.mesh.theta_calc
+        theta = self.sim.mesh.theta_calc
         self.d_theta = np.abs(theta[1] - theta[0])
         self.sin_theta = np.sin(theta)
         self.mask = theta <= u.pi / 2
 
     def store(self):
-        radial_current_density = self.mesh.get_radial_probability_current_density_mesh__spatial()
+        radial_current_density = self.sim.mesh.get_radial_probability_current_density_mesh__spatial()
 
         integrand = radial_current_density * self.sin_theta * self.d_theta * u.twopi  # sin(theta) d_theta from theta integral, twopi from phi integral
 
-        self.radial_probability_current__pos_z[self.sim.data_time_index] = np.sum(integrand[:, self.mask], axis = 1) * (self.mesh.r ** 2)
-        self.radial_probability_current__neg_z[self.sim.data_time_index] = np.sum(integrand[:, ~self.mask], axis = 1) * (self.mesh.r ** 2)
+        self.radial_probability_current__pos_z[self.sim.data_time_index] = np.sum(integrand[:, self.mask], axis = 1) * (self.sim.mesh.r ** 2)
+        self.radial_probability_current__neg_z[self.sim.data_time_index] = np.sum(integrand[:, ~self.mask], axis = 1) * (self.sim.mesh.r ** 2)
 
     def attach(self):
         self.sim.data.radial_probability_current__pos_z = self.radial_probability_current__pos_z

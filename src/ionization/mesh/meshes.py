@@ -504,11 +504,8 @@ class LineMesh(QuantumMesh):
     def energies(self):
         return ((self.wavenumbers * u.hbar) ** 2) / (2 * self.spec.test_mass)
 
-    def flatten_mesh(self, mesh, flatten_along: Optional[str] = None):
-        return mesh
-
-    def wrap_vector(self, vector, wrap_along: Optional[str] = None):
-        return vector
+    def _wrapping_direction_to_order(self, wrapping_direction: WrappingDirection) -> Optional[str]:
+        return None
 
     @si.utils.memoize
     def get_g_for_state(self, state):

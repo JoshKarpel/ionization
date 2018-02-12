@@ -684,13 +684,15 @@ class MeshSimulation(si.Simulation, abc.ABC):
             fig = figman.fig
             ax = fig.add_subplot(111)
 
-            hist_n, hist_bins, hist_patches = ax.hist(x = energies, weights = overlaps,
-                                                      bins = bins,
-                                                      stacked = True,
-                                                      log = log,
-                                                      range = (energy_lower_bound, energy_upper_bound),
-                                                      label = labels,
-                                                      )
+            hist_n, hist_bins, hist_patches = ax.hist(
+                x = energies,
+                weights = overlaps,
+                bins = bins,
+                stacked = True,
+                log = log,
+                range = (energy_lower_bound, energy_upper_bound),
+                label = labels,
+            )
 
             ax.grid(True, **si.vis.GRID_KWARGS)
 
@@ -760,10 +762,11 @@ class MeshSimulation(si.Simulation, abc.ABC):
             **kwargs
         )
 
-    def dipole_moment_vs_frequency(self,
-                                   gauge: str = 'length',
-                                   first_time: Optional[float] = None,
-                                   last_time: Optional[float] = None):
+    def dipole_moment_vs_frequency(
+            self,
+            gauge: str = 'length',
+            first_time: Optional[float] = None,
+            last_time: Optional[float] = None):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
 
         if first_time is None:
@@ -815,19 +818,15 @@ class MeshSimulation(si.Simulation, abc.ABC):
         :param save_mesh: if True, save the mesh as well as the Simulation. If False, don't.
         :return: None
         """
+        if len(self.spec.animators) > 0:
+            raise exceptions.IonizationException('Cannot pickle simulation containing animators')
 
         if not save_mesh:
             for state in self.spec.test_states:  # remove numeric eigenstate information
                 state.g = None
 
-            try:
-                mesh = self.mesh.copy()
-                self.mesh = None
-            except AttributeError:  # mesh is already None
-                mesh = None
-
-        if len(self.spec.animators) > 0:
-            raise exceptions.IonizationException('Cannot pickle simulation containing animators')
+            mesh = self.mesh
+            self.mesh = None
 
         out = super().save(target_dir = target_dir, file_extension = file_extension, **kwargs)
 

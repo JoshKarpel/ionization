@@ -1,11 +1,6 @@
-import itertools
-
 import pytest
 
 import numpy as np
-
-import ionization as ion
-import simulacra.units as u
 
 from tests import testutils
 
@@ -37,6 +32,22 @@ def test_loaded_sim_mesh_is_same_as_original(spec_type, tmpdir):
 def test_loaded_sim_mesh_is_none_if_not_saved(spec_type, tmpdir):
     sim_type = spec_type.simulation_type
     sim = spec_type('test').to_sim()
+
+    path = sim.save(tmpdir, save_mesh = False)
+    loaded_sim = sim_type.load(path)
+
+    assert loaded_sim.mesh is None
+
+
+@pytest.mark.parametrize(
+    'spec_type',
+    SPEC_TYPES
+)
+def test_can_save_sim_that_already_has_no_mesh(spec_type, tmpdir):
+    sim_type = spec_type.simulation_type
+    sim = spec_type('test').to_sim()
+
+    sim.mesh = None
 
     path = sim.save(tmpdir, save_mesh = False)
     loaded_sim = sim_type.load(path)

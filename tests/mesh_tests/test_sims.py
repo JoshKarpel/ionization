@@ -4,10 +4,9 @@ import pytest
 
 import numpy as np
 
-import ionization as ion
 import simulacra.units as u
 
-from tests import testutils
+import ionization as ion
 
 SPEC_TYPES = [
     ion.mesh.LineSpecification,
