@@ -262,12 +262,13 @@ class MeshSimulation(si.Simulation, abc.ABC):
     def free_states(self) -> Iterable[states.QuantumState]:
         yield from [s for s in self.spec.test_states if not s.bound]
 
-    def group_free_states_by_continuous_attr(self,
-                                             attr = 'energy',
-                                             divisions = 10,
-                                             cutoff_value = None,
-                                             label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}',
-                                             attr_unit = 'eV'):
+    def group_free_states_by_continuous_attr(
+            self,
+            attr = 'energy',
+            divisions = 10,
+            cutoff_value = None,
+            label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}',
+            attr_unit: u.Unit = 'eV'):
         spectrum = set(getattr(s, attr) for s in self.free_states)
 
         grouped_states = collections.defaultdict(list)
@@ -325,13 +326,14 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         return grouped_states, group_labels
 
-    def attach_electric_potential_plot_to_axis(self,
-                                               axis: plt.Axes,
-                                               show_electric_field: bool = True,
-                                               show_vector_potential: bool = True,
-                                               time_unit: str = 'asec',
-                                               legend_kwargs: Optional[dict] = None,
-                                               show_y_label: bool = False, ):
+    def attach_electric_potential_plot_to_axis(
+            self,
+            axis: plt.Axes,
+            show_electric_field: bool = True,
+            show_vector_potential: bool = True,
+            time_unit: u.Unit = 'asec',
+            legend_kwargs: Optional[dict] = None,
+            show_y_label: bool = False):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if legend_kwargs is None:
@@ -347,7 +349,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         if show_electric_field:
             axis.plot(
                 self.data_times / time_unit_value,
-                self.electric_field_amplitude_vs_time / u.atomic_electric_field,
+                self.data.electric_field_amplitude / u.atomic_electric_field,
                 color = vis.COLOR_EFIELD,
                 linewidth = 1.5,
                 label = fr'$ {vis.LATEX_EFIELD}(t) $',
@@ -374,13 +376,14 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         axis.grid(True, **si.vis.GRID_KWARGS)
 
-    def plot_state_overlaps_vs_time(self,
-                                    states: Iterable[states.QuantumState] = None,
-                                    log: bool = False,
-                                    time_unit: str = 'asec',
-                                    show_electric_field: bool = True,
-                                    show_vector_potential: bool = True,
-                                    **kwargs):
+    def plot_state_overlaps_vs_time(
+            self,
+            states: Iterable[states.QuantumState] = None,
+            log: bool = False,
+            time_unit: u.Unit = 'asec',
+            show_electric_field: bool = True,
+            show_vector_potential: bool = True,
+            **kwargs):
         with si.vis.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
@@ -464,18 +467,19 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
             figman.name += postfix
 
-    def plot_wavefunction_vs_time(self,
-                                  log: bool = False,
-                                  time_unit: str = 'asec',
-                                  bound_state_max_n: int = 5,
-                                  collapse_bound_state_angular_momenta: bool = True,
-                                  grouped_free_states = None,
-                                  group_free_states_labels = None,
-                                  show_title: bool = False,
-                                  plot_name_from: str = 'file_name',
-                                  show_electric_field: bool = True,
-                                  show_vector_potential: bool = True,
-                                  **kwargs):
+    def plot_wavefunction_vs_time(
+            self,
+            log: bool = False,
+            time_unit: u.Unit = 'asec',
+            bound_state_max_n: int = 5,
+            collapse_bound_state_angular_momenta: bool = True,
+            grouped_free_states = None,
+            group_free_states_labels = None,
+            show_title: bool = False,
+            plot_name_from: str = 'file_name',
+            show_electric_field: bool = True,
+            show_vector_potential: bool = True,
+            **kwargs):
         with si.vis.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
@@ -608,18 +612,19 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
             figman.name += postfix
 
-    def plot_energy_spectrum(self,
-                             states: str = 'all',
-                             time_index: int = -1,
-                             energy_scale: str = 'eV',
-                             time_scale: str = 'asec',
-                             bins: int = 100,
-                             log: bool = False,
-                             energy_lower_bound: Optional[float] = None,
-                             energy_upper_bound: Optional[float] = None,
-                             group_angular_momentum: bool = True,
-                             angular_momentum_cutoff: Optional[int] = None,
-                             **kwargs):
+    def plot_energy_spectrum(
+            self,
+            states: str = 'all',
+            time_index: int = -1,
+            energy_scale: str = 'eV',
+            time_scale: str = 'asec',
+            bins: int = 100,
+            log: bool = False,
+            energy_lower_bound: Optional[float] = None,
+            energy_upper_bound: Optional[float] = None,
+            group_angular_momentum: bool = True,
+            angular_momentum_cutoff: Optional[int] = None,
+            **kwargs):
         energy_unit, energy_unit_str = u.get_unit_value_and_latex_from_unit(energy_scale)
         time_unit, time_unit_str = u.get_unit_value_and_latex_from_unit(time_scale)
 
@@ -783,13 +788,14 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         return frequency, dipole_moment
 
-    def plot_dipole_moment_vs_frequency(self,
-                                        use_name: bool = False,
-                                        gauge: str = 'length',
-                                        frequency_range: float = 10000 * u.THz,
-                                        first_time: Optional[float] = None,
-                                        last_time: Optional[float] = None,
-                                        **kwargs):
+    def plot_dipole_moment_vs_frequency(
+            self,
+            use_name: bool = False,
+            gauge: str = 'length',
+            frequency_range: float = 10000 * u.THz,
+            first_time: Optional[float] = None,
+            last_time: Optional[float] = None,
+            **kwargs):
         prefix = self.file_name
         if use_name:
             prefix = self.name
@@ -846,33 +852,34 @@ class MeshSpecification(si.Specification, abc.ABC):
     evolution_method = si.utils.RestrictedValues({'CN', 'SO', 'S'})
     evolution_gauge = si.utils.RestrictedValues({'LEN', 'VEL'})
 
-    def __init__(self,
-                 name: str,
-                 test_mass: float = u.electron_mass_reduced,
-                 test_charge: float = u.electron_charge,
-                 initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
-                 test_states: Iterable[states.QuantumState] = tuple(),
-                 internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
-                 electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction: bool = False,
-                 mask: potentials.Mask = potentials.NoMask(),
-                 evolution_method = 'SO',
-                 evolution_equations = 'HAM',
-                 evolution_gauge = 'LEN',
-                 time_initial = 0 * u.asec,
-                 time_final = 200 * u.asec,
-                 time_step = 1 * u.asec,
-                 checkpoints: bool = False,
-                 checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
-                 checkpoint_dir: Optional[str] = None,
-                 animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
-                 store_data_every: int = 1,
-                 snapshot_times = (),
-                 snapshot_indices = (),
-                 snapshot_type = None,
-                 snapshot_kwargs: Optional[dict] = None,
-                 datastore_types: Iterable[data.Datastore] = data.DEFAULT_DATASTORES,
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            test_mass: float = u.electron_mass_reduced,
+            test_charge: float = u.electron_charge,
+            initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
+            test_states: Iterable[states.QuantumState] = tuple(),
+            internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
+            electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
+            electric_potential_dc_correction: bool = False,
+            mask: potentials.Mask = potentials.NoMask(),
+            evolution_method = 'SO',
+            evolution_equations = 'HAM',
+            evolution_gauge = 'LEN',
+            time_initial = 0 * u.asec,
+            time_final = 200 * u.asec,
+            time_step = 1 * u.asec,
+            checkpoints: bool = False,
+            checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
+            checkpoint_dir: Optional[str] = None,
+            animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
+            store_data_every: int = 1,
+            snapshot_times = (),
+            snapshot_indices = (),
+            snapshot_type = None,
+            snapshot_kwargs: Optional[dict] = None,
+            datastore_types: Iterable[data.Datastore] = data.DEFAULT_DATASTORES,
+            **kwargs):
         """
         Parameters
         ----------
@@ -1017,16 +1024,17 @@ class MeshSpecification(si.Specification, abc.ABC):
 
 
 class LineSpecification(MeshSpecification):
-    def __init__(self,
-                 name,
-                 initial_state = states.QHOState(1 * u.N / u.m),
-                 x_bound = 10 * u.nm,
-                 x_points = 2 ** 9,
-                 fft_cutoff_energy = 1000 * u.eV,
-                 analytic_eigenstate_type = None,
-                 use_numeric_eigenstates = False,
-                 number_of_numeric_eigenstates = 100,
-                 **kwargs):
+    def __init__(
+            self,
+            name,
+            initial_state = states.QHOState(1 * u.N / u.m),
+            x_bound = 10 * u.nm,
+            x_points = 2 ** 9,
+            fft_cutoff_energy = 1000 * u.eV,
+            analytic_eigenstate_type = None,
+            use_numeric_eigenstates = False,
+            number_of_numeric_eigenstates = 100,
+            **kwargs):
         super().__init__(
             name,
             mesh_type = meshes.LineMesh,
@@ -1066,16 +1074,17 @@ class LineSpecification(MeshSpecification):
 class CylindricalSliceSpecification(MeshSpecification):
     mesh_type = meshes.CylindricalSliceMesh
 
-    def __init__(self,
-                 name: str,
-                 z_bound: float = 20 * u.bohr_radius,
-                 rho_bound: float = 20 * u.bohr_radius,
-                 z_points: int = 2 ** 9,
-                 rho_points: int = 2 ** 8,
-                 evolution_equations = 'HAM',
-                 evolution_method = 'CN',
-                 evolution_gauge = 'LEN',
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            z_bound: float = 20 * u.bohr_radius,
+            rho_bound: float = 20 * u.bohr_radius,
+            z_points: int = 2 ** 9,
+            rho_points: int = 2 ** 8,
+            evolution_equations = 'HAM',
+            evolution_method = 'CN',
+            evolution_gauge = 'LEN',
+            **kwargs):
         super().__init__(
             name,
             evolution_equations = evolution_equations,
@@ -1109,17 +1118,18 @@ class CylindricalSliceSpecification(MeshSpecification):
 class WarpedCylindricalSliceSpecification(MeshSpecification):
     mesh_type = meshes.WarpedCylindricalSliceMesh
 
-    def __init__(self,
-                 name: str,
-                 z_bound: float = 20 * u.bohr_radius,
-                 rho_bound: float = 20 * u.bohr_radius,
-                 z_points: int = 2 ** 9,
-                 rho_points: int = 2 ** 8,
-                 evolution_equations = 'HAM',
-                 evolution_method = 'CN',
-                 evolution_gauge = 'LEN',
-                 warping: float = 1,
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            z_bound: float = 20 * u.bohr_radius,
+            rho_bound: float = 20 * u.bohr_radius,
+            z_points: int = 2 ** 9,
+            rho_points: int = 2 ** 8,
+            evolution_equations = 'HAM',
+            evolution_method = 'CN',
+            evolution_gauge = 'LEN',
+            warping: float = 1,
+            **kwargs):
         super().__init__(name,
                          evolution_equations = evolution_equations,
                          evolution_method = evolution_method,
@@ -1154,15 +1164,16 @@ class WarpedCylindricalSliceSpecification(MeshSpecification):
 class SphericalSliceSpecification(MeshSpecification):
     mesh_type = meshes.SphericalSliceMesh
 
-    def __init__(self,
-                 name: str,
-                 r_bound: float = 20 * u.bohr_radius,
-                 r_points: int = 2 ** 10,
-                 theta_points: int = 2 ** 10,
-                 evolution_equations = 'HAM',
-                 evolution_method = 'CN',
-                 evolution_gauge = 'LEN',
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            r_bound: float = 20 * u.bohr_radius,
+            r_points: int = 2 ** 10,
+            theta_points: int = 2 ** 10,
+            evolution_equations = 'HAM',
+            evolution_method = 'CN',
+            evolution_gauge = 'LEN',
+            **kwargs):
         super().__init__(
             name,
             evolution_equations = evolution_equations,
@@ -1209,7 +1220,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
 
     def plot_radial_probability_current_vs_time(
             self,
-            time_unit: str = 'asec',
+            time_unit: u.Unit = 'asec',
             time_lower_limit: Optional[float] = None,
             time_upper_limit: Optional[float] = None,
             r_lower_limit: Optional[float] = None,
@@ -1278,7 +1289,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
             t_lower_limit: Optional[float] = None,
             t_upper_limit: Optional[float] = None,
             distance_unit: str = 'bohr_radius',
-            time_unit: str = 'asec',
+            time_unit: u.Unit = 'asec',
             current_unit: str = 'per_asec',
             z_cut: float = .7,
             colormap = plt.get_cmap('coolwarm'),
@@ -1396,7 +1407,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
 
                 efield, = ax_efield.plot(
                     self.data_times / time_unit_value,
-                    self.electric_field_amplitude_vs_time / efield_unit_value,
+                    self.data.electric_field_amplitude / efield_unit_value,
                     color = efield_color,
                     linestyle = '-',
                 )
@@ -1404,7 +1415,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
                 efield_grid_kwargs = {**si.vis.GRID_KWARGS, **{'color': efield_color, 'linestyle': '--'}}
                 ax_efield.yaxis.grid(True, **efield_grid_kwargs)
 
-                max_efield = np.nanmax(np.abs(self.electric_field_amplitude_vs_time))
+                max_efield = np.nanmax(np.abs(self.data.electric_field_amplitude))
 
                 ax_efield.set_xlim(t_lower_limit / time_unit_value, t_upper_limit / time_unit_value)
                 ax_efield.set_ylim(-1.05 * max_efield / efield_unit_value, 1.05 * max_efield / efield_unit_value)
@@ -1419,13 +1430,13 @@ class SphericalHarmonicSimulation(MeshSimulation):
         ax_field = plt.subplot(grid_spec[1], sharex = ax_momentums)
 
         if not isinstance(self.spec.electric_potential, potentials.NoPotentialEnergy):
-            ax_field.plot(self.times / u.asec, self.electric_field_amplitude_vs_time / u.atomic_electric_field, color = 'black', linewidth = 2)
+            ax_field.plot(self.times / u.asec, self.data.electric_field_amplitude / u.atomic_electric_field, color = 'black', linewidth = 2)
 
         if renormalize:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
+            overlaps = [self.data.norm_by_l[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
             l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$' for sph_harm in self.spec.spherical_harmonics]
         else:
-            overlaps = [self.norm_by_harmonic_vs_time[sph_harm] for sph_harm in self.spec.spherical_harmonics]
+            overlaps = [self.data.norm_by_l[sph_harm] for sph_harm in self.spec.spherical_harmonics]
             l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2$' for sph_harm in self.spec.spherical_harmonics]
         num_colors = len(overlaps)
         ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
@@ -1487,22 +1498,23 @@ class SphericalHarmonicSpecification(MeshSpecification):
     simulation_type = SphericalHarmonicSimulation
     mesh_type = meshes.SphericalHarmonicMesh
 
-    def __init__(self,
-                 name: str,
-                 r_bound: float = 100 * u.bohr_radius,
-                 r_points: int = 400,
-                 l_bound: int = 100,
-                 theta_points: int = 180,
-                 evolution_equations = 'LAG',
-                 evolution_method = 'SO',
-                 evolution_gauge = 'LEN',
-                 use_numeric_eigenstates: bool = False,
-                 numeric_eigenstate_max_angular_momentum: float = 20,
-                 numeric_eigenstate_max_energy: float = 100 * u.eV,
-                 hydrogen_zero_angular_momentum_correction: bool = True,
-                 store_radial_probability_current: bool = False,
-                 store_norm_by_l: bool = False,
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            r_bound: float = 100 * u.bohr_radius,
+            r_points: int = 400,
+            l_bound: int = 100,
+            theta_points: int = 180,
+            evolution_equations = 'LAG',
+            evolution_method = 'SO',
+            evolution_gauge = 'LEN',
+            use_numeric_eigenstates: bool = False,
+            numeric_eigenstate_max_angular_momentum: int = 20,
+            numeric_eigenstate_max_energy: float = 100 * u.eV,
+            hydrogen_zero_angular_momentum_correction: bool = True,
+            store_radial_probability_current: bool = False,
+            store_norm_by_l: bool = False,
+            **kwargs):
         """
         Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
 

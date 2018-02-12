@@ -87,7 +87,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
                  axman_upper_right = axes.WavefunctionStackplotAxis(),
                  axman_colorbar = axes.ColorBarAxis(),
                  fig_dpi_scale = 1,
-                 time_text_unit = 'asec',
+                 time_text_unit: u.Unit = 'asec',
                  time_text_digits = 1,
                  **kwargs):
         super().__init__(**kwargs)

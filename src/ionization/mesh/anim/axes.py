@@ -1,4 +1,5 @@
 import logging
+from typing import Iterable
 
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import make_axes_locatable
@@ -7,7 +8,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from ... import vis
+from ... import vis, states
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -23,20 +24,21 @@ COLORMESH_GRID_KWARGS = {
 
 
 class ElectricPotentialPlotAxis(si.vis.AxisManager):
-    def __init__(self,
-                 time_unit = 'asec',
-                 show_electric_field = True,
-                 electric_field_unit = 'AEF',
-                 show_vector_potential = False,
-                 vector_potential_unit = 'atomic_momentum',
-                 linewidth = 3,
-                 show_y_label = False,
-                 show_ticks_bottom = True,
-                 show_ticks_top = False,
-                 show_ticks_right = True,
-                 show_ticks_left = True,
-                 grid_kwargs = None,
-                 legend_kwargs = None):
+    def __init__(
+            self,
+            time_unit: u.Unit = 'asec',
+            show_electric_field = True,
+            electric_field_unit = 'AEF',
+            show_vector_potential = False,
+            vector_potential_unit = 'atomic_momentum',
+            linewidth = 3,
+            show_y_label = False,
+            show_ticks_bottom = True,
+            show_ticks_top = False,
+            show_ticks_right = True,
+            show_ticks_left = True,
+            grid_kwargs = None,
+            legend_kwargs = None):
         self.show_electric_field = show_electric_field
         self.show_vector_potential = show_vector_potential
 
@@ -169,7 +171,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
 class StackplotAxis(si.vis.AxisManager):
     def __init__(self,
                  show_norm = True,
-                 time_unit = 'asec',
+                 time_unit: u.Unit = 'asec',
                  y_label = None,
                  show_ticks_bottom = True,
                  show_ticks_top = False,
@@ -324,9 +326,7 @@ class TestStateStackplotAxis(StackplotAxis):
 
 
 class WavefunctionStackplotAxis(StackplotAxis):
-    def __init__(self,
-                 states = None,
-                 **kwargs):
+    def __init__(self, states: Iterable[states.QuantumState] = None, **kwargs):
         if states is None:
             states = ()
         self.states = sorted(states)
@@ -570,8 +570,11 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
 
         super().initialize_axis()
 
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(),
-                        *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+        self.redraw += [
+            *self.axis.xaxis.get_gridlines(),
+            *self.axis.yaxis.get_gridlines(),
+            *self.axis.yaxis.get_ticklabels(),
+        ]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
 
         if self.which not in ('g', 'psi'):
             divider = make_axes_locatable(self.axis)
@@ -583,9 +586,7 @@ class CylindricalSliceMeshAxis(QuantumMeshAxis):
 
 
 class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
-    def __init__(self,
-                 slicer = 'get_mesh_slicer_spatial',
-                 **kwargs):
+    def __init__(self, slicer = 'get_mesh_slicer_spatial', **kwargs):
         self.tick_labels = None
 
         super().__init__(slicer = slicer, **kwargs)
@@ -639,5 +640,8 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
 
         super().initialize_axis()
 
-        self.redraw += [*self.axis.xaxis.get_gridlines(), *self.axis.yaxis.get_gridlines(),
-                        *self.axis.yaxis.get_ticklabels()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+        self.redraw += [
+            *self.axis.xaxis.get_gridlines(),
+            *self.axis.yaxis.get_gridlines(),
+            *self.axis.yaxis.get_ticklabels(),
+        ]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
