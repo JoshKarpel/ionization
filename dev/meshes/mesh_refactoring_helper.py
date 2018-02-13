@@ -70,16 +70,20 @@ if __name__ == '__main__':
         )
 
         specs = []
-        # for evolution_method in ('CN', 'SO', 'S'):
-        #     specs.append(
-        #         ion.mesh.LineSpecification(
-        #             f'Line_HAM_{evolution_method}_LEN',
-        #             evolution_equations = 'HAM',
-        #             evolution_method = evolution_method,
-        #             evolution_gauge = 'LEN',
-        #             **shared_spec_kwargs
-        #         )
-        #     )
+        for evolution_method in (
+                ion.mesh.LineCrankNicolson(),
+                ion.mesh.LineSplitOperator(),
+                # ion.mesh.LineSpectral(),  # something is wrong with spectral
+        ):
+            specs.append(
+                ion.mesh.LineSpecification(
+                    f'Line_HAM_{evolution_method}_LEN',
+                    evolution_equations = 'HAM',
+                    evolution_method = evolution_method,
+                    evolution_gauge = 'LEN',
+                    **shared_spec_kwargs
+                )
+            )
         specs.append(
             ion.mesh.CylindricalSliceSpecification(
                 f'CylindricalSlice_HAM_CN_LEN',
@@ -129,9 +133,9 @@ if __name__ == '__main__':
         #     print(k, v)
 
         expected_results = {
-            (ion.mesh.LineMesh, 'HAM', 'CN', 'LEN'): 0.0143651217635,
-            (ion.mesh.LineMesh, 'HAM', 'SO', 'LEN'): 0.0143755731217,
-            (ion.mesh.LineMesh, 'HAM', 'S', 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
+            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, 'LEN'): 0.0143651217635,
+            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, 'LEN'): 0.0143755731217,
+            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
             (ion.mesh.CylindricalSliceMesh, 'HAM', ion.mesh.CylindricalSliceCrankNicolson, 'LEN'): 0.293741923689,
             (ion.mesh.SphericalSliceMesh, 'HAM', ion.mesh.SphericalSliceCrankNicolson, 'LEN'): 0.178275457029,
             (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicCrankNicolson, 'LEN'): 0.312970628484,

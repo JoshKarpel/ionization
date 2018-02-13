@@ -1034,11 +1034,13 @@ class LineSpecification(MeshSpecification):
             analytic_eigenstate_type = None,
             use_numeric_eigenstates = False,
             number_of_numeric_eigenstates = 100,
+            evolution_method = evolution_methods.LineCrankNicolson(),
             **kwargs):
         super().__init__(
             name,
             mesh_type = meshes.LineMesh,
             initial_state = initial_state,
+            evolution_method = evolution_method,
             **kwargs
         )
 
@@ -1082,7 +1084,7 @@ class CylindricalSliceSpecification(MeshSpecification):
             z_points: int = 2 ** 9,
             rho_points: int = 2 ** 8,
             evolution_equations = 'HAM',
-            evolution_method = 'CN',
+            evolution_method = evolution_methods.CylindricalSliceCrankNicolson(),
             evolution_gauge = 'LEN',
             **kwargs):
         super().__init__(
@@ -1171,7 +1173,7 @@ class SphericalSliceSpecification(MeshSpecification):
             r_points: int = 2 ** 10,
             theta_points: int = 2 ** 10,
             evolution_equations = 'HAM',
-            evolution_method = 'CN',
+            evolution_method = evolution_methods.SphericalSliceCrankNicolson(),
             evolution_gauge = 'LEN',
             **kwargs):
         super().__init__(
@@ -1506,7 +1508,7 @@ class SphericalHarmonicSpecification(MeshSpecification):
             l_bound: int = 100,
             theta_points: int = 180,
             evolution_equations = 'LAG' ,
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator,
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator(),
             evolution_gauge = 'LEN',
             use_numeric_eigenstates: bool = False,
             numeric_eigenstate_max_angular_momentum: int = 20,

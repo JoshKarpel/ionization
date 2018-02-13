@@ -198,7 +198,7 @@ class QuantumMesh(abc.ABC):
         return np.reshape(vector, self.mesh_shape, wrap)
 
     @abc.abstractmethod
-    def _wrapping_direction_to_order(self, wrapping_direction: WrappingDirection) -> Optional[str]:
+    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -499,11 +499,11 @@ class LineMesh(QuantumMesh):
     def energies(self):
         return ((self.wavenumbers * u.hbar) ** 2) / (2 * self.spec.test_mass)
 
-    def _wrapping_direction_to_order(self, wrapping_direction: WrappingDirection) -> Optional[str]:
+    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         return None
 
     @si.utils.memoize
-    def get_g_for_state(self, state):
+    def get_g_for_state(self, state: StateOrGMesh):
         if state.analytic and self.spec.use_numeric_eigenstates:
             try:
                 state = self.analytic_to_numeric[state]
@@ -516,7 +516,7 @@ class LineMesh(QuantumMesh):
 
         return g
 
-    def energy_expectation_value(self, include_interaction = False):
+    def energy_expectation_value(self, include_interaction: bool = False):
         potential = self.inner_product(b = self.spec.internal_potential(r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
 
         power_spectrum = np.abs(self.fft(self.g)) ** 2
@@ -533,7 +533,7 @@ class LineMesh(QuantumMesh):
     def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
 
-    def fft(self, mesh = None):
+    def fft(self, mesh: Optional[WavefunctionMesh] = None):
         if mesh is None:
             mesh = self.g
 
@@ -541,14 +541,6 @@ class LineMesh(QuantumMesh):
 
     def ifft(self, mesh):
         return nfft.ifft(mesh, norm = 'ortho')
-
-    def _evolve_potential(self, time_step: complex):
-        pot = self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge)
-        pot += self.spec.electric_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
-        self.g *= np.exp(-1j * time_step * pot / u.hbar)
-
-    def _evolve_free(self, time_step: complex):
-        self.g = self.ifft(self.fft(self.g) * np.exp(self.free_evolution_prefactor * time_step) * self.wavenumber_mask)
 
     def _get_kinetic_energy_matrix_operators_HAM(self):
         prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_x ** 2))
@@ -580,25 +572,6 @@ class LineMesh(QuantumMesh):
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
-
-    def _evolve_CN(self, time_step):
-        """Crank-Nicholson evolution in the Length gauge."""
-        tau = time_step / (2 * u.hbar)
-
-        interaction_operator = self.get_interaction_hamiltonian_matrix_operators()
-
-        hamiltonian_x = self.get_internal_hamiltonian_matrix_operators()
-        hamiltonian = 1j * tau * sparse.dia_matrix(hamiltonian_x + interaction_operator)
-
-        ham_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian, 1)
-        ham_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian, 1)
-
-        operators = [
-            DotOperator(ham_explicit, wrapping_direction = None),
-            TDMAOperator(ham_implicit, wrapping_direction = None),
-        ]
-
-        self.g = apply_operators(self, self.g, *operators)
 
     def _make_split_operator_evolution_operators(self, interaction_hamiltonians_matrix_operators, tau: float):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonians_matrix_operators, tau)
@@ -643,32 +616,6 @@ class LineMesh(QuantumMesh):
             DotOperator(even, wrapping_direction = None),
             DotOperator(odd, wrapping_direction = None),
         )
-
-    def _evolve_SO(self, time_step: complex):
-        """Split-Operator evolution in the Length gauge."""
-        tau = time_step / (2 * u.hbar)
-
-        hamiltonian_x = self.get_internal_hamiltonian_matrix_operators()
-
-        ham_x_explicit = add_to_diagonal_sparse_matrix_diagonal(-1j * tau * hamiltonian_x, 1)
-        ham_x_implicit = add_to_diagonal_sparse_matrix_diagonal(1j * tau * hamiltonian_x, 1)
-
-        split_operators = self._make_split_operator_evolution_operators(self.get_interaction_hamiltonian_matrix_operators(), tau)
-
-        operators = [
-            *split_operators,
-            DotOperator(ham_x_explicit, wrapping_direction = None),
-            TDMAOperator(ham_x_implicit, wrapping_direction = None),
-            *reversed(split_operators),
-        ]
-
-        self.g = apply_operators(self, self.g, *operators)
-
-    def _evolve_S(self, time_step: complex):
-        """Spectral evolution in the Length gauge."""
-        self._evolve_potential(time_step / 2)
-        self._evolve_free(time_step)  # splitting order chosen for computational efficiency (only one FFT per time step)
-        self._evolve_potential(time_step / 2)
 
     def _get_numeric_eigenstate_basis(self, number_of_eigenstates: int):
         analytic_to_numeric = {}
@@ -2389,7 +2336,6 @@ class SphericalHarmonicMesh(QuantumMesh):
         h2_operators = self._make_split_operators_VEL_h2(h2, tau)
 
         return [*h1_operators, *h2_operators]
-
 
     def _apply_length_gauge_transformation(self, vector_potential_amplitude: float, g: GMesh):
         bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vector_potential_amplitude * self.r_mesh / u.hbar)
