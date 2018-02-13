@@ -19,7 +19,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import potentials, states, vis, core, exceptions
-from . import meshes, anim, snapshots, data
+from . import meshes, anim, snapshots, data, evolution_methods
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -848,9 +848,9 @@ class MeshSpecification(si.Specification, abc.ABC):
     simulation_type = MeshSimulation
     mesh_type = meshes.QuantumMesh
 
-    evolution_equations = si.utils.RestrictedValues({'LAG', 'HAM'})
-    evolution_method = si.utils.RestrictedValues({'CN', 'SO', 'S'})
-    evolution_gauge = si.utils.RestrictedValues({'LEN', 'VEL'})
+    # evolution_equations = si.utils.RestrictedValues({'LAG', 'HAM'})
+    # evolution_method = si.utils.RestrictedValues({'CN', 'SO', 'S'})
+    # evolution_gauge = si.utils.RestrictedValues({'LEN', 'VEL'})
 
     def __init__(
             self,
@@ -863,7 +863,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
             electric_potential_dc_correction: bool = False,
             mask: potentials.Mask = potentials.NoMask(),
-            evolution_method = 'SO',
+            evolution_method: evolution_methods.EvolutionMethod = None,
             evolution_equations = 'HAM',
             evolution_gauge = 'LEN',
             time_initial = 0 * u.asec,
@@ -1505,8 +1505,8 @@ class SphericalHarmonicSpecification(MeshSpecification):
             r_points: int = 400,
             l_bound: int = 100,
             theta_points: int = 180,
-            evolution_equations = 'LAG',
-            evolution_method = 'SO',
+            evolution_equations = 'LAG' ,
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator,
             evolution_gauge = 'LEN',
             use_numeric_eigenstates: bool = False,
             numeric_eigenstate_max_angular_momentum: int = 20,
