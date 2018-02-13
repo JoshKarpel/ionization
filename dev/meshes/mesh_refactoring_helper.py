@@ -80,24 +80,24 @@ if __name__ == '__main__':
         #             **shared_spec_kwargs
         #         )
         #     )
-        # specs.append(
-        #     ion.mesh.CylindricalSliceSpecification(
-        #         f'CylindricalSlice_HAM_CN_LEN',
-        #         evolution_equations = 'HAM',
-        #         evolution_method = 'CN',
-        #         evolution_gauge = 'LEN',
-        #         **shared_spec_kwargs
-        #     )
-        # )
-        # specs.append(
-        #     ion.mesh.SphericalSliceSpecification(
-        #         f'SphericalSlice_HAM_CN_LEN',
-        #         evolution_equations = 'HAM',
-        #         evolution_method = 'CN',
-        #         evolution_gauge = 'LEN',
-        #         **shared_spec_kwargs
-        #     )
-        # )
+        specs.append(
+            ion.mesh.CylindricalSliceSpecification(
+                f'CylindricalSlice_HAM_CN_LEN',
+                evolution_equations = 'HAM',
+                evolution_method = ion.mesh.CylindricalSliceCrankNicolson(),
+                evolution_gauge = 'LEN',
+                **shared_spec_kwargs
+            )
+        )
+        specs.append(
+            ion.mesh.SphericalSliceSpecification(
+                f'SphericalSlice_HAM_CN_LEN',
+                evolution_equations = 'HAM',
+                evolution_method = ion.mesh.SphericalSliceCrankNicolson(),
+                evolution_gauge = 'LEN',
+                **shared_spec_kwargs
+            )
+        )
         specs.append(
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_CN_LEN',
@@ -125,15 +125,15 @@ if __name__ == '__main__':
         identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.evolution_equations, r.spec.evolution_method.__class__, r.spec.evolution_gauge): r.data.initial_state_overlap[-1] for r in results}
 
         ### look at results before comparison
-        for k, v in identifier_to_final_initial_overlap.items():
-            print(k, v)
+        # for k, v in identifier_to_final_initial_overlap.items():
+        #     print(k, v)
 
         expected_results = {
             (ion.mesh.LineMesh, 'HAM', 'CN', 'LEN'): 0.0143651217635,
             (ion.mesh.LineMesh, 'HAM', 'SO', 'LEN'): 0.0143755731217,
             (ion.mesh.LineMesh, 'HAM', 'S', 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
-            (ion.mesh.CylindricalSliceMesh, 'HAM', 'CN', 'LEN'): 0.293741923689,
-            (ion.mesh.SphericalSliceMesh, 'HAM', 'CN', 'LEN'): 0.178275457029,
+            (ion.mesh.CylindricalSliceMesh, 'HAM', ion.mesh.CylindricalSliceCrankNicolson, 'LEN'): 0.293741923689,
+            (ion.mesh.SphericalSliceMesh, 'HAM', ion.mesh.SphericalSliceCrankNicolson, 'LEN'): 0.178275457029,
             (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicCrankNicolson, 'LEN'): 0.312970628484,
             (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, 'LEN'): 0.312928752359,
             (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, 'VEL'): 0.319513371899,

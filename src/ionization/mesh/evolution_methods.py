@@ -125,11 +125,57 @@ class EvolutionMethod(abc.ABC):
 
 
 class CylindricalSliceCrankNicolson(EvolutionMethod):
+    def evolve(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+        tau = time_step / (2 * u.hbar)
+
+        hamiltonian_z, hamiltonian_rho = mesh.get_internal_hamiltonian_matrix_operators()
+        interaction_hamiltonian_z, interaction_hamiltonian_rho = mesh.get_interaction_hamiltonian_matrix_operators()
+
+        hamiltonian_z = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 0.5 * interaction_hamiltonian_z.diagonal())
+        hamiltonian_rho = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 0.5 * interaction_hamiltonian_rho.diagonal())
+
+        hamiltonian_rho_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_rho, value = 1)
+        hamiltonian_z_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 1)
+        hamiltonian_z_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_z, value = 1)
+        hamiltonian_rho_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 1)
+
+        operators = [
+            DotOperator(hamiltonian_rho_explicit, wrapping_direction = meshes.WrappingDirection.RHO),
+            TDMAOperator(hamiltonian_z_implicit, wrapping_direction = meshes.WrappingDirection.Z),
+            DotOperator(hamiltonian_z_explicit, wrapping_direction = meshes.WrappingDirection.Z),
+            TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = meshes.WrappingDirection.RHO),
+        ]
+
+        return apply_operators(mesh, g, *operators)
+
+
+class WarpedCylindricalSliceCrankNicolson(EvolutionMethod):
     pass
 
 
 class SphericalSliceCrankNicolson(EvolutionMethod):
-    pass
+    def evolve(self, mesh: 'meshes.SphericalHarmonicMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+        tau = time_step / (2 * u.hbar)
+
+        hamiltonian_r, hamiltonian_theta = mesh.get_internal_hamiltonian_matrix_operators()
+        interaction_hamiltonian_r, interaction_hamiltonian_theta = mesh.get_interaction_hamiltonian_matrix_operators()
+
+        hamiltonian_r = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 0.5 * interaction_hamiltonian_r.diagonal())
+        hamiltonian_theta = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 0.5 * interaction_hamiltonian_theta.diagonal())
+
+        hamiltonian_theta_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_theta, value = 1)
+        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 1)
+        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, value = 1)
+        hamiltonian_theta_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 1)
+
+        operators = [
+            DotOperator(hamiltonian_theta_explicit, wrapping_direction = meshes.WrappingDirection.THETA),
+            TDMAOperator(hamiltonian_r_implicit, wrapping_direction = meshes.WrappingDirection.R),
+            DotOperator(hamiltonian_r_explicit, wrapping_direction = meshes.WrappingDirection.R),
+            TDMAOperator(hamiltonian_theta_implicit, wrapping_direction = meshes.WrappingDirection.THETA),
+        ]
+
+        return apply_operators(mesh, g, *operators)
 
 
 class SphericalHarmonicCrankNicolson(EvolutionMethod):

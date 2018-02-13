@@ -164,11 +164,6 @@ class QuantumMesh(abc.ABC):
         self.g = None
         self.inner_product_multiplier = None
 
-        # try:
-        #     self.evolution_method = getattr(self, f'_evolve_{self.spec.evolution_method}')
-        # except AttributeError:
-        #     raise NotImplementedError(f'Evolution method {self.spec.evolution_method} is not implemented for {self.__class__.__name__}')
-
     def __eq__(self, other):
         """
         QuantumMeshes should evaluate equal if and only if their Simulations are equal and their g (the only thing which carries state information) are the same.
@@ -1001,37 +996,6 @@ class CylindricalSliceMesh(QuantumMesh):
     def get_spline_for_mesh(self, mesh):
         return sp.interp.RectBivariateSpline(self.z, self.rho, mesh)
 
-    def _evolve_CN(self, time_step):
-        """
-        Evolve the mesh forward in time by time_step.
-
-        Crank-Nicholson evolution in the Length gauge.
-
-        :param time_step:
-        :return:
-        """
-        tau = time_step / (2 * u.hbar)
-
-        hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
-        interaction_hamiltonian_z, interaction_hamiltonian_rho = self.get_interaction_hamiltonian_matrix_operators()
-
-        hamiltonian_z = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 0.5 * interaction_hamiltonian_z.diagonal())
-        hamiltonian_rho = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 0.5 * interaction_hamiltonian_rho.diagonal())
-
-        hamiltonian_rho_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_rho, value = 1)
-        hamiltonian_z_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 1)
-        hamiltonian_z_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_z, value = 1)
-        hamiltonian_rho_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 1)
-
-        operators = [
-            DotOperator(hamiltonian_rho_explicit, wrapping_direction = 'rho'),
-            TDMAOperator(hamiltonian_z_implicit, wrapping_direction = 'z'),
-            DotOperator(hamiltonian_z_explicit, wrapping_direction = 'z'),
-            TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = 'rho'),
-        ]
-
-        self.g = apply_operators(self, self.g, *operators)
-
     @si.utils.memoize
     def get_mesh_slicer(self, plot_limit = None):
         """Returns a slice object that slices a mesh to the given distance of the center."""
@@ -1247,191 +1211,160 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
         g *= state.amplitude
 
         return g
-
-    def z_dipole_moment_inner_product(self, a = None, b = None):
-        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
-
-    def _get_kinetic_energy_matrix_operators_HAM(self):
-        """Get the mesh kinetic energy operator matrices for z and rho."""
-        z_prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_z ** 2))
-        chi_prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_chi ** 2))
-
-        z_diagonal = z_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
-        z_offdiagonal = z_prefactor * np.array([1 if (z_index + 1) % self.spec.z_points != 0 else 0 for z_index in range(self.mesh_points - 1)], dtype = np.complex128)
-
-        @si.utils.memoize
-        def c(j):
-            return j / np.sqrt((j ** 2) - 0.25)
-
-        chi_diagonal = chi_prefactor * ((-2 * np.ones(self.mesh_points, dtype = np.complex128)) + ((self.spec.warping - .5) ** 2))
-        chi_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for rho_index in range(self.mesh_points - 1):
-            if (rho_index + 1) % self.spec.rho_points != 0:
-                j = (rho_index % self.spec.rho_points) + 1  # get j for the upper diagonal
-                chi_offdiagonal[rho_index] = c(j)
-        chi_offdiagonal *= chi_prefactor
-
-        z_kinetic = sparse.diags([z_offdiagonal, z_diagonal, z_offdiagonal], offsets = (-1, 0, 1))
-        rho_kinetic = sparse.diags([chi_offdiagonal, chi_diagonal, chi_offdiagonal], offsets = (-1, 0, 1))
-
-        return z_kinetic, rho_kinetic
-
-    @si.utils.memoize
-    def get_internal_hamiltonian_matrix_operators(self):
-        """Get the mesh internal Hamiltonian matrix operators for z and rho."""
-        kinetic_z, kinetic_rho = self.get_kinetic_energy_matrix_operators()
-        potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
-
-        kinetic_z = add_to_diagonal_sparse_matrix_diagonal(kinetic_z, value = 0.5 * self.flatten_mesh(potential_mesh, 'z'))
-        kinetic_rho = add_to_diagonal_sparse_matrix_diagonal(kinetic_rho, value = 0.5 * self.flatten_mesh(potential_mesh, 'rho'))
-
-        return kinetic_z, kinetic_rho
-
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
-        """Get the interaction term calculated from the Lagrangian evolution equations."""
-        electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
-
-        interaction_hamiltonian_z = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'z'))
-        interaction_hamiltonian_rho = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'rho'))
-
-        return interaction_hamiltonian_z, interaction_hamiltonian_rho
-
-    def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
-        raise NotImplementedError
-
-    def tg_mesh(self, use_abs_g = False):
-        hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
-
-        if use_abs_g:
-            g = np.abs(self.g)
-        else:
-            g = self.g
-
-        g_vector_z = self.flatten_mesh(g, 'z')
-        hg_vector_z = hamiltonian_z.dot(g_vector_z)
-        hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
-
-        g_vector_rho = self.flatten_mesh(g, 'rho')
-        hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
-        hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
-
-        return hg_mesh_z + hg_mesh_rho
-
-    def hg_mesh(self, include_interaction = False):
-        hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
-
-        g_vector_z = self.flatten_mesh(self.g, 'z')
-        hg_vector_z = hamiltonian_z.dot(g_vector_z)
-        hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
-
-        g_vector_rho = self.flatten_mesh(self.g, 'rho')
-        hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
-        hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
-
-        if include_interaction:
-            raise NotImplementedError
-
-        return hg_mesh_z + hg_mesh_rho
-
-    def energy_expectation_value(self, include_interaction = False):
-        return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
-
-    @si.utils.memoize
-    def _get_probability_current_matrix_operators(self):
-        """Get the mesh probability current operators for z and rho."""
-        z_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * self.delta_rho * self.delta_z)
-        rho_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * (self.delta_rho ** 2))
-
-        # construct the diagonals of the z probability current matrix operator
-        z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for z_index in range(0, self.mesh_points - 1):
-            if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
-                z_offdiagonal[z_index] = 0
-            else:
-                j = z_index // self.spec.z_points
-                z_offdiagonal[z_index] = 1 / (j + 0.5)
-        z_offdiagonal *= z_prefactor
-
-        @si.utils.memoize
-        def d(j):
-            return 1 / np.sqrt((j ** 2) - 0.25)
-
-        # construct the diagonals of the rho probability current matrix operator
-        rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for rho_index in range(0, self.mesh_points - 1):
-            if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
-                rho_offdiagonal[rho_index] = 0
-            else:
-                j = (rho_index % self.spec.rho_points) + 1
-                rho_offdiagonal[rho_index] = d(j)
-        rho_offdiagonal *= rho_prefactor
-
-        z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
-        rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
-
-        return z_current, rho_current
-
-    def get_probability_current_vector_field(self):
-        z_current, rho_current = self._get_probability_current_matrix_operators()
-
-        g_vector_z = self.flatten_mesh(self.g, 'z')
-        current_vector_z = z_current.dot(g_vector_z)
-        gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
-        current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
-
-        g_vector_rho = self.flatten_mesh(self.g, 'rho')
-        current_vector_rho = rho_current.dot(g_vector_rho)
-        gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
-        current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
-
-        return current_mesh_z, current_mesh_rho
-
-    def get_spline_for_mesh(self, mesh):
-        return sp.interp.RectBivariateSpline(self.z, self.chi, mesh)
-
-    def _evolve_CN(self, time_step):
-        """
-        Evolve the mesh forward in time by time_step.
-
-        Crank-Nicholson evolution in the Length gauge.
-
-        :param time_step:
-        :return:
-        """
-        tau = time_step / (2 * u.hbar)
-
-        hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
-        interaction_hamiltonian_z, interaction_hamiltonian_rho = self.get_interaction_hamiltonian_matrix_operators()
-
-        hamiltonian_z = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 0.5 * interaction_hamiltonian_z.diagonal())
-        hamiltonian_rho = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 0.5 * interaction_hamiltonian_rho.diagonal())
-
-        hamiltonian_rho_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_rho, value = 1)
-        hamiltonian_z_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_z, value = 1)
-        hamiltonian_z_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_z, value = 1)
-        hamiltonian_rho_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_rho, value = 1)
-
-        operators = [
-            DotOperator(hamiltonian_rho_explicit, wrapping_direction = 'rho'),
-            TDMAOperator(hamiltonian_z_implicit, wrapping_direction = 'z'),
-            DotOperator(hamiltonian_z_explicit, wrapping_direction = 'z'),
-            TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = 'rho'),
-        ]
-
-        self.g = apply_operators(self, self.g, *operators)
-
-    @si.utils.memoize
-    def get_mesh_slicer(self, plot_limit = None):
-        """Returns a slice object that slices a mesh to the given distance of the center."""
-        if plot_limit is None:
-            mesh_slicer = (slice(None, None, 1), slice(None, None, 1))
-        else:
-            z_lim_points = round(plot_limit / self.delta_z)
-            rho_lim_points = round(plot_limit / self.delta_rho)
-            mesh_slicer = (slice(int(self.z_center_index - z_lim_points), int(self.z_center_index + z_lim_points + 1), 1), slice(0, int(rho_lim_points + 1), 1))
-
-        return mesh_slicer
+    #
+    # def z_dipole_moment_inner_product(self, a = None, b = None):
+    #     return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
+    #
+    # def _get_kinetic_energy_matrix_operators_HAM(self):
+    #     """Get the mesh kinetic energy operator matrices for z and rho."""
+    #     z_prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_z ** 2))
+    #     chi_prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_chi ** 2))
+    #
+    #     z_diagonal = z_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
+    #     z_offdiagonal = z_prefactor * np.array([1 if (z_index + 1) % self.spec.z_points != 0 else 0 for z_index in range(self.mesh_points - 1)], dtype = np.complex128)
+    #
+    #     @si.utils.memoize
+    #     def c(j):
+    #         return j / np.sqrt((j ** 2) - 0.25)
+    #
+    #     chi_diagonal = chi_prefactor * ((-2 * np.ones(self.mesh_points, dtype = np.complex128)) + ((self.spec.warping - .5) ** 2))
+    #     chi_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for rho_index in range(self.mesh_points - 1):
+    #         if (rho_index + 1) % self.spec.rho_points != 0:
+    #             j = (rho_index % self.spec.rho_points) + 1  # get j for the upper diagonal
+    #             chi_offdiagonal[rho_index] = c(j)
+    #     chi_offdiagonal *= chi_prefactor
+    #
+    #     z_kinetic = sparse.diags([z_offdiagonal, z_diagonal, z_offdiagonal], offsets = (-1, 0, 1))
+    #     rho_kinetic = sparse.diags([chi_offdiagonal, chi_diagonal, chi_offdiagonal], offsets = (-1, 0, 1))
+    #
+    #     return z_kinetic, rho_kinetic
+    #
+    # @si.utils.memoize
+    # def get_internal_hamiltonian_matrix_operators(self):
+    #     """Get the mesh internal Hamiltonian matrix operators for z and rho."""
+    #     kinetic_z, kinetic_rho = self.get_kinetic_energy_matrix_operators()
+    #     potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
+    #
+    #     kinetic_z = add_to_diagonal_sparse_matrix_diagonal(kinetic_z, value = 0.5 * self.flatten_mesh(potential_mesh, 'z'))
+    #     kinetic_rho = add_to_diagonal_sparse_matrix_diagonal(kinetic_rho, value = 0.5 * self.flatten_mesh(potential_mesh, 'rho'))
+    #
+    #     return kinetic_z, kinetic_rho
+    #
+    # def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+    #     """Get the interaction term calculated from the Lagrangian evolution equations."""
+    #     electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
+    #
+    #     interaction_hamiltonian_z = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'z'))
+    #     interaction_hamiltonian_rho = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'rho'))
+    #
+    #     return interaction_hamiltonian_z, interaction_hamiltonian_rho
+    #
+    # def _get_interaction_hamiltonian_matrix_operators_VEL(self):
+    #     # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
+    #     raise NotImplementedError
+    #
+    # def tg_mesh(self, use_abs_g = False):
+    #     hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
+    #
+    #     if use_abs_g:
+    #         g = np.abs(self.g)
+    #     else:
+    #         g = self.g
+    #
+    #     g_vector_z = self.flatten_mesh(g, 'z')
+    #     hg_vector_z = hamiltonian_z.dot(g_vector_z)
+    #     hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
+    #
+    #     g_vector_rho = self.flatten_mesh(g, 'rho')
+    #     hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
+    #     hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
+    #
+    #     return hg_mesh_z + hg_mesh_rho
+    #
+    # def hg_mesh(self, include_interaction = False):
+    #     hamiltonian_z, hamiltonian_rho = self.get_internal_hamiltonian_matrix_operators()
+    #
+    #     g_vector_z = self.flatten_mesh(self.g, 'z')
+    #     hg_vector_z = hamiltonian_z.dot(g_vector_z)
+    #     hg_mesh_z = self.wrap_vector(hg_vector_z, 'z')
+    #
+    #     g_vector_rho = self.flatten_mesh(self.g, 'rho')
+    #     hg_vector_rho = hamiltonian_rho.dot(g_vector_rho)
+    #     hg_mesh_rho = self.wrap_vector(hg_vector_rho, 'rho')
+    #
+    #     if include_interaction:
+    #         raise NotImplementedError
+    #
+    #     return hg_mesh_z + hg_mesh_rho
+    #
+    # def energy_expectation_value(self, include_interaction = False):
+    #     return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
+    #
+    # @si.utils.memoize
+    # def _get_probability_current_matrix_operators(self):
+    #     """Get the mesh probability current operators for z and rho."""
+    #     z_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * self.delta_rho * self.delta_z)
+    #     rho_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * (self.delta_rho ** 2))
+    #
+    #     # construct the diagonals of the z probability current matrix operator
+    #     z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for z_index in range(0, self.mesh_points - 1):
+    #         if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
+    #             z_offdiagonal[z_index] = 0
+    #         else:
+    #             j = z_index // self.spec.z_points
+    #             z_offdiagonal[z_index] = 1 / (j + 0.5)
+    #     z_offdiagonal *= z_prefactor
+    #
+    #     @si.utils.memoize
+    #     def d(j):
+    #         return 1 / np.sqrt((j ** 2) - 0.25)
+    #
+    #     # construct the diagonals of the rho probability current matrix operator
+    #     rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for rho_index in range(0, self.mesh_points - 1):
+    #         if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
+    #             rho_offdiagonal[rho_index] = 0
+    #         else:
+    #             j = (rho_index % self.spec.rho_points) + 1
+    #             rho_offdiagonal[rho_index] = d(j)
+    #     rho_offdiagonal *= rho_prefactor
+    #
+    #     z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
+    #     rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
+    #
+    #     return z_current, rho_current
+    #
+    # def get_probability_current_vector_field(self):
+    #     z_current, rho_current = self._get_probability_current_matrix_operators()
+    #
+    #     g_vector_z = self.flatten_mesh(self.g, 'z')
+    #     current_vector_z = z_current.dot(g_vector_z)
+    #     gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
+    #     current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
+    #
+    #     g_vector_rho = self.flatten_mesh(self.g, 'rho')
+    #     current_vector_rho = rho_current.dot(g_vector_rho)
+    #     gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
+    #     current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
+    #
+    #     return current_mesh_z, current_mesh_rho
+    #
+    # def get_spline_for_mesh(self, mesh):
+    #     return sp.interp.RectBivariateSpline(self.z, self.chi, mesh)
+    #
+    # @si.utils.memoize
+    # def get_mesh_slicer(self, plot_limit = None):
+    #     """Returns a slice object that slices a mesh to the given distance of the center."""
+    #     if plot_limit is None:
+    #         mesh_slicer = (slice(None, None, 1), slice(None, None, 1))
+    #     else:
+    #         z_lim_points = round(plot_limit / self.delta_z)
+    #         rho_lim_points = round(plot_limit / self.delta_rho)
+    #         mesh_slicer = (slice(int(self.z_center_index - z_lim_points), int(self.z_center_index + z_lim_points + 1), 1), slice(0, int(rho_lim_points + 1), 1))
+    #
+    #     return mesh_slicer
 
 
 class SphericalSliceMesh(QuantumMesh):
@@ -1627,30 +1560,6 @@ class SphericalSliceMesh(QuantumMesh):
 
     def get_spline_for_mesh(self, mesh):
         return sp.interp.RectBivariateSpline(self.r, self.theta, mesh)
-
-    def _evolve_CN(self, time_step: complex):
-        """Crank-Nicholson evolution in the Length gauge."""
-        tau = time_step / (2 * u.hbar)
-
-        hamiltonian_r, hamiltonian_theta = self.get_internal_hamiltonian_matrix_operators()
-        interaction_hamiltonian_r, interaction_hamiltonian_theta = self.get_interaction_hamiltonian_matrix_operators()
-
-        hamiltonian_r = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 0.5 * interaction_hamiltonian_r.diagonal())
-        hamiltonian_theta = 1j * tau * add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 0.5 * interaction_hamiltonian_theta.diagonal())
-
-        hamiltonian_theta_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_theta, value = 1)
-        hamiltonian_r_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, value = 1)
-        hamiltonian_r_explicit = add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, value = 1)
-        hamiltonian_theta_implicit = add_to_diagonal_sparse_matrix_diagonal(hamiltonian_theta, value = 1)
-
-        operators = [
-            DotOperator(hamiltonian_theta_explicit, wrapping_direction = 'theta'),
-            TDMAOperator(hamiltonian_r_implicit, wrapping_direction = 'r'),
-            DotOperator(hamiltonian_r_explicit, wrapping_direction = 'r'),
-            TDMAOperator(hamiltonian_theta_implicit, wrapping_direction = 'theta'),
-        ]
-
-        self.g = apply_operators(self, self.g, *operators)
 
     @si.utils.memoize
     def get_mesh_slicer(self, distance_from_center = None):
