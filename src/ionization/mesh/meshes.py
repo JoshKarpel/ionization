@@ -16,8 +16,8 @@ import scipy.integrate as integ
 import simulacra as si
 import simulacra.units as u
 
-from .. import states, vis, core, cy, exceptions
-from . import sims, evolution_methods
+from .. import states, vis, core, exceptions
+from . import sims
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)

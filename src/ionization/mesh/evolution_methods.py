@@ -16,8 +16,8 @@ import scipy.integrate as integ
 import simulacra as si
 import simulacra.units as u
 
-from .. import states, vis, core, cy, exceptions
-from . import sims, meshes
+from .. import cy
+from . import meshes
 
 
 def add_to_diagonal_sparse_matrix_diagonal(dia_matrix: 'meshes.SparseMatrixOperator', value = 1) -> sparse.dia_matrix:
@@ -108,7 +108,7 @@ class SimilarityOperator(DotOperator):
         return result, self.wrapping_direction
 
 
-def apply_operators(mesh, g: 'meshes.GMesh', *operators: MeshOperator):
+def apply_operators(mesh, g: 'meshes.GMesh', operators: Iterable[MeshOperator]):
     """Operators should be entered in operation (the order they would act on something on their right)"""
     current_wrapping_direction = None
 
@@ -119,13 +119,17 @@ def apply_operators(mesh, g: 'meshes.GMesh', *operators: MeshOperator):
 
 
 class EvolutionMethod(abc.ABC):
-    @abc.abstractmethod
     def evolve(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+        operators = self.get_evolution_operators(mesh, time_step)
+        return apply_operators(mesh, g, operators)
+
+    @abc.abstractmethod
+    def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[MeshOperator]:
         raise NotImplementedError
 
 
 class LineCrankNicolson(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.LineMesh', time_step: complex) -> Iterable[MeshOperator]:
         tau = time_step / (2 * u.hbar)
 
         interaction_operator = mesh.get_interaction_hamiltonian_matrix_operators()
@@ -141,11 +145,11 @@ class LineCrankNicolson(EvolutionMethod):
             TDMAOperator(ham_implicit, wrapping_direction = None),
         ]
 
-        return apply_operators(mesh, g, *operators)
+        return operators
 
 
 class LineSplitOperator(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.LineMesh', time_step: complex) -> Iterable[MeshOperator]:
         tau = time_step / (2 * u.hbar)
 
         hamiltonian_x = mesh.get_internal_hamiltonian_matrix_operators()
@@ -162,29 +166,29 @@ class LineSplitOperator(EvolutionMethod):
             *reversed(split_operators),
         ]
 
-        return apply_operators(mesh, g, *operators)
+        return operators
 
 
-class LineSpectral(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
-        g = self._evolve_potential(mesh, g, time_step / 2)
-        g = self._evolve_free(mesh, g, time_step)  # splitting order chosen for computational efficiency (only one FFT per time step)
-        g = self._evolve_potential(mesh, g, time_step / 2)
-
-        return g
-
-    def _evolve_potential(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
-        pot = mesh.spec.internal_potential(t = mesh.sim.time, r = mesh.x_mesh, distance = mesh.x_mesh, test_charge = mesh.spec.test_charge)
-        pot += mesh.spec.electric_potential(t = mesh.sim.time, r = mesh.x_mesh, distance = mesh.x_mesh, distance_along_polarization = mesh.x_mesh, test_charge = mesh.spec.test_charge)
-
-        return g * np.exp(-1j * time_step * pot / u.hbar)
-
-    def _evolve_free(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
-        return mesh.ifft(mesh.fft(g) * np.exp(mesh.free_evolution_prefactor * time_step) * mesh.wavenumber_mask)
+# class LineSpectral(EvolutionMethod):
+#     def evolve(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+#         g = self._evolve_potential(mesh, g, time_step / 2)
+#         g = self._evolve_free(mesh, g, time_step)  # splitting order chosen for computational efficiency (only one FFT per time step)
+#         g = self._evolve_potential(mesh, g, time_step / 2)
+#
+#         return g
+#
+#     def _evolve_potential(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+#         pot = mesh.spec.internal_potential(t = mesh.sim.time, r = mesh.x_mesh, distance = mesh.x_mesh, test_charge = mesh.spec.test_charge)
+#         pot += mesh.spec.electric_potential(t = mesh.sim.time, r = mesh.x_mesh, distance = mesh.x_mesh, distance_along_polarization = mesh.x_mesh, test_charge = mesh.spec.test_charge)
+#
+#         return g * np.exp(-1j * time_step * pot / u.hbar)
+#
+#     def _evolve_free(self, mesh: 'meshes.LineMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+#         return mesh.ifft(mesh.fft(g) * np.exp(mesh.free_evolution_prefactor * time_step) * mesh.wavenumber_mask)
 
 
 class CylindricalSliceCrankNicolson(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.CylindricalSliceMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.CylindricalSliceMesh', time_step: complex) -> Iterable[MeshOperator]:
         tau = time_step / (2 * u.hbar)
 
         hamiltonian_z, hamiltonian_rho = mesh.get_internal_hamiltonian_matrix_operators()
@@ -205,7 +209,7 @@ class CylindricalSliceCrankNicolson(EvolutionMethod):
             TDMAOperator(hamiltonian_rho_implicit, wrapping_direction = meshes.WrappingDirection.RHO),
         ]
 
-        return apply_operators(mesh, g, *operators)
+        return operators
 
 
 class WarpedCylindricalSliceCrankNicolson(EvolutionMethod):
@@ -213,7 +217,7 @@ class WarpedCylindricalSliceCrankNicolson(EvolutionMethod):
 
 
 class SphericalSliceCrankNicolson(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.SphericalSliceMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.SphericalSliceMesh', time_step: complex) -> Iterable[MeshOperator]:
         tau = time_step / (2 * u.hbar)
 
         hamiltonian_r, hamiltonian_theta = mesh.get_internal_hamiltonian_matrix_operators()
@@ -234,11 +238,11 @@ class SphericalSliceCrankNicolson(EvolutionMethod):
             TDMAOperator(hamiltonian_theta_implicit, wrapping_direction = meshes.WrappingDirection.THETA),
         ]
 
-        return apply_operators(mesh, g, *operators)
+        return operators
 
 
 class SphericalHarmonicCrankNicolson(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.SphericalHarmonicMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
         tau = 1j * time_step / (2 * u.hbar)
 
         hamiltonian_r = tau * mesh.get_internal_hamiltonian_matrix_operators()
@@ -256,11 +260,11 @@ class SphericalHarmonicCrankNicolson(EvolutionMethod):
             TDMAOperator(hamiltonian_l_implicit, wrapping_direction = meshes.WrappingDirection.L),
         ]
 
-        return apply_operators(mesh, g, *operators)
+        return operators
 
 
 class SphericalHarmonicSplitOperator(EvolutionMethod):
-    def evolve(self, mesh: 'meshes.SphericalHarmonicMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+    def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
         tau = time_step / (2 * u.hbar)
 
         hamiltonian_r = (1j * tau) * mesh.get_internal_hamiltonian_matrix_operators()
@@ -277,4 +281,4 @@ class SphericalHarmonicSplitOperator(EvolutionMethod):
             *reversed(split_operators),
         )
 
-        return apply_operators(mesh, g, *operators)
+        return operators
