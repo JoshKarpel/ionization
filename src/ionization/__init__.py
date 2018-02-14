@@ -17,3 +17,4 @@ pyximport.install(
 )
 
 from . import mesh, ide, potentials, states
+from .core import Gauge

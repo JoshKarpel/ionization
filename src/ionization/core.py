@@ -98,6 +98,6 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 warning_record = collections.namedtuple('warning_record', ['data_time_index', 'message'])
 
 
-class Gauge(enum.Enum):
-    LENGTH = 'len'
-    VELOCITY = 'vel'
+class Gauge(si.utils.StrEnum):
+    LENGTH = 'LEN'
+    VELOCITY = 'VEL'

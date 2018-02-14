@@ -127,6 +127,14 @@ class EvolutionMethod(abc.ABC):
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[MeshOperator]:
         raise NotImplementedError
 
+    def __repr__(self):
+        return f'{self.__class__.__name__}'
+
+    def info(self) -> si.Info:
+        info = si.Info(header = self.__class__.__name__)
+
+        return info
+
 
 class LineCrankNicolson(EvolutionMethod):
     def get_evolution_operators(self, mesh: 'meshes.LineMesh', time_step: complex) -> Iterable[MeshOperator]:

@@ -80,7 +80,7 @@ if __name__ == '__main__':
                     f'Line_HAM_{evolution_method}_LEN',
                     evolution_equations = 'HAM',
                     evolution_method = evolution_method,
-                    evolution_gauge = 'LEN',
+                    evolution_gauge = ion.Gauge.LENGTH,
                     **shared_spec_kwargs
                 )
             )
@@ -89,7 +89,7 @@ if __name__ == '__main__':
                 f'CylindricalSlice_HAM_CN_LEN',
                 evolution_equations = 'HAM',
                 evolution_method = ion.mesh.CylindricalSliceCrankNicolson(),
-                evolution_gauge = 'LEN',
+                evolution_gauge = ion.Gauge.LENGTH,
                 **shared_spec_kwargs
             )
         )
@@ -98,7 +98,7 @@ if __name__ == '__main__':
                 f'SphericalSlice_HAM_CN_LEN',
                 evolution_equations = 'HAM',
                 evolution_method = ion.mesh.SphericalSliceCrankNicolson(),
-                evolution_gauge = 'LEN',
+                evolution_gauge = ion.Gauge.LENGTH,
                 **shared_spec_kwargs
             )
         )
@@ -107,12 +107,12 @@ if __name__ == '__main__':
                 f'SphericalHarmonic_LAG_CN_LEN',
                 evolution_equations = 'LAG',
                 evolution_method = ion.mesh.SphericalHarmonicCrankNicolson(),
-                evolution_gauge = 'LEN',
+                evolution_gauge = ion.Gauge.LENGTH,
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **shared_spec_kwargs
             )
         )
-        for evolution_gauge in ('LEN', 'VEL'):
+        for evolution_gauge in (ion.Gauge.LENGTH, ion.Gauge.VELOCITY):
             specs.append(
                 ion.mesh.SphericalHarmonicSpecification(
                     f'SphericalHarmonic_LAG_SO_{evolution_gauge}',
@@ -133,14 +133,14 @@ if __name__ == '__main__':
         #     print(k, v)
 
         expected_results = {
-            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, 'LEN'): 0.0143651217635,
-            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, 'LEN'): 0.0143755731217,
-            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, 'LEN'): 0.000568901854635,  # why is this not the same as the other line mesh methods?
-            (ion.mesh.CylindricalSliceMesh, 'HAM', ion.mesh.CylindricalSliceCrankNicolson, 'LEN'): 0.293741923689,
-            (ion.mesh.SphericalSliceMesh, 'HAM', ion.mesh.SphericalSliceCrankNicolson, 'LEN'): 0.178275457029,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicCrankNicolson, 'LEN'): 0.312970628484,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, 'LEN'): 0.312928752359,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, 'VEL'): 0.319513371899,
+            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, ion.Gauge.LENGTH): 0.0143651217635,
+            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, ion.Gauge.LENGTH): 0.0143755731217,
+            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, ion.Gauge.LENGTH): 0.000568901854635,  # why is this not the same as the other line mesh methods?
+            (ion.mesh.CylindricalSliceMesh, 'HAM', ion.mesh.CylindricalSliceCrankNicolson, ion.Gauge.LENGTH): 0.293741923689,
+            (ion.mesh.SphericalSliceMesh, 'HAM', ion.mesh.SphericalSliceCrankNicolson, ion.Gauge.LENGTH): 0.178275457029,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicCrankNicolson, ion.Gauge.LENGTH): 0.312970628484,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, ion.Gauge.LENGTH): 0.312928752359,
+            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, ion.Gauge.VELOCITY): 0.319513371899,
         }
 
         summary = 'Results:\n'

@@ -487,15 +487,16 @@ class MeshSimulation(si.Simulation, abc.ABC):
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
-            self.attach_electric_potential_plot_to_axis(ax_field,
-                                                        show_electric_field = show_electric_field,
-                                                        show_vector_potential = show_vector_potential,
-                                                        # legend_kwargs = dict(
-                                                        #     bbox_to_anchor = (1.1, .9),
-                                                        #     loc = 'upper left',
-                                                        #     borderaxespad = 0.1,
-                                                        #     fontsize = 10)
-                                                        )
+            self.attach_electric_potential_plot_to_axis(
+                ax_field,
+                show_electric_field = show_electric_field,
+                show_vector_potential = show_vector_potential,
+                # legend_kwargs = dict(
+                #     bbox_to_anchor = (1.1, .9),
+                #     loc = 'upper left',
+                #     borderaxespad = 0.1,
+                #     fontsize = 10)
+            )
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
@@ -728,8 +729,8 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         si.vis.xy_plot(
             prefix + '__radial_position_vs_time',
-            self.data_times,
-            self.radial_position_expectation_value_vs_time,
+            self.data.times,
+            self.data.radial_position_expectation_value,
             x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Radial Position $\left\langle r(t) \right\rangle$', y_unit = 'bohr_radius',
             **kwargs
@@ -743,8 +744,8 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         si.vis.xy_plot(
             prefix + '__dipole_moment_vs_time',
-            self.data_times,
-            self.electric_dipole_moment_expectation_value_vs_time,
+            self.data.times,
+            self.data.electric_dipole_moment_expectation_value,
             x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Dipole Moment $\left\langle d(t) \right\rangle$', y_unit = 'atomic_electric_dipole_moment',
             **kwargs
@@ -758,9 +759,9 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         si.vis.xy_plot(
             prefix + '__energy_vs_time',
-            self.data_times,
-            self.internal_energy_expectation_value_vs_time,
-            self.total_energy_expectation_value_vs_time,
+            self.data.times,
+            self.data.internal_energy_expectation_value,
+            self.data.total_energy_expectation_value,
             line_labels = [r'$\mathcal{H}_0$', r'$\mathcal{H}_0 + \mathcal{H}_{\mathrm{int}}$'],
             x_label = r'Time $t$', x_unit = 'asec',
             y_label = r'Energy $\left\langle E(t) \right\rangle$', y_unit = 'eV',
@@ -769,7 +770,6 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
     def dipole_moment_vs_frequency(
             self,
-            gauge: str = 'length',
             first_time: Optional[float] = None,
             last_time: Optional[float] = None):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
@@ -784,7 +784,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
             last_time_index, last_time, _ = si.utils.find_nearest_entry(self.times, last_time)
         points = last_time_index - first_time_index
         frequency = nfft.fftshift(nfft.fftfreq(points, self.spec.time_step))
-        dipole_moment = nfft.fftshift(nfft.fft(self.electric_dipole_moment_vs_time[gauge][first_time_index: last_time_index], norm = 'ortho'))
+        dipole_moment = nfft.fftshift(nfft.fft(self.data.electric_dipole_moment_expectation_value[first_time_index: last_time_index], norm = 'ortho'))
 
         return frequency, dipole_moment
 
@@ -848,10 +848,6 @@ class MeshSpecification(si.Specification, abc.ABC):
     simulation_type = MeshSimulation
     mesh_type = meshes.QuantumMesh
 
-    # evolution_equations = si.utils.RestrictedValues({'LAG', 'HAM'})
-    # evolution_method = si.utils.RestrictedValues({'CN', 'SO', 'S'})
-    # evolution_gauge = si.utils.RestrictedValues({'LEN', 'VEL'})
-
     def __init__(
             self,
             name: str,
@@ -865,7 +861,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             mask: potentials.Mask = potentials.NoMask(),
             evolution_method: evolution_methods.EvolutionMethod = None,
             evolution_equations = 'HAM',
-            evolution_gauge = 'LEN',
+            evolution_gauge: core.Gauge = core.Gauge.LENGTH,
             time_initial = 0 * u.asec,
             time_final = 200 * u.asec,
             time_step = 1 * u.asec,
@@ -1507,7 +1503,7 @@ class SphericalHarmonicSpecification(MeshSpecification):
             r_points: int = 400,
             l_bound: int = 100,
             theta_points: int = 180,
-            evolution_equations = 'LAG' ,
+            evolution_equations = 'LAG',
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator(),
             evolution_gauge = 'LEN',
             use_numeric_eigenstates: bool = False,

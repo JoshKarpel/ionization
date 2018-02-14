@@ -1030,7 +1030,8 @@ class CylindricalSliceMesh(QuantumMesh):
             tick_label_size = 10,
             grid_kwargs = None,
             title_y_adjust = 1.1,
-            # overlay_probability_current = False, probability_current_time_step = 0,
+            # overlay_probability_current = False,
+            # probability_current_time_step = 0,
             **kwargs):
         if grid_kwargs is None:
             grid_kwargs = {}
@@ -2063,7 +2064,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         if include_interaction:
             hamiltonian_l = self.get_interaction_hamiltonian_matrix_operators()
-            wrapping_direction = 'l' if self.spec.evolution_gauge == 'LEN' else 'r'
+            wrapping_direction = WrappingDirection.L if self.spec.evolution_gauge == core.Gauge.LENGTH else WrappingDirection.R
 
             hg += self.wrap_vector(hamiltonian_l.dot(self.flatten_mesh(self.g, wrapping_direction)), wrapping_direction)
 
