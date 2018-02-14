@@ -19,7 +19,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import potentials, states, vis, core, exceptions
-from . import meshes, anim, snapshots, data, evolution_methods
+from . import meshes, anim, snapshots, data, evolution_methods, operators
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -99,7 +99,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         info_mem = si.Info(header = f'Memory Usage (approx.): {si.utils.bytes_to_str(mem_total)}')
         info_mem.add_field('g', si.utils.bytes_to_str(mem_mesh))
         info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
-        if self.spec.use_numeric_eigenstates:
+        if hasattr(self.spec, 'use_numeric_eigenstates') and self.spec.use_numeric_eigenstates:
             info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
         info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores.items())
         info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
@@ -859,6 +859,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
             electric_potential_dc_correction: bool = False,
             mask: potentials.Mask = potentials.NoMask(),
+            operators: operators.Operators = None,
             evolution_method: evolution_methods.EvolutionMethod = None,
             evolution_equations = 'HAM',
             evolution_gauge: core.Gauge = core.Gauge.LENGTH,
@@ -920,6 +921,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         self.electric_potential_dc_correction = electric_potential_dc_correction
         self.mask = mask
 
+        self.operators = operators
         self.evolution_method = evolution_method
         self.evolution_equations = evolution_equations
         self.evolution_gauge = evolution_gauge
@@ -1079,12 +1081,14 @@ class CylindricalSliceSpecification(MeshSpecification):
             rho_bound: float = 20 * u.bohr_radius,
             z_points: int = 2 ** 9,
             rho_points: int = 2 ** 8,
+            operators = operators.CylindricalSliceLengthGaugeOperators(),
             evolution_equations = 'HAM',
-            evolution_method = evolution_methods.CylindricalSliceCrankNicolson(),
+            evolution_method = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             evolution_gauge = 'LEN',
             **kwargs):
         super().__init__(
             name,
+            operators = operators,
             evolution_equations = evolution_equations,
             evolution_method = evolution_method,
             evolution_gauge = evolution_gauge,
@@ -1102,7 +1106,7 @@ class CylindricalSliceSpecification(MeshSpecification):
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
         info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius)} a_0')
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(2 * self.z_bound / self.z_points, u.bohr_radius)} a_0')
         info_mesh.add_field('Rho Boundary', f'{u.uround(self.rho_bound, u.bohr_radius)} a_0')
         info_mesh.add_field('Rho Points', self.rho_points)
         info_mesh.add_field('Rho Mesh Spacing', f'~{u.uround(self.rho_bound / self.rho_points, u.bohr_radius)} a_0')
@@ -1169,7 +1173,7 @@ class SphericalSliceSpecification(MeshSpecification):
             r_points: int = 2 ** 10,
             theta_points: int = 2 ** 10,
             evolution_equations = 'HAM',
-            evolution_method = evolution_methods.SphericalSliceCrankNicolson(),
+            evolution_method = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             evolution_gauge = 'LEN',
             **kwargs):
         super().__init__(
@@ -1500,16 +1504,15 @@ class SphericalHarmonicSpecification(MeshSpecification):
             self,
             name: str,
             r_bound: float = 100 * u.bohr_radius,
-            r_points: int = 400,
-            l_bound: int = 100,
+            r_points: int = 1000,
+            l_bound: int = 300,
             theta_points: int = 180,
             evolution_equations = 'LAG',
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator(),
             evolution_gauge = 'LEN',
             use_numeric_eigenstates: bool = False,
-            numeric_eigenstate_max_angular_momentum: int = 20,
-            numeric_eigenstate_max_energy: float = 100 * u.eV,
-            hydrogen_zero_angular_momentum_correction: bool = True,
+            numeric_eigenstate_max_angular_momentum: int = 5,
+            numeric_eigenstate_max_energy: float = 20 * u.eV,
             store_radial_probability_current: bool = False,
             store_norm_by_l: bool = False,
             **kwargs):
@@ -1542,8 +1545,6 @@ class SphericalHarmonicSpecification(MeshSpecification):
         self.use_numeric_eigenstates = use_numeric_eigenstates
         self.numeric_eigenstate_max_angular_momentum = min(self.l_bound - 1, numeric_eigenstate_max_angular_momentum)
         self.numeric_eigenstate_max_energy = numeric_eigenstate_max_energy
-
-        self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
 
         self.store_radial_probability_current = store_radial_probability_current
         self.store_norm_by_l = store_norm_by_l
