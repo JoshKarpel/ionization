@@ -20,6 +20,16 @@ from .. import cy
 from . import meshes
 
 
+class Parity(si.utils.StrEnum):
+    EVEN = 'even'
+    ODD = 'odd'
+
+
+class KineticEnergyDerivation(si.utils.StrEnum):
+    HAMILTONIAN = 'hamiltonian'
+    LAGRANGIAN = 'lagrangian'
+
+
 def add_to_diagonal_sparse_matrix_diagonal(dia_matrix: 'meshes.SparseMatrixOperator', value = 1) -> sparse.dia_matrix:
     s = dia_matrix.copy()
     s.setdiag(s.diagonal() + value)
@@ -61,11 +71,6 @@ class DotOperator(MeshOperator):
 class TDMAOperator(MeshOperator):
     def _apply(self, g: 'meshes.GVector') -> 'meshes.GVector':
         return cy.tdma(self.matrix, g)
-
-
-class Parity(si.utils.StrEnum):
-    EVEN = 'even'
-    ODD = 'odd'
 
 
 class SimilarityOperator(DotOperator):
@@ -145,6 +150,21 @@ class Operators(abc.ABC):
         return si.Info(header = f'{self.__class__.__name__}')
 
 
+class LineLengthGaugeOperators(Operators):
+    def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
+        raise NotImplementedError
+
+    @si.utils.memoize
+    def internal_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
+        raise NotImplementedError
+
+    def interaction_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
+        raise NotImplementedError
+
+    def total_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
+        raise NotImplementedError
+
+
 class CylindricalSliceLengthGaugeOperators(Operators):
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
         z_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
@@ -222,6 +242,7 @@ class CylindricalSliceLengthGaugeOperators(Operators):
 
 
 class SphericalSliceLengthGaugeOperators(Operators):
+    @si.utils.memoize
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
         theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((mesh.delta_r * mesh.delta_theta) ** 2))
@@ -321,13 +342,16 @@ class SphericalSliceLengthGaugeOperators(Operators):
 
 
 class SphericalHarmonicLengthGaugeOperators(Operators):
-    def __init__(self, hydrogen_zero_angular_momentum_correction = True):
+    def __init__(self, kinetic_energy_derivation: KineticEnergyDerivation = KineticEnergyDerivation.LAGRANGIAN, hydrogen_zero_angular_momentum_correction: bool = True):
+        self.kinetic_energy_derivation = kinetic_energy_derivation
         self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
 
     def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Hydrogen Zero Angular Momentum Correction', self.hydrogen_zero_angular_momentum_correction)
+
+        return info
 
     def alpha(self, j) -> float:
         x = (j ** 2) + (2 * j)
@@ -345,8 +369,24 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
         """a particular set of 3j coefficients for SphericalHarmonicMesh"""
         return (l + 1) / np.sqrt(((2 * l) + 1) * ((2 * l) + 3))
 
-    # THESE ARE FOR THE LAGRANGIAN EVOLUTION EQNS ONLY SO FAR
+    @si.utils.memoize
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
+        return getattr(self, f'kinetic_energy_from_{self.kinetic_energy_derivation}')()
+
+    def kinetic_energy_from_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
+        r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
+
+        r_diagonal = r_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
+        r_offdiagonal = r_prefactor * np.ones(mesh.mesh_points - 1, dtype = np.complex128)
+
+        effective_potential_mesh = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * mesh.l_mesh * (mesh.l_mesh + 1) / (mesh.r_mesh ** 2)
+        r_diagonal += mesh.flatten_mesh(effective_potential_mesh, 'r')
+
+        r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
+
+        return DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R),
+
+    def kinetic_energy_from_lagrangian(self, mesh) -> Tuple[MeshOperator, ...]:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
 
         r_diagonal = np.zeros(mesh.mesh_points, dtype = np.complex128)
