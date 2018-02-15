@@ -126,17 +126,19 @@ class SphericalHarmonicSplitOperator(EvolutionMethod):
     def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
         tau = time_step / (2 * u.hbar)
 
-        hamiltonian_r = (1j * tau) * mesh.get_internal_hamiltonian_matrix_operators()
+        r_oper, = mesh.operators.internal_hamiltonian(mesh)
+        interaction_operators = mesh.operators.interaction_hamiltonian(mesh)
 
-        hamiltonian_r_explicit = operators.add_to_diagonal_sparse_matrix_diagonal(-hamiltonian_r, 1)
-        hamiltonian_r_implicit = operators.add_to_diagonal_sparse_matrix_diagonal(hamiltonian_r, 1)
+        evolution_operators = [
+            operators.DotOperator(operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * r_oper.matrix, value = 1), wrapping_direction = r_oper.wrapping_direction),
+            operators.TDMAOperator(operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * r_oper.matrix, value = 1), wrapping_direction = r_oper.wrapping_direction),
+        ]
 
-        split_operators = mesh._make_split_operator_evolution_operators(mesh.get_interaction_hamiltonian_matrix_operators(), tau)
+        split_operators = mesh.operators.split_interaction_operators(mesh, interaction_operators, tau)
 
         evolution_operators = (
             *split_operators,
-            operators.DotOperator(hamiltonian_r_explicit, wrapping_direction = meshes.WrappingDirection.R),
-            operators.TDMAOperator(hamiltonian_r_implicit, wrapping_direction = meshes.WrappingDirection.R),
+            *evolution_operators,
             *reversed(split_operators),
         )
 

@@ -861,8 +861,6 @@ class MeshSpecification(si.Specification, abc.ABC):
             mask: potentials.Mask = potentials.NoMask(),
             operators: operators.Operators = None,
             evolution_method: evolution_methods.EvolutionMethod = None,
-            evolution_equations = 'HAM',
-            evolution_gauge: core.Gauge = core.Gauge.LENGTH,
             time_initial = 0 * u.asec,
             time_final = 200 * u.asec,
             time_step = 1 * u.asec,
@@ -923,8 +921,6 @@ class MeshSpecification(si.Specification, abc.ABC):
 
         self.operators = operators
         self.evolution_method = evolution_method
-        self.evolution_equations = evolution_equations
-        self.evolution_gauge = evolution_gauge
 
         self.time_initial = time_initial
         self.time_final = time_final
@@ -985,9 +981,8 @@ class MeshSpecification(si.Specification, abc.ABC):
         info.add_info(info_evolution)
 
         info_algorithm = si.Info(header = 'Evolution Algorithm')
-        info_algorithm.add_field('Evolution Equations', self.evolution_equations)
-        info_algorithm.add_field('Evolution Method', self.evolution_method)
-        info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
+        info_algorithm.add_info(self.operators.info())
+        info_algorithm.add_info(self.evolution_method.info())
 
         info.add_info(info_algorithm)
 

@@ -77,7 +77,7 @@ if __name__ == '__main__':
         # ):
         #     specs.append(
         #         ion.mesh.LineSpecification(
-        #             f'Line_HAM_{evolution_method}_LEN',
+        #             f'Line_HAM_{evolution_method.__class__.__name__}_LEN',
         #             evolution_equations = 'HAM',
         #             evolution_method = evolution_method,
         #             evolution_gauge = ion.Gauge.LENGTH,
@@ -91,69 +91,72 @@ if __name__ == '__main__':
                 evolution_equations = 'HAM',
                 operators = ion.mesh.CylindricalSliceLengthGaugeOperators(),
                 evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
-                evolution_gauge = ion.Gauge.LENGTH,
                 **shared_spec_kwargs
             )
         )
 
-        # specs.append(
-        #     ion.mesh.SphericalSliceSpecification(
-        #         f'SphericalSlice_HAM_CN_LEN',
-        #         evolution_equations = 'HAM',
-        #         # operators = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
-        #         evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
-        #         evolution_gauge = ion.Gauge.LENGTH,
-        #         **shared_spec_kwargs
-        #     )
-        # )
+        specs.append(
+            ion.mesh.SphericalSliceSpecification(
+                f'SphericalSlice_HAM_CN_LEN',
+                operators = ion.mesh.SphericalSliceLengthGaugeOperators(),
+                evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
+                **shared_spec_kwargs
+            )
+        )
 
         specs.append(
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_CN_LEN',
-                evolution_equations = 'LAG',
                 operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
                 evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
-                evolution_gauge = ion.Gauge.LENGTH,
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **shared_spec_kwargs
             )
         )
 
-        # for evolution_gauge in (ion.Gauge.LENGTH, ion.Gauge.VELOCITY):
-        #     specs.append(
-        #         ion.mesh.SphericalHarmonicSpecification(
-        #             f'SphericalHarmonic_LAG_SO_{evolution_gauge}',
-        #             evolution_equations = 'LAG',
-        #             evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
-        #             evolution_gauge = evolution_gauge,
-        #             **spherical_harmonic_numeric_eigenstate_kwargs,
-        #             **shared_spec_kwargs
-        #         )
-        #     )
+        specs.append(
+            ion.mesh.SphericalHarmonicSpecification(
+                f'SphericalHarmonic_LAG_SO_LEN',
+                operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                **spherical_harmonic_numeric_eigenstate_kwargs,
+                **shared_spec_kwargs
+            )
+        )
 
-        results = si.utils.multi_map(run, specs, processes = 2)
+        specs.append(
+            ion.mesh.SphericalHarmonicSpecification(
+                f'SphericalHarmonic_LAG_SO_VEL',
+                operators = ion.mesh.SphericalHarmonicVelocityGaugeOperators(),
+                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                **spherical_harmonic_numeric_eigenstate_kwargs,
+                **shared_spec_kwargs
+            )
+        )
 
-        identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.evolution_equations, r.spec.evolution_method.__class__, r.spec.evolution_gauge): r.data.initial_state_overlap[-1] for r in results}
+        results = si.utils.multi_map(run, specs, processes = 4)
+
+        identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
 
         ### look at results before comparison
         for k, v in identifier_to_final_initial_overlap.items():
             print(k, v)
 
         expected_results = {
-            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, ion.Gauge.LENGTH): 0.0143651217635,
-            (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, ion.Gauge.LENGTH): 0.0143755731217,
+            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, ion.Gauge.LENGTH): 0.0143651217635,
+            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, ion.Gauge.LENGTH): 0.0143755731217,
             # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, ion.Gauge.LENGTH): 0.000568901854635,  # why is this not the same as the other line mesh methods?
-            (ion.mesh.CylindricalSliceMesh, 'HAM', ion.mesh.AlternatingDirectionImplicitCrankNicolson, ion.Gauge.LENGTH): 0.293741923689,
-            (ion.mesh.SphericalSliceMesh, 'HAM', ion.mesh.AlternatingDirectionImplicitCrankNicolson, ion.Gauge.LENGTH): 0.178275457029,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.AlternatingDirectionImplicitCrankNicolson, ion.Gauge.LENGTH): 0.312970628484,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, ion.Gauge.LENGTH): 0.312928752359,
-            (ion.mesh.SphericalHarmonicMesh, 'LAG', ion.mesh.SphericalHarmonicSplitOperator, ion.Gauge.VELOCITY): 0.319513371899,
+            (ion.mesh.CylindricalSliceMesh, ion.mesh.CylindricalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.293741923689,
+            (ion.mesh.SphericalSliceMesh, ion.mesh.SphericalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.178275457029,
+            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.312970628484,
+            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.312928752359,
+            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicVelocityGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.319513371899,
         }
 
         summary = 'Results:\n'
         lines = []
         for identifier, latest_result in identifier_to_final_initial_overlap.items():
-            s = ", ".join((identifier[0].__name__, identifier[1], identifier[2].__name__, identifier[3]))
+            s = ", ".join(ident.__name__ for ident in identifier)
             s += f': {latest_result:.6f} | {expected_results[identifier]:.6f}'
 
             lines.append(s)

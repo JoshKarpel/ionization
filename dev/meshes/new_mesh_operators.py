@@ -50,5 +50,5 @@ if __name__ == '__main__':
         # print(sim.mesh.operators)
         # print(sim.mesh.operators.kinetic_energy(sim.mesh))
         # print(sim.mesh.operators.total_hamiltonian(sim.mesh))
-        for oper in sim.spec.evolution_method.get_evolution_operators(sim.mesh, 1 * u.asec):
-            print(oper)
+        # for oper in sim.spec.evolution_method.get_evolution_operators(sim.mesh, 1 * u.asec):
+        #     print(oper)

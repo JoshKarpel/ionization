@@ -1382,70 +1382,70 @@ class SphericalSliceMesh(QuantumMesh):
     def z_dipole_moment_inner_product(self, a = None, b = None):
         return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
 
-    def _get_kinetic_energy_matrix_operators_HAM(self):
-        r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
-        theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((self.delta_r * self.delta_theta) ** 2))
-
-        r_diagonal = r_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
-        r_offdiagonal = r_prefactor * np.array([1 if (z_index + 1) % self.spec.r_points != 0 else 0 for z_index in range(self.mesh_points - 1)], dtype = np.complex128)
-
-        @si.utils.memoize
-        def theta_j_prefactor(x):
-            return 1 / (x + 0.5) ** 2
-
-        @si.utils.memoize
-        def sink(x):
-            return np.sin(x * self.delta_theta)
-
-        @si.utils.memoize
-        def sqrt_sink_ratio(x_num, x_den):
-            return np.sqrt(sink(x_num) / sink(x_den))
-
-        @si.utils.memoize
-        def cotank(x):
-            return 1 / np.tan(x * self.delta_theta)
-
-        theta_diagonal = (-2) * np.ones(self.mesh_points, dtype = np.complex128)
-        for theta_index in range(self.mesh_points):
-            j = theta_index // self.spec.theta_points
-            theta_diagonal[theta_index] *= theta_j_prefactor(j)
-        theta_diagonal *= theta_prefactor
-
-        theta_upper_diagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        theta_lower_diagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for theta_index in range(self.mesh_points - 1):
-            if (theta_index + 1) % self.spec.theta_points != 0:
-                j = theta_index // self.spec.theta_points
-                k = theta_index % self.spec.theta_points
-                k_p = k + 1  # add 1 because the entry for the lower diagonal is really for the next point (k -> k + 1), not this one
-                theta_upper_diagonal[theta_index] = theta_j_prefactor(j) * (1 + (self.delta_theta / 2) * cotank(k + 0.5)) * sqrt_sink_ratio(k + 0.5, k + 1.5)
-                theta_lower_diagonal[theta_index] = theta_j_prefactor(j) * (1 - (self.delta_theta / 2) * cotank(k_p + 0.5)) * sqrt_sink_ratio(k_p + 0.5, k_p - 0.5)
-        theta_upper_diagonal *= theta_prefactor
-        theta_lower_diagonal *= theta_prefactor
-
-        r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
-        theta_kinetic = sparse.diags([theta_lower_diagonal, theta_diagonal, theta_upper_diagonal], offsets = (-1, 0, 1))
-
-        return r_kinetic, theta_kinetic
-
-    @si.utils.memoize
-    def get_internal_hamiltonian_matrix_operators(self):
-        kinetic_r, kinetic_theta = self.get_kinetic_energy_matrix_operators()
-        potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
-
-        kinetic_r = add_to_diagonal_sparse_matrix_diagonal(kinetic_r, value = 0.5 * self.flatten_mesh(potential_mesh, 'r'))
-        kinetic_theta = add_to_diagonal_sparse_matrix_diagonal(kinetic_theta, value = 0.5 * self.flatten_mesh(potential_mesh, 'theta'))
-
-        return kinetic_r, kinetic_theta
-
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
-        """Get the angular momentum interaction term calculated from the Lagrangian evolution equations."""
-        electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
-
-        interaction_hamiltonian_r = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'r'))
-        interaction_hamiltonian_theta = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'theta'))
-
-        return interaction_hamiltonian_r, interaction_hamiltonian_theta
+    # def _get_kinetic_energy_matrix_operators_HAM(self):
+    #     r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
+    #     theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((self.delta_r * self.delta_theta) ** 2))
+    #
+    #     r_diagonal = r_prefactor * (-2) * np.ones(self.mesh_points, dtype = np.complex128)
+    #     r_offdiagonal = r_prefactor * np.array([1 if (z_index + 1) % self.spec.r_points != 0 else 0 for z_index in range(self.mesh_points - 1)], dtype = np.complex128)
+    #
+    #     @si.utils.memoize
+    #     def theta_j_prefactor(x):
+    #         return 1 / (x + 0.5) ** 2
+    #
+    #     @si.utils.memoize
+    #     def sink(x):
+    #         return np.sin(x * self.delta_theta)
+    #
+    #     @si.utils.memoize
+    #     def sqrt_sink_ratio(x_num, x_den):
+    #         return np.sqrt(sink(x_num) / sink(x_den))
+    #
+    #     @si.utils.memoize
+    #     def cotank(x):
+    #         return 1 / np.tan(x * self.delta_theta)
+    #
+    #     theta_diagonal = (-2) * np.ones(self.mesh_points, dtype = np.complex128)
+    #     for theta_index in range(self.mesh_points):
+    #         j = theta_index // self.spec.theta_points
+    #         theta_diagonal[theta_index] *= theta_j_prefactor(j)
+    #     theta_diagonal *= theta_prefactor
+    #
+    #     theta_upper_diagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     theta_lower_diagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for theta_index in range(self.mesh_points - 1):
+    #         if (theta_index + 1) % self.spec.theta_points != 0:
+    #             j = theta_index // self.spec.theta_points
+    #             k = theta_index % self.spec.theta_points
+    #             k_p = k + 1  # add 1 because the entry for the lower diagonal is really for the next point (k -> k + 1), not this one
+    #             theta_upper_diagonal[theta_index] = theta_j_prefactor(j) * (1 + (self.delta_theta / 2) * cotank(k + 0.5)) * sqrt_sink_ratio(k + 0.5, k + 1.5)
+    #             theta_lower_diagonal[theta_index] = theta_j_prefactor(j) * (1 - (self.delta_theta / 2) * cotank(k_p + 0.5)) * sqrt_sink_ratio(k_p + 0.5, k_p - 0.5)
+    #     theta_upper_diagonal *= theta_prefactor
+    #     theta_lower_diagonal *= theta_prefactor
+    #
+    #     r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
+    #     theta_kinetic = sparse.diags([theta_lower_diagonal, theta_diagonal, theta_upper_diagonal], offsets = (-1, 0, 1))
+    #
+    #     return r_kinetic, theta_kinetic
+    #
+    # @si.utils.memoize
+    # def get_internal_hamiltonian_matrix_operators(self):
+    #     kinetic_r, kinetic_theta = self.get_kinetic_energy_matrix_operators()
+    #     potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
+    #
+    #     kinetic_r = add_to_diagonal_sparse_matrix_diagonal(kinetic_r, value = 0.5 * self.flatten_mesh(potential_mesh, 'r'))
+    #     kinetic_theta = add_to_diagonal_sparse_matrix_diagonal(kinetic_theta, value = 0.5 * self.flatten_mesh(potential_mesh, 'theta'))
+    #
+    #     return kinetic_r, kinetic_theta
+    #
+    # def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+    #     """Get the angular momentum interaction term calculated from the Lagrangian evolution equations."""
+    #     electric_potential_energy_mesh = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.z_mesh, test_charge = self.spec.test_charge)
+    #
+    #     interaction_hamiltonian_r = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'r'))
+    #     interaction_hamiltonian_theta = sparse.diags(self.flatten_mesh(electric_potential_energy_mesh, 'theta'))
+    #
+    #     return interaction_hamiltonian_r, interaction_hamiltonian_theta
 
     def _get_interaction_hamiltonian_matrix_operators_VEL(self):
         # vector_potential_amplitude = -self.spec.electric_potential.get_electric_field_integral_numeric_cumulative(self.sim.times_to_current)
@@ -1887,7 +1887,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         effective_potential = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * l * (l + 1) / (self.r ** 2)
 
         r_beta = self.beta(np.array(range(len(self.r)), dtype = np.complex128))
-        if l == 0 and self.spec.hydrogen_zero_angular_momentum_correction:
+        # if l == 0 and self.spec.hydrogen_zero_angular_momentum_correction:
+        if l == 0:
             dr = self.delta_r / u.bohr_radius
             r_beta[0] += dr * (1 + dr) / 8
         r_diagonal = (-2 * r_prefactor * r_beta) + effective_potential
@@ -1903,90 +1904,90 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return r_kinetic
 
-    def _get_kinetic_energy_matrix_operators_LAG(self, include_effective_potential: bool = True) -> SparseMatrixOperator:
-        """Get the radial kinetic energy matrix operator."""
-        r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
-
-        r_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
-        r_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for r_index in range(self.mesh_points):
-            j = r_index % self.spec.r_points
-            r_diagonal[r_index] = self.beta(j)
-        if self.spec.hydrogen_zero_angular_momentum_correction:
-            dr = self.delta_r / u.bohr_radius
-            r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
-
-        for r_index in range(self.mesh_points - 1):
-            if (r_index + 1) % self.spec.r_points != 0:
-                j = (r_index % self.spec.r_points)
-                r_offdiagonal[r_index] = self.alpha(j)
-        r_diagonal *= -2 * r_prefactor
-        r_offdiagonal *= r_prefactor
-
-        if include_effective_potential:
-            effective_potential_mesh = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * self.l_mesh * (self.l_mesh + 1) / (self.r_mesh ** 2)
-            r_diagonal += self.flatten_mesh(effective_potential_mesh, 'r')
-
-        r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
-
-        return r_kinetic
-
-    @si.utils.memoize
-    def get_internal_hamiltonian_matrix_operators(self) -> SparseMatrixOperator:
-        r_kinetic = self.get_kinetic_energy_matrix_operators().copy()
-
-        potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
-
-        r_kinetic.data[1] += self.flatten_mesh(potential_mesh, 'r')
-
-        return r_kinetic
-
-    @si.utils.memoize
-    def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self) -> SparseMatrixOperator:
-        l_prefactor = -self.spec.test_charge * self.flatten_mesh(self.r_mesh, 'l')[:-1]
-
-        l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
-        l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for l_index in range(self.mesh_points - 1):
-            if (l_index + 1) % self.spec.l_bound != 0:
-                l = (l_index % self.spec.l_bound)
-                l_offdiagonal[l_index] = c_l(l)
-        l_offdiagonal *= l_prefactor
-
-        return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
-
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self) -> SparseMatrixOperator:
-        """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
-        return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time + (self.spec.time_step / 2))
-
-    @si.utils.memoize
-    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
-        h1_prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
-
-        h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for l_index in range(self.mesh_points - 1):
-            if (l_index + 1) % self.spec.l_bound != 0:
-                l = (l_index % self.spec.l_bound)
-                h1_offdiagonal[l_index] = c_l(l) * (l + 1)
-        h1_offdiagonal *= h1_prefactor
-
-        h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
-
-        h2_prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
-
-        alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
-        alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
-
-        c_vec = c_l(np.array(range(len(self.l) - 1), dtype = np.complex128))
-        c_block = sparse.diags((c_vec, c_vec), offsets = (-1, 1))
-
-        h2 = h2_prefactor * sparse.kron(c_block, alpha_block, format = 'dia')
-
-        return h1, h2
-
-    def _get_interaction_hamiltonian_matrix_operators_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
-        vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
-        return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
+    # def _get_kinetic_energy_matrix_operators_LAG(self, include_effective_potential: bool = True) -> SparseMatrixOperator:
+    #     """Get the radial kinetic energy matrix operator."""
+    #     r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (self.delta_r ** 2))
+    #
+    #     r_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
+    #     r_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for r_index in range(self.mesh_points):
+    #         j = r_index % self.spec.r_points
+    #         r_diagonal[r_index] = self.beta(j)
+    #     if self.spec.hydrogen_zero_angular_momentum_correction:
+    #         dr = self.delta_r / u.bohr_radius
+    #         r_diagonal[0] += dr * (1 + dr) / 8  # modify beta_j for l = 0   (see notes)
+    #
+    #     for r_index in range(self.mesh_points - 1):
+    #         if (r_index + 1) % self.spec.r_points != 0:
+    #             j = (r_index % self.spec.r_points)
+    #             r_offdiagonal[r_index] = self.alpha(j)
+    #     r_diagonal *= -2 * r_prefactor
+    #     r_offdiagonal *= r_prefactor
+    #
+    #     if include_effective_potential:
+    #         effective_potential_mesh = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * self.l_mesh * (self.l_mesh + 1) / (self.r_mesh ** 2)
+    #         r_diagonal += self.flatten_mesh(effective_potential_mesh, 'r')
+    #
+    #     r_kinetic = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
+    #
+    #     return r_kinetic
+    #
+    # @si.utils.memoize
+    # def get_internal_hamiltonian_matrix_operators(self) -> SparseMatrixOperator:
+    #     r_kinetic = self.get_kinetic_energy_matrix_operators().copy()
+    #
+    #     potential_mesh = self.spec.internal_potential(r = self.r_mesh, test_charge = self.spec.test_charge)
+    #
+    #     r_kinetic.data[1] += self.flatten_mesh(potential_mesh, 'r')
+    #
+    #     return r_kinetic
+    #
+    # @si.utils.memoize
+    # def _get_interaction_hamiltonian_matrix_operators_without_field_LEN(self) -> SparseMatrixOperator:
+    #     l_prefactor = -self.spec.test_charge * self.flatten_mesh(self.r_mesh, 'l')[:-1]
+    #
+    #     l_diagonal = np.zeros(self.mesh_points, dtype = np.complex128)
+    #     l_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for l_index in range(self.mesh_points - 1):
+    #         if (l_index + 1) % self.spec.l_bound != 0:
+    #             l = (l_index % self.spec.l_bound)
+    #             l_offdiagonal[l_index] = c_l(l)
+    #     l_offdiagonal *= l_prefactor
+    #
+    #     return sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
+    #
+    # def _get_interaction_hamiltonian_matrix_operators_LEN(self) -> SparseMatrixOperator:
+    #     """Get the angular momentum interaction term calculated from the Lagrangian evolution equations in the length gauge."""
+    #     return self._get_interaction_hamiltonian_matrix_operators_without_field_LEN() * self.spec.electric_potential.get_electric_field_amplitude(self.sim.time + (self.spec.time_step / 2))
+    #
+    # @si.utils.memoize
+    # def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
+    #     h1_prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / self.flatten_mesh(self.r_mesh, 'l')[:-1]
+    #
+    #     h1_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
+    #     for l_index in range(self.mesh_points - 1):
+    #         if (l_index + 1) % self.spec.l_bound != 0:
+    #             l = (l_index % self.spec.l_bound)
+    #             h1_offdiagonal[l_index] = c_l(l) * (l + 1)
+    #     h1_offdiagonal *= h1_prefactor
+    #
+    #     h1 = sparse.diags((-h1_offdiagonal, h1_offdiagonal), offsets = (-1, 1))
+    #
+    #     h2_prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_r)
+    #
+    #     alpha_vec = self.alpha(np.array(range(len(self.r) - 1), dtype = np.complex128))
+    #     alpha_block = sparse.diags((-alpha_vec, alpha_vec), offsets = (-1, 1))
+    #
+    #     c_vec = c_l(np.array(range(len(self.l) - 1), dtype = np.complex128))
+    #     c_block = sparse.diags((c_vec, c_vec), offsets = (-1, 1))
+    #
+    #     h2 = h2_prefactor * sparse.kron(c_block, alpha_block, format = 'dia')
+    #
+    #     return h1, h2
+    #
+    # def _get_interaction_hamiltonian_matrix_operators_VEL(self) -> Tuple[SparseMatrixOperator, SparseMatrixOperator]:
+    #     vector_potential_amp = self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
+    #     return (x * vector_potential_amp for x in self._get_interaction_hamiltonian_matrix_operators_without_field_VEL())
 
     def get_numeric_eigenstate_basis(self, max_energy: float, max_angular_momentum: int) -> Dict[states.QuantumState, states.NumericSphericalHarmonicState]:
         analytic_to_numeric = {}
@@ -2104,230 +2105,230 @@ class SphericalHarmonicMesh(QuantumMesh):
     def _make_split_operator_evolution_operators(self, interaction_hamiltonian_matrix_operators, tau: float):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonian_matrix_operators, tau)
 
-    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau: float):
-        """Calculate split operator evolution matrices for the interaction term in the length gauge."""
-        a = tau * interaction_hamiltonians_matrix_operators.data[0][:-1]
+    # def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau: float):
+    #     """Calculate split operator evolution matrices for the interaction term in the length gauge."""
+    #     a = tau * interaction_hamiltonians_matrix_operators.data[0][:-1]
+    #
+    #     a_even, a_odd = a[::2], a[1::2]
+    #
+    #     len_a = len(a)
+    #
+    #     even_diag = np.zeros(len_a + 1, dtype = np.complex128)
+    #     even_offdiag = np.zeros(len_a, dtype = np.complex128)
+    #     odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
+    #     odd_offdiag = np.zeros(len_a, dtype = np.complex128)
+    #
+    #     if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
+    #         even_diag[:-1] = np.cos(a_even).repeat(2)
+    #         even_diag[-1] = 1
+    #
+    #         even_offdiag[::2] = -1j * np.sin(a_even)
+    #
+    #         odd_diag[0] = 1
+    #         odd_diag[1:] = np.cos(a_odd).repeat(2)
+    #
+    #         odd_offdiag[1::2] = -1j * np.sin(a_odd)
+    #     else:
+    #         even_diag[:] = np.cos(a_even).repeat(2)
+    #
+    #         even_offdiag[::2] = -1j * np.sin(a_even)
+    #
+    #         odd_diag[0] = odd_diag[-1] = 1
+    #         odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+    #
+    #         odd_offdiag[1::2] = -1j * np.sin(a_odd)
+    #
+    #     even = sparse.diags((even_offdiag, even_diag, even_offdiag), offsets = (-1, 0, 1))
+    #     odd = sparse.diags((odd_offdiag, odd_diag, odd_offdiag), offsets = (-1, 0, 1))
+    #
+    #     return (
+    #         DotOperator(even, wrapping_direction = 'l'),
+    #         DotOperator(odd, wrapping_direction = 'l'),
+    #     )
 
-        a_even, a_odd = a[::2], a[1::2]
-
-        len_a = len(a)
-
-        even_diag = np.zeros(len_a + 1, dtype = np.complex128)
-        even_offdiag = np.zeros(len_a, dtype = np.complex128)
-        odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
-        odd_offdiag = np.zeros(len_a, dtype = np.complex128)
-
-        if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
-            even_diag[:-1] = np.cos(a_even).repeat(2)
-            even_diag[-1] = 1
-
-            even_offdiag[::2] = -1j * np.sin(a_even)
-
-            odd_diag[0] = 1
-            odd_diag[1:] = np.cos(a_odd).repeat(2)
-
-            odd_offdiag[1::2] = -1j * np.sin(a_odd)
-        else:
-            even_diag[:] = np.cos(a_even).repeat(2)
-
-            even_offdiag[::2] = -1j * np.sin(a_even)
-
-            odd_diag[0] = odd_diag[-1] = 1
-            odd_diag[1:-1] = np.cos(a_odd).repeat(2)
-
-            odd_offdiag[1::2] = -1j * np.sin(a_odd)
-
-        even = sparse.diags((even_offdiag, even_diag, even_offdiag), offsets = (-1, 0, 1))
-        odd = sparse.diags((odd_offdiag, odd_diag, odd_offdiag), offsets = (-1, 0, 1))
-
-        return (
-            DotOperator(even, wrapping_direction = 'l'),
-            DotOperator(odd, wrapping_direction = 'l'),
-        )
-
-    def _make_split_operators_VEL_h1(self, h1, tau: float):
-        a = (tau * (-1j)) * h1.data[-1][1:]
-
-        a_even, a_odd = a[::2], a[1::2]
-
-        even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
-        even_offdiag = np.zeros(len(a), dtype = np.complex128)
-        odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
-        odd_offdiag = np.zeros(len(a), dtype = np.complex128)
-
-        if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
-            even_diag[:-1] = np.cos(a_even).repeat(2)
-            even_diag[-1] = 1
-
-            even_offdiag[::2] = np.sin(a_even)
-
-            odd_diag[0] = 1
-            odd_diag[1:] = np.cos(a_odd).repeat(2)
-
-            odd_offdiag[1::2] = np.sin(a_odd)
-        else:
-            even_diag[:] = np.cos(a_even).repeat(2)
-
-            even_offdiag[::2] = np.sin(a_even)
-
-            odd_diag[0] = odd_diag[-1] = 1
-            odd_diag[1:-1] = np.cos(a_odd).repeat(2)
-
-            odd_offdiag[1::2] = np.sin(a_odd)
-
-        even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
-        odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
-
-        return (
-            DotOperator(even, wrapping_direction = 'l'),
-            DotOperator(odd, wrapping_direction = 'l'),
-        )
-
-    def _make_split_operators_VEL_h2(self, h2, tau: float):
-        len_r = len(self.r)
-
-        a = h2.data[-1][len_r + 1:] * tau * (-1j)
-
-        alpha_slices_even_l = []
-        alpha_slices_odd_l = []
-        for l in self.l:  # want last l but not last r, since unwrapped in r
-            a_slice = a[l * len_r: ((l + 1) * len_r) - 1]
-            if l % 2 == 0:
-                alpha_slices_even_l.append(a_slice)
-            else:
-                alpha_slices_odd_l.append(a_slice)
-
-        even_even_diag = []
-        even_even_offdiag = []
-        even_odd_diag = []
-        even_odd_offdiag = []
-        for alpha_slice in alpha_slices_even_l:  # FOR EACH l
-            even_slice = alpha_slice[::2]
-            odd_slice = alpha_slice[1::2]
-
-            if len(even_slice) > 0:
-                even_sines = np.zeros(len_r, dtype = np.complex128)
-                if len_r % 2 == 0:
-                    new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
-                    even_sines[::2] = np.sin(even_slice)
-                else:
-                    tile = np.ones(len_r, dtype = np.complex128)
-                    tile[:-1] = np.cos(even_slice).repeat(2)
-                    tile[-1] = 1
-                    new_even_even_diag = np.tile(tile, 2)
-                    even_sines[:-1:2] = np.sin(even_slice)
-                    even_sines[-1] = 0
-
-                even_even_diag.append(new_even_even_diag)
-                even_even_offdiag.append(even_sines)
-                even_even_offdiag.append(-even_sines)
-            else:
-                even_even_diag.append(np.ones(len_r))
-                even_even_offdiag.append(np.zeros(len_r))
-
-            if len(odd_slice) > 0:
-                new_even_odd_diag = np.ones(len_r, dtype = np.complex128)
-
-                if len_r % 2 == 0:
-                    new_even_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
-                else:
-                    new_even_odd_diag[1::] = np.cos(odd_slice).repeat(2)
-
-                new_even_odd_diag = np.tile(new_even_odd_diag, 2)
-
-                even_odd_diag.append(new_even_odd_diag)
-
-                odd_sines = np.zeros(len_r, dtype = np.complex128)
-                odd_sines[1:-1:2] = np.sin(odd_slice)
-                even_odd_offdiag.append(odd_sines)
-                even_odd_offdiag.append(-odd_sines)
-        if self.l[-1] % 2 == 0:
-            even_odd_diag.append(np.ones(len_r))
-            even_odd_offdiag.append(np.zeros(len_r))
-
-        even_even_diag = np.hstack(even_even_diag)
-        even_even_offdiag = np.hstack(even_even_offdiag)[:-1]  # last element is bogus
-
-        even_odd_diag = np.hstack(even_odd_diag)
-        even_odd_offdiag = np.hstack(even_odd_offdiag)[:-1]  # last element is bogus
-
-        odd_even_diag = [np.ones(len_r)]
-        odd_even_offdiag = [np.zeros(len_r)]
-        odd_odd_diag = [np.ones(len_r)]
-        odd_odd_offdiag = [np.zeros(len_r)]
-
-        for alpha_slice in alpha_slices_odd_l:
-            even_slice = alpha_slice[::2]
-            odd_slice = alpha_slice[1::2]
-
-            if len(even_slice) > 0:
-                even_sines = np.zeros(len_r, dtype = np.complex128)
-                if len_r % 2 == 0:
-                    new_odd_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
-                    even_sines[::2] = np.sin(even_slice)
-                else:
-                    tile = np.ones(len_r, dtype = np.complex128)
-                    tile[:-1] = np.cos(even_slice).repeat(2)
-                    # tile[-1] = 1
-                    new_odd_even_diag = np.tile(tile, 2)
-                    even_sines[:-1:2] = np.sin(even_slice)
-                    # even_sines[-1] = 0
-
-                odd_even_diag.append(new_odd_even_diag)
-                odd_even_offdiag.append(even_sines)
-                odd_even_offdiag.append(-even_sines)
-            else:
-                odd_even_diag.append(np.ones(len_r))
-                odd_even_offdiag.append(np.zeros(len_r))
-
-            if len(odd_slice) > 0:
-                new_odd_odd_diag = np.ones(len_r, dtype = np.complex128)
-
-                if len_r % 2 == 0:
-                    new_odd_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
-                else:
-                    new_odd_odd_diag[1::] = np.cos(odd_slice).repeat(2)
-
-                new_odd_odd_diag = np.tile(new_odd_odd_diag, 2)
-
-                odd_odd_diag.append(new_odd_odd_diag)
-
-                odd_sines = np.zeros(len_r, dtype = np.complex128)
-                odd_sines[1:-1:2] = np.sin(odd_slice)
-                odd_odd_offdiag.append(odd_sines)
-                odd_odd_offdiag.append(-odd_sines)
-        if self.l[-1] % 2 != 0:
-            odd_odd_diag.append(np.ones(len_r))
-            odd_odd_offdiag.append(np.zeros(len_r))
-
-        odd_even_diag = np.hstack(odd_even_diag)
-        odd_even_offdiag = np.hstack(odd_even_offdiag)[:-1]  # last element is bogus
-
-        odd_odd_diag = np.hstack(odd_odd_diag)
-        odd_odd_offdiag = np.hstack(odd_odd_offdiag)[:-1]  # last element is bogus
-
-        even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
-        even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_odd_offdiag), offsets = (-1, 0, 1))
-        odd_even_matrix = sparse.diags((-odd_even_offdiag, odd_even_diag, odd_even_offdiag), offsets = (-1, 0, 1))
-        odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = (-1, 0, 1))
-
-        operators = (
-            SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even'),
-            SimilarityOperator(even_odd_matrix, wrapping_direction = 'r', parity = 'even'),  # parity is based off FIRST splitting
-            SimilarityOperator(odd_even_matrix, wrapping_direction = 'r', parity = 'odd'),
-            SimilarityOperator(odd_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
-        )
-
-        return operators
-
-    def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau: float):
-        """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
-        h1, h2 = interaction_hamiltonians_matrix_operators
-
-        h1_operators = self._make_split_operators_VEL_h1(h1, tau)
-        h2_operators = self._make_split_operators_VEL_h2(h2, tau)
-
-        return [*h1_operators, *h2_operators]
+    # def _make_split_operators_VEL_h1(self, h1, tau: float):
+    #     a = (tau * (-1j)) * h1.data[-1][1:]
+    #
+    #     a_even, a_odd = a[::2], a[1::2]
+    #
+    #     even_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+    #     even_offdiag = np.zeros(len(a), dtype = np.complex128)
+    #     odd_diag = np.zeros(len(a) + 1, dtype = np.complex128)
+    #     odd_offdiag = np.zeros(len(a), dtype = np.complex128)
+    #
+    #     if len(self.r) % 2 != 0 and len(self.l) % 2 != 0:
+    #         even_diag[:-1] = np.cos(a_even).repeat(2)
+    #         even_diag[-1] = 1
+    #
+    #         even_offdiag[::2] = np.sin(a_even)
+    #
+    #         odd_diag[0] = 1
+    #         odd_diag[1:] = np.cos(a_odd).repeat(2)
+    #
+    #         odd_offdiag[1::2] = np.sin(a_odd)
+    #     else:
+    #         even_diag[:] = np.cos(a_even).repeat(2)
+    #
+    #         even_offdiag[::2] = np.sin(a_even)
+    #
+    #         odd_diag[0] = odd_diag[-1] = 1
+    #         odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+    #
+    #         odd_offdiag[1::2] = np.sin(a_odd)
+    #
+    #     even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
+    #     odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+    #
+    #     return (
+    #         DotOperator(even, wrapping_direction = 'l'),
+    #         DotOperator(odd, wrapping_direction = 'l'),
+    #     )
+    #
+    # def _make_split_operators_VEL_h2(self, h2, tau: float):
+    #     len_r = len(self.r)
+    #
+    #     a = h2.data[-1][len_r + 1:] * tau * (-1j)
+    #
+    #     alpha_slices_even_l = []
+    #     alpha_slices_odd_l = []
+    #     for l in self.l:  # want last l but not last r, since unwrapped in r
+    #         a_slice = a[l * len_r: ((l + 1) * len_r) - 1]
+    #         if l % 2 == 0:
+    #             alpha_slices_even_l.append(a_slice)
+    #         else:
+    #             alpha_slices_odd_l.append(a_slice)
+    #
+    #     even_even_diag = []
+    #     even_even_offdiag = []
+    #     even_odd_diag = []
+    #     even_odd_offdiag = []
+    #     for alpha_slice in alpha_slices_even_l:  # FOR EACH l
+    #         even_slice = alpha_slice[::2]
+    #         odd_slice = alpha_slice[1::2]
+    #
+    #         if len(even_slice) > 0:
+    #             even_sines = np.zeros(len_r, dtype = np.complex128)
+    #             if len_r % 2 == 0:
+    #                 new_even_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
+    #                 even_sines[::2] = np.sin(even_slice)
+    #             else:
+    #                 tile = np.ones(len_r, dtype = np.complex128)
+    #                 tile[:-1] = np.cos(even_slice).repeat(2)
+    #                 tile[-1] = 1
+    #                 new_even_even_diag = np.tile(tile, 2)
+    #                 even_sines[:-1:2] = np.sin(even_slice)
+    #                 even_sines[-1] = 0
+    #
+    #             even_even_diag.append(new_even_even_diag)
+    #             even_even_offdiag.append(even_sines)
+    #             even_even_offdiag.append(-even_sines)
+    #         else:
+    #             even_even_diag.append(np.ones(len_r))
+    #             even_even_offdiag.append(np.zeros(len_r))
+    #
+    #         if len(odd_slice) > 0:
+    #             new_even_odd_diag = np.ones(len_r, dtype = np.complex128)
+    #
+    #             if len_r % 2 == 0:
+    #                 new_even_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
+    #             else:
+    #                 new_even_odd_diag[1::] = np.cos(odd_slice).repeat(2)
+    #
+    #             new_even_odd_diag = np.tile(new_even_odd_diag, 2)
+    #
+    #             even_odd_diag.append(new_even_odd_diag)
+    #
+    #             odd_sines = np.zeros(len_r, dtype = np.complex128)
+    #             odd_sines[1:-1:2] = np.sin(odd_slice)
+    #             even_odd_offdiag.append(odd_sines)
+    #             even_odd_offdiag.append(-odd_sines)
+    #     if self.l[-1] % 2 == 0:
+    #         even_odd_diag.append(np.ones(len_r))
+    #         even_odd_offdiag.append(np.zeros(len_r))
+    #
+    #     even_even_diag = np.hstack(even_even_diag)
+    #     even_even_offdiag = np.hstack(even_even_offdiag)[:-1]  # last element is bogus
+    #
+    #     even_odd_diag = np.hstack(even_odd_diag)
+    #     even_odd_offdiag = np.hstack(even_odd_offdiag)[:-1]  # last element is bogus
+    #
+    #     odd_even_diag = [np.ones(len_r)]
+    #     odd_even_offdiag = [np.zeros(len_r)]
+    #     odd_odd_diag = [np.ones(len_r)]
+    #     odd_odd_offdiag = [np.zeros(len_r)]
+    #
+    #     for alpha_slice in alpha_slices_odd_l:
+    #         even_slice = alpha_slice[::2]
+    #         odd_slice = alpha_slice[1::2]
+    #
+    #         if len(even_slice) > 0:
+    #             even_sines = np.zeros(len_r, dtype = np.complex128)
+    #             if len_r % 2 == 0:
+    #                 new_odd_even_diag = np.tile(np.cos(even_slice).repeat(2), 2)
+    #                 even_sines[::2] = np.sin(even_slice)
+    #             else:
+    #                 tile = np.ones(len_r, dtype = np.complex128)
+    #                 tile[:-1] = np.cos(even_slice).repeat(2)
+    #                 # tile[-1] = 1
+    #                 new_odd_even_diag = np.tile(tile, 2)
+    #                 even_sines[:-1:2] = np.sin(even_slice)
+    #                 # even_sines[-1] = 0
+    #
+    #             odd_even_diag.append(new_odd_even_diag)
+    #             odd_even_offdiag.append(even_sines)
+    #             odd_even_offdiag.append(-even_sines)
+    #         else:
+    #             odd_even_diag.append(np.ones(len_r))
+    #             odd_even_offdiag.append(np.zeros(len_r))
+    #
+    #         if len(odd_slice) > 0:
+    #             new_odd_odd_diag = np.ones(len_r, dtype = np.complex128)
+    #
+    #             if len_r % 2 == 0:
+    #                 new_odd_odd_diag[1:-1] = np.cos(odd_slice).repeat(2)
+    #             else:
+    #                 new_odd_odd_diag[1::] = np.cos(odd_slice).repeat(2)
+    #
+    #             new_odd_odd_diag = np.tile(new_odd_odd_diag, 2)
+    #
+    #             odd_odd_diag.append(new_odd_odd_diag)
+    #
+    #             odd_sines = np.zeros(len_r, dtype = np.complex128)
+    #             odd_sines[1:-1:2] = np.sin(odd_slice)
+    #             odd_odd_offdiag.append(odd_sines)
+    #             odd_odd_offdiag.append(-odd_sines)
+    #     if self.l[-1] % 2 != 0:
+    #         odd_odd_diag.append(np.ones(len_r))
+    #         odd_odd_offdiag.append(np.zeros(len_r))
+    #
+    #     odd_even_diag = np.hstack(odd_even_diag)
+    #     odd_even_offdiag = np.hstack(odd_even_offdiag)[:-1]  # last element is bogus
+    #
+    #     odd_odd_diag = np.hstack(odd_odd_diag)
+    #     odd_odd_offdiag = np.hstack(odd_odd_offdiag)[:-1]  # last element is bogus
+    #
+    #     even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
+    #     even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_odd_offdiag), offsets = (-1, 0, 1))
+    #     odd_even_matrix = sparse.diags((-odd_even_offdiag, odd_even_diag, odd_even_offdiag), offsets = (-1, 0, 1))
+    #     odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = (-1, 0, 1))
+    #
+    #     operators = (
+    #         SimilarityOperator(even_even_matrix, wrapping_direction = 'r', parity = 'even'),
+    #         SimilarityOperator(even_odd_matrix, wrapping_direction = 'r', parity = 'even'),  # parity is based off FIRST splitting
+    #         SimilarityOperator(odd_even_matrix, wrapping_direction = 'r', parity = 'odd'),
+    #         SimilarityOperator(odd_odd_matrix, wrapping_direction = 'r', parity = 'odd'),
+    #     )
+    #
+    #     return operators
+    #
+    # def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau: float):
+    #     """Calculate split operator evolution matrices for the interaction term in the velocity gauge."""
+    #     h1, h2 = interaction_hamiltonians_matrix_operators
+    #
+    #     h1_operators = self._make_split_operators_VEL_h1(h1, tau)
+    #     h2_operators = self._make_split_operators_VEL_h2(h2, tau)
+    #
+    #     return [*h1_operators, *h2_operators]
 
     def _apply_length_gauge_transformation(self, vector_potential_amplitude: float, g: GMesh):
         bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vector_potential_amplitude * self.r_mesh / u.hbar)
