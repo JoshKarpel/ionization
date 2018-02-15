@@ -1044,7 +1044,7 @@ class LineSpecification(MeshSpecification):
             use_numeric_eigenstates = False,
             number_of_numeric_eigenstates = 100,
             operators: operators.Operators = operators.LineLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.LineCrankNicolson(),
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             **kwargs):
         super().__init__(
             name,

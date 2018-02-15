@@ -262,21 +262,21 @@ class QuantumMesh(abc.ABC):
     def psi2(self) -> Psi2Mesh:
         return np.abs(self.psi) ** 2
 
-    @si.utils.memoize
-    def get_kinetic_energy_matrix_operators(self):
-        try:
-            return getattr(self, f'_get_kinetic_energy_matrix_operators_{self.spec.evolution_equations}')()
-        except AttributeError:
-            raise NotImplementedError
-
-    def get_internal_hamiltonian_matrix_operators(self):
-        raise NotImplementedError
-
-    def get_interaction_hamiltonian_matrix_operators(self):
-        try:
-            return getattr(self, f'_get_interaction_hamiltonian_matrix_operators_{self.spec.evolution_gauge}')()
-        except AttributeError:
-            raise NotImplementedError
+    # @si.utils.memoize
+    # def get_kinetic_energy_matrix_operators(self):
+    #     try:
+    #         return getattr(self, f'_get_kinetic_energy_matrix_operators_{self.spec.evolution_equations}')()
+    #     except AttributeError:
+    #         raise NotImplementedError
+    #
+    # def get_internal_hamiltonian_matrix_operators(self):
+    #     raise NotImplementedError
+    #
+    # def get_interaction_hamiltonian_matrix_operators(self):
+    #     try:
+    #         return getattr(self, f'_get_interaction_hamiltonian_matrix_operators_{self.spec.evolution_gauge}')()
+    #     except AttributeError:
+    #         raise NotImplementedError
 
     def evolve(self, time_step: complex):
         self.g = self.spec.evolution_method.evolve(self, self.g, time_step)
@@ -533,42 +533,42 @@ class LineMesh(QuantumMesh):
     def ifft(self, mesh):
         return nfft.ifft(mesh, norm = 'ortho')
 
-    def _get_kinetic_energy_matrix_operators_HAM(self):
-        prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_x ** 2))
+    # def _get_kinetic_energy_matrix_operators_HAM(self):
+    #     prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_x ** 2))
+    #
+    #     diag = -2 * prefactor * np.ones(len(self.x_mesh), dtype = np.complex128)
+    #     off_diag = prefactor * np.ones(len(self.x_mesh) - 1, dtype = np.complex128)
+    #
+    #     return sparse.diags((off_diag, diag, off_diag), (-1, 0, 1))
 
-        diag = -2 * prefactor * np.ones(len(self.x_mesh), dtype = np.complex128)
-        off_diag = prefactor * np.ones(len(self.x_mesh) - 1, dtype = np.complex128)
+    # @si.utils.memoize
+    # def get_internal_hamiltonian_matrix_operators(self):
+    #     kinetic_x = self.get_kinetic_energy_matrix_operators().copy()
+    #
+    #     kinetic_x = add_to_diagonal_sparse_matrix_diagonal(kinetic_x, self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge))
+    #
+    #     return kinetic_x
 
-        return sparse.diags((off_diag, diag, off_diag), (-1, 0, 1))
+    # def _get_interaction_hamiltonian_matrix_operators_LEN(self):
+    #     epot = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
+    #
+    #     return sparse.diags([epot], offsets = [0])
+    #
+    # @si.utils.memoize
+    # def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
+    #     prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_x)
+    #     offdiag = prefactor * np.ones(self.spec.x_points - 1, dtype = np.complex128)
+    #
+    #     return sparse.diags([-offdiag, offdiag], offsets = [-1, 1])
 
-    @si.utils.memoize
-    def get_internal_hamiltonian_matrix_operators(self):
-        kinetic_x = self.get_kinetic_energy_matrix_operators().copy()
-
-        kinetic_x = add_to_diagonal_sparse_matrix_diagonal(kinetic_x, self.spec.internal_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge))
-
-        return kinetic_x
-
-    def _get_interaction_hamiltonian_matrix_operators_LEN(self):
-        epot = self.spec.electric_potential(t = self.sim.time, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge)
-
-        return sparse.diags([epot], offsets = [0])
-
-    @si.utils.memoize
-    def _get_interaction_hamiltonian_matrix_operators_without_field_VEL(self):
-        prefactor = 1j * u.hbar * (self.spec.test_charge / self.spec.test_mass) / (2 * self.delta_x)
-        offdiag = prefactor * np.ones(self.spec.x_points - 1, dtype = np.complex128)
-
-        return sparse.diags([-offdiag, offdiag], offsets = [-1, 1])
-
-    def _get_interaction_hamiltonian_matrix_operators_VEL(self):
-        return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
+    # def _get_interaction_hamiltonian_matrix_operators_VEL(self):
+    #     return self._get_interaction_hamiltonian_matrix_operators_without_field_VEL() * self.spec.electric_potential.get_vector_potential_amplitude_numeric(self.sim.times_to_current)
 
     def _make_split_operator_evolution_operators(self, interaction_hamiltonians_matrix_operators, tau: float):
         return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonians_matrix_operators, tau)
 
-    def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau: float):
-        return [DotOperator(sparse.diags([np.exp(-1j * interaction_hamiltonians_matrix_operators.data[0] * tau)], offsets = [0]), wrapping_direction = None)]
+    # def _make_split_operator_evolution_operators_LEN(self, interaction_hamiltonians_matrix_operators, tau: float):
+    #     return [DotOperator(sparse.diags([np.exp(-1j * interaction_hamiltonians_matrix_operators.data[0] * tau)], offsets = [0]), wrapping_direction = None)]
 
     def _make_split_operator_evolution_operators_VEL(self, interaction_hamiltonians_matrix_operators, tau: float):
         a = interaction_hamiltonians_matrix_operators.data[-1][1:] * tau * (-1j)

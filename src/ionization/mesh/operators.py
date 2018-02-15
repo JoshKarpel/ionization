@@ -1,23 +1,18 @@
-import itertools
 import logging
 from typing import Union, Optional, Iterable, NewType, Tuple, Dict
 import abc
 
-import matplotlib
-import matplotlib.pyplot as plt
 import numpy as np
-import numpy.fft as nfft
-import scipy as sp
 import scipy.sparse as sparse
-import scipy.sparse.linalg as sparsealg
-import scipy.special as special
-import scipy.integrate as integ
 
 import simulacra as si
 import simulacra.units as u
 
 from .. import cy
 from . import meshes
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class Parity(si.utils.StrEnum):
@@ -152,17 +147,121 @@ class Operators(abc.ABC):
 
 class LineLengthGaugeOperators(Operators):
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
-        raise NotImplementedError
+        prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_x ** 2))
+
+        diag = -2 * prefactor * np.ones(len(mesh.x_mesh), dtype = np.complex128)
+        off_diag = prefactor * np.ones(len(mesh.x_mesh) - 1, dtype = np.complex128)
+
+        matrix = sparse.diags((off_diag, diag, off_diag), offsets = (-1, 0, 1))
+
+        return DotOperator(matrix, wrapping_direction = None),
 
     @si.utils.memoize
     def internal_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
-        raise NotImplementedError
+        kinetic_operators = self.kinetic_energy(mesh)
+        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, test_charge = mesh.spec.test_charge)
+
+        pre = 1 / len(kinetic_operators)
+
+        return tuple(
+            DotOperator(
+                add_to_diagonal_sparse_matrix_diagonal(
+                    k.matrix,
+                    value = pre * mesh.flatten_mesh(potential_mesh, k.wrapping_direction)
+                ),
+                wrapping_direction = k.wrapping_direction,
+            )
+            for k in kinetic_operators
+        )
 
     def interaction_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
-        raise NotImplementedError
+        epot = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.x_mesh, test_charge = mesh.spec.test_charge)
+
+        matrix = sparse.diags([epot], offsets = [0])
+
+        return DotOperator(matrix, wrapping_direction = None),
 
     def total_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
-        raise NotImplementedError
+        internal_operators = self.internal_hamiltonian(mesh)
+        interaction_operators = self.interaction_hamiltonian(mesh)
+
+        direction_to_internal_operators = {oper.wrapping_direction: oper for oper in internal_operators}
+        direction_to_interaction_operators = {oper.wrapping_direction: oper for oper in interaction_operators}
+
+        pre = 1 / len(direction_to_internal_operators)
+        total_operators = []
+        for direction, internal_operator in direction_to_internal_operators.items():
+            total_operators.append(
+                DotOperator(
+                    add_to_diagonal_sparse_matrix_diagonal(internal_operator.matrix, value = pre * direction_to_interaction_operators[direction].matrix.diagonal()),
+                    wrapping_direction = direction,
+                )
+            )
+
+        return tuple(total_operators)
+
+    def split_interaction_operators(self, mesh, interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
+        matrix = interaction_operators[0].matrix.data[0]
+
+        return DotOperator(
+            sparse.diags([np.exp(-1j * matrix * tau)],
+                         offsets = [0]),
+            wrapping_direction = None,
+        ),
+
+
+class LineVelocityGaugeOperators(LineLengthGaugeOperators):
+    @si.utils.memoize
+    def interaction_hamiltonian_matrices_without_field(self, mesh) -> 'meshes.SparseMatrixOperator':
+        prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / (2 * mesh.delta_x)
+        offdiag = prefactor * np.ones(mesh.spec.x_points - 1, dtype = np.complex128)
+
+        return sparse.diags([-offdiag, offdiag], offsets = [-1, 1]),
+
+    def interaction_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
+        matrix, = self.interaction_hamiltonian_matrices_without_field(mesh)
+        vector_potential_amp = mesh.spec.electric_potential.get_vector_potential_amplitude_numeric(mesh.sim.times_to_current)  # decouple
+
+        return DotOperator(vector_potential_amp * matrix, wrapping_direction = None),
+
+    def split_interaction_operators(self, mesh, interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
+        a = interaction_operators[0].matrix.data[-1][1:] * tau * (-1j)
+        len_a = len(a)
+
+        a_even, a_odd = a[::2], a[1::2]
+
+        even_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        even_offdiag = np.zeros(len_a, dtype = np.complex128)
+        odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        odd_offdiag = np.zeros(len_a, dtype = np.complex128)
+
+        if len(mesh.x_mesh) % 2 != 0:
+            even_diag[:-1] = np.cos(a_even).repeat(2)
+            even_diag[-1] = 1
+
+            even_offdiag[::2] = np.sin(a_even)
+
+            odd_diag[0] = 1
+            odd_diag[1:] = np.cos(a_odd).repeat(2)
+
+            odd_offdiag[1::2] = np.sin(a_odd)
+        else:
+            even_diag[:] = np.cos(a_even).repeat(2)
+
+            even_offdiag[::2] = np.sin(a_even)
+
+            odd_diag[0] = odd_diag[-1] = 1
+            odd_diag[1:-1] = np.cos(a_odd).repeat(2)
+
+            odd_offdiag[1::2] = np.sin(a_odd)
+
+        even = sparse.diags([-even_offdiag, even_diag, even_offdiag], offsets = [-1, 0, 1])
+        odd = sparse.diags([-odd_offdiag, odd_diag, odd_offdiag], offsets = [-1, 0, 1])
+
+        return (
+            DotOperator(even, wrapping_direction = None),
+            DotOperator(odd, wrapping_direction = None),
+        )
 
 
 class CylindricalSliceLengthGaugeOperators(Operators):
@@ -371,7 +470,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
     @si.utils.memoize
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
-        return getattr(self, f'kinetic_energy_from_{self.kinetic_energy_derivation}')()
+        return getattr(self, f'kinetic_energy_from_{self.kinetic_energy_derivation}')(mesh)
 
     def kinetic_energy_from_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))

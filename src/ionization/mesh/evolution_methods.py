@@ -3,20 +3,13 @@ import logging
 from typing import Union, Optional, Iterable, NewType, Tuple, Dict
 import abc
 
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import numpy.fft as nfft
-import scipy as sp
-import scipy.sparse as sparse
-import scipy.sparse.linalg as sparsealg
-import scipy.special as special
-import scipy.integrate as integ
-
 import simulacra as si
 import simulacra.units as u
 
 from . import meshes, operators
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 class EvolutionMethod(abc.ABC):
@@ -37,43 +30,25 @@ class EvolutionMethod(abc.ABC):
         return info
 
 
-class LineCrankNicolson(EvolutionMethod):
-    def get_evolution_operators(self, mesh: 'meshes.LineMesh', time_step: complex) -> Iterable[operators.MeshOperator]:
-        tau = time_step / (2 * u.hbar)
-
-        interaction_operator = mesh.get_interaction_hamiltonian_matrix_operators()
-
-        hamiltonian_x = mesh.get_internal_hamiltonian_matrix_operators()
-        hamiltonian = 1j * tau * sparse.dia_matrix(hamiltonian_x + interaction_operator)
-
-        ham_explicit = operators.add_to_diagonal_sparse_matrix_diagonal(-hamiltonian, 1)
-        ham_implicit = operators.add_to_diagonal_sparse_matrix_diagonal(hamiltonian, 1)
-
-        evolution_operators = [
-            operators.DotOperator(ham_explicit, wrapping_direction = None),
-            operators.TDMAOperator(ham_implicit, wrapping_direction = None),
-        ]
-
-        return evolution_operators
-
-
 class LineSplitOperator(EvolutionMethod):
-    def get_evolution_operators(self, mesh: 'meshes.LineMesh', time_step: complex) -> Iterable[operators.MeshOperator]:
+    def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
         tau = time_step / (2 * u.hbar)
 
-        hamiltonian_x = mesh.get_internal_hamiltonian_matrix_operators()
-
-        ham_x_explicit = operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * hamiltonian_x, 1)
-        ham_x_implicit = operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * hamiltonian_x, 1)
-
-        split_operators = mesh._make_split_operator_evolution_operators(mesh.get_interaction_hamiltonian_matrix_operators(), tau)
+        x_oper, = mesh.operators.internal_hamiltonian(mesh)
+        interaction_operators = mesh.operators.interaction_hamiltonian(mesh)
 
         evolution_operators = [
-            *split_operators,
-            operators.DotOperator(ham_x_explicit, wrapping_direction = None),
-            operators.TDMAOperator(ham_x_implicit, wrapping_direction = None),
-            *reversed(split_operators),
+            operators.DotOperator(operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * x_oper.matrix, value = 1), wrapping_direction = x_oper.wrapping_direction),
+            operators.TDMAOperator(operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * x_oper.matrix, value = 1), wrapping_direction = x_oper.wrapping_direction),
         ]
+
+        split_operators = mesh.operators.split_interaction_operators(mesh, interaction_operators, tau)
+
+        evolution_operators = (
+            *split_operators,
+            *evolution_operators,
+            *reversed(split_operators),
+        )
 
         return evolution_operators
 

@@ -1,5 +1,6 @@
 import logging
 import os
+import itertools
 
 import numpy as np
 
@@ -70,24 +71,37 @@ if __name__ == '__main__':
         )
 
         specs = []
-        # for evolution_method in (
-        #         ion.mesh.LineCrankNicolson(),
-        #         ion.mesh.LineSplitOperator(),
-        #         # ion.mesh.LineSpectral(),  # something is wrong with spectral
-        # ):
-        #     specs.append(
-        #         ion.mesh.LineSpecification(
-        #             f'Line_HAM_{evolution_method.__class__.__name__}_LEN',
-        #             evolution_equations = 'HAM',
-        #             evolution_method = evolution_method,
-        #             evolution_gauge = ion.Gauge.LENGTH,
-        #             **shared_spec_kwargs
-        #         )
-        #     )
+
+        specs.append(
+            ion.mesh.LineSpecification(
+                f'Line_CN_LEN',
+                operators = ion.mesh.LineLengthGaugeOperators(),
+                evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
+                **shared_spec_kwargs
+            )
+        )
+
+        specs.append(
+            ion.mesh.LineSpecification(
+                f'Line_SO_LEN',
+                operators = ion.mesh.LineLengthGaugeOperators(),
+                evolution_method = ion.mesh.LineSplitOperator(),
+                **shared_spec_kwargs
+            )
+        )
+
+        specs.append(
+            ion.mesh.LineSpecification(
+                f'Line_SO_VEL',
+                operators = ion.mesh.LineVelocityGaugeOperators(),
+                evolution_method = ion.mesh.LineSplitOperator(),
+                **shared_spec_kwargs
+            )
+        )
 
         specs.append(
             ion.mesh.CylindricalSliceSpecification(
-                f'CylindricalSlice_HAM_CN_LEN',
+                f'CylindricalSlice_CN_LEN',
                 evolution_equations = 'HAM',
                 operators = ion.mesh.CylindricalSliceLengthGaugeOperators(),
                 evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
@@ -97,7 +111,7 @@ if __name__ == '__main__':
 
         specs.append(
             ion.mesh.SphericalSliceSpecification(
-                f'SphericalSlice_HAM_CN_LEN',
+                f'SphericalSlice_CN_LEN',
                 operators = ion.mesh.SphericalSliceLengthGaugeOperators(),
                 evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
                 **shared_spec_kwargs
@@ -134,7 +148,7 @@ if __name__ == '__main__':
             )
         )
 
-        results = si.utils.multi_map(run, specs, processes = 4)
+        results = si.utils.multi_map(run, specs, processes = 2)
 
         identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
 
@@ -143,8 +157,9 @@ if __name__ == '__main__':
             print(k, v)
 
         expected_results = {
-            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineCrankNicolson, ion.Gauge.LENGTH): 0.0143651217635,
-            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSplitOperator, ion.Gauge.LENGTH): 0.0143755731217,
+            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.0143651217635,
+            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.LineSplitOperator): 0.0143755731217,
+            (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.LineSplitOperator): 0.0172924192323,
             # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, ion.Gauge.LENGTH): 0.000568901854635,  # why is this not the same as the other line mesh methods?
             (ion.mesh.CylindricalSliceMesh, ion.mesh.CylindricalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.293741923689,
             (ion.mesh.SphericalSliceMesh, ion.mesh.SphericalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.178275457029,
