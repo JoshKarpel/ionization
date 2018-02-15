@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class Parity(si.utils.StrEnum):
+class SimilarityOperatorParity(si.utils.StrEnum):
     EVEN = 'even'
     ODD = 'odd'
 
@@ -69,7 +69,7 @@ class TDMAOperator(MeshOperator):
 
 
 class SimilarityOperator(DotOperator):
-    def __init__(self, matrix: 'meshes.SparseMatrixOperator', *, wrapping_direction: Optional['meshes.WrappingDirection'], parity: Parity):
+    def __init__(self, matrix: 'meshes.SparseMatrixOperator', *, wrapping_direction: Optional['meshes.WrappingDirection'], parity: SimilarityOperatorParity):
         super().__init__(matrix, wrapping_direction = wrapping_direction)
 
         self.parity = parity
@@ -808,10 +808,10 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = (-1, 0, 1))
 
         operators = (
-            SimilarityOperator(even_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = Parity.EVEN),
-            SimilarityOperator(even_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = Parity.EVEN),  # parity is based off FIRST splitting
-            SimilarityOperator(odd_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = Parity.ODD),
-            SimilarityOperator(odd_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = Parity.ODD),
+            SimilarityOperator(even_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.EVEN),
+            SimilarityOperator(even_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.EVEN),  # parity is based off FIRST splitting
+            SimilarityOperator(odd_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.ODD),
+            SimilarityOperator(odd_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.ODD),
         )
 
         return operators
