@@ -8,7 +8,7 @@ import scipy.sparse as sparse
 import simulacra as si
 import simulacra.units as u
 
-from .. import cy
+from .. import core, cy
 from . import meshes
 
 logger = logging.getLogger(__name__)
@@ -511,6 +511,27 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R),
 
+    def kinetic_energy_for_single_l(self, mesh, l: core.AngularMomentum) -> MeshOperator:
+        return getattr(self, f'kinetic_energy_for_single_l_from_{self.kinetic_energy_derivation}')(mesh, l)
+
+    def kinetic_energy_for_single_l_from_hamiltonian(self, mesh, l: core.AngularMomentum) -> MeshOperator:
+        raise NotImplementedError
+
+    def kinetic_energy_for_single_l_from_lagrangian(self, mesh, l: core.AngularMomentum) -> MeshOperator:
+        r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
+        effective_potential = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * l * (l + 1) / (mesh.r ** 2)
+
+        r_beta = self.beta(np.array(range(len(mesh.r)), dtype = np.complex128))
+        if l == 0 and self.hydrogen_zero_angular_momentum_correction:
+            dr = mesh.delta_r / u.bohr_radius
+            r_beta[0] += dr * (1 + dr) / 8
+        r_diagonal = (-2 * r_prefactor * r_beta) + effective_potential
+        r_offdiagonal = r_prefactor * self.alpha(np.array(range(len(mesh.r) - 1), dtype = np.complex128))
+
+        matrix = sparse.diags([r_offdiagonal, r_diagonal, r_offdiagonal], offsets = (-1, 0, 1))
+
+        return DotOperator(matrix, wrapping_direction = meshes.WrappingDirection.R)
+
     @si.utils.memoize
     def internal_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
         kinetic_operators = self.kinetic_energy(mesh)
@@ -527,6 +548,18 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
                 wrapping_direction = k.wrapping_direction,
             )
             for k in kinetic_operators
+        )
+
+    def internal_hamiltonian_for_single_l(self, mesh, l: core.AngularMomentum) -> MeshOperator:
+        kinetic_operator = self.kinetic_energy_for_single_l(mesh, l)
+        potential_mesh = mesh.spec.internal_potential(r = mesh.r, test_charge = mesh.spec.test_charge)  # evaluate at r, not r_mesh, because it's only one l
+
+        return DotOperator(
+            add_to_diagonal_sparse_matrix_diagonal(
+                kinetic_operator.matrix,
+                value = mesh.flatten_mesh(potential_mesh, kinetic_operator.wrapping_direction)
+            ),
+            wrapping_direction = kinetic_operator.wrapping_direction,
         )
 
     @si.utils.memoize

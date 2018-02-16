@@ -1,6 +1,7 @@
 import collections
 import logging
 import enum
+from typing import NewType
 
 import numpy as np
 from scipy.misc import factorial
@@ -10,6 +11,8 @@ import simulacra.units as u
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+
+AngularMomentum = NewType('AngularMomentum', int)
 
 
 def electron_energy_from_wavenumber(k):
