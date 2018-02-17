@@ -19,7 +19,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import potentials, states, vis, core, exceptions
-from . import meshes, anim, snapshots, data, evolution_methods, operators
+from . import meshes, anim, snapshots, data, evolution_methods, mesh_operators
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -875,7 +875,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
             electric_potential_dc_correction: bool = False,
             mask: potentials.Mask = potentials.NoMask(),
-            operators: operators.Operators = None,
+            operators: mesh_operators.Operators = None,
             evolution_method: evolution_methods.EvolutionMethod = None,
             time_initial = 0 * u.asec,
             time_final = 200 * u.asec,
@@ -1037,13 +1037,13 @@ class LineSpecification(MeshSpecification):
             self,
             name,
             initial_state = states.QHOState(1 * u.N / u.m),
-            x_bound = 10 * u.nm,
-            x_points = 2 ** 9,
+            z_bound = 10 * u.nm,
+            z_points = 2 ** 9,
             fft_cutoff_energy = 1000 * u.eV,
             analytic_eigenstate_type = None,
             use_numeric_eigenstates = False,
             number_of_numeric_eigenstates = 100,
-            operators: operators.Operators = operators.LineLengthGaugeOperators(),
+            operators: mesh_operators.Operators = mesh_operators.LineLengthGaugeOperators(),
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             **kwargs):
         super().__init__(
@@ -1055,8 +1055,8 @@ class LineSpecification(MeshSpecification):
             **kwargs
         )
 
-        self.x_bound = x_bound
-        self.x_points = int(x_points)
+        self.x_bound = z_bound
+        self.x_points = int(z_points)
 
         self.fft_cutoff_energy = fft_cutoff_energy
         self.fft_cutoff_wavenumber = np.sqrt(2 * self.test_mass * self.fft_cutoff_energy) / u.hbar
@@ -1094,7 +1094,7 @@ class CylindricalSliceSpecification(MeshSpecification):
             rho_bound: float = 20 * u.bohr_radius,
             z_points: int = 2 ** 9,
             rho_points: int = 2 ** 8,
-            operators = operators.CylindricalSliceLengthGaugeOperators(),
+            operators = mesh_operators.CylindricalSliceLengthGaugeOperators(),
             evolution_method = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             **kwargs):
         super().__init__(
@@ -1180,7 +1180,7 @@ class SphericalSliceSpecification(MeshSpecification):
             r_bound: float = 20 * u.bohr_radius,
             r_points: int = 2 ** 10,
             theta_points: int = 2 ** 10,
-            operators: operators.Operators = operators.SphericalSliceLengthGaugeOperators(),
+            operators: mesh_operators.Operators = mesh_operators.SphericalSliceLengthGaugeOperators(),
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
             **kwargs):
         super().__init__(
@@ -1513,7 +1513,7 @@ class SphericalHarmonicSpecification(MeshSpecification):
             r_points: int = 1000,
             l_bound: int = 300,
             theta_points: int = 180,
-            operators: operators.Operators = operators.SphericalSliceLengthGaugeOperators(),
+            operators: mesh_operators.Operators = mesh_operators.SphericalHarmonicLengthGaugeOperators(),
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SphericalHarmonicSplitOperator(),
             use_numeric_eigenstates: bool = True,
             numeric_eigenstate_max_angular_momentum: int = 5,

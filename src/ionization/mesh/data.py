@@ -48,6 +48,26 @@ class Datastore(abc.ABC):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
 
 
+class Fields(Datastore):
+    """Stores the electric field and vector potential of the simulation's electric potential."""
+
+    def init(self):
+        self.electric_field_amplitude = self.sim.get_blank_data()
+        self.vector_potential_amplitude = self.sim.get_blank_data()
+
+    def store(self):
+        idx = self.sim.data_time_index
+        self.electric_field_amplitude[idx] = self.spec.electric_potential.get_electric_field_amplitude(t = self.sim.time)
+        self.vector_potential_amplitude[idx] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.sim.times_to_current)
+
+    def attach(self):
+        self.sim.data.electric_field_amplitude = self.electric_field_amplitude
+        self.sim.data.vector_potential_amplitude = self.vector_potential_amplitude
+
+    def __sizeof__(self):
+        return self.electric_field_amplitude.nbytes + self.vector_potential_amplitude.nbytes + super().__sizeof__()
+
+
 class Norm(Datastore):
     """Stores the wavefunction norm as a function of time."""
 
@@ -91,42 +111,6 @@ class InnerProducts(Datastore):
         return sum(ip.nbytes for ip in self.inner_products.values()) + sys.getsizeof(self.inner_products) + super().__sizeof__()
 
 
-class Fields(Datastore):
-    """Stores the electric field and vector potential of the simulation's electric potential."""
-
-    def init(self):
-        self.electric_field_amplitude = self.sim.get_blank_data()
-        self.vector_potential_amplitude = self.sim.get_blank_data()
-
-    def store(self):
-        idx = self.sim.data_time_index
-        self.electric_field_amplitude[idx] = self.spec.electric_potential.get_electric_field_amplitude(t = self.sim.time)
-        self.vector_potential_amplitude[idx] = self.spec.electric_potential.get_vector_potential_amplitude_numeric(times = self.sim.times_to_current)
-
-    def attach(self):
-        self.sim.data.electric_field_amplitude = self.electric_field_amplitude
-        self.sim.data.vector_potential_amplitude = self.vector_potential_amplitude
-
-    def __sizeof__(self):
-        return self.electric_field_amplitude.nbytes + self.vector_potential_amplitude.nbytes + super().__sizeof__()
-
-
-class RadialPositionExpectationValue(Datastore):
-    """Stores the expectation value of the radial position."""
-
-    def init(self):
-        self.radial_position_expectation_value = self.sim.get_blank_data()
-
-    def store(self):
-        self.radial_position_expectation_value[self.sim.data_time_index] = self.sim.mesh.radial_position_expectation_value()
-
-    def attach(self):
-        self.sim.data.radial_position_expectation_value = self.radial_position_expectation_value
-
-    def __sizeof__(self):
-        return self.radial_position_expectation_value.nbytes + super().__sizeof__()
-
-
 class InternalEnergyExpectationValue(Datastore):
     """Stores the expectation value of the internal Hamiltonian."""
 
@@ -134,7 +118,7 @@ class InternalEnergyExpectationValue(Datastore):
         self.internal_energy_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.internal_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.energy_expectation_value(include_interaction = False)
+        self.internal_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.internal_energy_expectation_value()
 
     def attach(self):
         self.sim.data.internal_energy_expectation_value = self.internal_energy_expectation_value
@@ -150,7 +134,7 @@ class TotalEnergyExpectationValue(Datastore):
         self.total_energy_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.total_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.energy_expectation_value(include_interaction = True)
+        self.total_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.total_energy_expectation_value()
 
     def attach(self):
         self.sim.data.total_energy_expectation_value = self.total_energy_expectation_value
@@ -159,20 +143,52 @@ class TotalEnergyExpectationValue(Datastore):
         return self.total_energy_expectation_value.nbytes + super().__sizeof__()
 
 
-class ElectricDipoleMomentZExpectationValue(Datastore):
+class ZExpectationValue(Datastore):
+    """Stores the expectation value of the z position."""
+
+    def init(self):
+        self.z_expectation_value = self.sim.get_blank_data()
+
+    def store(self):
+        self.z_expectation_value[self.sim.data_time_index] = self.sim.mesh.z_expectation_value()
+
+    def attach(self):
+        self.sim.data.z_expectation_value = self.z_expectation_value
+
+    def __sizeof__(self):
+        return self.z_expectation_value.nbytes + super().__sizeof__()
+
+
+class ZDipoleMomentExpectationValue(Datastore):
     """Stores the expectation value of the electric dipole moment in the z direction."""
 
     def init(self):
-        self.z_dipole_moment_expectation_value = self.sim.get_blank_data(dtype = np.complex128)
+        self.z_dipole_moment_expectation_value = self.sim.get_blank_data()
 
     def store(self):
-        self.z_dipole_moment_expectation_value[self.sim.data_time_index] = np.real(self.sim.mesh.z_dipole_moment_inner_product())
+        self.z_dipole_moment_expectation_value[self.sim.data_time_index] = self.sim.mesh.z_dipole_moment_expectation_value()
 
     def attach(self):
         self.sim.data.z_dipole_moment_expectation_value = self.z_dipole_moment_expectation_value
 
     def __sizeof__(self):
         return self.z_dipole_moment_expectation_value.nbytes + super().__sizeof__()
+
+
+class RExpectationValue(Datastore):
+    """Stores the expectation value of the r position."""
+
+    def init(self):
+        self.r_expectation_value = self.sim.get_blank_data()
+
+    def store(self):
+        self.r_expectation_value[self.sim.data_time_index] = self.sim.mesh.r_expectation_value()
+
+    def attach(self):
+        self.sim.data.r_expectation_value = self.r_expectation_value
+
+    def __sizeof__(self):
+        return self.r_expectation_value.nbytes + super().__sizeof__()
 
 
 class NormByL(Datastore):
@@ -229,4 +245,8 @@ class DirectionalRadialProbabilityCurrent(Datastore):
         return self.radial_probability_current__pos_z.nbytes + self.radial_probability_current__neg_z.nbytes + super().__sizeof__()
 
 
-DEFAULT_DATASTORES = (Norm, InnerProducts, Fields)
+DEFAULT_DATASTORES = (
+    Fields,
+    Norm,
+    InnerProducts,
+)

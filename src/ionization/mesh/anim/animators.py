@@ -146,7 +146,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
 
         self.time_text = plt.figtext(
             .6, .3,
-            fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, \mathrm{self.time_text_unit_tex}$',
+            fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, {self.time_text_unit_tex}$',
             fontsize = 30,
             animated = True
         )
@@ -155,6 +155,6 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         super()._initialize_figure()
 
     def _update_data(self):
-        self.time_text.set_text(fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, \mathrm{self.time_text_unit_tex}$')
+        self.time_text.set_text(fr'$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, {self.time_text_unit_tex}$')
 
         super()._update_data()

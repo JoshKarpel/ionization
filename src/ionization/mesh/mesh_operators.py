@@ -1,6 +1,7 @@
 import logging
-from typing import Union, Optional, Iterable, NewType, Tuple, Dict
 import abc
+import itertools
+from typing import Union, Optional, Iterable, NewType, Tuple, Dict
 
 import numpy as np
 import scipy.sparse as sparse
@@ -43,7 +44,7 @@ class MeshOperator(abc.ABC):
 
     def __repr__(self):
         matrix_repr = repr(self.matrix).replace('\n', '')
-        return f"{self.__class__.__name__}(operator = {matrix_repr}, wrapping_direction = '{self.wrapping_direction}')"
+        return f"{self.__class__.__name__}(operator = {matrix_repr}, wrapping_direction = {self.wrapping_direction})"
 
     def apply(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GVector', current_wrapping_direction):
         if current_wrapping_direction != self.wrapping_direction:
@@ -58,6 +59,14 @@ class MeshOperator(abc.ABC):
         raise NotImplementedError
 
 
+class ElementWiseMultiplyOperator(MeshOperator):
+    def __init__(self, matrix):
+        super().__init__(matrix, wrapping_direction = None)
+
+    def _apply(self, g: 'meshes.GVector') -> 'meshes.GVector':
+        return self.matrix * g
+
+
 class DotOperator(MeshOperator):
     def _apply(self, g: 'meshes.GVector') -> 'meshes.GVector':
         return self.matrix.dot(g)
@@ -66,6 +75,21 @@ class DotOperator(MeshOperator):
 class TDMAOperator(MeshOperator):
     def _apply(self, g: 'meshes.GVector') -> 'meshes.GVector':
         return cy.tdma(self.matrix, g)
+
+
+@MeshOperator.register
+class SumOfOperators:
+    def __init__(self, operators):
+        self.operators = operators
+
+    def apply(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GVector', current_wrapping_direction):
+        result = np.zeros_like(g)
+
+        for operator in self.operators:
+            r, wrapping = operator.apply(mesh, g, current_wrapping_direction)
+            result += mesh.wrap_vector(r, wrap_along = wrapping)
+
+        return result, current_wrapping_direction
 
 
 class SimilarityOperator(DotOperator):
@@ -175,7 +199,7 @@ class LineLengthGaugeOperators(Operators):
         )
 
     def interaction_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
-        epot = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.x_mesh, test_charge = mesh.spec.test_charge)
+        epot = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         matrix = sparse.diags([epot], offsets = [0])
 
@@ -198,7 +222,7 @@ class LineLengthGaugeOperators(Operators):
                 )
             )
 
-        return tuple(total_operators)
+        return SumOfOperators(total_operators)
 
     def split_interaction_operators(self, mesh, interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
         matrix = interaction_operators[0].matrix.data[0]
@@ -208,6 +232,14 @@ class LineLengthGaugeOperators(Operators):
                          offsets = [0]),
             wrapping_direction = None,
         ),
+
+    @si.utils.memoize
+    def r(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.r_mesh),
+
+    @si.utils.memoize
+    def z(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.z_mesh),
 
 
 class LineVelocityGaugeOperators(LineLengthGaugeOperators):
@@ -337,7 +369,15 @@ class CylindricalSliceLengthGaugeOperators(Operators):
                 )
             )
 
-        return tuple(total_operators)
+        return SumOfOperators(total_operators),
+
+    @si.utils.memoize
+    def r(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.r_mesh),
+
+    @si.utils.memoize
+    def z(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.z_mesh),
 
 
 class SphericalSliceLengthGaugeOperators(Operators):
@@ -437,7 +477,15 @@ class SphericalSliceLengthGaugeOperators(Operators):
                 )
             )
 
-        return tuple(total_operators)
+        return SumOfOperators(total_operators),
+
+    @si.utils.memoize
+    def r(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.r_mesh),
+
+    @si.utils.memoize
+    def z(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.z_mesh),
 
 
 class SphericalHarmonicLengthGaugeOperators(Operators):
@@ -586,10 +634,10 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
     # TIGHT DEPENDENCE ON IMPLEMENTATION RIGHT NOW
     def total_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
-        r_hams = self.internal_hamiltonian(mesh)
-        l_hams = self.interaction_hamiltonian(mesh)
+        internal = self.internal_hamiltonian(mesh)
+        interaction = self.interaction_hamiltonian(mesh)
 
-        return (*l_hams, *r_hams)
+        return SumOfOperators(tuple(itertools.chain(internal, interaction))),
 
     def split_interaction_operators(self, mesh, interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
         interaction_operator, = interaction_operators  # only one operator in length gauge
@@ -631,6 +679,26 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
             DotOperator(even, wrapping_direction = meshes.WrappingDirection.L),
             DotOperator(odd, wrapping_direction = meshes.WrappingDirection.L),
         )
+
+    @si.utils.memoize
+    def r(self, mesh) -> Tuple[MeshOperator, ...]:
+        return ElementWiseMultiplyOperator(mesh.r_mesh),
+
+    @si.utils.memoize
+    def z(self, mesh) -> Tuple[MeshOperator, ...]:
+        l_prefactor = mesh.flatten_mesh(mesh.r_mesh, 'l')[:-1]
+
+        l_diagonal = np.zeros(mesh.mesh_points, dtype = np.complex128)
+        l_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
+        for l_index in range(mesh.mesh_points - 1):
+            if (l_index + 1) % mesh.spec.l_bound != 0:
+                l = (l_index % mesh.spec.l_bound)
+                l_offdiagonal[l_index] = self.c_l(l)
+        l_offdiagonal *= l_prefactor
+
+        matrix = sparse.diags([l_offdiagonal, l_diagonal, l_offdiagonal], offsets = (-1, 0, 1))
+
+        return DotOperator(matrix, wrapping_direction = meshes.WrappingDirection.L),
 
 
 class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperators):

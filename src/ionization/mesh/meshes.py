@@ -17,7 +17,7 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import states, vis, core, exceptions
-from . import sims, operators
+from . import sims, mesh_operators
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -40,6 +40,7 @@ WavefunctionVector = Union[GVector, G2Vector, PsiVector, Psi2Vector]
 StateOrGMesh = Optional[Union[states.QuantumState, GMesh]]  # None => the current g mesh
 
 SparseMatrixOperator = NewType('SparseMatrixOperator', sparse.dia_matrix)
+
 
 #
 # def c_l(l) -> float:
@@ -235,20 +236,26 @@ class QuantumMesh(abc.ABC):
         """State overlap between two states. If either state is None, the state on the g is used for that state."""
         return np.abs(self.inner_product(a, b)) ** 2
 
+    def expectation_value(self, state: StateOrGMesh = None, operators: Tuple[mesh_operators.MeshOperator, ...] = ()) -> float:
+        return self.inner_product(state, mesh_operators.apply_operators(self, self.state_to_mesh(state), operators)).real
+
     def norm(self, state: StateOrGMesh = None) -> float:
-        return np.abs(self.inner_product(a = state, b = state))
+        return self.expectation_value(state)
 
-    def __abs__(self) -> float:
-        return self.norm()
+    def internal_energy_expectation_value(self, state: StateOrGMesh = None):
+        return self.expectation_value(state, operators = self.operators.internal_hamiltonian(self))
 
-    def energy_expectation_value(self, include_interaction: bool = False):
-        raise NotImplementedError
+    def total_energy_expectation_value(self, state: StateOrGMesh = None):
+        return self.expectation_value(state, operators = self.operators.total_hamiltonian(self))
 
-    def radial_position_expectation_value(self) -> float:
-        return np.real(self.inner_product(b = self.r_mesh * self.g)) / self.norm()
+    def z_expectation_value(self, state: StateOrGMesh = None):
+        return self.expectation_value(state, operators = self.operators.z(self))
 
-    def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
-        raise NotImplementedError
+    def z_dipole_moment_expectation_value(self, state: StateOrGMesh = None):
+        return self.spec.test_charge * self.z_expectation_value(state)
+
+    def r_expectation_value(self, state: StateOrGMesh = None):
+        return self.expectation_value(state, operators = self.operators.r(self))
 
     @property
     def psi(self) -> PsiMesh:
@@ -261,22 +268,6 @@ class QuantumMesh(abc.ABC):
     @property
     def psi2(self) -> Psi2Mesh:
         return np.abs(self.psi) ** 2
-
-    # @si.utils.memoize
-    # def get_kinetic_energy_matrix_operators(self):
-    #     try:
-    #         return getattr(self, f'_get_kinetic_energy_matrix_operators_{self.spec.evolution_equations}')()
-    #     except AttributeError:
-    #         raise NotImplementedError
-    #
-    # def get_internal_hamiltonian_matrix_operators(self):
-    #     raise NotImplementedError
-    #
-    # def get_interaction_hamiltonian_matrix_operators(self):
-    #     try:
-    #         return getattr(self, f'_get_interaction_hamiltonian_matrix_operators_{self.spec.evolution_gauge}')()
-    #     except AttributeError:
-    #         raise NotImplementedError
 
     def evolve(self, time_step: complex):
         self.g = self.spec.evolution_method.evolve(self, self.g, time_step)
@@ -458,14 +449,14 @@ class LineMesh(QuantumMesh):
     def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
-        self.x_mesh = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
-        self.delta_x = np.abs(self.x_mesh[1] - self.x_mesh[0])
-        self.x_center_index = si.utils.find_nearest_entry(self.x_mesh, 0).index
+        self.z_mesh = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
+        self.delta_z = np.abs(self.z_mesh[1] - self.z_mesh[0])
+        self.z_center_index = si.utils.find_nearest_entry(self.z_mesh, 0).index
 
-        self.wavenumbers = u.twopi * nfft.fftfreq(len(self.x_mesh), d = self.delta_x)
+        self.wavenumbers = u.twopi * nfft.fftfreq(len(self.z_mesh), d = self.delta_z)
         self.delta_k = np.abs(self.wavenumbers[1] - self.wavenumbers[0])
 
-        self.inner_product_multiplier = self.delta_x
+        self.inner_product_multiplier = self.delta_z
         self.g_factor = 1
 
         if self.spec.use_numeric_eigenstates:
@@ -484,7 +475,7 @@ class LineMesh(QuantumMesh):
 
     @property
     def r_mesh(self):
-        return self.x_mesh
+        return self.z_mesh
 
     @property
     def energies(self):
@@ -501,28 +492,11 @@ class LineMesh(QuantumMesh):
             except (AttributeError, KeyError):
                 logger.debug(f'Analytic to numeric eigenstate lookup failed for state {state}')
 
-        g = state(self.x_mesh)
+        g = state(self.z_mesh)
         g /= np.sqrt(self.norm(g))
         g *= state.amplitude
 
         return g
-
-    def energy_expectation_value(self, include_interaction: bool = False):
-        potential = self.inner_product(b = self.spec.internal_potential(r = self.x_mesh, distance = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
-
-        power_spectrum = np.abs(self.fft(self.g)) ** 2
-        kinetic = np.sum((((u.hbar * self.wavenumbers) ** 2) / (2 * self.spec.test_mass)) * power_spectrum) / np.sum(power_spectrum)
-
-        energy = potential + kinetic
-
-        if include_interaction:
-            energy += self.inner_product(
-                b = self.spec.electric_potential(t = self.sim.time, r = self.x_mesh, distance = self.x_mesh, distance_along_polarization = self.x_mesh, test_charge = self.spec.test_charge) * self.g)
-
-        return np.real(energy) / self.norm()
-
-    def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
-        return self.spec.test_charge * self.inner_product(a = a, b = self.x_mesh * self.state_to_mesh(b))
 
     def fft(self, mesh: Optional[WavefunctionMesh] = None):
         if mesh is None:
@@ -572,7 +546,7 @@ class LineMesh(QuantumMesh):
                                x = self.sim.times_to_current)
 
         dipole_to_velocity = np.exp(1j * integral * (self.spec.test_charge ** 2) / (2 * self.spec.test_mass * u.hbar))
-        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.x_mesh / u.hbar)
+        dipole_to_length = np.exp(-1j * self.spec.test_charge * vamp[-1] * self.z_mesh / u.hbar)
 
         if leaving_gauge == 'LEN':
             return np.conj(dipole_to_length) * dipole_to_velocity * g
@@ -583,8 +557,8 @@ class LineMesh(QuantumMesh):
         if plot_limit is None:
             mesh_slicer = slice(None, None, 1)
         else:
-            x_lim_points = round(plot_limit / self.delta_x)
-            mesh_slicer = slice(int(self.x_center_index - x_lim_points), int(self.x_center_index + x_lim_points + 1), 1)
+            x_lim_points = round(plot_limit / self.delta_z)
+            mesh_slicer = slice(int(self.z_center_index - x_lim_points), int(self.z_center_index + x_lim_points + 1), 1)
 
         return mesh_slicer
 
@@ -603,13 +577,13 @@ class LineMesh(QuantumMesh):
 
         _slice = getattr(self, slicer)(plot_limit)
 
-        line, = axis.plot(self.x_mesh[_slice] / unit_value, norm(mesh[_slice]), **kwargs)
+        line, = axis.plot(self.z_mesh[_slice] / unit_value, norm(mesh[_slice]), **kwargs)
 
         return line
 
     def plot_mesh(self, mesh, distance_unit: u.Unit = 'nm', **kwargs):
         si.vis.xy_plot(self.sim.name + '_' + kwargs.pop('name'),
-                       self.x_mesh,
+                       self.z_mesh,
                        mesh,
                        x_label = 'Distance $x$',
                        x_unit_value = distance_unit,
@@ -717,10 +691,6 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return g
 
-    def z_dipole_moment_inner_product(self, a = None, b = None):
-        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
-
-
     def tg_mesh(self, use_abs_g = False):
         hamiltonian_z, hamiltonian_rho = self.get_kinetic_energy_matrix_operators()
 
@@ -754,9 +724,6 @@ class CylindricalSliceMesh(QuantumMesh):
             raise NotImplementedError
 
         return hg_mesh_z + hg_mesh_rho
-
-    def energy_expectation_value(self, include_interaction = False):
-        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     @si.utils.memoize
     def _get_probability_current_matrix_operators(self):
@@ -1027,10 +994,7 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
         g *= state.amplitude
 
         return g
-    #
-    # def z_dipole_moment_inner_product(self, a = None, b = None):
-    #     return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
-    #
+
     # def _get_kinetic_energy_matrix_operators_HAM(self):
     #     """Get the mesh kinetic energy operator matrices for z and rho."""
     #     z_prefactor = -(u.hbar ** 2) / (2 * self.spec.test_mass * (self.delta_z ** 2))
@@ -1113,9 +1077,6 @@ class WarpedCylindricalSliceMesh(QuantumMesh):
     #         raise NotImplementedError
     #
     #     return hg_mesh_z + hg_mesh_rho
-    #
-    # def energy_expectation_value(self, include_interaction = False):
-    #     return np.real(self.inner_product(b = self.hg_mesh())) / self.norm()
     #
     # @si.utils.memoize
     # def _get_probability_current_matrix_operators(self):
@@ -1256,9 +1217,6 @@ class SphericalSliceMesh(QuantumMesh):
 
         return g
 
-    def z_dipole_moment_inner_product(self, a = None, b = None):
-        return self.spec.test_charge * self.inner_product(a = a, b = self.z_mesh * self.state_to_mesh(b))
-
     def tg_mesh(self, use_abs_g: bool = False):
         hamiltonian_r, hamiltonian_theta = self.get_kinetic_energy_matrix_operators()
 
@@ -1293,9 +1251,6 @@ class SphericalSliceMesh(QuantumMesh):
         # TODO: not including interaction yet
 
         return hg_mesh_r + hg_mesh_theta
-
-    def energy_expectation_value(self, include_interaction: bool = False):
-        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
 
     @si.utils.memoize
     def get_probability_current_matrix_operators(self):
@@ -1533,11 +1488,6 @@ class SphericalHarmonicMesh(QuantumMesh):
     def norm_by_l(self) -> np.array:
         return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
 
-    def z_dipole_moment_inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None):
-        operator = self._get_interaction_hamiltonian_matrix_operators_without_field_LEN()
-        b = self.wrap_vector(operator.dot(self.flatten_mesh(self.state_to_mesh(b), 'l')), 'l')
-        return -self.inner_product(a = a, b = b)
-
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g: Optional[GMesh] = None):
         """
         Return the inner products for each plane wave state in the Cartesian product of thetas and wavenumbers.
@@ -1737,9 +1687,6 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return hg
 
-    def energy_expectation_value(self, include_interaction: bool = False):
-        return np.real(self.inner_product(b = self.hg_mesh(include_interaction = include_interaction))) / self.norm()
-
     @si.utils.memoize
     def _get_probability_current_matrix_operators(self):
         raise NotImplementedError
@@ -1776,9 +1723,6 @@ class SphericalHarmonicMesh(QuantumMesh):
         current_mesh_r = np.imag(np.conj(g_spatial) * gradient_mesh_r)
 
         return current_mesh_r
-
-    def _make_split_operator_evolution_operators(self, interaction_hamiltonian_matrix_operators, tau: float):
-        return getattr(self, f'_make_split_operator_evolution_operators_{self.spec.evolution_gauge}')(interaction_hamiltonian_matrix_operators, tau)
 
     def _apply_length_gauge_transformation(self, vector_potential_amplitude: float, g: GMesh):
         bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vector_potential_amplitude * self.r_mesh / u.hbar)

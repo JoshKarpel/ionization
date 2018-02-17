@@ -87,7 +87,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_electric_field:
             self.electric_field_line, = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
-                self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value,
+                self.sim.data.electric_field_amplitude / self.electric_field_unit_value,
                 label = fr'${vis.LATEX_EFIELD}(t)$',
                 color = vis.COLOR_EFIELD, linewidth = self.linewidth,
                 animated = True,
@@ -98,7 +98,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         if self.show_vector_potential:
             self.vector_potential_line, = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
-                u.proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value,
+                u.proton_charge * self.sim.data.vector_potential_amplitude / self.vector_potential_unit_value,
                 label = fr'$q \, {vis.LATEX_AFIELD}(t)$',
                 color = vis.COLOR_AFIELD, linewidth = self.linewidth, linestyle = '--',
                 animated = True,
@@ -146,9 +146,9 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
 
     def update_axis(self):
         if self.show_electric_field:
-            self.electric_field_line.set_ydata(self.sim.electric_field_amplitude_vs_time / self.electric_field_unit_value)
+            self.electric_field_line.set_ydata(self.sim.data.electric_field_amplitude / self.electric_field_unit_value)
         if self.show_vector_potential:
-            self.vector_potential_line.set_ydata(u.proton_charge * self.sim.vector_potential_amplitude_vs_time / self.vector_potential_unit_value)
+            self.vector_potential_line.set_ydata(u.proton_charge * self.sim.data.vector_potential_amplitude / self.vector_potential_unit_value)
 
         self.time_line.set_xdata(self.sim.time / self.time_unit_value)
 
@@ -209,8 +209,8 @@ class StackplotAxis(si.vis.AxisManager):
     def initialize_axis(self):
         if self.show_norm:
             self.norm_line, = self.axis.plot(
-                self.sim.data_times / self.time_unit_value,
-                self.sim.norm_vs_time,
+                self.sim.data.times / self.time_unit_value,
+                self.sim.data.norm,
                 label = r'$\left\langle \Psi|\psi \right\rangle$',
                 color = 'black',
                 linewidth = 3
@@ -220,10 +220,12 @@ class StackplotAxis(si.vis.AxisManager):
 
         self._initialize_stackplot()
 
-        self.time_line = self.axis.axvline(x = self.sim.time / self.time_unit_value,
-                                           color = 'gray',
-                                           linewidth = 1,
-                                           animated = True)
+        self.time_line = self.axis.axvline(
+            x = self.sim.time / self.time_unit_value,
+            color = 'gray',
+            linewidth = 1,
+            animated = True,
+        )
         self.redraw.append(self.time_line)
 
         self.legend = self.axis.legend(**self.legend_kwargs)
@@ -280,7 +282,7 @@ class StackplotAxis(si.vis.AxisManager):
 
     def update_axis(self):
         if self.show_norm:
-            self.norm_line.set_ydata(self.sim.norm_vs_time)
+            self.norm_line.set_ydata(self.sim.data.norm)
 
         self._update_stackplot_lines()
 
@@ -334,7 +336,7 @@ class WavefunctionStackplotAxis(StackplotAxis):
         super().__init__(**kwargs)
 
     def _get_stackplot_data_and_labels(self):
-        state_overlaps = self.sim.state_overlaps_vs_time
+        state_overlaps = self.sim.data.state_overlaps
 
         selected_state_overlaps = {state: overlap for state, overlap in sorted(state_overlaps.items()) if state in self.states or (state.numeric and state.analytic_state in self.states)}
         overlap_len = len(list(state_overlaps.values())[0])  # ugly, but I don't see a way around it
