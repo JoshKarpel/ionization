@@ -21,3 +21,4 @@ from . import potentials
 from . import states
 from . import animation
 from . import ide
+from . import tunneling
