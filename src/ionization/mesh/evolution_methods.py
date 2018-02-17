@@ -75,7 +75,7 @@ class AlternatingDirectionImplicitCrankNicolson(EvolutionMethod):
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
         tau = time_step / (2 * u.hbar)
 
-        ham_opers = mesh.operators.total_hamiltonian(mesh)
+        ham_opers = mesh.operators.total_hamiltonian(mesh)[0].operators  # TODO: ack
 
         evolution_operators = []
         explicit = True

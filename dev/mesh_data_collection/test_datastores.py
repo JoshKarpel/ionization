@@ -115,6 +115,7 @@ if __name__ == '__main__':
             time_final = 100 * u.asec,
             time_step = 1 * u.asec,
             electric_potential = potential,
+            evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
             use_numeric_eigenstates = False,
             test_states = [
                 ion.states.HydrogenBoundState(n, l)
@@ -131,13 +132,13 @@ if __name__ == '__main__':
                 ion.mesh.TotalEnergyExpectationValue,
                 # ion.mesh.DirectionalRadialProbabilityCurrent,
             ),
-            animators = [
-                ion.mesh.anim.PolarAnimator(
-                    axman_wavefunction = ion.mesh.anim.SphericalHarmonicPhiSliceMeshAxis(),
-                    length = 10,
-                    target_dir = OUT_DIR,
-                )
-            ],
+            # animators = [
+            #     ion.mesh.anim.PolarAnimator(
+            #         axman_wavefunction = ion.mesh.anim.SphericalHarmonicPhiSliceMeshAxis(),
+            #         length = 10,
+            #         target_dir = OUT_DIR,
+            #     )
+            # ],
         ).to_sim()
 
         sim.run(progress_bar = True)
