@@ -4,7 +4,7 @@ import numpy as np
 
 from tests import testutils
 
-from .test_sims import SPEC_TYPES
+from .conftest import SPEC_TYPES
 
 
 @pytest.mark.parametrize(

@@ -1,5 +1,6 @@
 import sys
 import abc
+import collections
 
 import numpy as np
 
@@ -23,7 +24,10 @@ class Data:
         try:
             return super().__getattribute__(item)
         except AttributeError as e:
-            datastore = DATA_NAME_TO_DATASTORE.get(item)
+            if item.startswith('__') and item.endswith('__'):
+                raise
+
+            datastore = DATA_NAME_TO_DATASTORE_TYPE.get(item)
 
             if datastore is None:
                 raise exceptions.UnknownDataAccess(f"Couldn't find any data named '{item}' on {self.sim}. Ensure that the corresponding datastore is correctly implemented.")
@@ -31,7 +35,7 @@ class Data:
                 raise exceptions.MissingDatastore(f"Couldn't get data {item} for {self.sim} because it does not include a {datastore.__name__} datastore.")
 
 
-DATA_NAME_TO_DATASTORE = {}
+DATA_NAME_TO_DATASTORE_TYPE = {}
 
 
 class Datastore(abc.ABC):
@@ -93,7 +97,7 @@ class Fields(Datastore):
         return self.electric_field_amplitude.nbytes + self.vector_potential_amplitude.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'electric_field_amplitude': Fields,
     'vector_potential_amplitude': Fields,
 })
@@ -115,7 +119,7 @@ class Norm(Datastore):
         return self.norm.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'norm': Norm,
 })
 
@@ -147,7 +151,7 @@ class InnerProductsAndOverlaps(Datastore):
 Data.state_overlaps = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.state_overlaps)
 Data.initial_state_overlap = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.initial_state_overlap)
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'inner_products': InnerProductsAndOverlaps,
     'initial_state_inner_product': InnerProductsAndOverlaps,
     'state_overlaps': InnerProductsAndOverlaps,
@@ -171,7 +175,7 @@ class InternalEnergyExpectationValue(Datastore):
         return self.internal_energy_expectation_value.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'internal_energy_expectation_value': InternalEnergyExpectationValue,
 })
 
@@ -192,7 +196,7 @@ class TotalEnergyExpectationValue(Datastore):
         return self.total_energy_expectation_value.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'total_energy_expectation_value': TotalEnergyExpectationValue,
 })
 
@@ -213,7 +217,7 @@ class ZExpectationValue(Datastore):
         return self.z_expectation_value.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'z_expectation_value': ZExpectationValue,
 })
 
@@ -234,8 +238,8 @@ class ZDipoleMomentExpectationValue(Datastore):
         return self.z_dipole_moment_expectation_value.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
-    'ZDipoleMomentExpectationValue': ZDipoleMomentExpectationValue,
+DATA_NAME_TO_DATASTORE_TYPE.update({
+    'z_dipole_moment_expectation_value': ZDipoleMomentExpectationValue,
 })
 
 
@@ -255,8 +259,8 @@ class RExpectationValue(Datastore):
         return self.r_expectation_value.nbytes + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
-    'RExpectationValue': RExpectationValue,
+DATA_NAME_TO_DATASTORE_TYPE.update({
+    'r_expectation_value': RExpectationValue,
 })
 
 
@@ -278,7 +282,7 @@ class NormByL(Datastore):
         return sum(ip.nbytes for ip in self.norm_by_l.values()) + sys.getsizeof(self.norm_by_l) + super().__sizeof__()
 
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'norm_by_l': NormByL,
 })
 
@@ -319,11 +323,15 @@ class DirectionalRadialProbabilityCurrent(Datastore):
 
 Data.radial_probability_current__total = link_property_to_data(DirectionalRadialProbabilityCurrent, DirectionalRadialProbabilityCurrent.radial_probability_current__total)
 
-DATA_NAME_TO_DATASTORE.update({
+DATA_NAME_TO_DATASTORE_TYPE.update({
     'radial_probability_current__pos_z': DirectionalRadialProbabilityCurrent,
     'radial_probability_current__neg_z': DirectionalRadialProbabilityCurrent,
     'radial_probability_current__total': DirectionalRadialProbabilityCurrent,
 })
+
+DATASTORE_TYPE_TO_DATA_NAMES = collections.defaultdict(set)
+for data_name, datastore_type in DATA_NAME_TO_DATASTORE_TYPE.items():
+    DATASTORE_TYPE_TO_DATA_NAMES[datastore_type].add(data_name)
 
 DEFAULT_DATASTORES = (
     Fields,

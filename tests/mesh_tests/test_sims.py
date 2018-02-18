@@ -1,5 +1,3 @@
-import itertools
-
 import pytest
 
 import numpy as np
@@ -8,27 +6,7 @@ import simulacra.units as u
 
 import ionization as ion
 
-SPEC_TYPES = [
-    ion.mesh.LineSpecification,
-    ion.mesh.CylindricalSliceSpecification,
-    ion.mesh.SphericalSliceSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
-]
-
-THREE_DIMENSIONAL_SPEC_TYPES = [
-    ion.mesh.CylindricalSliceSpecification,
-    ion.mesh.SphericalSliceSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
-]
-
-SPEC_TYPES_WITH_NUMERIC_EIGENSTATES = [
-    ion.mesh.LineSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
-]
-
-LOW_N_HYDROGEN_BOUND_STATES = [ion.mesh.states.HydrogenBoundState(n, l) for n in range(6) for l in range(n)]
-
-EVOLUTION_GAUGES = ['LEN', 'VEL']
+from .conftest import LOW_N_HYDROGEN_BOUND_STATES
 
 
 @pytest.mark.parametrize(
@@ -39,15 +17,10 @@ def test_initial_wavefunction_is_normalized_for_spherical_harmonic_mesh_with_num
     sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
-        evolution_gauge = 'LEN',
-        evolution_method = 'CN',
-        time_initial = 0,
-        time_final = 100 * u.asec,
-        time_step = 1 * u.asec,
         r_bound = 100 * u.bohr_radius,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * u.eV,
+        numeric_eigenstate_max_energy = 20 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_sim()
 
@@ -62,8 +35,8 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
     sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
-        evolution_gauge = 'LEN',
-        evolution_method = 'CN',
+        operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+        evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
         time_initial = 0,
         time_final = 100 * u.asec,
         time_step = 1 * u.asec,
@@ -71,7 +44,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         r_points = 500,
         l_bound = 30,
         use_numeric_eigenstates = True,
-        numeric_eigenstate_max_energy = 10 * u.eV,
+        numeric_eigenstate_max_energy = 20 * u.eV,
         numeric_eigenstate_max_angular_momentum = 10,
     ).to_sim()
 
@@ -87,18 +60,17 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
 
 
 @pytest.mark.parametrize(
-    'initial_state, evolution_gauge',
-    itertools.product(
-        LOW_N_HYDROGEN_BOUND_STATES,
-        EVOLUTION_GAUGES,
-    )
+    'initial_state', LOW_N_HYDROGEN_BOUND_STATES,
 )
-def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_split_operator_evolution(initial_state, evolution_gauge):
+@pytest.mark.parametrize(
+    'operators', [ion.mesh.SphericalHarmonicLengthGaugeOperators(), ion.mesh.SphericalHarmonicVelocityGaugeOperators()],
+)
+def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_mesh_with_numeric_eigenstates_and_split_operator_evolution(initial_state, operators):
     sim = ion.mesh.SphericalHarmonicSpecification(
         'test',
         initial_state = initial_state,
-        evolution_gauge = evolution_gauge,
-        evolution_method = 'SO',
+        operators = operators,
+        evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
         time_initial = 0,
         time_final = 100 * u.asec,
         time_step = 1 * u.asec,

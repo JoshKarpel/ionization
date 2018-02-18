@@ -178,7 +178,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
     def check(self):
         norm = self.data.norm[self.data_time_index]
         if norm > 1.001 * self.data.norm[0]:
-            logger.warning(f'Wavefunction norm ({norm}) has exceeded initial norm ({self.norm_vs_time[0]}) by more than .1% for {self}')
+            logger.warning(f'Wavefunction norm ({norm}) has exceeded initial norm ({self.data.norm[0]}) by more than .1% for {self}')
         try:
             if norm > 1.001 * self.data.norm[self.data_time_index - 1]:
                 logger.warning(f'Wavefunction norm ({norm}) at time_index = {self.data_time_index} has exceeded norm from previous time step ({self.data.norm[self.data_time_index - 1]}) by more than .1% for {self}')
@@ -419,7 +419,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
                 # ),
             )
 
-            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.data.norm, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
             state_overlaps = self.state_overlaps_vs_time
             if states is not None:
@@ -514,7 +514,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
                 #     fontsize = 10)
             )
 
-            ax_overlaps.plot(self.data_times / time_unit_value, self.norm_vs_time, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(self.data_times / time_unit_value, self.data.norm, label = r'$\left\langle \Psi | \Psi \right\rangle$', color = 'black', linewidth = 2)
 
             if grouped_free_states is None:
                 grouped_free_states, group_free_states_labels = self.group_free_states_by_continuous_attr('energy', attr_unit = 'eV')
@@ -1033,6 +1033,8 @@ class MeshSpecification(si.Specification, abc.ABC):
 
 
 class LineSpecification(MeshSpecification):
+    mesh_type = meshes.LineMesh
+
     def __init__(
             self,
             name,
@@ -1055,8 +1057,8 @@ class LineSpecification(MeshSpecification):
             **kwargs
         )
 
-        self.x_bound = z_bound
-        self.x_points = int(z_points)
+        self.z_bound = z_bound
+        self.z_points = int(z_points)
 
         self.fft_cutoff_energy = fft_cutoff_energy
         self.fft_cutoff_wavenumber = np.sqrt(2 * self.test_mass * self.fft_cutoff_energy) / u.hbar
@@ -1069,9 +1071,9 @@ class LineSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('X Boundary', f'{u.uround(self.x_bound, u.bohr_radius)} a_0 | {u.uround(self.x_bound, u.nm)} nm')
-        info_mesh.add_field('X Points', self.x_points)
-        info_mesh.add_field('X Mesh Spacing', f'~{u.uround(self.x_bound / self.x_points, u.bohr_radius)} a_0 | {u.uround(self.x_bound / self.x_points, u.nm)} nm')
+        info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius)} a_0 | {u.uround(self.z_bound, u.nm)} nm')
+        info_mesh.add_field('Z Points', self.z_points)
+        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius)} a_0 | {u.uround(self.z_bound / self.z_points, u.nm)} nm')
 
         info.add_info(info_mesh)
 
@@ -1222,7 +1224,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
         norm_in_largest_l = self.mesh.state_overlap(g_for_largest_l, g_for_largest_l)
 
         if norm_in_largest_l > self.data.norm[self.data_time_index] / 1e9:
-            msg = f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.norm_vs_time[self.data_time_index]}), consider increasing l bound'
+            msg = f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.data.norm[self.data_time_index]}), consider increasing l bound'
             logger.warning(msg)
             self.warnings['norm_in_largest_l'].append(core.warning_record(self.time_index, msg))
 
@@ -1441,7 +1443,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
             ax_field.plot(self.times / u.asec, self.data.electric_field_amplitude / u.atomic_electric_field, color = 'black', linewidth = 2)
 
         if renormalize:
-            overlaps = [self.data.norm_by_l[sph_harm] / self.norm_vs_time for sph_harm in self.spec.spherical_harmonics]
+            overlaps = [self.data.norm_by_l[sph_harm] / self.data.norm for sph_harm in self.spec.spherical_harmonics]
             l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$' for sph_harm in self.spec.spherical_harmonics]
         else:
             overlaps = [self.data.norm_by_l[sph_harm] for sph_harm in self.spec.spherical_harmonics]

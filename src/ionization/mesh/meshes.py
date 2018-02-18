@@ -446,12 +446,12 @@ class QuantumMesh(abc.ABC):
 
 
 class LineMesh(QuantumMesh):
-    mesh_storage_method = ['x']
+    mesh_storage_method = ['z']
 
     def __init__(self, simulation: 'sims.MeshSimulation'):
         super().__init__(simulation)
 
-        self.z_mesh = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
+        self.z_mesh = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
         self.delta_z = np.abs(self.z_mesh[1] - self.z_mesh[0])
         self.z_center_index = si.utils.find_nearest_entry(self.z_mesh, 0).index
 

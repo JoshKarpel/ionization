@@ -171,10 +171,10 @@ class Operators(abc.ABC):
 
 class LineLengthGaugeOperators(Operators):
     def kinetic_energy(self, mesh) -> Tuple[MeshOperator, ...]:
-        prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_x ** 2))
+        prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
 
-        diag = -2 * prefactor * np.ones(len(mesh.x_mesh), dtype = np.complex128)
-        off_diag = prefactor * np.ones(len(mesh.x_mesh) - 1, dtype = np.complex128)
+        diag = -2 * prefactor * np.ones(len(mesh.z_mesh), dtype = np.complex128)
+        off_diag = prefactor * np.ones(len(mesh.z_mesh) - 1, dtype = np.complex128)
 
         matrix = sparse.diags((off_diag, diag, off_diag), offsets = (-1, 0, 1))
 
@@ -222,7 +222,7 @@ class LineLengthGaugeOperators(Operators):
                 )
             )
 
-        return SumOfOperators(total_operators)
+        return SumOfOperators(total_operators),
 
     def split_interaction_operators(self, mesh, interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
         matrix = interaction_operators[0].matrix.data[0]
@@ -245,8 +245,8 @@ class LineLengthGaugeOperators(Operators):
 class LineVelocityGaugeOperators(LineLengthGaugeOperators):
     @si.utils.memoize
     def interaction_hamiltonian_matrices_without_field(self, mesh) -> 'meshes.SparseMatrixOperator':
-        prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / (2 * mesh.delta_x)
-        offdiag = prefactor * np.ones(mesh.spec.x_points - 1, dtype = np.complex128)
+        prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / (2 * mesh.delta_z)
+        offdiag = prefactor * np.ones(mesh.spec.z_points - 1, dtype = np.complex128)
 
         return sparse.diags([-offdiag, offdiag], offsets = [-1, 1]),
 
@@ -267,7 +267,7 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
         odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
         odd_offdiag = np.zeros(len_a, dtype = np.complex128)
 
-        if len(mesh.x_mesh) % 2 != 0:
+        if len(mesh.z_mesh) % 2 != 0:
             even_diag[:-1] = np.cos(a_even).repeat(2)
             even_diag[-1] = 1
 
