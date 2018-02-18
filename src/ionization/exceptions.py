@@ -18,5 +18,14 @@ class IllegalQuantumState(IonizationException):
 class InvalidChoice(IonizationException):
     pass
 
+
 class InvalidWrappingDirection(IonizationException):
+    pass
+
+
+class MissingDatastore(IonizationException):
+    pass
+
+
+class UnknownDataAccess(IonizationException):
     pass

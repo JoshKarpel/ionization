@@ -1,14 +1,10 @@
 import logging
 import os
 
-import numpy as np
-
 import simulacra as si
 import simulacra.units as u
 
 import ionization as ion
-
-import hephaestus
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
@@ -124,7 +120,7 @@ if __name__ == '__main__':
             datastore_types = (
                 ion.mesh.Fields,
                 ion.mesh.Norm,
-                ion.mesh.InnerProducts,
+                ion.mesh.InnerProductsAndOverlaps,
                 ion.mesh.RExpectationValue,
                 ion.mesh.ZExpectationValue,
                 ion.mesh.ZDipoleMomentExpectationValue,
@@ -142,6 +138,10 @@ if __name__ == '__main__':
         ).to_sim()
 
         sim.run(progress_bar = True)
+
+        # print(sim.data.inner_products)
+        # print(sim.data.state_overlaps)
+        # print(sim.data.bogus)
 
         plot_fields(sim)
         plot_norm_and_inner_products(sim)

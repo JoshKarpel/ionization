@@ -5,6 +5,7 @@ import numpy as np
 
 import simulacra.units as u
 
+from .. import exceptions
 from . import sims
 
 
@@ -17,6 +18,20 @@ class Data:
 
     def __repr__(self):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)}'
+
+    def __getattr__(self, item):
+        try:
+            return super().__getattribute__(item)
+        except AttributeError as e:
+            datastore = DATA_NAME_TO_DATASTORE.get(item)
+
+            if datastore is None:
+                raise exceptions.UnknownDataAccess(f"Couldn't find any data named '{item}' on {self.sim}. Ensure that the corresponding datastore is correctly implemented.")
+            else:
+                raise exceptions.MissingDatastore(f"Couldn't get data {item} for {self.sim} because it does not include a {datastore.__name__} datastore.")
+
+
+DATA_NAME_TO_DATASTORE = {}
 
 
 class Datastore(abc.ABC):
@@ -48,6 +63,16 @@ class Datastore(abc.ABC):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
 
 
+def link_property_to_data(datastore_type, method):
+    def get_data_property(data):
+        try:
+            return getattr(data.sim.datastores[datastore_type.__name__], method.__name__)()
+        except KeyError as e:
+            raise exceptions.MissingDatastore(f"Couldn't get data {method.__name__} for {data.sim} because it does not include a {datastore_type.__name__} datastore.")
+
+    return property(get_data_property)
+
+
 class Fields(Datastore):
     """Stores the electric field and vector potential of the simulation's electric potential."""
 
@@ -68,6 +93,12 @@ class Fields(Datastore):
         return self.electric_field_amplitude.nbytes + self.vector_potential_amplitude.nbytes + super().__sizeof__()
 
 
+DATA_NAME_TO_DATASTORE.update({
+    'electric_field_amplitude': Fields,
+    'vector_potential_amplitude': Fields,
+})
+
+
 class Norm(Datastore):
     """Stores the wavefunction norm as a function of time."""
 
@@ -84,7 +115,12 @@ class Norm(Datastore):
         return self.norm.nbytes + super().__sizeof__()
 
 
-class InnerProducts(Datastore):
+DATA_NAME_TO_DATASTORE.update({
+    'norm': Norm,
+})
+
+
+class InnerProductsAndOverlaps(Datastore):
     """Stores inner products between the wavefunction and the test states. Also handles converting inner products to state overlaps."""
 
     def init(self):
@@ -104,11 +140,19 @@ class InnerProducts(Datastore):
         self.sim.data.inner_products = self.inner_products
         self.sim.data.initial_state_inner_product = self.inner_products[self.spec.initial_state]
 
-    Data.state_overlaps = property(lambda data: data.sim.datastores['InnerProducts'].state_overlaps())
-    Data.initial_state_overlap = property(lambda data: data.sim.datastores['InnerProducts'].initial_state_overlap())
-
     def __sizeof__(self):
         return sum(ip.nbytes for ip in self.inner_products.values()) + sys.getsizeof(self.inner_products) + super().__sizeof__()
+
+
+Data.state_overlaps = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.state_overlaps)
+Data.initial_state_overlap = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.initial_state_overlap)
+
+DATA_NAME_TO_DATASTORE.update({
+    'inner_products': InnerProductsAndOverlaps,
+    'initial_state_inner_product': InnerProductsAndOverlaps,
+    'state_overlaps': InnerProductsAndOverlaps,
+    'initial_state_overlap': InnerProductsAndOverlaps,
+})
 
 
 class InternalEnergyExpectationValue(Datastore):
@@ -127,6 +171,11 @@ class InternalEnergyExpectationValue(Datastore):
         return self.internal_energy_expectation_value.nbytes + super().__sizeof__()
 
 
+DATA_NAME_TO_DATASTORE.update({
+    'internal_energy_expectation_value': InternalEnergyExpectationValue,
+})
+
+
 class TotalEnergyExpectationValue(Datastore):
     """Stores the expectation value of the full Hamiltonian (internal + external)."""
 
@@ -141,6 +190,11 @@ class TotalEnergyExpectationValue(Datastore):
 
     def __sizeof__(self):
         return self.total_energy_expectation_value.nbytes + super().__sizeof__()
+
+
+DATA_NAME_TO_DATASTORE.update({
+    'total_energy_expectation_value': TotalEnergyExpectationValue,
+})
 
 
 class ZExpectationValue(Datastore):
@@ -159,6 +213,11 @@ class ZExpectationValue(Datastore):
         return self.z_expectation_value.nbytes + super().__sizeof__()
 
 
+DATA_NAME_TO_DATASTORE.update({
+    'z_expectation_value': ZExpectationValue,
+})
+
+
 class ZDipoleMomentExpectationValue(Datastore):
     """Stores the expectation value of the electric dipole moment in the z direction."""
 
@@ -173,6 +232,11 @@ class ZDipoleMomentExpectationValue(Datastore):
 
     def __sizeof__(self):
         return self.z_dipole_moment_expectation_value.nbytes + super().__sizeof__()
+
+
+DATA_NAME_TO_DATASTORE.update({
+    'ZDipoleMomentExpectationValue': ZDipoleMomentExpectationValue,
+})
 
 
 class RExpectationValue(Datastore):
@@ -191,6 +255,11 @@ class RExpectationValue(Datastore):
         return self.r_expectation_value.nbytes + super().__sizeof__()
 
 
+DATA_NAME_TO_DATASTORE.update({
+    'RExpectationValue': RExpectationValue,
+})
+
+
 class NormByL(Datastore):
     """Stores the norm of the wavefunction in each spherical harmonic."""
 
@@ -207,6 +276,11 @@ class NormByL(Datastore):
 
     def __sizeof__(self):
         return sum(ip.nbytes for ip in self.norm_by_l.values()) + sys.getsizeof(self.norm_by_l) + super().__sizeof__()
+
+
+DATA_NAME_TO_DATASTORE.update({
+    'norm_by_l': NormByL,
+})
 
 
 class DirectionalRadialProbabilityCurrent(Datastore):
@@ -236,17 +310,23 @@ class DirectionalRadialProbabilityCurrent(Datastore):
         self.sim.data.radial_probability_current__pos_z = self.radial_probability_current__pos_z
         self.sim.data.radial_probability_current__neg_z = self.radial_probability_current__neg_z
 
-    def radial_probability_current_vs_time(self):
+    def radial_probability_current__total(self):
         return self.radial_probability_current__pos_z + self.radial_probability_current__neg_z
-
-    Data.radial_probability_current_vs_time = property(lambda data: data.sim.datastores['DirectionalRadialProbabilityCurrent'].radial_probability_current_vs_time())
 
     def __sizeof__(self):
         return self.radial_probability_current__pos_z.nbytes + self.radial_probability_current__neg_z.nbytes + super().__sizeof__()
 
 
+Data.radial_probability_current__total = link_property_to_data(DirectionalRadialProbabilityCurrent, DirectionalRadialProbabilityCurrent.radial_probability_current__total)
+
+DATA_NAME_TO_DATASTORE.update({
+    'radial_probability_current__pos_z': DirectionalRadialProbabilityCurrent,
+    'radial_probability_current__neg_z': DirectionalRadialProbabilityCurrent,
+    'radial_probability_current__total': DirectionalRadialProbabilityCurrent,
+})
+
 DEFAULT_DATASTORES = (
     Fields,
     Norm,
-    InnerProducts,
+    InnerProductsAndOverlaps,
 )

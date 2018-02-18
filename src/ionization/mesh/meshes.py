@@ -415,7 +415,9 @@ class QuantumMesh(abc.ABC):
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(
-            self.g, name = name, title = title,
+            self.g,
+            name = name,
+            title = title,
             colormap = colormap,
             norm = norm,
             show_colorbar = False,
@@ -582,12 +584,14 @@ class LineMesh(QuantumMesh):
         return line
 
     def plot_mesh(self, mesh, distance_unit: u.Unit = 'nm', **kwargs):
-        si.vis.xy_plot(self.sim.name + '_' + kwargs.pop('name'),
-                       self.z_mesh,
-                       mesh,
-                       x_label = 'Distance $x$',
-                       x_unit_value = distance_unit,
-                       **kwargs)
+        si.vis.xy_plot(
+            self.sim.name + '_' + kwargs.pop('name'),
+            self.z_mesh,
+            mesh,
+            x_label = 'Distance $x$',
+            x_unit_value = distance_unit,
+            **kwargs
+        )
 
     def update_mesh(self, colormesh, updated_mesh, norm = None, **kwargs):
         if norm is not None:
