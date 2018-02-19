@@ -30,9 +30,9 @@ class Data:
             datastore = DATA_NAME_TO_DATASTORE_TYPE.get(item)
 
             if datastore is None:
-                raise exceptions.UnknownDataAccess(f"Couldn't find any data named '{item}' on {self.sim}. Ensure that the corresponding datastore is correctly implemented.")
+                raise exceptions.UnknownData(f"Couldn't find any data named '{item}' on {self.sim}. Ensure that the corresponding datastore is correctly implemented.")
             else:
-                raise exceptions.MissingDatastore(f"Couldn't get data {item} for {self.sim} because it does not include a {datastore.__name__} datastore.")
+                raise exceptions.MissingDatastore(f"Couldn't get data '{item}' for {self.sim} because it does not include a {datastore.__name__} datastore.")
 
 
 DATA_NAME_TO_DATASTORE_TYPE = {}

@@ -16,5 +16,5 @@ pyximport.install(
     language_level = 3,
 )
 
-from . import mesh, ide, potentials, states
+from . import mesh, ide, potentials, states, exceptions
 from .core import Gauge

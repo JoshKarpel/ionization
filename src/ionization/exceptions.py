@@ -27,5 +27,5 @@ class MissingDatastore(IonizationException):
     pass
 
 
-class UnknownDataAccess(IonizationException):
+class UnknownData(IonizationException):
     pass

@@ -959,7 +959,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             snapshot_kwargs = dict()
         self.snapshot_kwargs = snapshot_kwargs
 
-        self.datastore_types = sorted(set(datastore_types).union({data.Norm}), key = lambda x: x.__name__)
+        self.datastore_types = sorted(set(datastore_types), key = lambda x: x.__name__)
 
     def info(self) -> si.Info:
         info = super().info()

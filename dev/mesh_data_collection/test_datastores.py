@@ -118,14 +118,14 @@ if __name__ == '__main__':
                 for n in range(1, 3) for l in range(n)
             ],
             datastore_types = (
-                ion.mesh.Fields,
-                ion.mesh.Norm,
-                ion.mesh.InnerProductsAndOverlaps,
-                ion.mesh.RExpectationValue,
-                ion.mesh.ZExpectationValue,
-                ion.mesh.ZDipoleMomentExpectationValue,
-                ion.mesh.InternalEnergyExpectationValue,
-                ion.mesh.TotalEnergyExpectationValue,
+                # ion.mesh.Fields,
+                # ion.mesh.Norm,
+                # ion.mesh.InnerProductsAndOverlaps,
+                # ion.mesh.RExpectationValue,
+                # ion.mesh.ZExpectationValue,
+                # ion.mesh.ZDipoleMomentExpectationValue,
+                # ion.mesh.InternalEnergyExpectationValue,
+                # ion.mesh.TotalEnergyExpectationValue,
                 # ion.mesh.DirectionalRadialProbabilityCurrent,
             ),
             # animators = [
@@ -139,11 +139,12 @@ if __name__ == '__main__':
 
         sim.run(progress_bar = True)
 
+        print(sim.data.norm)
         # print(sim.data.inner_products)
         # print(sim.data.state_overlaps)
         # print(sim.data.bogus)
 
-        plot_fields(sim)
-        plot_norm_and_inner_products(sim)
-        plot_r_and_z_expectation_values(sim)
-        plot_energy_expectation_values(sim)
+        # plot_fields(sim)
+        # plot_norm_and_inner_products(sim)
+        # plot_r_and_z_expectation_values(sim)
+        # plot_energy_expectation_values(sim)
