@@ -63,8 +63,9 @@ class TunnelingSimulation(si.Simulation):
 
             self.time_index += 1
 
-            tunneling_rate = self.spec.model.tunneling_rate(self, self.spec.electric_potential, self.time)
             dt = self.times[self.time_index] - self.times[self.time_index - 1]
+            tunneling_rate = self.spec.model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
+            print(self.time_index, tunneling_rate, dt, tunneling_rate * dt)
             self.b[self.time_index] = self.b[self.time_index - 1] * np.exp(tunneling_rate * dt)
 
             logger.debug(f'{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
