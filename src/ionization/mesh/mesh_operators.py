@@ -183,7 +183,7 @@ class LineLengthGaugeOperators(Operators):
     @si.utils.memoize
     def internal_hamiltonian(self, mesh) -> Tuple[MeshOperator, ...]:
         kinetic_operators = self.kinetic_energy(mesh)
-        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, test_charge = mesh.spec.test_charge)
+        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, distance = mesh.r_mesh, test_charge = mesh.spec.test_charge)
 
         pre = 1 / len(kinetic_operators)
 

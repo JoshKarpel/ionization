@@ -373,7 +373,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         if show_vector_potential:
             axis.plot(
                 self.data_times / time_unit_value,
-                u.proton_charge * self.vector_potential_amplitude_vs_time / u.atomic_momentum,
+                u.proton_charge * self.data.vector_potential_amplitude / u.atomic_momentum,
                 color = vis.COLOR_AFIELD,
                 linewidth = 1.5,
                 label = fr'$ e \, {vis.LATEX_AFIELD}(t) $',
@@ -421,7 +421,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
             ax_overlaps.plot(self.data_times / time_unit_value, self.data.norm, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
 
-            state_overlaps = self.state_overlaps_vs_time
+            state_overlaps = self.data.state_overlaps
             if states is not None:
                 if callable(states):
                     state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if states(state)}
@@ -432,11 +432,12 @@ class MeshSimulation(si.Simulation, abc.ABC):
             overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
             labels = [rf'$ \left| \left\langle \psi | {{{state.latex}}} \right\rangle \right|^2 $' for state, overlap in sorted(state_overlaps.items())]
 
-            ax_overlaps.stackplot(self.data_times / time_unit_value,
-                                  *overlaps,
-                                  labels = labels,
-                                  # colors = colors,
-                                  )
+            ax_overlaps.stackplot(
+                self.data_times / time_unit_value,
+                *overlaps,
+                labels = labels,
+                # colors = colors,
+            )
 
             if log:
                 ax_overlaps.set_yscale('log')
@@ -522,7 +523,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
             labels = []
             colors = []
 
-            state_overlaps = self.state_overlaps_vs_time  # it's a property that would otherwise get evaluated every time we asked for it
+            state_overlaps = self.data.state_overlaps  # it's a property that would otherwise get evaluated every time we asked for it
 
             extra_bound_overlap = np.zeros(self.data_time_steps)
             if collapse_bound_state_angular_momenta:
@@ -654,7 +655,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         else:
             raise ValueError("states must be one of 'all', 'bound', or 'free'")
 
-        state_overlaps = self.state_overlaps_vs_time
+        state_overlaps = self.data.state_overlaps
         state_overlaps = {k: state_overlaps[k] for k in state_list}  # filter down to just states in state_list
 
         if group_angular_momentum:
@@ -1041,7 +1042,6 @@ class LineSpecification(MeshSpecification):
             initial_state = states.QHOState(1 * u.N / u.m),
             z_bound = 10 * u.nm,
             z_points = 2 ** 9,
-            fft_cutoff_energy = 1000 * u.eV,
             analytic_eigenstate_type = None,
             use_numeric_eigenstates = False,
             number_of_numeric_eigenstates = 100,
@@ -1059,9 +1059,6 @@ class LineSpecification(MeshSpecification):
 
         self.z_bound = z_bound
         self.z_points = int(z_points)
-
-        self.fft_cutoff_energy = fft_cutoff_energy
-        self.fft_cutoff_wavenumber = np.sqrt(2 * self.test_mass * self.fft_cutoff_energy) / u.hbar
 
         self.analytic_eigenstate_type = analytic_eigenstate_type
         self.use_numeric_eigenstates = use_numeric_eigenstates

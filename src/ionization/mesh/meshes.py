@@ -455,8 +455,8 @@ class LineMesh(QuantumMesh):
         self.delta_z = np.abs(self.z_mesh[1] - self.z_mesh[0])
         self.z_center_index = si.utils.find_nearest_entry(self.z_mesh, 0).index
 
-        self.wavenumbers = u.twopi * nfft.fftfreq(len(self.z_mesh), d = self.delta_z)
-        self.delta_k = np.abs(self.wavenumbers[1] - self.wavenumbers[0])
+        # self.wavenumbers = u.twopi * nfft.fftfreq(len(self.z_mesh), d = self.delta_z)
+        # self.delta_k = np.abs(self.wavenumbers[1] - self.wavenumbers[0])
 
         self.inner_product_multiplier = self.delta_z
         self.g_factor = 1
@@ -472,8 +472,8 @@ class LineMesh(QuantumMesh):
 
         self.g = self.get_g_for_state(self.spec.initial_state)
 
-        self.free_evolution_prefactor = -1j * (u.hbar / (2 * self.spec.test_mass)) * (self.wavenumbers ** 2)  # hbar^2/2m / hbar
-        self.wavenumber_mask = np.where(np.abs(self.wavenumbers) < self.spec.fft_cutoff_wavenumber, 1, 0)
+        # self.free_evolution_prefactor = -1j * (u.hbar / (2 * self.spec.test_mass)) * (self.wavenumbers ** 2)  # hbar^2/2m / hbar
+        # self.wavenumber_mask = np.where(np.abs(self.wavenumbers) < self.spec.fft_cutoff_wavenumber, 1, 0)
 
     @property
     def r_mesh(self):

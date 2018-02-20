@@ -1,3 +1,4 @@
+import simulacra as si
 import ionization as ion
 
 SPEC_TYPES = [

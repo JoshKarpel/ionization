@@ -514,7 +514,7 @@ class LineMeshAxis(QuantumMeshAxis):
 
         self.axis.grid(True, **self.grid_kwargs)
 
-        self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
+        self.axis.set_xlabel(r'$ z $ ($ {} $)'.format(unit_name), fontsize = 24)
         plot_labels = {
             'g2': r'$ \left| g \right|^2 $',
             'psi2': r'$ \left| \Psi \right|^2 $',
@@ -528,9 +528,9 @@ class LineMeshAxis(QuantumMeshAxis):
         self.axis.tick_params(labelright = True, labeltop = True)
 
         slice = getattr(self.sim.mesh, self.slicer)(self.plot_limit)
-        x = self.sim.mesh.x_mesh[slice]
-        x_lower_limit, x_upper_limit = np.nanmin(x), np.nanmax(x)
-        self.axis.set_xlim(x_lower_limit / unit_value, x_upper_limit / unit_value)
+        z = self.sim.mesh.z_mesh[slice]
+        z_lower_limit, z_upper_limit = np.nanmin(z), np.nanmax(z)
+        self.axis.set_xlim(z_lower_limit / unit_value, z_upper_limit / unit_value)
 
         self.redraw += [*self.axis.xaxis.get_gridlines(),
                         *self.axis.yaxis.get_gridlines()]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
