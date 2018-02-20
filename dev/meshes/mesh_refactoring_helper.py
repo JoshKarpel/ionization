@@ -175,8 +175,8 @@ if __name__ == '__main__':
         identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
 
         ### look at results before comparison
-        for k, v in identifier_to_final_initial_overlap.items():
-            print(k, v)
+        # for k, v in identifier_to_final_initial_overlap.items():
+        #     print(k, v)
 
         expected_results = {
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicitCrankNicolson): 0.370010185740,
@@ -190,7 +190,7 @@ if __name__ == '__main__':
             (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicVelocityGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.319513371899,
         }
 
-        summary = 'Results:\n'
+        summary = '\n-----------------------------------\n\nResults:\n'
         lines = []
         for identifier, latest_result in identifier_to_final_initial_overlap.items():
             s = ", ".join(ident.__name__ for ident in identifier)
