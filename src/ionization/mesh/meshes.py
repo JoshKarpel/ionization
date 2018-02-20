@@ -173,9 +173,6 @@ class QuantumMesh(abc.ABC):
     def z_expectation_value(self, state: StateOrGMesh = None):
         return self.expectation_value(state, operator = self.operators.z(self))
 
-    def z_dipole_moment_expectation_value(self, state: StateOrGMesh = None):
-        return self.spec.test_charge * self.z_expectation_value(state)
-
     def r_expectation_value(self, state: StateOrGMesh = None):
         return self.expectation_value(state, operator = self.operators.r(self))
 
@@ -1619,12 +1616,12 @@ class SphericalHarmonicMesh(QuantumMesh):
         return np.einsum('lr,lt->rt', mesh, self._sph_harm_l_theta_calc_mesh)
 
     @property
-    @si.utils.watcher(lambda s: s.sim.time)
+    @si.utils.watched_memoize(lambda s: s.sim.time)
     def space_g(self) -> GMesh:
         return self.reconstruct_spatial_mesh__plot(self.g)
 
     @property
-    @si.utils.watcher(lambda s: s.sim.time)
+    @si.utils.watched_memoize(lambda s: s.sim.time)
     def space_g_calc(self) -> GMesh:
         return self.reconstruct_spatial_mesh__calc(self.g)
 

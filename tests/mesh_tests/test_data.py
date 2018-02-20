@@ -16,7 +16,6 @@ DATASTORE_TYPES_SAFE_FOR_ALL_MESHES = [
     ion.mesh.InnerProductsAndOverlaps,
     ion.mesh.RExpectationValue,
     ion.mesh.ZExpectationValue,
-    ion.mesh.ZDipoleMomentExpectationValue,
     ion.mesh.InternalEnergyExpectationValue,
     ion.mesh.TotalEnergyExpectationValue,
 ]

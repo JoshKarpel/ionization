@@ -34,19 +34,19 @@ if __name__ == '__main__':
         sim.file_name = 'with_mesh'
         path_with_mesh = sim.save(target_dir = OUT_DIR, save_mesh = True, compressed = False)
         loaded_with_mesh = ion.mesh.MeshSimulation.load(path_with_mesh)
-        print(f'actual size on disk: {si.utils.get_file_size_as_string(path_with_mesh)}')
+        print(f"{sim.file_name}'s actual size on disk: {si.utils.get_file_size_as_string(path_with_mesh)}")
 
         sim.file_name = 'with_mesh__compressed'
         path_with_mesh_compressed = sim.save(target_dir = OUT_DIR, save_mesh = True, compressed = True)
         loaded_with_mesh_compressed = ion.mesh.MeshSimulation.load(path_with_mesh)
-        print(f'actual size on disk: {si.utils.get_file_size_as_string(path_with_mesh_compressed)}')
+        print(f"{sim.file_name}'s actual size on disk: {si.utils.get_file_size_as_string(path_with_mesh_compressed)}")
 
         sim.file_name = 'without_mesh'
         path_without_mesh = sim.save(target_dir = OUT_DIR, save_mesh = False, compressed = False)
         loaded_without_mesh = ion.mesh.MeshSimulation.load(path_without_mesh)
-        print(f'actual size on disk: {si.utils.get_file_size_as_string(path_without_mesh)}')
+        print(f"{sim.file_name}'s actual size on disk: {si.utils.get_file_size_as_string(path_without_mesh)}")
 
         sim.file_name = 'without_mesh__compressed'
         path_without_mesh_compressed = sim.save(target_dir = OUT_DIR, save_mesh = False, compressed = True)
         loaded_without_mesh = ion.mesh.MeshSimulation.load(path_without_mesh_compressed)
-        print(f'actual size on disk: {si.utils.get_file_size_as_string(path_without_mesh_compressed)}')
+        print(f"{sim.file_name}'s actual size on disk: {si.utils.get_file_size_as_string(path_without_mesh_compressed)}")

@@ -213,33 +213,18 @@ class ZExpectationValue(Datastore):
     def attach(self):
         self.sim.data.z_expectation_value = self.z_expectation_value
 
+    def z_dipole_moment_expectation_value(self):
+        return self.spec.test_charge * self.z_expectation_value
+
     def __sizeof__(self):
         return self.z_expectation_value.nbytes + super().__sizeof__()
 
 
+Data.z_dipole_moment_expectation_value = link_property_to_data(ZExpectationValue, ZExpectationValue.z_dipole_moment_expectation_value)
+
 DATA_NAME_TO_DATASTORE_TYPE.update({
     'z_expectation_value': ZExpectationValue,
-})
-
-
-class ZDipoleMomentExpectationValue(Datastore):
-    """Stores the expectation value of the electric dipole moment in the z direction."""
-
-    def init(self):
-        self.z_dipole_moment_expectation_value = self.sim.get_blank_data()
-
-    def store(self):
-        self.z_dipole_moment_expectation_value[self.sim.data_time_index] = self.sim.mesh.z_dipole_moment_expectation_value()
-
-    def attach(self):
-        self.sim.data.z_dipole_moment_expectation_value = self.z_dipole_moment_expectation_value
-
-    def __sizeof__(self):
-        return self.z_dipole_moment_expectation_value.nbytes + super().__sizeof__()
-
-
-DATA_NAME_TO_DATASTORE_TYPE.update({
-    'z_dipole_moment_expectation_value': ZDipoleMomentExpectationValue,
+    'z_dipole_moment_expectation_value': ZExpectationValue,
 })
 
 

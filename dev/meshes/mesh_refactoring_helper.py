@@ -170,7 +170,7 @@ if __name__ == '__main__':
             )
         )
 
-        results = si.utils.multi_map(run, specs, processes = 4)
+        results = si.utils.multi_map(run, specs, processes = 2)
 
         identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
 

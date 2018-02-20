@@ -24,15 +24,15 @@ if __name__ == '__main__':
             store_data_every = -1,
             operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
             evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
-            # datastore_types = (
-            #     ion.mesh.Norm,
-            #     ion.mesh.InnerProducts,
-            #     ion.mesh.Fields,
-            #     ion.mesh.ElectricDipoleMomentZExpectationValue,
-            #     ion.mesh.InternalEnergyExpectationValue,
-            #     ion.mesh.TotalEnergyExpectationValue,
-            #     ion.mesh.RadialPositionExpectationValue,
-            # ),
+            datastore_types = (
+                ion.mesh.Fields,
+                ion.mesh.Norm,
+                ion.mesh.InnerProductsAndOverlaps,
+                ion.mesh.RExpectationValue,
+                ion.mesh.ZExpectationValue,
+                ion.mesh.InternalEnergyExpectationValue,
+                ion.mesh.TotalEnergyExpectationValue,
+            ),
         ).to_sim()
 
         # sim.info().log()

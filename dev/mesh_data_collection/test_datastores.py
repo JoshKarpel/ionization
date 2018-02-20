@@ -123,7 +123,6 @@ if __name__ == '__main__':
                 ion.mesh.InnerProductsAndOverlaps,
                 ion.mesh.RExpectationValue,
                 ion.mesh.ZExpectationValue,
-                ion.mesh.ZDipoleMomentExpectationValue,
                 ion.mesh.InternalEnergyExpectationValue,
                 ion.mesh.TotalEnergyExpectationValue,
                 # ion.mesh.DirectionalRadialProbabilityCurrent,
