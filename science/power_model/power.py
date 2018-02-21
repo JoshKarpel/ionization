@@ -59,13 +59,13 @@ def get_power(pulse, times, lookback = None):
     return force * velocity
 
 
-def plot_power(cos_pulse, sin_pulse, times):
+def plot_power(cos_pulse, sin_pulse, times, lookback = None):
     pulses = [cos_pulse, sin_pulse]
 
-    powers = [get_power(pulse, times) for pulse in pulses]
+    powers = [get_power(pulse, times, lookback = lookback) for pulse in pulses]
 
     si.vis.xy_plot(
-        'F_AND_V___' + '__'.join(pulse_identifier(pulse[0]) for pulse in pulses),
+        'F_AND_V___' + '__'.join(pulse_identifier(pulse[0]) for pulse in pulses) + (f'__{u.uround(lookback, u.asec)}' if lookback is not None else ''),
         times,
         *[power / u.atomic_power for power in powers],
         line_labels = [
@@ -242,7 +242,7 @@ def plot_power_model(pulses, times):
     bs = [solve_power_model(pulse, times) for pulse in pulses]
     abs_b_squared = [np.abs(b) ** 2 for b in bs]
 
-    bs_with_window = [solve_power_model(pulse, times, lookback = 50 * u.asec) for pulse in pulses]
+    bs_with_window = [solve_power_model(pulse, times, lookback = 150 * u.asec) for pulse in pulses]
     abs_b_squared_with_lookback = [np.abs(b) ** 2 for b in bs_with_window]
 
     si.vis.xy_plot(
@@ -324,13 +324,13 @@ def power_vs_cep_movie():
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        peak_power_vs_cep()
-        power_vs_cep_movie()
+        # peak_power_vs_cep()
+        # power_vs_cep_movie()
 
         pulses = [
-            ion.potentials.SincPulse(phase = 0),
-            # ion.potentials.SincPulse(phase = u.pi / 2),
-            ion.potentials.SincPulse(phase = u.pi / 3),
+            ion.potentials.SincPulse(pulse_width = 20 * u.asec, fluence = 2 * u.Jcm2, phase = 0),
+            ion.potentials.SincPulse(pulse_width = 20 * u.asec, fluence = 2 * u.Jcm2, phase = u.pi / 2),
+            # ion.potentials.SincPulse(phase = u.pi / 3),
         ]
         window = ion.potentials.SymmetricExponentialTimeWindow(
             window_time = 30 * pulses[0].pulse_width,
@@ -341,13 +341,19 @@ if __name__ == '__main__':
         times = np.linspace(-35 * pulses[0].pulse_width, 35 * pulses[0].pulse_width, 10000)
 
         corrected_pulses = [ion.potentials.DC_correct_electric_potential(pulse, times) for pulse in pulses]
-        plot_power(*corrected_pulses, times)
-        plot_power_model(corrected_pulses, times)
+        plot_power(*corrected_pulses, times, lookback = None)
+        plot_power(*corrected_pulses, times, lookback = 5 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 20 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 50 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 100 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 150 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 200 * u.asec)
+        plot_power(*corrected_pulses, times, lookback = 500 * u.asec)
+        # plot_power_model(corrected_pulses, times)
 
-        # tdse_sims = [run(get_tdse_spec(pulse, times)) for pulse in pulses]
-        tdse_specs = [get_tdse_spec(pulse, times) for pulse in pulses]
-        tdse_sims = si.utils.multi_map(run, tdse_specs, processes = 2)
-        plot_tdse_expectation_values(tdse_sims)
+        # tdse_specs = [get_tdse_spec(pulse, times) for pulse in pulses]
+        # tdse_sims = si.utils.multi_map(run, tdse_specs, processes = 2)
+        # plot_tdse_expectation_values(tdse_sims)
 
         # pulses = [
         #     ion.potentials.GaussianPulse.from_number_of_cycles(number_of_cycles = 3, phase = 0),
