@@ -83,8 +83,7 @@ class PulseParameterScanMixin:
 
         while True:
             first_parameter, second_parameter = next(two_parameter_generator)
-            other_parameters = [p
-                                for p in parameters
+            other_parameters = [p for p in parameters
                                 if p not in (first_parameter, second_parameter)]
 
             yield first_parameter, second_parameter, other_parameters
@@ -383,6 +382,22 @@ class MeshSimulationResult(PulseSimulationResult):
         self.final_initial_state_overlap = copy(state_overlaps[sim.spec.initial_state][-1])
         self.final_bound_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.bound_states))
         self.final_free_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.free_states))
+
+        try:
+            self.final_internal_energy_expectation_value = copy(sim.internal_energy_expectation_value_vs_time[-1])
+            self.final_total_energy_expectation_value = copy(sim.total_energy_expectation_value_vs_time[-1])
+        except AttributeError:
+            pass
+
+        try:
+            self.final_radial_position_expectation_value = copy(sim.radial_position_expectation_value_vs_time[-1])
+        except AttributeError:
+            pass
+
+        try:
+            self.final_electric_dipole_moment_expectation_value = copy(sim.electric_dipole_moment_expectation_value_vs_time[-1])
+        except AttributeError:
+            pass
 
         self.electric_potential = copy(sim.spec.electric_potential)
 
