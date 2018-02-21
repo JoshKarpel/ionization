@@ -591,7 +591,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
             odd_offdiag[1::2] = -1j * np.sin(a_odd)
         else:
-            even_diag[:] = np.cos(a_even).repeat(2)
+            even_diag = np.cos(a_even).repeat(2)
 
             even_offdiag[::2] = -1j * np.sin(a_even)
 
