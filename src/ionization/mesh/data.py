@@ -264,6 +264,36 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 })
 
 
+class NormWithinRadius(Datastore):
+    def __init__(self, radii = ()):
+        self.radii = tuple(sorted(radii))
+
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.norm_within_radius = {r: sim.get_blank_data() for r in self.radii}
+
+        super().init(sim)
+
+    def store(self):
+        for r in self.radii:
+            m = np.where(
+                self.sim.mesh.r_mesh <= r,
+                self.sim.mesh.g,
+                0,
+            )
+            self.norm_within_radius[r][self.sim.data_time_index] = self.sim.mesh.norm(m)
+
+    def attach(self):
+        self.sim.data.norm_within_radius = self.norm_within_radius
+
+    def __sizeof__(self):
+        return sum(ip.nbytes for ip in self.norm_within_radius.values()) + sys.getsizeof(self.norm_within_radius) + super().__sizeof__()
+
+
+DATA_NAME_TO_DATASTORE_TYPE.update({
+    'norm_within_radius': NormWithinRadius,
+})
+
+
 class NormByL(Datastore):
     """Stores the norm of the wavefunction in each spherical harmonic."""
 

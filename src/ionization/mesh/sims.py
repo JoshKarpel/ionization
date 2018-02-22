@@ -965,8 +965,11 @@ class MeshSpecification(si.Specification, abc.ABC):
 
         if datastores is None:
             datastores = [ds_type() for ds_type in data.DEFAULT_DATASTORES]
-        self.datastores = sorted(set(datastores), key = lambda x: x.__class__.__name__)
-        self.datastore_types = tuple(ds.__class__ for ds in self.datastores)
+        self.datastores = datastores
+        self.datastore_types = tuple(sorted(set(ds.__class__ for ds in self.datastores), key = lambda ds: ds.__class__.__name__))
+
+        if len(self.datastores) != len(self.datastore_types):
+            raise exceptions.DuplicateDatastores('Cannot duplicate datastores')
 
     def info(self) -> si.Info:
         info = super().info()

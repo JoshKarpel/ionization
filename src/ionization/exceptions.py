@@ -29,3 +29,7 @@ class MissingDatastore(IonizationException):
 
 class UnknownData(IonizationException):
     pass
+
+
+class DuplicateDatastores(IonizationException):
+    pass

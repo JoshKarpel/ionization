@@ -86,3 +86,17 @@ def test_spec_doesnt_have_reference_to_datastores_after_sim_init(spec_type):
     assert not hasattr(spec, 'datastores')
     assert hasattr(spec, 'datastore_types')
     assert hasattr(sim, 'datastores')
+
+
+@pytest.mark.parametrize(
+    'spec_type', SPEC_TYPES
+)
+def test_cannot_duplicate_datastores(spec_type):
+    with pytest.raises(ion.exceptions.DuplicateDatastores):
+        spec_type(
+            'test',
+            datastores = [
+                ion.mesh.Norm(),
+                ion.mesh.Norm(),
+            ],
+        )

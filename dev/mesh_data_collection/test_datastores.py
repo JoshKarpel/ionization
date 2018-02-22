@@ -89,6 +89,20 @@ def plot_energy_expectation_values(sim):
     )
 
 
+def plot_norm_within_radius(sim):
+    si.vis.xy_plot(
+        'norm_within_radius',
+        sim.data.times,
+        *sim.data.norm_within_radius.values(),
+        line_labels = [
+            rf'$ \left\langle \Psi | \Psi \right\rangle (r < {r}) $'
+            for r in sim.data.norm_within_radius.keys()
+        ],
+        x_unit = 'asec',
+        **PLOT_KWARGS
+    )
+
+
 if __name__ == '__main__':
     with LOGMAN as logger:
         potential = ion.potentials.Rectangle(
@@ -125,6 +139,7 @@ if __name__ == '__main__':
                 ion.mesh.ZExpectationValue(),
                 ion.mesh.InternalEnergyExpectationValue(),
                 ion.mesh.TotalEnergyExpectationValue(),
+                ion.mesh.NormWithinRadius(radii = (1 * u.bohr_radius, 5 * u.bohr_radius, 20 * u.bohr_radius,))
                 # ion.mesh.DirectionalRadialProbabilityCurrent,
             ),
             # animators = [
@@ -155,3 +170,4 @@ if __name__ == '__main__':
         plot_norm_and_inner_products(sim)
         plot_r_and_z_expectation_values(sim)
         plot_energy_expectation_values(sim)
+        plot_norm_within_radius(sim)
