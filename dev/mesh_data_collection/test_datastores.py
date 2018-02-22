@@ -120,7 +120,7 @@ if __name__ == '__main__':
             datastore_types = (
                 ion.mesh.Fields,
                 ion.mesh.Norm,
-                ion.mesh.InnerProductsAndOverlaps,
+                ion.mesh.InnerProducts,
                 ion.mesh.RExpectationValue,
                 ion.mesh.ZExpectationValue,
                 ion.mesh.InternalEnergyExpectationValue,

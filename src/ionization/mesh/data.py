@@ -124,7 +124,7 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 })
 
 
-class InnerProductsAndOverlaps(Datastore):
+class InnerProducts(Datastore):
     """Stores inner products between the wavefunction and the test states. Also handles converting inner products to state overlaps."""
 
     def init(self):
@@ -140,6 +140,9 @@ class InnerProductsAndOverlaps(Datastore):
     def initial_state_overlap(self):
         return np.abs(self.inner_products[self.spec.initial_state]) ** 2
 
+    def bound_state_overlap(self):
+        return sum(overlap for state, overlap in self.state_overlaps().items() if state.bound)
+
     def attach(self):
         self.sim.data.inner_products = self.inner_products
         self.sim.data.initial_state_inner_product = self.inner_products[self.spec.initial_state]
@@ -148,14 +151,16 @@ class InnerProductsAndOverlaps(Datastore):
         return sum(ip.nbytes for ip in self.inner_products.values()) + sys.getsizeof(self.inner_products) + super().__sizeof__()
 
 
-Data.state_overlaps = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.state_overlaps)
-Data.initial_state_overlap = link_property_to_data(InnerProductsAndOverlaps, InnerProductsAndOverlaps.initial_state_overlap)
+Data.state_overlaps = link_property_to_data(InnerProducts, InnerProducts.state_overlaps)
+Data.initial_state_overlap = link_property_to_data(InnerProducts, InnerProducts.initial_state_overlap)
+Data.bound_state_overlap = link_property_to_data(InnerProducts, InnerProducts.bound_state_overlap)
 
 DATA_NAME_TO_DATASTORE_TYPE.update({
-    'inner_products': InnerProductsAndOverlaps,
-    'initial_state_inner_product': InnerProductsAndOverlaps,
-    'state_overlaps': InnerProductsAndOverlaps,
-    'initial_state_overlap': InnerProductsAndOverlaps,
+    'inner_products': InnerProducts,
+    'initial_state_inner_product': InnerProducts,
+    'state_overlaps': InnerProducts,
+    'initial_state_overlap': InnerProducts,
+    'bound_state_overlap': InnerProducts,
 })
 
 
@@ -321,5 +326,5 @@ for data_name, datastore_type in DATA_NAME_TO_DATASTORE_TYPE.items():
 DEFAULT_DATASTORES = (
     Fields,
     Norm,
-    InnerProductsAndOverlaps,
+    InnerProducts,
 )

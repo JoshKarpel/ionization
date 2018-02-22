@@ -13,7 +13,7 @@ from .conftest import SPEC_TYPES
 DATASTORE_TYPES_SAFE_FOR_ALL_MESHES = [
     ion.mesh.Fields,
     ion.mesh.Norm,
-    ion.mesh.InnerProductsAndOverlaps,
+    ion.mesh.InnerProducts,
     ion.mesh.RExpectationValue,
     ion.mesh.ZExpectationValue,
     ion.mesh.InternalEnergyExpectationValue,
