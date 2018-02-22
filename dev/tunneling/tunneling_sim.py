@@ -21,17 +21,19 @@ PLOT_KWARGS = dict(
 
 if __name__ == '__main__':
     with LOGMAN as logger:
+        amp = 0.05 * u.atomic_electric_field
+
         sim = ion.tunneling.TunnelingSpecification(
             'test',
             tunneling_model = ion.tunneling.models.LandauRate(),
-            time_final = 10 * u.fsec,
-            time_step = .1 * u.fsec,
+            time_final = 202 * u.fsec,
+            time_step = .01 * u.fsec,
             electric_potential = ion.potentials.Rectangle(
                 start_time = 1 * u.fsec,
-                end_time = 9 * u.fsec,
-                amplitude = .01 * u.atomic_electric_field,
+                end_time = 201 * u.fsec,
+                amplitude = amp,
             ),
-        ).to_simulation()
+        ).to_sim()
 
         print(sim.info())
 
@@ -43,6 +45,10 @@ if __name__ == '__main__':
             'b_vs_t',
             sim.times,
             sim.b2,
-            x_unit = 'asec',
+            x_unit = 'fsec',
+            vlines = [186 * u.fsec,],
+            hlines = [1 / u.e,],
             **PLOT_KWARGS
         )
+
+        print(sim.spec.tunneling_model.tunneling_rate_from_amplitude(amp, -u.rydberg) / u.per_fsec)

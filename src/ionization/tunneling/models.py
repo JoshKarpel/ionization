@@ -11,6 +11,11 @@ import simulacra.units as u
 
 
 class TunnelingModel(abc.ABC):
+    """
+    IMPORTANT: tunneling rates are often given in terms of the probability to remain in the bound state.
+    The tunneling models here operate on the wavefunction itself, so generally they are half as large as reported in literature.
+    """
+
     def tunneling_rate(self, sim, electric_potential, time):
         amplitude = electric_potential.get_electric_field_amplitude(time)
 
@@ -45,7 +50,7 @@ class LandauRate(TunnelingModel):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
-            rate = -(4 * (2 * scaled_potential) / f) * np.exp(-2 / (3 * f)) / u.atomic_time,
+            rate = -.5 * (4 * (2 * scaled_potential) / f) * np.exp(-2 / (3 * f)) / u.atomic_time,
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
@@ -66,7 +71,7 @@ class KeldyshRate(TunnelingModel):
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
             pre = (np.sqrt(6 * u.pi) / (2 ** 1.25))
-            rate = -pre * scaled_potential * np.sqrt(f) * np.exp(-2 / (3 * f)) / u.atomic_time
+            rate = -.5 * pre * scaled_potential * np.sqrt(f) * np.exp(-2 / (3 * f)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
@@ -83,7 +88,7 @@ class PosthumusRate(TunnelingModel):
 
         self.atomic_number = atomic_number
 
-        warnings.warn(f"{self.__class__.__name__} uses a lower cutoff in the electric field amplitude that I haven't full figured out yet")
+        warnings.warn(f"{self.__class__.__name__} uses a lower cutoff in the electric field amplitude that I haven't fully figured out yet")
 
     def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
@@ -94,7 +99,7 @@ class PosthumusRate(TunnelingModel):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
-            rate = -(1 - ((scaled_potential ** 2) / (4 * self.atomic_number * scaled_amplitude))) / (2 * T) / u.atomic_time
+            rate = -.5 * (1 - ((scaled_potential ** 2) / (4 * self.atomic_number * scaled_amplitude))) / (2 * T) / u.atomic_time
 
         rate = np.where(
             np.less_equal(scaled_amplitude, 0.0625),
@@ -118,7 +123,7 @@ class MulserRate(TunnelingModel):
             beta = (3 + alpha) * C / 4
             A = np.exp(-(7 - (3 * alpha)) * C / 4)
 
-            rate = -(scaled_potential / np.abs(beta)) * np.log((A + np.exp(np.abs(beta))) / (A + 1)) / u.atomic_time
+            rate = -.5 * (scaled_potential / np.abs(beta)) * np.log((A + np.exp(np.abs(beta))) / (A + 1)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
@@ -163,7 +168,7 @@ class ADKRate(TunnelingModel):
             C_nl = ((2 * u.e / self.n_star) ** self.n_star) / np.sqrt(u.twopi * self.n_star)
             pre = (C_nl ** 2) * f_lm
 
-            rate = -pre * scaled_potential * np.sqrt(3 * f / u.pi) * ((2 / f) ** (2 * self.n_star - np.abs(self.m) - 1)) * np.exp(-2 / (3 * f)) / u.atomic_time
+            rate = -.5 * pre * scaled_potential * np.sqrt(3 * f / u.pi) * ((2 / f) ** (2 * self.n_star - np.abs(self.m) - 1)) * np.exp(-2 / (3 * f)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
@@ -208,7 +213,7 @@ class ADKExtendedToBSIRate(ADKRate):
             except TypeError:
                 integral = np.array([integ.quad(functools.partial(integrand, amplitude = a), 0, np.inf)[0] for a in scaled_amplitude])
 
-            rate = -pre * factor_1 * factor_2 * integral / u.atomic_time
+            rate = -.5 * pre * factor_1 * factor_2 * integral / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
