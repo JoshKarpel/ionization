@@ -360,6 +360,47 @@ class CylindricalSliceLengthGaugeOperators(Operators):
     def z(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
         return SumOfOperators(ElementWiseMultiplyOperator(mesh.z_mesh))
 
+    @si.utils.memoize
+    def probability_current(self, mesh: 'meshes.CylindricalSliceMesh') -> Tuple[MeshOperator, ...]:
+        return self.z_probability_current(mesh), self.rho_probability_current(mesh)
+
+    def z_probability_current(self, mesh: 'meshes.CylindricalSliceMesh') -> MeshOperator:
+        z_prefactor = u.hbar / (4 * u.pi * mesh.spec.test_mass * mesh.delta_rho * mesh.delta_z)
+
+        # construct the diagonals of the z probability current matrix operator
+        z_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
+        for z_index in range(0, mesh.mesh_points - 1):
+            if (z_index + 1) % mesh.spec.z_points == 0:  # detect edge of mesh
+                z_offdiagonal[z_index] = 0
+            else:
+                j = z_index // mesh.spec.z_points
+                z_offdiagonal[z_index] = 1 / (j + 0.5)
+        z_offdiagonal *= z_prefactor
+
+        z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
+
+        return DotOperator(z_current, wrapping_direction = meshes.WrappingDirection.Z)
+
+    def rho_probability_current(self, mesh: 'meshes.CylindricalSliceMesh') -> MeshOperator:
+        rho_prefactor = u.hbar / (4 * u.pi * mesh.spec.test_mass * (mesh.delta_rho ** 2))
+
+        def d(j):
+            return 1 / np.sqrt((j ** 2) - 0.25)
+
+        # construct the diagonals of the rho probability current matrix operator
+        rho_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
+        for rho_index in range(0, mesh.mesh_points - 1):
+            if (rho_index + 1) % mesh.spec.rho_points == 0:  # detect edge of mesh
+                rho_offdiagonal[rho_index] = 0
+            else:
+                j = (rho_index % mesh.spec.rho_points) + 1
+                rho_offdiagonal[rho_index] = d(j)
+        rho_offdiagonal *= rho_prefactor
+
+        rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
+
+        return DotOperator(rho_current, wrapping_direction = meshes.WrappingDirection.RHO)
+
 
 class SphericalSliceLengthGaugeOperators(Operators):
     @si.utils.memoize
@@ -639,6 +680,21 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
         matrix = sparse.diags((l_offdiagonal, l_diagonal, l_offdiagonal), offsets = (-1, 0, 1))
 
         return SumOfOperators(DotOperator(matrix, wrapping_direction = meshes.WrappingDirection.L))
+
+    @si.utils.memoize
+    def r_probability_current__spatial(self, mesh: 'meshes.SphericalHarmonicMesh') -> MeshOperator:
+        r_prefactor = u.hbar / (2 * mesh.spec.test_mass * (mesh.delta_r ** 3))
+
+        r_offdiagonal = np.zeros((mesh.spec.r_points * mesh.spec.theta_points) - 1, dtype = np.complex128)
+        for r_index in range((mesh.spec.r_points * mesh.spec.theta_points) - 1):
+            if (r_index + 1) % mesh.spec.r_points != 0:
+                j = (r_index % mesh.spec.r_points) + 1
+                r_offdiagonal[r_index] = self.gamma(j)
+        r_offdiagonal *= r_prefactor
+
+        r_current_operator = sparse.diags([-r_offdiagonal, r_offdiagonal], offsets = [-1, 1])
+
+        return DotOperator(r_current_operator, wrapping_direction = meshes.WrappingDirection.R)
 
 
 class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperators):

@@ -60,6 +60,6 @@ if __name__ == '__main__':
         ).to_sim()
 
         sim.run(progress_bar = True)
-        sim.info().log()
+        print(sim.info())
 
         sim.plot_state_overlaps_vs_time(**PLOT_KWARGS)

@@ -26,7 +26,7 @@ CoordinateMesh = NewType('CoordinateMesh', np.array)
 CoordinateVector = NewType('CoordinateVector', np.array)
 
 ScalarMesh = NewType('ScalarMesh', np.array)
-VectorMesh = NewType('VectorMesh', np.array)
+VectorMesh = NewType('VectorMesh', Tuple[ScalarMesh, ...])
 GMesh = NewType('GMesh', ScalarMesh)
 G2Mesh = NewType('G2Mesh', ScalarMesh)
 PsiMesh = NewType('PsiMesh', ScalarMesh)
@@ -574,63 +574,25 @@ class CylindricalSliceMesh(QuantumMesh):
             raise ValueError(f"{wrapping_direction} is not a valid specifier for flatten_mesh (valid specifiers: 'z', 'rho')")
 
     @si.utils.memoize
-    def get_g_for_state(self, state) -> GMesh:
+    def get_g_for_state(self, state: states.QuantumState) -> GMesh:
         g = self.g_factor * state(self.r_mesh, self.theta_mesh, 0)
         g /= np.sqrt(self.norm(g))
         g *= state.amplitude
 
         return g
 
-    #
-    @si.utils.memoize
-    def _get_probability_current_matrix_operators(self):
-        """Get the mesh probability current operators.py for z and rho."""
-        z_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * self.delta_rho * self.delta_z)
-        rho_prefactor = u.hbar / (4 * u.pi * self.spec.test_mass * (self.delta_rho ** 2))
+    def get_probability_current_density_vector_field(self, state: StateOrGMesh) -> VectorMesh:
+        ops = self.operators.probability_current()
+        dirs_to_ops = {op.wrapping_direction: op for op in ops}
+        z_op = dirs_to_ops[WrappingDirection.Z]
+        rho_op = dirs_to_ops[WrappingDirection.RHO]
 
-        # construct the diagonals of the z probability current matrix operator
-        z_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for z_index in range(0, self.mesh_points - 1):
-            if (z_index + 1) % self.spec.z_points == 0:  # detect edge of mesh
-                z_offdiagonal[z_index] = 0
-            else:
-                j = z_index // self.spec.z_points
-                z_offdiagonal[z_index] = 1 / (j + 0.5)
-        z_offdiagonal *= z_prefactor
+        mesh = self.state_to_mesh(state)
 
-        @si.utils.memoize
-        def d(j):
-            return 1 / np.sqrt((j ** 2) - 0.25)
+        current_density_mesh_z = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, z_op))
+        current_density_mesh_rho = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, rho_op))
 
-        # construct the diagonals of the rho probability current matrix operator
-        rho_offdiagonal = np.zeros(self.mesh_points - 1, dtype = np.complex128)
-        for rho_index in range(0, self.mesh_points - 1):
-            if (rho_index + 1) % self.spec.rho_points == 0:  # detect edge of mesh
-                rho_offdiagonal[rho_index] = 0
-            else:
-                j = (rho_index % self.spec.rho_points) + 1
-                rho_offdiagonal[rho_index] = d(j)
-        rho_offdiagonal *= rho_prefactor
-
-        z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
-        rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
-
-        return z_current, rho_current
-
-    def get_probability_current_vector_field(self):
-        z_current, rho_current = self._get_probability_current_matrix_operators()
-
-        g_vector_z = self.flatten_mesh(self.g, 'z')
-        current_vector_z = z_current.dot(g_vector_z)
-        gradient_mesh_z = self.wrap_vector(current_vector_z, 'z')
-        current_mesh_z = np.imag(np.conj(self.g) * gradient_mesh_z)
-
-        g_vector_rho = self.flatten_mesh(self.g, 'rho')
-        current_vector_rho = rho_current.dot(g_vector_rho)
-        gradient_mesh_rho = self.wrap_vector(current_vector_rho, 'rho')
-        current_mesh_rho = np.imag(np.conj(self.g) * gradient_mesh_rho)
-
-        return current_mesh_z, current_mesh_rho
+        return current_density_mesh_z, current_density_mesh_rho
 
     def get_spline_for_mesh(self, mesh: ScalarMesh):
         return sp.interp.RectBivariateSpline(self.z, self.rho, mesh)
@@ -1065,13 +1027,6 @@ class SphericalSliceMesh(QuantumMesh):
 
         return g
 
-    @si.utils.memoize
-    def get_probability_current_matrix_operators(self):
-        raise NotImplementedError
-
-    def get_probability_current_vector_field(self):
-        raise NotImplementedError
-
     def get_spline_for_mesh(self, mesh):
         return sp.interp.RectBivariateSpline(self.r, self.theta, mesh)
 
@@ -1477,35 +1432,19 @@ class SphericalHarmonicMesh(QuantumMesh):
 
         return analytic_to_numeric
 
-    @si.utils.memoize
-    def _get_radial_probability_current_operator__spatial(self) -> OperatorMatrix:
-        r_prefactor = u.hbar / (2 * self.spec.test_mass * (self.delta_r ** 3))  # / extra 2 from taking Im later
-
-        r_offdiagonal = np.zeros((self.spec.r_points * self.spec.theta_points) - 1, dtype = np.complex128)
-
-        for r_index in range((self.spec.r_points * self.spec.theta_points) - 1):
-            if (r_index + 1) % self.spec.r_points != 0:
-                j = (r_index % self.spec.r_points) + 1
-                r_offdiagonal[r_index] = self.gamma(j)
-
-        r_offdiagonal *= r_prefactor
-
-        r_current_operator = sparse.diags([-r_offdiagonal, r_offdiagonal], offsets = [-1, 1])
-
-        return r_current_operator
-
-    def get_radial_probability_current_density_mesh__spatial(self) -> OperatorMatrix:
-        r_current_operator = self._get_radial_probability_current_operator__spatial()
+    def get_radial_probability_current_density_mesh__spatial(self) -> ScalarMesh:
+        r_current_operator = self.operators.r_probability_current__spatial()
 
         g_spatial = self.space_g_calc
         g_spatial_shape = g_spatial.shape
 
+        # do this manually for now because the operations don't correspond to the mesh's own wrapping directions
         g_vector_r = g_spatial.flatten('F')
-        gradient_vector_r = r_current_operator.dot(g_vector_r)
+        gradient_vector_r = r_current_operator.matrix.dot(g_vector_r)
         gradient_mesh_r = np.reshape(gradient_vector_r, g_spatial_shape, 'F')
-        current_mesh_r = np.imag(np.conj(g_spatial) * gradient_mesh_r)
+        current_density_mesh_r = np.imag(np.conj(g_spatial) * gradient_mesh_r)
 
-        return current_mesh_r
+        return current_density_mesh_r
 
     def _apply_length_gauge_transformation(self, vector_potential_amplitude: float, g: GMesh) -> GMesh:
         bessel_mesh = special.spherical_jn(self.l_mesh, self.spec.test_charge * vector_potential_amplitude * self.r_mesh / u.hbar)
