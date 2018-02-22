@@ -55,7 +55,10 @@ class MeshSimulation(si.Simulation, abc.ABC):
         self.data_time_steps = len(self.data_times)
 
         self.data = data.Data(self)
-        self.datastores = {datastore_type.__name__: datastore_type(self) for datastore_type in self.spec.datastore_types}
+        self.datastores = {ds.__class__.__name__: ds for ds in self.spec.datastores}
+        del self.spec.datastores  # move datastores into the sim when it gets turned into a sim
+        for ds in self.datastores.values():
+            ds.init(self)
 
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
         self.snapshot_times = set()
@@ -890,7 +893,7 @@ class MeshSpecification(si.Specification, abc.ABC):
             snapshot_indices = (),
             snapshot_type = None,
             snapshot_kwargs: Optional[dict] = None,
-            datastore_types: Iterable[data.Datastore] = data.DEFAULT_DATASTORES,
+            datastores: Optional[Iterable[data.Datastore]] = None,
             **kwargs):
         """
         Parameters
@@ -960,7 +963,10 @@ class MeshSpecification(si.Specification, abc.ABC):
             snapshot_kwargs = dict()
         self.snapshot_kwargs = snapshot_kwargs
 
-        self.datastore_types = sorted(set(datastore_types), key = lambda x: x.__name__)
+        if datastores is None:
+            datastores = [ds_type() for ds_type in data.DEFAULT_DATASTORES]
+        self.datastores = sorted(set(datastores), key = lambda x: x.__class__.__name__)
+        self.datastore_types = tuple(ds.__class__ for ds in self.datastores)
 
     def info(self) -> si.Info:
         info = super().info()
@@ -1022,7 +1028,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         else:
             info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
 
-        info_analysis.add_field('Datastores', ', '.join(ds.__name__ for ds in self.datastore_types))
+        info_analysis.add_field('Datastore Types', ', '.join(ds.__name__ for ds in self.datastore_types))
 
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')

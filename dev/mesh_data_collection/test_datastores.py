@@ -117,14 +117,14 @@ if __name__ == '__main__':
                 ion.states.HydrogenBoundState(n, l)
                 for n in range(1, 3) for l in range(n)
             ],
-            datastore_types = (
-                ion.mesh.Fields,
-                ion.mesh.Norm,
-                ion.mesh.InnerProducts,
-                ion.mesh.RExpectationValue,
-                ion.mesh.ZExpectationValue,
-                ion.mesh.InternalEnergyExpectationValue,
-                ion.mesh.TotalEnergyExpectationValue,
+            datastores = (
+                ion.mesh.Fields(),
+                ion.mesh.Norm(),
+                ion.mesh.InnerProducts(),
+                ion.mesh.RExpectationValue(),
+                ion.mesh.ZExpectationValue(),
+                ion.mesh.InternalEnergyExpectationValue(),
+                ion.mesh.TotalEnergyExpectationValue(),
                 # ion.mesh.DirectionalRadialProbabilityCurrent,
             ),
             # animators = [
@@ -137,6 +137,14 @@ if __name__ == '__main__':
         ).to_sim()
 
         sim.run(progress_bar = True)
+
+        # for n, ds in sim.datastores.items():
+        #     print(n, ds)
+
+        # print(sim.data.norm)
+        # print(sim.data.initial_state_overlap)
+        # print(sim.data.z_expectation_value)
+        # print(sim.data.r_expectation_value)
 
         # print(sim.data.norm)
         # print(sim.data.inner_products)

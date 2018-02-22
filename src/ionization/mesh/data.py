@@ -41,17 +41,13 @@ DATA_NAME_TO_DATASTORE_TYPE = {}
 class Datastore(abc.ABC):
     """Handles storing and reporting a type of time-indexed data for a MeshSimulation."""
 
-    def __init__(self, sim: 'sims.MeshSimulation'):
+    @abc.abstractmethod
+    def init(self, sim: 'sims.MeshSimulation'):
+        """Initialize the data storage containers."""
         self.sim = sim
         self.spec = sim.spec
 
-        self.init()
         self.attach()
-
-    @abc.abstractmethod
-    def init(self):
-        """Initialize the data storage containers."""
-        raise NotImplementedError
 
     @abc.abstractmethod
     def store(self):
@@ -64,7 +60,7 @@ class Datastore(abc.ABC):
         raise NotImplementedError
 
     def __repr__(self):
-        return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
+        return f'{self.__class__.__name__}'
 
 
 def link_property_to_data(datastore_type, method):
@@ -80,9 +76,11 @@ def link_property_to_data(datastore_type, method):
 class Fields(Datastore):
     """Stores the electric field and vector potential of the simulation's electric potential."""
 
-    def init(self):
-        self.electric_field_amplitude = self.sim.get_blank_data()
-        self.vector_potential_amplitude = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.electric_field_amplitude = sim.get_blank_data()
+        self.vector_potential_amplitude = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         idx = self.sim.data_time_index
@@ -106,8 +104,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class Norm(Datastore):
     """Stores the wavefunction norm as a function of time."""
 
-    def init(self):
-        self.norm = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.norm = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         self.norm[self.sim.data_time_index] = self.sim.mesh.norm()
@@ -127,8 +127,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class InnerProducts(Datastore):
     """Stores inner products between the wavefunction and the test states. Also handles converting inner products to state overlaps."""
 
-    def init(self):
-        self.inner_products = {state: self.sim.get_blank_data(dtype = np.complex128) for state in self.spec.test_states}
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.inner_products = {state: sim.get_blank_data(dtype = np.complex128) for state in sim.spec.test_states}
+
+        super().init(sim)
 
     def store(self):
         for state in self.spec.test_states:
@@ -167,8 +169,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class InternalEnergyExpectationValue(Datastore):
     """Stores the expectation value of the internal Hamiltonian."""
 
-    def init(self):
-        self.internal_energy_expectation_value = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.internal_energy_expectation_value = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         self.internal_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.internal_energy_expectation_value()
@@ -188,8 +192,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class TotalEnergyExpectationValue(Datastore):
     """Stores the expectation value of the full Hamiltonian (internal + external)."""
 
-    def init(self):
-        self.total_energy_expectation_value = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.total_energy_expectation_value = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         self.total_energy_expectation_value[self.sim.data_time_index] = self.sim.mesh.total_energy_expectation_value()
@@ -209,8 +215,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class ZExpectationValue(Datastore):
     """Stores the expectation value of the z position."""
 
-    def init(self):
-        self.z_expectation_value = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.z_expectation_value = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         self.z_expectation_value[self.sim.data_time_index] = self.sim.mesh.z_expectation_value()
@@ -236,8 +244,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class RExpectationValue(Datastore):
     """Stores the expectation value of the r position."""
 
-    def init(self):
-        self.r_expectation_value = self.sim.get_blank_data()
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.r_expectation_value = sim.get_blank_data()
+
+        super().init(sim)
 
     def store(self):
         self.r_expectation_value[self.sim.data_time_index] = self.sim.mesh.r_expectation_value()
@@ -257,8 +267,10 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 class NormByL(Datastore):
     """Stores the norm of the wavefunction in each spherical harmonic."""
 
-    def init(self):
-        self.norm_by_l = {sph_harm: self.sim.get_blank_data() for sph_harm in self.spec.spherical_harmonics}
+    def init(self, sim: 'sims.MeshSimulation'):
+        self.norm_by_l = {sph_harm: sim.get_blank_data() for sph_harm in self.spec.spherical_harmonics}
+
+        super().init(sim)
 
     def store(self):
         norm_by_l = self.sim.mesh.norm_by_l
@@ -283,7 +295,7 @@ class DirectionalRadialProbabilityCurrent(Datastore):
     Only compatible with meshes where one of the coordinates is r, or at least where a consistent r mesh can be extracted (i.e., the number of unique radial coordinates is the same as one of the dimensions of the internal mesh dimensions).
     """
 
-    def init(self):
+    def init(self, sim: 'sims.MeshSimulation'):
         self.radial_probability_current__pos_z = np.zeros((self.sim.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
         self.radial_probability_current__neg_z = np.zeros((self.sim.data_time_steps, self.spec.r_points), dtype = np.float64) * np.NaN
 
@@ -291,6 +303,8 @@ class DirectionalRadialProbabilityCurrent(Datastore):
         self.d_theta = np.abs(theta[1] - theta[0])
         self.sin_theta = np.sin(theta)
         self.mask = theta <= u.pi / 2
+
+        super().init(sim)
 
     def store(self):
         radial_current_density = self.sim.mesh.get_radial_probability_current_density_mesh__spatial()
