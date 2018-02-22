@@ -217,7 +217,7 @@ class Operators(abc.ABC):
 
 class LineLengthGaugeOperators(Operators):
     @si.utils.memoize
-    def kinetic_energy(self, mesh) -> SumOfOperators:
+    def kinetic_energy(self, mesh: 'meshes.LineMesh') -> SumOfOperators:
         prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
 
         diag = -2 * prefactor * np.ones(len(mesh.z_mesh), dtype = np.complex128)
@@ -227,14 +227,14 @@ class LineLengthGaugeOperators(Operators):
 
         return SumOfOperators(DotOperator(matrix, wrapping_direction = None))
 
-    def interaction_hamiltonian(self, mesh) -> SumOfOperators:
+    def interaction_hamiltonian(self, mesh: 'meshes.LineMesh') -> SumOfOperators:
         epot = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         matrix = sparse.diags((epot,), offsets = (0,))
 
         return SumOfOperators(DotOperator(matrix, wrapping_direction = None))
 
-    def split_interaction_operators(self, mesh: 'meshes.QuantumMesh', interaction_hamiltonian, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_interaction_operators(self, mesh: 'meshes.LineMesh', interaction_hamiltonian, tau: complex) -> Tuple[MeshOperator, ...]:
         matrix = interaction_hamiltonian.operators[0].matrix.data[0]  # I happen to know that it's 1D, but this is a little ugly
 
         return DotOperator(
@@ -253,19 +253,19 @@ class LineLengthGaugeOperators(Operators):
 
 class LineVelocityGaugeOperators(LineLengthGaugeOperators):
     @si.utils.memoize
-    def interaction_hamiltonian_matrices_without_field(self, mesh) -> Tuple['meshes.OperatorMatrix', ...]:
+    def interaction_hamiltonian_matrices_without_field(self, mesh: 'meshes.LineMesh') -> Tuple['meshes.OperatorMatrix', ...]:
         prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / (2 * mesh.delta_z)
         offdiag = prefactor * np.ones(mesh.spec.z_points - 1, dtype = np.complex128)
 
         return sparse.diags((-offdiag, offdiag), offsets = (-1, 1)),
 
-    def interaction_hamiltonian(self, mesh) -> SumOfOperators:
+    def interaction_hamiltonian(self, mesh: 'meshes.LineMesh') -> SumOfOperators:
         matrices = self.interaction_hamiltonian_matrices_without_field(mesh)
         vector_potential_amp = mesh.spec.electric_potential.get_vector_potential_amplitude_numeric(mesh.sim.times_to_current)  # decouple
 
         return SumOfOperators(*(DotOperator(vector_potential_amp * matrix, wrapping_direction = None) for matrix in matrices))
 
-    def split_interaction_operators(self, mesh: 'meshes.QuantumMesh', interaction_hamiltonian, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_interaction_operators(self, mesh: 'meshes.LineMesh', interaction_hamiltonian, tau: complex) -> Tuple[MeshOperator, ...]:
         a = interaction_hamiltonian.operators[0].matrix.data[-1][1:] * tau * (-1j)  # I happen to know that it's 1D, but this is a little ugly
         len_a = len(a)
 
@@ -307,12 +307,24 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
 
 class CylindricalSliceLengthGaugeOperators(Operators):
     @si.utils.memoize
-    def kinetic_energy(self, mesh) -> SumOfOperators:
+    def kinetic_energy(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
+        return SumOfOperators(
+            self.rho_kinetic_energy(mesh),
+            self.z_kinetic_energy(mesh),
+        )
+
+    def z_kinetic_energy(self, mesh: 'meshes.CylindricalSliceMesh') -> MeshOperator:
         z_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
-        rho_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_rho ** 2))
 
         z_diagonal = z_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
         z_offdiagonal = z_prefactor * np.array([1 if (z_index + 1) % mesh.spec.z_points != 0 else 0 for z_index in range(mesh.mesh_points - 1)], dtype = np.complex128)
+
+        z_kinetic = sparse.diags((z_offdiagonal, z_diagonal, z_offdiagonal), offsets = (-1, 0, 1))
+
+        return DotOperator(z_kinetic, wrapping_direction = meshes.WrappingDirection.Z)
+
+    def rho_kinetic_energy(self, mesh: 'meshes.CylindricalSliceMesh') -> MeshOperator:
+        rho_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_rho ** 2))
 
         def c(j):
             return j / np.sqrt((j ** 2) - 0.25)
@@ -325,15 +337,11 @@ class CylindricalSliceLengthGaugeOperators(Operators):
                 rho_offdiagonal[rho_index] = c(j)
         rho_offdiagonal *= rho_prefactor
 
-        z_kinetic = sparse.diags((z_offdiagonal, z_diagonal, z_offdiagonal), offsets = (-1, 0, 1))
         rho_kinetic = sparse.diags((rho_offdiagonal, rho_diagonal, rho_offdiagonal), offsets = (-1, 0, 1))
 
-        return SumOfOperators(
-            DotOperator(rho_kinetic, wrapping_direction = meshes.WrappingDirection.RHO),
-            DotOperator(z_kinetic, wrapping_direction = meshes.WrappingDirection.Z),
-        )
+        return DotOperator(rho_kinetic, wrapping_direction = meshes.WrappingDirection.RHO)
 
-    def interaction_hamiltonian(self, mesh) -> SumOfOperators:
+    def interaction_hamiltonian(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
         electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         interaction_hamiltonian_z = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.Z))
@@ -345,36 +353,44 @@ class CylindricalSliceLengthGaugeOperators(Operators):
         )
 
     @si.utils.memoize
-    def r(self, mesh) -> SumOfOperators:
+    def r(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
         return SumOfOperators(ElementWiseMultiplyOperator(mesh.r_mesh))
 
     @si.utils.memoize
-    def z(self, mesh) -> SumOfOperators:
+    def z(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
         return SumOfOperators(ElementWiseMultiplyOperator(mesh.z_mesh))
 
 
 class SphericalSliceLengthGaugeOperators(Operators):
     @si.utils.memoize
-    def kinetic_energy(self, mesh) -> SumOfOperators:
+    def kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
+        return SumOfOperators(
+            self.theta_kinetic_energy(mesh),
+            self.r_kinetic_energy(mesh),
+        )
+
+    def r_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh'):
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
-        theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((mesh.delta_r * mesh.delta_theta) ** 2))
 
         r_diagonal = -2 * r_prefactor * np.ones(mesh.mesh_points, dtype = np.complex128)
         r_offdiagonal = r_prefactor * np.array([1 if (z_index + 1) % mesh.spec.r_points != 0 else 0 for z_index in range(mesh.mesh_points - 1)], dtype = np.complex128)
 
-        @si.utils.memoize
+        r_kinetic = sparse.diags((r_offdiagonal, r_diagonal, r_offdiagonal), offsets = (-1, 0, 1))
+
+        return DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R)
+
+    def theta_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
+        theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((mesh.delta_r * mesh.delta_theta) ** 2))
+
         def theta_j_prefactor(x):
             return 1 / (x + 0.5) ** 2
 
-        @si.utils.memoize
         def sink(x):
             return np.sin(x * mesh.delta_theta)
 
-        @si.utils.memoize
         def sqrt_sink_ratio(x_num, x_den):
             return np.sqrt(sink(x_num) / sink(x_den))
 
-        @si.utils.memoize
         def cotank(x):
             return 1 / np.tan(x * mesh.delta_theta)
 
@@ -396,15 +412,11 @@ class SphericalSliceLengthGaugeOperators(Operators):
         theta_upper_diagonal *= theta_prefactor
         theta_lower_diagonal *= theta_prefactor
 
-        r_kinetic = sparse.diags((r_offdiagonal, r_diagonal, r_offdiagonal), offsets = (-1, 0, 1))
         theta_kinetic = sparse.diags((theta_lower_diagonal, theta_diagonal, theta_upper_diagonal), offsets = (-1, 0, 1))
 
-        return SumOfOperators(
-            DotOperator(theta_kinetic, wrapping_direction = meshes.WrappingDirection.THETA),
-            DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R),
-        )
+        return DotOperator(theta_kinetic, wrapping_direction = meshes.WrappingDirection.THETA)
 
-    def interaction_hamiltonian(self, mesh) -> SumOfOperators:
+    def interaction_hamiltonian(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
         electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         interaction_hamiltonian_r = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.R))
@@ -436,27 +448,27 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return info
 
-    def alpha(self, j) -> float:
+    def alpha(self, j) -> Union[float, np.array]:
         x = (j ** 2) + (2 * j)
         return (x + 1) / (x + 0.75)
 
-    def beta(self, j) -> float:
+    def beta(self, j) -> Union[float, np.array]:
         x = 2 * (j ** 2) + (2 * j)
         return (x + 1) / (x + 0.5)
 
-    def gamma(self, j) -> float:
+    def gamma(self, j) -> Union[float, np.array]:
         """For radial probability current."""
         return 1 / ((j ** 2) - 0.25)
 
-    def c_l(self, l) -> float:
+    def c_l(self, l) -> Union[float, np.array]:
         """a particular set of 3j coefficients for SphericalHarmonicMesh"""
         return (l + 1) / np.sqrt(((2 * l) + 1) * ((2 * l) + 3))
 
     @si.utils.memoize
-    def kinetic_energy(self, mesh) -> SumOfOperators:
+    def kinetic_energy(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         return getattr(self, f'kinetic_energy_from_{self.kinetic_energy_derivation}')(mesh)
 
-    def kinetic_energy_from_hamiltonian(self, mesh) -> SumOfOperators:
+    def kinetic_energy_from_hamiltonian(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
 
         r_diagonal = r_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
@@ -469,7 +481,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return SumOfOperators(DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R))
 
-    def kinetic_energy_from_lagrangian(self, mesh) -> SumOfOperators:
+    def kinetic_energy_from_lagrangian(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
 
         r_diagonal = np.zeros(mesh.mesh_points, dtype = np.complex128)
@@ -495,13 +507,13 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return SumOfOperators(DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R))
 
-    def kinetic_energy_for_single_l(self, mesh: 'meshes.QuantumMesh', l: core.AngularMomentum) -> MeshOperator:
+    def kinetic_energy_for_single_l(self, mesh: 'meshes.SphericalHarmonicMesh', l: core.AngularMomentum) -> MeshOperator:
         return getattr(self, f'kinetic_energy_for_single_l_from_{self.kinetic_energy_derivation}')(mesh, l)
 
-    def kinetic_energy_for_single_l_from_hamiltonian(self, mesh: 'meshes.QuantumMesh', l: core.AngularMomentum) -> MeshOperator:
+    def kinetic_energy_for_single_l_from_hamiltonian(self, mesh: 'meshes.SphericalHarmonicMesh', l: core.AngularMomentum) -> MeshOperator:
         raise NotImplementedError
 
-    def kinetic_energy_for_single_l_from_lagrangian(self, mesh: 'meshes.QuantumMesh', l: core.AngularMomentum) -> MeshOperator:
+    def kinetic_energy_for_single_l_from_lagrangian(self, mesh: 'meshes.SphericalHarmonicMesh', l: core.AngularMomentum) -> MeshOperator:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
         effective_potential = ((u.hbar ** 2) / (2 * u.electron_mass_reduced)) * l * (l + 1) / (mesh.r ** 2)
 
@@ -516,7 +528,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return DotOperator(matrix, wrapping_direction = meshes.WrappingDirection.R)
 
-    def internal_hamiltonian_for_single_l(self, mesh: 'meshes.QuantumMesh', l: core.AngularMomentum) -> MeshOperator:
+    def internal_hamiltonian_for_single_l(self, mesh: 'meshes.SphericalHarmonicMesh', l: core.AngularMomentum) -> MeshOperator:
         kinetic_operator = self.kinetic_energy_for_single_l(mesh, l)
         potential_mesh = mesh.spec.internal_potential(r = mesh.r, test_charge = mesh.spec.test_charge)  # evaluate at r, not r_mesh, because it's only one l
 
@@ -567,7 +579,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
         return SumOfOperators(*internal, *interaction)
 
-    def split_interaction_operators(self, mesh: 'meshes.QuantumMesh', interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_interaction_operators(self, mesh: 'meshes.SphericalHarmonicMesh', interaction_operators, tau: complex) -> Tuple[MeshOperator, ...]:
         interaction_operator = interaction_operators.operators[0]  # only one operator in length gauge
         a = tau * interaction_operator.matrix.data[0][:-1]
 
@@ -609,11 +621,11 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
         )
 
     @si.utils.memoize
-    def r(self, mesh) -> SumOfOperators:
+    def r(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         return SumOfOperators(ElementWiseMultiplyOperator(mesh.r_mesh))
 
     @si.utils.memoize
-    def z(self, mesh) -> SumOfOperators:
+    def z(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         l_prefactor = mesh.flatten_mesh(mesh.r_mesh, 'l')[:-1]
 
         l_diagonal = np.zeros(mesh.mesh_points, dtype = np.complex128)
@@ -630,11 +642,11 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
 
 class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperators):
-    def __init__(self, hydrogen_zero_angular_momentum_correction = True):
+    def __init__(self, hydrogen_zero_angular_momentum_correction: bool = True):
         super().__init__(hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction)
 
     @si.utils.memoize
-    def interaction_hamiltonian_matrices_without_field(self, mesh) -> Tuple['meshes.OperatorMatrix', ...]:
+    def interaction_hamiltonian_matrices_without_field(self, mesh: 'meshes.SphericalHarmonicMesh') -> Tuple['meshes.OperatorMatrix', ...]:
         h1_prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / mesh.flatten_mesh(mesh.r_mesh, 'l')[:-1]
 
         h1_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
@@ -658,13 +670,13 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
 
         return h1, h2
 
-    def interaction_hamiltonian(self, mesh) -> SumOfOperators:
+    def interaction_hamiltonian(self, mesh: 'meshes.SphericalHarmonicMesh') -> SumOfOperators:
         h1, h2 = self.interaction_hamiltonian_matrices_without_field(mesh)
         vector_potential_amp = mesh.spec.electric_potential.get_vector_potential_amplitude_numeric(mesh.sim.times_to_current)  # decouple
 
         return SumOfOperators(vector_potential_amp * h1, vector_potential_amp * h2)
 
-    def split_interaction_operators(self, mesh: 'meshes.QuantumMesh', interaction_hamiltonian: SumOfOperators, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_interaction_operators(self, mesh: 'meshes.SphericalHarmonicMesh', interaction_hamiltonian: SumOfOperators, tau: complex) -> Tuple[MeshOperator, ...]:
         h1, h2 = self.interaction_hamiltonian(mesh).operators
 
         h1_operators = self.split_h1(mesh, h1, tau)
@@ -672,7 +684,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
 
         return (*h1_operators, *h2_operators)
 
-    def split_h1(self, mesh: 'meshes.QuantumMesh', h1, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_h1(self, mesh: 'meshes.SphericalHarmonicMesh', h1, tau: complex) -> Tuple[MeshOperator, ...]:
         a = (tau * (-1j)) * h1.data[-1][1:]
 
         a_even, a_odd = a[::2], a[1::2]
@@ -710,7 +722,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
             DotOperator(odd, wrapping_direction = meshes.WrappingDirection.L),
         )
 
-    def split_h2(self, mesh: 'meshes.QuantumMesh', h2, tau: complex) -> Tuple[MeshOperator, ...]:
+    def split_h2(self, mesh: 'meshes.SphericalHarmonicMesh', h2, tau: complex) -> Tuple[MeshOperator, ...]:
         len_r = len(mesh.r)
 
         a = h2.data[-1][len_r + 1:] * tau * (-1j)

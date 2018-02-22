@@ -52,7 +52,7 @@ class TunnelingSimulation(si.Simulation):
         self.status = si.Status.RUNNING
 
         if progress_bar:
-            pbar = tqdm(total = self.time_steps - 1, ascii = True)
+            pbar = tqdm(total = self.time_steps - 1, ascii = True, ncols = 80)
 
         while True:
             if callback is not None:
@@ -64,7 +64,7 @@ class TunnelingSimulation(si.Simulation):
             self.time_index += 1
 
             dt = self.times[self.time_index] - self.times[self.time_index - 1]
-            tunneling_rate = self.spec.model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
+            tunneling_rate = self.spec.tunneling_model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
             self.b[self.time_index] = self.b[self.time_index - 1] * np.exp(tunneling_rate * dt)
 
             logger.debug(f'{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
@@ -94,7 +94,7 @@ class TunnelingSpecification(si.Specification):
             time_step: float = 1 * u.asec,
             electric_potential = potentials.NoElectricPotential(),
             electric_potential_dc_correction = False,
-            model: models.TunnelingModel = models.LandauRate(),
+            tunneling_model: models.TunnelingModel = models.LandauRate(),
             ionization_potential: float = -u.rydberg,
             b_initial: complex = 1,
             **kwargs):
@@ -107,7 +107,7 @@ class TunnelingSpecification(si.Specification):
         self.electric_potential = electric_potential
         self.electric_potential_dc_correction = electric_potential_dc_correction
 
-        self.model = model
+        self.tunneling_model = tunneling_model
 
         self.ionization_potential = ionization_potential
         self.b_initial = b_initial
@@ -121,7 +121,7 @@ class TunnelingSpecification(si.Specification):
         info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec, 3)} as | {u.uround(self.time_step, u.atomic_time, 3)} a.u.')
         info.add_info(info_evolution)
 
-        info.add_info(self.model.info())
+        info.add_info(self.tunneling_model.info())
 
         info.add_field('Initial b', self.b_initial)
 

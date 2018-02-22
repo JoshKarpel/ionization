@@ -201,3 +201,5 @@ if __name__ == '__main__':
 
         for key, val in identifier_to_final_initial_overlap.items():
             np.testing.assert_allclose(val, expected_results[key])
+
+        print('\nAll good!')

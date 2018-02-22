@@ -28,6 +28,11 @@ class TunnelingModel(abc.ABC):
         return info
 
 
+class NoTunneling(TunnelingModel):
+    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+        return 0
+
+
 # the following rate calculations are from
 # https://doi.org/10.1103/PhysRevA.59.569
 
@@ -40,13 +45,13 @@ class LandauRate(TunnelingModel):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
-            rate = -(4 / f) * np.exp(-2 / (3 * f)) / u.atomic_time,
+            rate = -(4 * (2 * scaled_potential) / f) * np.exp(-2 / (3 * f)) / u.atomic_time,
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate
 
@@ -61,13 +66,13 @@ class KeldyshRate(TunnelingModel):
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
             pre = (np.sqrt(6 * u.pi) / (2 ** 1.25))
-            rate = pre * scaled_potential * np.sqrt(f) * np.exp(-2 / (3 * f)) / u.atomic_time
+            rate = -pre * scaled_potential * np.sqrt(f) * np.exp(-2 / (3 * f)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate
 
@@ -89,13 +94,13 @@ class PosthumusRate(TunnelingModel):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')  # ignore div by zero errors
 
-            rate = (1 - ((scaled_potential ** 2) / (4 * self.atomic_number * scaled_amplitude))) / (2 * T) / u.atomic_time
+            rate = -(1 - ((scaled_potential ** 2) / (4 * self.atomic_number * scaled_amplitude))) / (2 * T) / u.atomic_time
 
         rate = np.where(
             np.less_equal(scaled_amplitude, 0.0625),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate
 
@@ -113,13 +118,13 @@ class MulserRate(TunnelingModel):
             beta = (3 + alpha) * C / 4
             A = np.exp(-(7 - (3 * alpha)) * C / 4)
 
-            rate = (scaled_potential / np.abs(beta)) * np.log((A + np.exp(np.abs(beta))) / (A + 1)) / u.atomic_time
+            rate = -(scaled_potential / np.abs(beta)) * np.log((A + np.exp(np.abs(beta))) / (A + 1)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate
 
@@ -158,13 +163,13 @@ class ADKRate(TunnelingModel):
             C_nl = ((2 * u.e / self.n_star) ** self.n_star) / np.sqrt(u.twopi * self.n_star)
             pre = (C_nl ** 2) * f_lm
 
-            rate = pre * scaled_potential * np.sqrt(3 * f / u.pi) * ((2 / f) ** (2 * self.n_star - np.abs(self.m) - 1)) * np.exp(-2 / (3 * f)) / u.atomic_time
+            rate = -pre * scaled_potential * np.sqrt(3 * f / u.pi) * ((2 / f) ** (2 * self.n_star - np.abs(self.m) - 1)) * np.exp(-2 / (3 * f)) / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate
 
@@ -203,12 +208,12 @@ class ADKExtendedToBSIRate(ADKRate):
             except TypeError:
                 integral = np.array([integ.quad(functools.partial(integrand, amplitude = a), 0, np.inf)[0] for a in scaled_amplitude])
 
-            rate = pre * factor_1 * factor_2 * integral / u.atomic_time
+            rate = -pre * factor_1 * factor_2 * integral / u.atomic_time
 
         rate = np.where(
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        )
+        ).squeeze()
 
         return rate

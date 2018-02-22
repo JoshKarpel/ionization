@@ -2,6 +2,8 @@ import logging
 import datetime
 from typing import Union, Callable
 
+from tqdm import tqdm
+
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
@@ -11,7 +13,7 @@ import scipy.interpolate as interp
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, potentials
+from .. import core, potentials, tunneling
 
 from . import kernels, evolution_methods
 
@@ -109,7 +111,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.interpolated_vector_potential,
         )
 
-    def run(self, callback: Callable = None):
+    def run(self, progress_bar: bool = False, callback: Callable = None):
         """
         Run the IDE simulation by repeatedly evolving it forward in time.
 
@@ -122,12 +124,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         logger.info(f'Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}')
         self.status = si.Status.RUNNING
 
+        if progress_bar:
+            num_asecs_remaining = int((self.spec.time_final - self.times[-1]) / u.asec)
+            current_asecs_remaining = num_asecs_remaining
+            pbar = tqdm(total = num_asecs_remaining, ascii = True, ncols = 80)
+
         while self.time < self.spec.time_final:
             new_b, new_t = self.spec.evolution_method.evolve(self, self.b, self.times, self.time_step)
             dt = new_t - self.time
 
-            efield_amplitude = self.spec.electric_potential.get_electric_field_amplitude(self.time + (dt / 2))
-            new_b *= np.exp(-dt * self.spec.additional_decay_function(efield_amplitude))
+            tunneling_rate = self.spec.tunneling_model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
+            new_b *= np.exp(dt * tunneling_rate)
 
             self.b.append(new_b)
             self.times.append(new_t)
@@ -146,6 +153,18 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                     self.latest_checkpoint_time = now
                     logger.info(f'Checkpointed {self} at time index {self.time_index} ({round(completion_percent)}%)')
                     self.status = si.Status.RUNNING
+
+            try:
+                new_asecs_remaining = int((self.spec.time_final - self.times[-1]) / u.asec)
+                pbar.update(current_asecs_remaining - new_asecs_remaining)
+                current_asecs_remaining = new_asecs_remaining
+            except NameError:
+                pass
+
+        try:
+            pbar.close()
+        except NameError:
+            pass
 
         self.b = np.array(self.b)
         self.times = np.array(self.times)
@@ -306,37 +325,35 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             figman.name += postfix
 
 
-def return_zero(*args, **kwargs):
-    return 0
-
-
 class IntegroDifferentialEquationSpecification(si.Specification):
     """
     A Specification for an :class:`IntegroDifferentialEquationSimulation`.
     """
     simulation_type = IntegroDifferentialEquationSimulation
 
-    def __init__(self,
-                 name,
-                 time_initial: float = 0 * u.asec,
-                 time_final: float = 200 * u.asec,
-                 time_step: float = 1 * u.asec,
-                 test_mass: float = u.electron_mass,
-                 test_charge: float = u.electron_charge,
-                 b_initial: Union[float, complex] = 1,
-                 integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
-                 electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction: bool = False,
-                 kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
-                 integration_method: str = 'simpson',
-                 evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
-                 evolution_gauge: str = 'LEN',
-                 checkpoints: bool = False,
-                 checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
-                 checkpoint_dir: str = None,
-                 store_data_every: int = 1,
-                 additional_decay_function: Callable = None,
-                 **kwargs):
+    def __init__(
+            self,
+            name: str,
+            time_initial: float = 0 * u.asec,
+            time_final: float = 200 * u.asec,
+            time_step: float = 1 * u.asec,
+            test_mass: float = u.electron_mass,
+            test_charge: float = u.electron_charge,
+            b_initial: Union[float, complex] = 1,
+            integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
+            electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+            electric_potential_dc_correction: bool = False,
+            kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+            integration_method: str = 'simpson',
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
+            evolution_gauge: str = 'LEN',
+            checkpoints: bool = False,
+            checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
+            checkpoint_dir: str = None,
+            store_data_every: int = 1,
+            tunneling_model: tunneling.TunnelingModel = tunneling.NoTunneling(),
+            ionization_potential = -u.rydberg,
+            **kwargs):
         """
         The differential equation should be of the form
         da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
@@ -407,9 +424,8 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.store_data_every = store_data_every
 
-        if additional_decay_function is None:
-            additional_decay_function = return_zero
-        self.additional_decay_function = additional_decay_function
+        self.tunneling_model = tunneling_model
+        self.ionization_potential = ionization_potential
 
     def info(self):
         info = super().info()

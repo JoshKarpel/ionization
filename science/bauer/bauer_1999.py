@@ -275,7 +275,7 @@ def run_ide_sims_with_decay(tdse_sims, prefactor = 2.4):
             checkpoints = True,
             checkpoint_dir = SIM_LIB,
             checkpoint_every = datetime.timedelta(minutes = 1),
-            additional_decay_function = functools.partial(landau_if_below_critical_field, prefactor = prefactor),
+            tunneling_model = functools.partial(landau_if_below_critical_field, prefactor = prefactor),
         ))
 
     ide_sims = si.utils.multi_map(run, specs, processes = 2)

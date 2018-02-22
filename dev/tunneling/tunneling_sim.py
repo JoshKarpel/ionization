@@ -23,7 +23,7 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         sim = ion.tunneling.TunnelingSpecification(
             'test',
-            model = ion.tunneling.models.LandauRate(),
+            tunneling_model = ion.tunneling.models.LandauRate(),
             time_final = 10 * u.fsec,
             time_step = .1 * u.fsec,
             electric_potential = ion.potentials.Rectangle(

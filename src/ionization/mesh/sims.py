@@ -206,7 +206,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
                 animator.initialize(self)
 
             if progress_bar:
-                pbar = tqdm(total = self.time_steps - 1, ascii = True)
+                pbar = tqdm(total = self.time_steps - self.time_index - 1, ascii = True, ncols = 80)
 
             while True:
                 is_data_time = self.time in self.data_times

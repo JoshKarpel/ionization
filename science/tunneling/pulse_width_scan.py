@@ -55,7 +55,7 @@ if __name__ == '__main__':
                     time_step = 10 * u.asec,
                     electric_potential = pulse,
                     electric_potential_dc_correction = True,
-                    model = ion.tunneling.LandauRate(),
+                    tunneling_model = ion.tunneling.LandauRate(),
                 ) for pulse in pulses]
 
                 results[flu] = si.utils.multi_map(run, specs, processes = 2)
