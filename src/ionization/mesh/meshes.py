@@ -156,9 +156,7 @@ class QuantumMesh(abc.ABC):
         return np.abs(self.inner_product(a, b)) ** 2
 
     def expectation_value(self, state: StateOrGMesh = None, operator: mesh_operators.SumOfOperators = mesh_operators.SumOfOperators()) -> float:
-        # print('s', state)
         state_after_oper, _ = operator.apply(self, self.state_to_mesh(state), None)
-        # print('s after', state_after_oper)
         return self.inner_product(state, state_after_oper).real
 
     def norm(self, state: StateOrGMesh = None) -> float:
@@ -299,26 +297,6 @@ class QuantumMesh(abc.ABC):
         """kwargs go to figman"""
         raise NotImplementedError
 
-    def plot_g2(
-            self,
-            name_postfix: str = '',
-            title: Optional[str] = None,
-            **kwargs):
-        if title is None:
-            title = r'$|g|^2$'
-        name = 'g2' + name_postfix
-
-        self.plot_mesh(self.g2, name = name, title = title, **kwargs)
-
-    def plot_psi2(
-            self,
-            name_postfix: str = '',
-            **kwargs):
-        title = r'$|\Psi|^2$'
-        name = 'psi2' + name_postfix
-
-        self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
-
     def plot_g(
             self,
             title: Optional[str] = None,
@@ -349,19 +327,41 @@ class QuantumMesh(abc.ABC):
             colormap = plt.get_cmap('richardson'),
             norm = None,
             **kwargs):
-        title = r'$g$'
-        name = 'g' + name_postfix
+        title = r'$\psi$'
+        name = 'psi' + name_postfix
 
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
         self.plot_mesh(
-            self.psi, name = name, title = title,
+            self.psi,
+            name = name,
+            title = title,
             colormap = colormap,
             norm = norm,
             show_colorbar = False,
             **kwargs
         )
+
+    def plot_g2(
+            self,
+            name_postfix: str = '',
+            title: Optional[str] = None,
+            **kwargs):
+        if title is None:
+            title = r'$|g|^2$'
+        name = 'g2' + name_postfix
+
+        self.plot_mesh(self.g2, name = name, title = title, **kwargs)
+
+    def plot_psi2(
+            self,
+            name_postfix: str = '',
+            **kwargs):
+        title = r'$|\Psi|^2$'
+        name = 'psi2' + name_postfix
+
+        self.plot_mesh(self.psi2, name = name, title = title, **kwargs)
 
 
 class LineMesh(QuantumMesh):
@@ -581,16 +581,16 @@ class CylindricalSliceMesh(QuantumMesh):
 
         return g
 
-    def get_probability_current_density_vector_field(self, state: StateOrGMesh) -> VectorMesh:
-        ops = self.operators.probability_current()
-        dirs_to_ops = {op.wrapping_direction: op for op in ops}
-        z_op = dirs_to_ops[WrappingDirection.Z]
-        rho_op = dirs_to_ops[WrappingDirection.RHO]
+    def get_probability_current_density_vector_field(self, state: StateOrGMesh = None) -> VectorMesh:
+        ops = self.operators.probability_current(self)
+        dirs_to_op = {op.wrapping_direction: op for op in ops}
+        z_op = dirs_to_op[WrappingDirection.Z]
+        rho_op = dirs_to_op[WrappingDirection.RHO]
 
         mesh = self.state_to_mesh(state)
 
-        current_density_mesh_z = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, z_op))
-        current_density_mesh_rho = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, rho_op))
+        current_density_mesh_z = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, [z_op]))
+        current_density_mesh_rho = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, [rho_op]))
 
         return current_density_mesh_z, current_density_mesh_rho
 
@@ -640,31 +640,36 @@ class CylindricalSliceMesh(QuantumMesh):
             self,
             axis: plt.Axes,
             plot_limit: Optional[float] = None,
-            distance_unit: u.Unit = 'bohr_radius'):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+            distance_unit: u.Unit = 'bohr_radius',
+            rate_unit = 'per_asec', ):
+        distance_unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        rate_unit_value, _ = u.get_unit_value_and_latex_from_unit(rate_unit)
 
-        current_mesh_z, current_mesh_rho = self.get_probability_current_vector_field()
+        current_mesh_z, current_mesh_rho = self.get_probability_current_density_vector_field()  # actually densities here
 
         current_mesh_z *= self.delta_z
         current_mesh_rho *= self.delta_rho
 
         skip_count = int(self.z_mesh.shape[0] / 50), int(self.z_mesh.shape[1] / 50)
         skip = (slice(None, None, skip_count[0]), slice(None, None, skip_count[1]))
-        normalization = np.max(np.sqrt(current_mesh_z ** 2 + current_mesh_rho ** 2)[skip])
-        if normalization == 0 or normalization is np.NaN:
+
+        normalization = np.nanmax(np.sqrt((current_mesh_z ** 2) + (current_mesh_rho ** 2))[skip])
+        if normalization == 0:
             normalization = 1
 
+        sli = self.get_mesh_slicer(plot_limit)
+
         quiv = axis.quiver(
-            self.z_mesh[self.get_mesh_slicer(plot_limit)][skip] / unit_value,
-            self.rho_mesh[self.get_mesh_slicer(plot_limit)][skip] / unit_value,
-            current_mesh_z[self.get_mesh_slicer(plot_limit)][skip] / normalization,
-            current_mesh_rho[self.get_mesh_slicer(plot_limit)][skip] / normalization,
+            self.z_mesh[sli][skip] / distance_unit_value,
+            self.rho_mesh[sli][skip] / distance_unit_value,
+            current_mesh_z[sli][skip] / normalization,
+            current_mesh_rho[sli][skip] / normalization,
             pivot = 'middle',
-            units = 'width',
             scale = 10,
+            units = 'width',
             scale_units = 'width',
-            width = 0.0015,
-            alpha = 0.5
+            alpha = 0.5,
+            color = 'white',
         )
 
         return quiv
@@ -683,26 +688,21 @@ class CylindricalSliceMesh(QuantumMesh):
             show_colorbar = True,
             show_title = True,
             show_axes = True,
-            title_size = 12,
-            axis_label_size = 12,
-            tick_label_size = 10,
             grid_kwargs = None,
-            title_y_adjust = 1.1,
-            # overlay_probability_current = False,
-            # probability_current_time_step = 0,
+            overlay_probability_current = False,
             **kwargs):
         if grid_kwargs is None:
             grid_kwargs = {}
 
-        with si.vis.FigureManager(name = f'{self.spec.name}__{name}', **kwargs) as figman:
+        with si.vis.FigureManager(f'{self.spec.name}__{name}', **kwargs) as figman:
             fig = figman.fig
-            fig.set_tight_layout(True)
-            axis = plt.subplot(111)
+            ax = plt.subplot(111)
 
             unit_value, unit_name = u.get_unit_value_and_latex_from_unit(distance_unit)
 
             color_mesh = self.attach_mesh_to_axis(
-                axis, mesh,
+                ax,
+                mesh,
                 distance_unit = distance_unit,
                 colormap = colormap,
                 norm = norm,
@@ -710,37 +710,29 @@ class CylindricalSliceMesh(QuantumMesh):
                 plot_limit = plot_limit,
                 slicer = slicer
             )
-            # if overlay_probability_current:
-            #     quiv = self.attach_probability_current_to_axis(axis, plot_limit = plot_limit, distance_unit = distance_unit)
 
-            axis.set_xlabel(rf'$z$ (${unit_name}$)', fontsize = axis_label_size)
-            axis.set_ylabel(rf'$\rho$ (${unit_name}$)', fontsize = axis_label_size)
+            ax.set_xlabel(rf'$z$ (${unit_name}$)')
+            ax.set_ylabel(rf'$\rho$ (${unit_name}$)')
             if title is not None and title != '' and show_axes and show_title:
-                title = axis.set_title(title, fontsize = title_size)
-                title.set_y(title_y_adjust)  # move title up a bit
+                title = ax.set_title(title, y = 1.1)
 
-            # make a colorbar
             if show_colorbar and show_axes:
-                cbar = fig.colorbar(mappable = color_mesh, ax = axis, pad = .1)
-                cbar.ax.tick_params(labelsize = tick_label_size)
+                cax = fig.add_axes([1.0, .1, .02, .8])
+                cbar = plt.colorbar(mappable = color_mesh, cax = cax)
 
-            axis.axis('tight')  # removes blank space between color mesh and axes
+            if overlay_probability_current:
+                self.attach_probability_current_to_axis(ax)
 
-            axis.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
+            ax.axis('tight')  # removes blank space between color mesh and axes
 
-            axis.tick_params(labelright = True, labeltop = True)  # ticks on all sides
-            axis.tick_params(axis = 'both', which = 'major', labelsize = tick_label_size)  # increase size of tick labels
-            # axis.tick_params(axis = 'both', which = 'both', length = 0)
+            ax.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap], **{**si.vis.COLORMESH_GRID_KWARGS, **grid_kwargs})  # change grid color to make it show up against the colormesh
 
-            # set upper and lower y ticks to not display to avoid collisions with the x ticks at the edges
-            # y_ticks = axis.yaxis.get_major_ticks()
-            # y_ticks[0].label1.set_visible(False)
-            # y_ticks[0].label2.set_visible(False)
-            # y_ticks[-1].label1.set_visible(False)
-            # y_ticks[-1].label2.set_visible(False)
+            ax.tick_params(labelright = True, labeltop = True)  # ticks on all sides
 
             if not show_axes:
-                axis.axis('off')
+                ax.axis('off')
+
+        return figman
 
 
 class WarpedCylindricalSliceMesh(QuantumMesh):
