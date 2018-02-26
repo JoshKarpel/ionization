@@ -19,18 +19,22 @@ def ensure_compatibility_sim(sim):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description = 'Run a simulation.')
-    parser.add_argument('sim_name',
-                        type = str,
-                        help = 'the name of the sim')
+    parser.add_argument(
+        'sim_name',
+        type = str,
+        help = 'the filename of the sim to run'
+    )
 
     args = parser.parse_args()
 
     logman = si.utils.LogManager(
         '__main__', 'simulacra', 'ionization',
         stdout_logs = False,
-        file_logs = True, file_level = logging.INFO, file_name = '{}'.format(args.sim_name), file_mode = 'a',
+        file_logs = True,
+        file_level = logging.INFO,
+        file_name = args.sim_name,
+        file_mode = 'a',
     )
-
     with logman as logger:
         try:
             logger.info(f'Loaded onto execute node {socket.getfqdn()} (IP {socket.gethostbyname(socket.gethostname())}) at {datetime.datetime.utcnow()}.')
@@ -52,7 +56,7 @@ if __name__ == '__main__':
 
             # run the simulation and save it
             logger.info(sim.info())
-            sim.run_simulation()
+            sim.run()
             logger.info(sim.info())
 
             sim.save()

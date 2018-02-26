@@ -24,7 +24,7 @@ import sys
 import sphinx_rtd_theme
 
 
-sys.path.insert(0, os.path.abspath('../../src'))
+# sys.path.insert(0, os.path.abspath('../../src'))
 
 
 # -- General configuration ------------------------------------------------
@@ -198,3 +198,4 @@ intersphinx_mapping = {
 }
 
 autodoc_member_order = 'bysource'
+autoclass_content = 'both'

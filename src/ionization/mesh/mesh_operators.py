@@ -167,6 +167,11 @@ class Operators(abc.ABC):
     Operators for meshes with interaction Hamiltonians more complicated than multiplying the wavefunction by V(r) will probably need to implement specialized overrides for one or both of them.
     """
 
+    gauge = None
+
+    def __repr__(self):
+        return self.__class__.__name__
+
     @abc.abstractmethod
     def kinetic_energy(self, mesh: 'meshes.QuantumMesh') -> SumOfOperators:
         raise NotImplementedError
@@ -216,6 +221,10 @@ class Operators(abc.ABC):
 
 
 class LineLengthGaugeOperators(Operators):
+    """Operators for :class:`LineMesh`. Interaction operators are evaluated in the length gauge."""
+
+    gauge = core.Gauge.LENGTH
+
     @si.utils.memoize
     def kinetic_energy(self, mesh: 'meshes.LineMesh') -> SumOfOperators:
         prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
@@ -252,6 +261,10 @@ class LineLengthGaugeOperators(Operators):
 
 
 class LineVelocityGaugeOperators(LineLengthGaugeOperators):
+    """Operators for :class:`LineMesh`. Interaction operators are evaluated in the velocity gauge."""
+
+    gauge = core.Gauge.LENGTH
+
     @si.utils.memoize
     def interaction_hamiltonian_matrices_without_field(self, mesh: 'meshes.LineMesh') -> Tuple['meshes.OperatorMatrix', ...]:
         prefactor = 1j * u.hbar * (mesh.spec.test_charge / mesh.spec.test_mass) / (2 * mesh.delta_z)
@@ -306,6 +319,10 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
 
 
 class CylindricalSliceLengthGaugeOperators(Operators):
+    """Operators for :class:`CylindricalSliceMesh`. Interaction operators are evaluated in the length gauge."""
+
+    gauge = core.Gauge.LENGTH
+
     @si.utils.memoize
     def kinetic_energy(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
         return SumOfOperators(
@@ -403,6 +420,10 @@ class CylindricalSliceLengthGaugeOperators(Operators):
 
 
 class SphericalSliceLengthGaugeOperators(Operators):
+    """Operators for :class:`CylindricalSliceMesh`. Interaction operators are evaluated in the velocity gauge."""
+
+    gauge = core.Gauge.VELOCITY
+
     @si.utils.memoize
     def kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
         return SumOfOperators(
@@ -478,6 +499,10 @@ class SphericalSliceLengthGaugeOperators(Operators):
 
 
 class SphericalHarmonicLengthGaugeOperators(Operators):
+    """Operators for :class:`SphericalHarmonicMesh`. Interaction operators are evaluated in the length gauge."""
+
+    gauge = core.Gauge.LENGTH
+
     def __init__(self, kinetic_energy_derivation: KineticEnergyDerivation = KineticEnergyDerivation.LAGRANGIAN, hydrogen_zero_angular_momentum_correction: bool = True):
         self.kinetic_energy_derivation = kinetic_energy_derivation
         self.hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction
@@ -485,6 +510,7 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
     def info(self) -> si.Info:
         info = super().info()
 
+        info.add_field('Kinetic Energy Derived From', self.kinetic_energy_derivation)
         info.add_field('Hydrogen Zero Angular Momentum Correction', self.hydrogen_zero_angular_momentum_correction)
 
         return info
@@ -698,6 +724,10 @@ class SphericalHarmonicLengthGaugeOperators(Operators):
 
 
 class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperators):
+    """Operators for :class:`SphericalHarmonicMesh`. Interaction operators are evaluated in the velocity gauge."""
+
+    gauge = core.Gauge.VELOCITY
+
     def __init__(self, hydrogen_zero_angular_momentum_correction: bool = True):
         super().__init__(hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction)
 
@@ -733,6 +763,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         return SumOfOperators(vector_potential_amp * h1, vector_potential_amp * h2)
 
     def split_interaction_operators(self, mesh: 'meshes.SphericalHarmonicMesh', interaction_hamiltonian: SumOfOperators, tau: complex) -> Tuple[MeshOperator, ...]:
+        """Split the velocity gauge interaction evolution operators."""
         h1, h2 = self.interaction_hamiltonian(mesh).operators
 
         h1_operators = self.split_h1(mesh, h1, tau)
@@ -741,6 +772,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         return (*h1_operators, *h2_operators)
 
     def split_h1(self, mesh: 'meshes.SphericalHarmonicMesh', h1, tau: complex) -> Tuple[MeshOperator, ...]:
+        """Split the angular momentum velocity gauge evolution operators."""
         a = (tau * (-1j)) * h1.data[-1][1:]
 
         a_even, a_odd = a[::2], a[1::2]
@@ -779,6 +811,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         )
 
     def split_h2(self, mesh: 'meshes.SphericalHarmonicMesh', h2, tau: complex) -> Tuple[MeshOperator, ...]:
+        """Split the radial velocity gauge evolution operators."""
         len_r = len(mesh.r)
 
         a = h2.data[-1][len_r + 1:] * tau * (-1j)

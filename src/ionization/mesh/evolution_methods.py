@@ -13,12 +13,15 @@ logger.setLevel(logging.DEBUG)
 
 
 class EvolutionMethod(abc.ABC):
+    """An abstract class that represents an evolution method for a wavefunction on a mesh."""
+
     def evolve(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
         evolution_operators = self.get_evolution_operators(mesh, time_step)
         return mesh_operators.apply_operators_sequentially(mesh, g, evolution_operators)
 
     @abc.abstractmethod
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
+        """Evolve the wavefunction forward in time by ``time_step``."""
         raise NotImplementedError
 
     def __repr__(self):
@@ -31,7 +34,10 @@ class EvolutionMethod(abc.ABC):
 
 
 class AlternatingDirectionImplicitCrankNicolson(EvolutionMethod):
+    """This is the two-dimensional Crank-Nicolson-style Alternating Direction Implicit method for solving PDEs."""
+
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
+        """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
         ham_opers = mesh.operators.total_hamiltonian(mesh).operators
@@ -57,7 +63,10 @@ class AlternatingDirectionImplicitCrankNicolson(EvolutionMethod):
 
 
 class LineSplitOperator(EvolutionMethod):
+    """This is the split-operator method for :class:`LineMesh`."""
+
     def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
+        """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
         x_oper, = mesh.operators.internal_hamiltonian(mesh).operators
@@ -80,7 +89,10 @@ class LineSplitOperator(EvolutionMethod):
 
 
 class SphericalHarmonicSplitOperator(EvolutionMethod):
+    """This is the split-operator method for :class:`SphericalHarmonicMesh`."""
+
     def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
+        """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
         r_oper, = mesh.operators.internal_hamiltonian(mesh).operators  # icky, but I know there's only one operator in there for the moment
