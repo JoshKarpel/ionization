@@ -47,7 +47,7 @@ if __name__ == '__main__':
             test_states = states,
             z_bound = 100 * u.nm,
             z_points = 2 ** 12,
-            evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
+            evolution_method = ion.mesh.AlternatingDirectionImplicit(),
             # evolution_method = ion.mesh.LineSplitOperator(),
             animators = [
                 ion.mesh.anim.RectangleSplitLowerAnimator(

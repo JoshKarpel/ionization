@@ -36,7 +36,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         'test',
         initial_state = initial_state,
         operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
-        evolution_method = ion.mesh.AlternatingDirectionImplicitCrankNicolson(),
+        evolution_method = ion.mesh.AlternatingDirectionImplicit(),
         time_initial = 0,
         time_final = 100 * u.asec,
         time_step = 1 * u.asec,

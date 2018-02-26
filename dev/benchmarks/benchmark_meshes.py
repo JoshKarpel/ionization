@@ -21,30 +21,51 @@ PLOT_KWARGS = dict(
 )
 
 
-def run(spec):
-    with LOGMAN as logger:
+def run_with_timing(spec):
+    with si.utils.BlockTimer() as timer:
         sim = spec.to_sim()
+        sim.run(progress_bar = True)
 
-        sim.run()
+    return sim, timer
 
-        return sim
+
+def spacetime_points(sim):
+    return sim.time_steps * sim.mesh.mesh_points
+
+
+def report(results):
+    meshes = [sim.mesh.__class__.__name__.replace('Mesh', '') for sim in results]
+    operators = [sim.mesh.operators.__class__.__name__.replace('Operators', '') for sim in results]
+    methods = [sim.spec.evolution_method.__class__.__name__ for sim in results]
+    pts_per_sec = [str(round(spacetime_points(sim) / timer.proc_time_elapsed)) for sim, timer in results.items()]
+
+    header_pts_per_sec = 'Spacetime Pts / Sec'
+
+    longest_mesh = max(len(m) for m in meshes) + 2
+    longest_operator = max(len(o) for o in operators) + 2
+    longest_method = max(len(m) for m in methods) + 2
+    longest_pts_per_sec = max(max(len(s) for s in pts_per_sec), len(header_pts_per_sec)) + 2
+
+    header = '│'.join(('Mesh'.center(longest_mesh), 'Operators'.center(longest_operator), 'Evolution Method'.center(longest_method), header_pts_per_sec.center(longest_pts_per_sec)))
+    bar = ''.join('─' if char != '│' else '┼' for char in header)
+    bottom_bar = bar.replace('┼', '┴')
+
+    lines = []
+    for mesh, operator, method, pts_per_sec in zip(meshes, operators, methods, pts_per_sec):
+        lines.append('│'.join((mesh.center(longest_mesh), operator.center(longest_operator), method.center(longest_method), pts_per_sec.center(longest_pts_per_sec))))
+
+    output = '\n'.join((
+        header,
+        bar,
+        *lines,
+        bottom_bar,
+    ))
+
+    return output
 
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        dt = 1 * u.asec
-
-        pw = 100 * u.asec
-        flu = 1 * u.Jcm2
-        cep = 0
-        tb = 4
-        three_d_gaussian_pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
-            pulse_width = pw,
-            fluence = flu,
-            phase = cep,
-            number_of_cycles = 3,
-        )
-
         energy_spacing = .1 * u.eV
         test_mass = u.electron_mass
         line_qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(
@@ -61,33 +82,29 @@ if __name__ == '__main__':
             time_final = 1 * line_sine_wave.period,
             time_step = .001 * line_sine_wave.period,
             internal_potential = line_qho,
-            electric_potential = line_sine_wave,
             initial_state = line_states[0],
-            test_states = line_states,
             z_bound = 100 * u.nm,
             z_points = 2 ** 12,
             store_data_every = -1,
         )
 
         three_d_spec_kwargs = dict(
-            time_initial = -tb * three_d_gaussian_pulse.pulse_width,
-            time_final = tb * three_d_gaussian_pulse.pulse_width,
-            time_step = dt,
-            electric_potential = three_d_gaussian_pulse,
-            dc_correct_electric_potential = True,
+            time_initial = 0,
+            time_final = 1 * u.fsec,
+            time_step = 1 * u.asec,
             r_bound = 50 * u.bohr_radius,
-            r_points = 500,
-            l_bound = 200,
-            theta_points = 360,
+            r_points = 250,
+            l_bound = 100,
+            theta_points = 180,
             rho_bound = 50 * u.bohr_radius,
-            rho_points = 250,
+            rho_points = 100,
             z_bound = 50 * u.bohr_radius,
-            z_points = 500,
+            z_points = 250,
             store_data_every = -1,
         )
 
         spherical_harmonic_numeric_eigenstate_kwargs = dict(
-            use_numeric_eigenstates = True,
+            use_numeric_eigenstates = False,
             numeric_eigenstate_max_energy = 20 * u.eV,
             numeric_eigenstate_max_angular_momentum = 3,
         )
@@ -170,36 +187,7 @@ if __name__ == '__main__':
             )
         )
 
-        results = si.utils.multi_map(run, specs, processes = 2)
+        results = dict(run_with_timing(spec) for spec in specs)
 
-        identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
-
-        ### look at results before comparison
-        # for k, v in identifier_to_final_initial_overlap.items():
-        #     print(k, v)
-
-        expected_results = {
-            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.370010185740,
-            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.LineSplitOperator): 0.370008474418,
-            (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.LineSplitOperator): 0.370924310122,
-            # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, ion.Gauge.LENGTH): 0.000568901854635,  # why is this not the same as the other line mesh methods?
-            (ion.mesh.CylindricalSliceMesh, ion.mesh.CylindricalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.293741923689,
-            (ion.mesh.SphericalSliceMesh, ion.mesh.SphericalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.178275457029,
-            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.312910470190,
-            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.312928752359,
-            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicVelocityGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.319513371899,
-        }
-
-        summary = '\n-----------------------------------\n\nResults:\n'
-        lines = []
-        for identifier, latest_result in identifier_to_final_initial_overlap.items():
-            s = ", ".join(ident.__name__ for ident in identifier)
-            s += f': {latest_result:.6f} | {expected_results[identifier]:.6f}'
-            lines.append(s)
-        summary += '\n'.join(lines)
-        print(summary)
-
-        for key, val in identifier_to_final_initial_overlap.items():
-            np.testing.assert_allclose(val, expected_results[key])
-
-        print('\nAll good!')
+        rep = report(results)
+        print('\n' + rep + '\n')

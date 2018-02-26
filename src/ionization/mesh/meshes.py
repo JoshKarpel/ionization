@@ -373,6 +373,7 @@ class LineMesh(QuantumMesh):
         self.z_mesh = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
         self.delta_z = np.abs(self.z_mesh[1] - self.z_mesh[0])
         self.z_center_index = si.utils.find_nearest_entry(self.z_mesh, 0).index
+        self.mesh_points = len(self.z_mesh)
 
         self.inner_product_multiplier = self.delta_z
         self.g_factor = 1

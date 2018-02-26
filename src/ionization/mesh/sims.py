@@ -1055,7 +1055,7 @@ class LineSpecification(MeshSpecification):
             use_numeric_eigenstates = False,
             number_of_numeric_eigenstates = 100,
             operators: mesh_operators.Operators = mesh_operators.LineLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
             **kwargs):
         super().__init__(
             name,
@@ -1103,7 +1103,7 @@ class CylindricalSliceSpecification(MeshSpecification):
             z_points: int = 2 ** 9,
             rho_points: int = 2 ** 8,
             operators = mesh_operators.CylindricalSliceLengthGaugeOperators(),
-            evolution_method = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
+            evolution_method = evolution_methods.AlternatingDirectionImplicit(),
             **kwargs):
         super().__init__(
             name,
@@ -1189,7 +1189,7 @@ class SphericalSliceSpecification(MeshSpecification):
             r_points: int = 2 ** 10,
             theta_points: int = 2 ** 10,
             operators: mesh_operators.Operators = mesh_operators.SphericalSliceLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicitCrankNicolson(),
+            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
             **kwargs):
         super().__init__(
             name,

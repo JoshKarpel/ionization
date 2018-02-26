@@ -33,7 +33,7 @@ class EvolutionMethod(abc.ABC):
         return info
 
 
-class AlternatingDirectionImplicitCrankNicolson(EvolutionMethod):
+class AlternatingDirectionImplicit(EvolutionMethod):
     """This is the two-dimensional Crank-Nicolson-style Alternating Direction Implicit method for solving PDEs."""
 
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
