@@ -62,44 +62,23 @@ class AlternatingDirectionImplicit(EvolutionMethod):
         return tuple(evolution_operators)
 
 
-class LineSplitOperator(EvolutionMethod):
-    """This is the split-operator method for :class:`LineMesh`."""
+class SplitInteractionOperator(EvolutionMethod):
+    """
+    This is the split-operator method.
+
+    This implementation only works when the field-free Hamiltonian is given by a single matrix operator.
+    Whichever operator in the internal Hamiltonian is the first in the sum will be used.
+    """
 
     def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
         """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
-        x_oper, = mesh.operators.internal_hamiltonian(mesh).operators
-        interaction_operators = mesh.operators.interaction_hamiltonian(mesh)
+        cn_oper, = mesh.operators.internal_hamiltonian(mesh).operators  # this is the operator we do Crank-Nicolson ADI with
 
         evolution_operators = [
-            mesh_operators.DotOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * x_oper.matrix, value = 1), wrapping_direction = x_oper.wrapping_direction),
-            mesh_operators.TDMAOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * x_oper.matrix, value = 1), wrapping_direction = x_oper.wrapping_direction),
-        ]
-
-        split_operators = mesh.operators.split_interaction_operators(mesh, interaction_operators, tau)
-
-        evolution_operators = (
-            *split_operators,
-            *evolution_operators,
-            *reversed(split_operators),
-        )
-
-        return evolution_operators
-
-
-class SphericalHarmonicSplitOperator(EvolutionMethod):
-    """This is the split-operator method for :class:`SphericalHarmonicMesh`."""
-
-    def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
-        """Evolve the wavefunction forward in time by ``time_step``."""
-        tau = time_step / (2 * u.hbar)
-
-        r_oper, = mesh.operators.internal_hamiltonian(mesh).operators  # icky, but I know there's only one operator in there for the moment
-
-        evolution_operators = [
-            mesh_operators.DotOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * r_oper.matrix, value = 1), wrapping_direction = r_oper.wrapping_direction),
-            mesh_operators.TDMAOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * r_oper.matrix, value = 1), wrapping_direction = r_oper.wrapping_direction),
+            mesh_operators.DotOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal((-1j * tau) * cn_oper.matrix, value = 1), wrapping_direction = cn_oper.wrapping_direction),
+            mesh_operators.TDMAOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal((1j * tau) * cn_oper.matrix, value = 1), wrapping_direction = cn_oper.wrapping_direction),
         ]
 
         split_operators = mesh.operators.split_interaction_operators(mesh, mesh.operators.interaction_hamiltonian(mesh), tau)

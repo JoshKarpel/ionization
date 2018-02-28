@@ -13,7 +13,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import core, states, potentials, ide, exceptions
+from . import mesh, states, potentials, ide, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -61,53 +61,51 @@ def ask_mesh_type():
 
     mesh_type = clu.ask_for_input('Mesh Type (cyl | sph | harm)', default = 'harm', cast_to = str)
 
-    try:
-        if mesh_type == 'cyl':
-            spec_type = core.CylindricalSliceSpecification
+    if mesh_type == 'cyl':
+        spec_type = mesh.CylindricalSliceSpecification
 
-            mesh_kwargs['z_bound'] = u.bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['rho_bound'] = u.bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / u.bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
-            mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / u.bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
+        mesh_kwargs['z_bound'] = u.bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['rho_bound'] = u.bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / u.bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
+        mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / u.bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
 
-            mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
+        mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
 
-            memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
+        memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
 
-        elif mesh_type == 'sph':
-            spec_type = core.SphericalSliceSpecification
+    elif mesh_type == 'sph':
+        spec_type = mesh.SphericalSliceSpecification
 
-            mesh_kwargs['r_bound'] = u.bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / u.bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
-            mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
+        mesh_kwargs['r_bound'] = u.bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / u.bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
+        mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
 
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
+        mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
+        memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
 
-        elif mesh_type == 'harm':
-            spec_type = core.SphericalHarmonicSpecification
+    elif mesh_type == 'harm':
+        spec_type = mesh.SphericalHarmonicSpecification
 
-            r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
-            mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
-            mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
+        r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
+        mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
+        mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
 
-            mesh_kwargs['r_bound'] = u.bohr_radius * r_bound
+        mesh_kwargs['r_bound'] = u.bohr_radius * r_bound
 
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
+        mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
-            mesh_kwargs['snapshot_type'] = core.SphericalHarmonicSnapshot
+        mesh_kwargs['snapshot_type'] = mesh.SphericalHarmonicSnapshot
 
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
+        memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
 
-        else:
-            raise ValueError('Mesh type {} not found!'.format(mesh_type))
+    else:
+        print(f'Mesh type {mesh_type} not found!')
+        return ask_mesh_type()
 
-        logger.warning('Predicted memory usage per Simulation is >{}'.format(si.utils.bytes_to_str(memory_estimate)))
+    logger.warning('Predicted memory usage per Simulation is >{}'.format(si.utils.bytes_to_str(memory_estimate)))
 
-        return spec_type, mesh_kwargs
-    except ValueError:
-        ask_mesh_type()
+    return spec_type, mesh_kwargs
 
 
 def ask_mask__radial_cosine(parameters, mesh_kwargs):
@@ -163,7 +161,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
                 value = max_energy,
             ))
 
-        if spec_type == core.SphericalHarmonicSpecification:
+        if spec_type == mesh.SphericalHarmonicSpecification:
             max_angular_momentum = clu.ask_for_input('Numeric Eigenstate Maximum l?', default = 20, cast_to = int)
             parameters.append(
                 clu.Parameter(
@@ -455,7 +453,7 @@ def ask_data_storage_tdse(parameters, *, spec_type):
         ('store_energy_expectation_value', 'Store Energy EV vs. Time?', True),
         ('store_norm_diff_mask', 'Store Difference in Norm caused by Mask vs. Time?', False),
     ]
-    if spec_type == core.SphericalHarmonicSpecification:
+    if spec_type == mesh.SphericalHarmonicSpecification:
         names_questions_defaults += [
             ('store_radial_probability_current', 'Store Radial Probability Current vs. Time?', False),
             ('store_norm_by_l', 'Store Norm-by-L?', False),

@@ -1,8 +1,7 @@
+#!/usr/bin/env python
+
 import logging
 import os
-import itertools
-
-import numpy as np
 
 import simulacra as si
 import simulacra.units as u
@@ -34,34 +33,15 @@ def spacetime_points(sim):
 
 
 def report(results):
+    headers = ('Mesh', 'Operators', 'Evolution Method', 'Spacetime pts/s')
+
     meshes = [sim.mesh.__class__.__name__.replace('Mesh', '') for sim in results]
     operators = [sim.mesh.operators.__class__.__name__.replace('Operators', '') for sim in results]
     methods = [sim.spec.evolution_method.__class__.__name__ for sim in results]
     pts_per_sec = [str(round(spacetime_points(sim) / timer.proc_time_elapsed)) for sim, timer in results.items()]
+    rows = zip(meshes, operators, methods, pts_per_sec)
 
-    header_pts_per_sec = 'Spacetime Pts / Sec'
-
-    longest_mesh = max(len(m) for m in meshes) + 2
-    longest_operator = max(len(o) for o in operators) + 2
-    longest_method = max(len(m) for m in methods) + 2
-    longest_pts_per_sec = max(max(len(s) for s in pts_per_sec), len(header_pts_per_sec)) + 2
-
-    header = '│'.join(('Mesh'.center(longest_mesh), 'Operators'.center(longest_operator), 'Evolution Method'.center(longest_method), header_pts_per_sec.center(longest_pts_per_sec)))
-    bar = ''.join('─' if char != '│' else '┼' for char in header)
-    bottom_bar = bar.replace('┼', '┴')
-
-    lines = []
-    for mesh, operator, method, pts_per_sec in zip(meshes, operators, methods, pts_per_sec):
-        lines.append('│'.join((mesh.center(longest_mesh), operator.center(longest_operator), method.center(longest_method), pts_per_sec.center(longest_pts_per_sec))))
-
-    output = '\n'.join((
-        header,
-        bar,
-        *lines,
-        bottom_bar,
-    ))
-
-    return output
+    return si.utils.table(headers, rows)
 
 
 if __name__ == '__main__':

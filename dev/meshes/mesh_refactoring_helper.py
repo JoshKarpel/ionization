@@ -1,6 +1,7 @@
+#!/usr/bin/env python
+
 import logging
 import os
-import itertools
 
 import numpy as np
 
@@ -107,7 +108,7 @@ if __name__ == '__main__':
             ion.mesh.LineSpecification(
                 f'Line_SO_LEN',
                 operators = ion.mesh.LineLengthGaugeOperators(),
-                evolution_method = ion.mesh.LineSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **line_kwargs
             )
         )
@@ -116,7 +117,7 @@ if __name__ == '__main__':
             ion.mesh.LineSpecification(
                 f'Line_SO_VEL',
                 operators = ion.mesh.LineVelocityGaugeOperators(),
-                evolution_method = ion.mesh.LineSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **line_kwargs
             )
         )
@@ -154,7 +155,7 @@ if __name__ == '__main__':
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_SO_LEN',
                 operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
-                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs
             )
@@ -164,7 +165,7 @@ if __name__ == '__main__':
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_SO_VEL',
                 operators = ion.mesh.SphericalHarmonicVelocityGaugeOperators(),
-                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs
             )
@@ -180,24 +181,22 @@ if __name__ == '__main__':
 
         expected_results = {
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.370010185740,
-            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.LineSplitOperator): 0.370008474418,
-            (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.LineSplitOperator): 0.370924310122,
+            (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370008474418,
+            (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370924310122,
             # (ion.mesh.LineMesh, 'HAM', ion.mesh.LineSpectral, ion.Gauge.LENGTH): 0.000568901854635,  # why is this not the same as the other line mesh methods?
             (ion.mesh.CylindricalSliceMesh, ion.mesh.CylindricalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.293741923689,
             (ion.mesh.SphericalSliceMesh, ion.mesh.SphericalSliceLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.178275457029,
             (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.312910470190,
-            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.312928752359,
-            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicVelocityGaugeOperators, ion.mesh.SphericalHarmonicSplitOperator): 0.319513371899,
+            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicLengthGaugeOperators, ion.mesh.SplitInteractionOperator): 0.312928752359,
+            (ion.mesh.SphericalHarmonicMesh, ion.mesh.SphericalHarmonicVelocityGaugeOperators, ion.mesh.SplitInteractionOperator): 0.319513371899,
         }
 
-        summary = '\n-----------------------------------\n\nResults:\n'
-        lines = []
-        for identifier, latest_result in identifier_to_final_initial_overlap.items():
-            s = ", ".join(ident.__name__ for ident in identifier)
-            s += f': {latest_result:.6f} | {expected_results[identifier]:.6f}'
-            lines.append(s)
-        summary += '\n'.join(lines)
-        print(summary)
+        print()
+
+        headers = ('Mesh', 'Operators', 'Evolution Method', 'Expected', 'Actual')
+        rows = [(*(k.__name__ for k in key), f'{res:.6f}', f'{identifier_to_final_initial_overlap[key]:.6f}') for key, res in expected_results.items()]
+
+        print(si.utils.table(headers, rows))
 
         for key, val in identifier_to_final_initial_overlap.items():
             np.testing.assert_allclose(val, expected_results[key])
