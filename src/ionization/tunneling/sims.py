@@ -11,7 +11,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import potentials
+from .. import potentials, utils
 from . import models
 
 logger = logging.getLogger(__name__)
@@ -116,9 +116,10 @@ class TunnelingSpecification(si.Specification):
         info = super().info()
 
         info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec, 3)} as | {u.uround(self.time_initial, u.fsec, 3)} fs | {u.uround(self.time_initial, u.atomic_time, 3)} a.u.')
-        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec, 3)} as | {u.uround(self.time_final, u.fsec, 3)} fs | {u.uround(self.time_final, u.atomic_time, 3)} a.u.')
-        info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec, 3)} as | {u.uround(self.time_step, u.atomic_time, 3)} a.u.')
+        info_evolution.add_field('Initial Time', utils.fmt_quantity(self.time_initial, utils.TIME_UNITS))
+        info_evolution.add_field('Final Time', utils.fmt_quantity(self.time_final, utils.TIME_UNITS))
+        info_evolution.add_field('Time Step', utils.fmt_quantity(self.time_step, utils.TIME_UNITS))
+
         info.add_info(info_evolution)
 
         info.add_info(self.tunneling_model.info())

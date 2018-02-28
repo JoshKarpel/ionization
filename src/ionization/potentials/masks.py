@@ -5,7 +5,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import exceptions
+from .. import utils, exceptions
 
 
 class Mask(si.Summand):
@@ -50,17 +50,11 @@ class RadialCosineMask(Mask):
         self.outer_radius = outer_radius
         self.smoothness = smoothness
 
-    def __str__(self):
-        return '{}(inner radius = {} a_0, outer radius = {} a_0, smoothness = {})'.format(self.__class__.__name__,
-                                                                                          u.uround(self.inner_radius, u.bohr_radius, 3),
-                                                                                          u.uround(self.outer_radius, u.bohr_radius, 3),
-                                                                                          self.smoothness)
-
     def __repr__(self):
-        return '{}(inner_radius = {}, outer_radius = {}, smoothness = {})'.format(self.__class__.__name__,
-                                                                                  self.inner_radius,
-                                                                                  self.outer_radius,
-                                                                                  self.smoothness)
+        return f'{self.__class__.__name__}(inner_radius = {self.inner_radius}, outer_radius = {self.outer_radius}, smoothness = {self.smoothness})'
+
+    def __str__(self):
+        return f'{self.__class__.__name__}(inner_radius = {u.uround(self.inner_radius, u.bohr_radius)} a_0, outer_radius = {u.uround(self.outer_radius, u.bohr_radius)} a_0, smoothness = {self.smoothness})'
 
     def __call__(self, *, r, **kwargs):
         """
@@ -72,15 +66,17 @@ class RadialCosineMask(Mask):
         :param kwargs: absorbs keyword arguments.
         :return: the value(s) of the mask at r
         """
-        return np.where(np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
-                        np.abs(np.cos(0.5 * u.pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
-                        np.where(np.greater_equal(r, self.outer_radius), 0, 1))
+        return np.where(
+            np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
+            np.abs(np.cos(0.5 * u.pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
+            np.where(np.greater_equal(r, self.outer_radius), 0, 1),
+        )
 
     def info(self):
         info = super().info()
 
-        info.add_field('Inner Radius', f'{u.uround(self.inner_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.inner_radius, u.nm, 3)} nm')
-        info.add_field('Outer Radius', f'{u.uround(self.outer_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.outer_radius, u.nm, 3)} nm')
+        info.add_field('Inner Radius', utils.fmt_quantity(self.inner_radius, utils.LENGTH_UNITS))
+        info.add_field('Outer Radius', utils.fmt_quantity(self.outer_radius, utils.LENGTH_UNITS))
         info.add_field('Smoothness', self.smoothness)
 
         return info

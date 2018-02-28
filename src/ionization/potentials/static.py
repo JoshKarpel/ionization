@@ -3,6 +3,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
+from .. import utils
 from . import potential
 
 
@@ -19,12 +20,6 @@ class CoulombPotential(potential.PotentialEnergy):
 
         self.charge = charge
 
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge')
-
     def __call__(self, *, r, test_charge, **kwargs):
         """
         Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
@@ -38,10 +33,22 @@ class CoulombPotential(potential.PotentialEnergy):
         """
         return u.coulomb_constant * self.charge * test_charge / r
 
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'charge',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('charge', 'proton_charge'),
+        )
+
     def info(self):
         info = super().info()
 
-        info.add_field('Charge', f'{u.uround(self.charge, u.proton_charge, 3)} e')
+        info.add_field('Charge', utils.fmt_quantity(self.charge, utils.CHARGE_UNITS))
 
         return info
 
@@ -63,12 +70,6 @@ class SoftCoulombPotential(potential.PotentialEnergy):
         self.charge = charge
         self.softening_distance = softening_distance
 
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'), ('softening_distance', 'bohr_radius'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge', 'softening_distance')
-
     def __call__(self, *, r, test_charge, **kwargs):
         """
         Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
@@ -88,11 +89,25 @@ class SoftCoulombPotential(potential.PotentialEnergy):
         """
         return u.coulomb_constant * self.charge * test_charge / np.sqrt((r ** 2) + (self.softening_distance ** 2))
 
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'charge',
+            'softening_distance',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('charge', 'proton_charge'),
+            ('softening_distance', 'bohr_radius'),
+        )
+
     def info(self):
         info = super().info()
 
-        info.add_field('Charge', f'{u.uround(self.charge, u.proton_charge)} e')
-        info.add_field('Softening Distance', f'{u.uround(self.softening_distance, u.bohr_radius)} a_0')
+        info.add_field('Charge', utils.fmt_quantity(self.charge, utils.LENGTH_UNITS))
+        info.add_field('Softening Distance', utils.fmt_quantity(self.softening_distance, utils.LENGTH_UNITS))
 
         return info
 
@@ -151,19 +166,32 @@ class HarmonicOscillator(potential.PotentialEnergy):
         """Return the cyclic frequency for this potential for the given mass."""
         return self.omega(mass) / u.twopi
 
-    def __str__(self):
-        return '{}(spring_constant = {} u.N/u.m, center = {} u.nm)'.format(self.__class__.__name__, np.around(self.spring_constant, 3), u.uround(self.center, u.nm, 3))
-
     def __repr__(self):
-        return '{}(spring_constant = {}, center = {})'.format(self.__class__.__name__, self.spring_constant, self.center)
+        return utils.fmt_fields(
+            self,
+            'spring_constant',
+            'center',
+            'cutoff_distance',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('spring_constant', 'N/m'),
+            ('center', 'bohr_radius'),
+            ('cutoff_distance', 'bohr_radius')
+        )
 
     def info(self):
         info = super().info()
 
-        info.add_field('Spring Constant', f'{u.uround(self.spring_constant, 1, 3)} u.N/u.m | {u.uround(self.spring_constant, u.atomic_force, 3)} a.u./Bohr Radius')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
-        if self.cutoff_distance is not None:
-            info.add_field('Cutoff Distance', f'{u.uround(self.cutoff_distance, u.bohr_radius, 3)} a_0 | {u.uround(self.cutoff_distance, u.nm, 3)} u.nm')
+        info.add_field('Spring Constant', utils.fmt_quantity(self.spring_constant, utils.FORCE_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
+        if self.cutoff_distance is None:
+            cutoff_val = 'None'
+        else:
+            cutoff_val = utils.fmt_quantity(self.cutoff_distance, utils.LENGTH_UNITS)
+        info.add_field('Cutoff Distance', cutoff_val)
 
         return info
 
@@ -177,10 +205,10 @@ class FiniteSquareWell(potential.PotentialEnergy):
         super().__init__()
 
     def __str__(self):
-        return si.utils.field_str(self, ('potential_depth', 'u.eV'), ('width', 'u.nm'), ('center', 'u.nm'))
+        return utils.fmt_fields(self, ('potential_depth', 'u.eV'), ('width', 'u.nm'), ('center', 'u.nm'))
 
     def __repr__(self):
-        return si.utils.field_str(self, 'potential_depth', 'width', 'center')
+        return utils.fmt_fields(self, 'potential_depth', 'width', 'center')
 
     @property
     def left_edge(self):
@@ -228,5 +256,3 @@ class GaussianPotential(potential.PotentialEnergy):
         info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
 
         return info
-
-

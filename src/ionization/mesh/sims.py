@@ -18,7 +18,7 @@ from tqdm import tqdm
 import simulacra as si
 import simulacra.units as u
 
-from .. import potentials, states, vis, core, exceptions
+from .. import potentials, states, vis, core, utils, exceptions
 from . import meshes, anim, snapshots, data, evolution_methods, mesh_operators
 
 logger = logging.getLogger(__name__)
@@ -406,7 +406,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         with si.vis.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
-            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)  # TODO: switch to fixed axis construction
+            grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)
             ax_overlaps = plt.subplot(grid_spec[0])
             ax_field = plt.subplot(grid_spec[1], sharex = ax_overlaps)
 
@@ -964,7 +964,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         self.snapshot_kwargs = snapshot_kwargs
 
         if datastores is None:
-            datastores = [ds_type() for ds_type in data.DEFAULT_DATASTORES]
+            datastores = [ds_type() for ds_type in data.DEFAULT_DATASTORE_TYPES]
         self.datastores = datastores
         self.datastore_types = tuple(sorted(set(ds.__class__ for ds in self.datastores), key = lambda ds: ds.__class__.__name__))
 
@@ -997,16 +997,16 @@ class MeshSpecification(si.Specification, abc.ABC):
 
         info_evolution = si.Info(header = 'Time Evolution')
         info_evolution.add_field('Initial State', str(self.initial_state))
-        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec)} as | {u.uround(self.time_initial, u.fsec)} fs | {u.uround(self.time_initial, u.atomic_time, 3)} a.u.')
-        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec)} as | {u.uround(self.time_final, u.fsec, 3)} fs | {u.uround(self.time_final, u.atomic_time, 3)} a.u.')
+        info_evolution.add_field('Initial Time', utils.fmt_quantity(self.time_initial, utils.TIME_UNITS))
+        info_evolution.add_field('Final Time', utils.fmt_quantity(self.time_final, utils.TIME_UNITS))
         if not callable(self.time_step):
-            info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec)} as | {u.uround(self.time_step, u.atomic_time)} a.u.')
+            info_evolution.add_field('Time Step', utils.fmt_quantity(self.time_step, utils.TIME_UNITS))
         else:
             info_evolution.add_field('Time Step', f'determined by {self.time_step}')
 
         info.add_info(info_evolution)
 
-        info_algorithm = si.Info(header = 'Evolution Algorithm')
+        info_algorithm = si.Info(header = 'Operators and Evolution Algorithm')
         info_algorithm.add_info(self.operators.info())
         info_algorithm.add_info(self.evolution_method.info())
 
@@ -1022,8 +1022,8 @@ class MeshSpecification(si.Specification, abc.ABC):
         info_analysis = si.Info(header = 'Analysis')
 
         info_test_particle = si.Info(header = 'Test Particle')
-        info_test_particle.add_field('Charge', f'{u.uround(self.test_charge, u.proton_charge)} e')
-        info_test_particle.add_field('Mass', f'{u.uround(self.test_mass, u.electron_mass)} m_e | {u.uround(self.test_mass, u.electron_mass_reduced)} mu_e')
+        info_test_particle.add_field('Charge', utils.fmt_quantity(self.test_charge, utils.CHARGE_UNITS))
+        info_test_particle.add_field('Mass', utils.fmt_quantity(self.test_mass, utils.MASS_UNITS))
         info_analysis.add_info(info_test_particle)
 
         if len(self.test_states) > 10:
@@ -1059,7 +1059,6 @@ class LineSpecification(MeshSpecification):
             **kwargs):
         super().__init__(
             name,
-            mesh_type = meshes.LineMesh,
             initial_state = initial_state,
             operators = operators,
             evolution_method = evolution_method,
@@ -1077,9 +1076,9 @@ class LineSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius)} a_0 | {u.uround(self.z_bound, u.nm)} nm')
+        info_mesh.add_field('Z Boundary', utils.fmt_quantity(self.z_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius)} a_0 | {u.uround(self.z_bound / self.z_points, u.nm)} nm')
+        info_mesh.add_field('Z Mesh Spacing', utils.fmt_quantity(self.z_bound / self.z_points, utils.LENGTH_UNITS))
 
         info.add_info(info_mesh)
 
@@ -1121,12 +1120,12 @@ class CylindricalSliceSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius)} a_0')
+        info_mesh.add_field('Z Boundary', utils.fmt_quantity(self.z_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(2 * self.z_bound / self.z_points, u.bohr_radius)} a_0')
-        info_mesh.add_field('Rho Boundary', f'{u.uround(self.rho_bound, u.bohr_radius)} a_0')
+        info_mesh.add_field('Z Mesh Spacing', utils.fmt_quantity(2 * self.z_bound / self.z_points, utils.LENGTH_UNITS))
+        info_mesh.add_field('Rho Boundary', utils.fmt_quantity(self.rho_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('Rho Points', self.rho_points)
-        info_mesh.add_field('Rho Mesh Spacing', f'~{u.uround(self.rho_bound / self.rho_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('Rho Mesh Spacing', utils.fmt_quantity(self.rho_bound / self.rho_points, utils.LENGTH_UNITS))
         info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
 
         info.add_info(info_mesh)
@@ -1207,12 +1206,12 @@ class SphericalSliceSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius)} a_0')
+        info_mesh.add_field('R Boundary', utils.fmt_quantity(self.r_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('R Mesh Spacing', utils.fmt_quantity(self.r_bound / self.r_points, utils.LENGTH_UNITS))
         info_mesh.add_field('Theta Points', self.theta_points)
-        info_mesh.add_field('Theta Mesh Spacing', f'~{u.uround(u.pi / self.theta_points, u.bohr_radius)} a_0')
-        info_mesh.add_field('Maximum Adjacent-Point Spacing', f'~{u.uround(u.pi * self.r_bound / self.theta_points, u.bohr_radius)} a_0')
+        info_mesh.add_field('Theta Mesh Spacing', utils.fmt_quantity(u.pi / self.theta_points, utils.ANGLE_UNITS))
+        info_mesh.add_field('Maximum Adjacent-Point Spacing', utils.fmt_quantity(u.pi * self.r_bound / self.theta_points, utils.LENGTH_UNITS))
         info_mesh.add_field('Total Mesh Points', int(self.r_points * self.theta_points))
 
         info.add_info(info_mesh)
@@ -1560,9 +1559,9 @@ class SphericalHarmonicSpecification(MeshSpecification):
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-        info_mesh.add_field('R Boundary', f'{u.uround(self.r_bound, u.bohr_radius, 3)} a_0 | {u.uround(self.r_bound, u.nm, 3)} nm')
+        info_mesh.add_field('R Boundary', utils.fmt_quantity(self.r_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('R Points', self.r_points)
-        info_mesh.add_field('R Mesh Spacing', f'~{u.uround(self.r_bound / self.r_points, u.bohr_radius, 3)} a_0')
+        info_mesh.add_field('R Mesh Spacing', utils.fmt_quantity(self.r_bound / self.r_points, utils.LENGTH_UNITS))
         info_mesh.add_field('L Bound', self.l_bound)
         info_mesh.add_field('Total Mesh Points', self.r_points * self.l_bound)
 
@@ -1570,7 +1569,7 @@ class SphericalHarmonicSpecification(MeshSpecification):
 
         info_eigenstates = si.Info(header = f'Numeric Eigenstates: {self.use_numeric_eigenstates}')
         if self.use_numeric_eigenstates:
-            info_eigenstates.add_field('Max Energy', f'{u.uround(self.numeric_eigenstate_max_energy, u.eV)} eV')
+            info_eigenstates.add_field('Max Energy', utils.fmt_quantity(self.numeric_eigenstate_max_energy, utils.ENERGY_UNITS))
             info_eigenstates.add_field('Max Angular Momentum', self.numeric_eigenstate_max_angular_momentum)
 
         info.add_info(info_eigenstates)

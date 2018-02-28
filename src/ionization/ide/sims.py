@@ -13,7 +13,7 @@ import scipy.interpolate as interp
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, potentials, tunneling
+from .. import core, potentials, tunneling, vis, utils
 
 from . import kernels, evolution_methods
 
@@ -201,21 +201,21 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         y_labels = []
         if show_electric_field:
-            e_label = fr'$ {core.LATEX_EFIELD}(t) $'
+            e_label = fr'$ {vis.LATEX_EFIELD}(t) $'
             axis.plot(
                 self.times / time_unit_value,
                 self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
-                color = core.COLOR_ELECTRIC_FIELD,
+                color = vis.COLOR_EFIELD,
                 linewidth = 1.5,
                 label = e_label
             )
             y_labels.append(e_label)
         if show_vector_potential:
-            a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
+            a_label = fr'$ e \, {vis.LATEX_AFIELD}(t) $'
             axis.plot(
                 self.times / time_unit_value,
                 u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / u.atomic_momentum,
-                color = core.COLOR_VECTOR_POTENTIAL,
+                color = vis.COLOR_AFIELD,
                 linewidth = 1.5,
                 label = a_label
             )
@@ -443,9 +443,9 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info.add_info(info_checkpoint)
 
         info_evolution = si.Info(header = 'Time Evolution')
-        info_evolution.add_field('Initial Time', f'{u.uround(self.time_initial, u.asec)} as | {u.uround(self.time_initial, u.atomic_time)} a.u.')
-        info_evolution.add_field('Final Time', f'{u.uround(self.time_final, u.asec)} as | {u.uround(self.time_final, u.atomic_time)} a.u.')
-        info_evolution.add_field('Time Step', f'{u.uround(self.time_step, u.asec)} as | {u.uround(self.time_step, u.atomic_time)} a.u.')
+        info_evolution.add_field('Initial Time', utils.fmt_quantity(self.time_initial, utils.TIME_UNITS))
+        info_evolution.add_field('Final Time', utils.fmt_quantity(self.time_final, utils.TIME_UNITS))
+        info_evolution.add_field('Time Step', utils.fmt_quantity(self.time_step, utils.TIME_UNITS))
 
         info.add_info(info_evolution)
 

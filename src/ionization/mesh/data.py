@@ -367,7 +367,7 @@ DATASTORE_TYPE_TO_DATA_NAMES = collections.defaultdict(set)
 for data_name, datastore_type in DATA_NAME_TO_DATASTORE_TYPE.items():
     DATASTORE_TYPE_TO_DATA_NAMES[datastore_type].add(data_name)
 
-DEFAULT_DATASTORES = (
+DEFAULT_DATASTORE_TYPES = (
     Fields,
     Norm,
     InnerProducts,

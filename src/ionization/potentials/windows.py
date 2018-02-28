@@ -5,6 +5,8 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
+from .. import utils
+
 
 class TimeWindow(si.Summand):
     """A class representing a time-window that can be attached to another potential."""
@@ -31,24 +33,28 @@ class NoTimeWindow(TimeWindow):
 
 
 class RectangularTimeWindow(TimeWindow):
-    def __init__(self, on_time = 0 * u.asec, off_time = 50 * u.asec):
-        self.on_time = on_time
-        self.off_time = off_time
+    def __init__(self, start_time = 0 * u.asec, end_time = 50 * u.asec):
+        self.start_time = start_time
+        self.end_time = end_time
 
         super().__init__()
 
-    def __str__(self):
-        return '{}(on at = {} as, off at = {} as)'.format(self.__class__.__name__,
-                                                          u.uround(self.on_time, u.asec),
-                                                          u.uround(self.off_time, u.asec))
-
     def __repr__(self):
-        return '{}(on_time = {}, off_time = {})'.format(self.__class__.__name__,
-                                                        self.on_time,
-                                                        self.off_time)
+        return utils.fmt_fields(
+            self,
+            'start_time',
+            'end_time',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('start_time', 'asec'),
+            ('end_time', 'asec'),
+        )
 
     def __call__(self, t):
-        cond = np.greater_equal(t, self.on_time) * np.less_equal(t, self.off_time)
+        cond = np.greater_equal(t, self.start_time) * np.less_equal(t, self.end_time)
         on = 1
         off = 0
 
@@ -57,8 +63,8 @@ class RectangularTimeWindow(TimeWindow):
     def info(self):
         info = super().info()
 
-        info.add_field('Time On', f'{u.uround(self.on_time, u.asec)} u.asec')
-        info.add_field('Time Off', f'{u.uround(self.off_time, u.asec)} u.asec')
+        info.add_field('Start Time', utils.fmt_quantity(self.start_time, utils.TIME_UNITS))
+        info.add_field('End Time', utils.fmt_quantity(self.end_time, utils.TIME_UNITS))
 
         return info
 
@@ -72,15 +78,19 @@ class LinearRampTimeWindow(TimeWindow):
 
         super().__init__()
 
-    def __str__(self):
-        return '{}(ramp on at = {} as, ramp time = {} as)'.format(self.__class__.__name__,
-                                                                  u.uround(self.ramp_on_time, u.asec),
-                                                                  u.uround(self.ramp_time, u.asec))
-
     def __repr__(self):
-        return '{}(ramp_on_time = {}, ramp_time = {})'.format(self.__class__.__name__,
-                                                              self.ramp_on_time,
-                                                              self.ramp_time)
+        return utils.fmt_fields(
+            self,
+            'ramp_on_time',
+            'ramp_time',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('ramp_on_time', 'asec'),
+            ('ramp_time', 'asec'),
+        )
 
     def __call__(self, t):
         cond = np.greater_equal(t, self.ramp_on_time)
@@ -100,7 +110,8 @@ class LinearRampTimeWindow(TimeWindow):
     def info(self):
         info = super().info()
 
-        info.add_field('Time Ramp Start', f'{u.uround(self.ramp_on_time, u.asec)} u.asec')
+        info.add_field('Ramp Start Time', utils.fmt_quantity(self.ramp_on_time, utils.TIME_UNITS))
+        info.add_field('Ramp Time', utils.fmt_quantity(self.ramp_time, utils.TIME_UNITS))
 
         return info
 
@@ -113,17 +124,21 @@ class SymmetricExponentialTimeWindow(TimeWindow):
 
         super().__init__()
 
-    def __str__(self):
-        return '{}(window time = {} as, window width = {} as, window center = {})'.format(self.__class__.__name__,
-                                                                                          u.uround(self.window_time, u.asec),
-                                                                                          u.uround(self.window_width, u.asec),
-                                                                                          u.uround(self.window_center, u.asec))
-
     def __repr__(self):
-        return '{}(window_time = {}, window_width = {}, window_center = {})'.format(self.__class__.__name__,
-                                                                                    self.window_time,
-                                                                                    self.window_width,
-                                                                                    self.window_center)
+        return utils.fmt_fields(
+            self,
+            'window_time',
+            'window_width',
+            'window_center',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('window_time', 'asec'),
+            ('window_width', 'asec'),
+            ('window_center', 'asec'),
+        )
 
     def __call__(self, t):
         tau = np.array(t) - self.window_center
@@ -132,9 +147,9 @@ class SymmetricExponentialTimeWindow(TimeWindow):
     def info(self):
         info = super().info()
 
-        info.add_field('Window Time', f'{u.uround(self.window_time, u.asec)} as | {u.uround(self.window_time, u.fsec)} fs | {u.uround(self.window_time, u.atomic_time)} a.u.')
-        info.add_field('Window Width', f'{u.uround(self.window_width, u.asec)} as | {u.uround(self.window_width, u.fsec)} fs | {u.uround(self.window_width, u.atomic_time)} a.u.')
-        info.add_field('Window Center', f'{u.uround(self.window_center, u.asec)} as | {u.uround(self.window_center, u.fsec)} fs | {u.uround(self.window_center, u.atomic_time)} a.u.')
+        info.add_field('Window Time', utils.fmt_quantity(self.window_time, utils.TIME_UNITS))
+        info.add_field('Window Width', utils.fmt_quantity(self.window_width, utils.TIME_UNITS))
+        info.add_field('Window Center', utils.fmt_quantity(self.window_center, utils.TIME_UNITS))
 
         return info
 
@@ -156,6 +171,20 @@ class SmoothedTrapezoidalWindow(TimeWindow):
         out += np.where(cond_after, np.cos(u.pi * (t - (self.time_front + self.time_plateau)) / (2 * self.time_front)) ** 2, 0)
 
         return out
+
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'time_front',
+            'time_plateau',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('time_front', 'asec'),
+            ('time_plateau', 'asec'),
+        )
 
     def info(self):
         info = super().info()
