@@ -22,7 +22,7 @@ if __name__ == '__main__':
         parameters = []
 
         spec_type = ide.IntegroDifferentialEquationSpecification
-        evolution_method = ju.ask_evolution_method_ide(parameters, spec_type = spec_type)
+        evolution_method = ju.ask_evolution_method_ide(parameters)
 
         test_charge = u.electron_charge
         test_mass = u.electron_mass
@@ -50,6 +50,8 @@ if __name__ == '__main__':
             ))
 
         kernel = ju.ask_ide_kernel(parameters)
+
+        # ju.ask_ide_tunneling(parameters)  # TODO: this
 
         ju.ask_time_step(parameters)
 

@@ -13,7 +13,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import mesh, states, potentials, ide, exceptions
+from . import core, mesh, states, potentials, ide, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -59,7 +59,7 @@ def check_job_dir(args):
 def ask_mesh_type():
     mesh_kwargs = {}
 
-    mesh_type = clu.ask_for_input('Mesh Type (cyl | sph | harm)', default = 'harm', cast_to = str)
+    mesh_type = clu.ask_for_input('Mesh Type [cyl | sph | harm]', default = 'harm', cast_to = str)
 
     if mesh_type == 'cyl':
         spec_type = mesh.CylindricalSliceSpecification
@@ -190,30 +190,27 @@ def ask_time_evolution_by_pulse_widths():
     return time_initial_in_pw, time_final_in_pw, extra_time
 
 
-def ask_evolution_gauge(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_gauge.choices))
-    gauge = clu.ask_for_input(f'Evolution Gauge? [{"/".join(choices)}]', default = choices[0])
-    if gauge not in choices:
-        raise exceptions.InvalidChoice(f'{gauge} is not one of {choices}')
-    parameters.append(
-        clu.Parameter(
-            name = 'evolution_gauge',
-            value = gauge,
-        ))
-
-    return gauge
-
-
-def ask_evolution_method_ide(parameters, *, spec_type):
-    choices = {
-        'FE': ide.ForwardEulerMethod,
-        'BE': ide.BackwardEulerMethod,
-        'TRAP': ide.TrapezoidMethod,
-        'RK4': ide.RungeKuttaFourMethod,
+def ask_mesh_operators(parameters, *, spec_type):
+    choices_by_spec_type = {
+        mesh.LineSpecification: {
+            core.Gauge.LENGTH.value: mesh.LineLengthGaugeOperators,
+            core.Gauge.VELOCITY.value: mesh.LineVelocityGaugeOperators,
+        },
+        mesh.CylindricalSliceSpecification: {
+            core.Gauge.LENGTH.value: mesh.CylindricalSliceLengthGaugeOperators,
+        },
+        mesh.SphericalSliceSpecification: {
+            core.Gauge.LENGTH.value: mesh.SphericalSliceLengthGaugeOperators,
+        },
+        mesh.SphericalHarmonicSpecification: {
+            core.Gauge.LENGTH.value: mesh.SphericalHarmonicLengthGaugeOperators,
+            core.Gauge.VELOCITY.value: mesh.SphericalHarmonicVelocityGaugeOperators,
+        }
     }
-    method_key = clu.ask_for_input(f'Evolution Method? [{"/".join(choices.keys())}]', default = 'RK4')
+    choices = choices_by_spec_type[spec_type]
+    key = clu.ask_for_input(f'Mesh Operators? [{" | ".join(choices.keys())}]', default = core.Gauge.LENGTH.value)
     try:
-        method = choices[method_key]()
+        method = choices[key]()
     except KeyError:
         raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
@@ -226,10 +223,37 @@ def ask_evolution_method_ide(parameters, *, spec_type):
     return method
 
 
-def ask_evolution_method_tdse(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_method.choices))
-    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
-    if method not in choices:
+def ask_evolution_method_ide(parameters):
+    choices = {
+        'FE': ide.ForwardEulerMethod,
+        'BE': ide.BackwardEulerMethod,
+        'TRAP': ide.TrapezoidMethod,
+        'RK4': ide.RungeKuttaFourMethod,
+    }
+    key = clu.ask_for_input(f'Evolution Method? [{" | ".join(choices.keys())}]', default = 'RK4')
+    try:
+        method = choices[key]()
+    except KeyError:
+        raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
+
+    parameters.append(
+        clu.Parameter(
+            name = 'evolution_method',
+            value = method,
+        ))
+
+    return method
+
+
+def ask_evolution_method_tdse(parameters):
+    choices = {
+        'ADI': mesh.AlternatingDirectionImplicit,
+        'SO': mesh.SplitInteractionOperator,
+    }
+    key = clu.ask_for_input(f'Evolution Method? [{" | ".join(choices)}]', default = 'SO')
+    try:
+        method = choices[key]()
+    except KeyError:
         raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
     parameters.append(
@@ -246,7 +270,7 @@ def ask_ide_kernel(parameters):
         'hydrogen': ide.LengthGaugeHydrogenKernel,
         'hydrogen_with_cc': ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
     }
-    kernel_key = clu.ask_for_input(f'IDE Kernel? [{"/".join(choices)}]', default = 'hydrogen')
+    kernel_key = clu.ask_for_input(f'IDE Kernel? [{" | ".join(choices)}]', default = 'hydrogen')
     try:
         kernel = choices[kernel_key]()
     except KeyError:
@@ -297,7 +321,7 @@ def ask_pulse_fluences(pulse_parameters):
 def ask_pulse_phases(pulse_parameters):
     phases = clu.Parameter(
         name = 'phase',
-        value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = '[0, pi / 4, pi / 2]')),
+        value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = '[0, u.pi / 4, u.pi / 2]')),
         expandable = True
     )
     pulse_parameters.append(phases)
@@ -372,9 +396,9 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
 def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
-    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech | cos2)', default = 'sinc')]
+    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? [sinc | gaussian | sech | cos2]', default = 'sinc')]
     constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if 'from_' in name)
-    constructor_name = clu.ask_for_input(f'Pulse Constructor? ({" | ".join(constructor_names)})', default = 'omega_min')
+    constructor_name = clu.ask_for_input(f'Pulse Constructor? [{" | ".join(constructor_names)}]', default = 'omega_min')
     constructor = getattr(pulse_type, f'from_{constructor_name}')
 
     constructor_argspec = inspect.getfullargspec(constructor)
@@ -447,24 +471,36 @@ def ask_data_storage_tdse(parameters, *, spec_type):
             value = clu.ask_for_input('Store Data Every n Time Steps', default = -1, cast_to = int),
         ))
 
-    names_questions_defaults = [
-        ('store_radial_position_expectation_value', 'Store Radial Position EV vs. Time?', True),
-        ('store_electric_dipole_moment_expectation_value', 'Store Electric Dipole Moment EV vs. Time?', True),
-        ('store_energy_expectation_value', 'Store Energy EV vs. Time?', True),
-        ('store_norm_diff_mask', 'Store Difference in Norm caused by Mask vs. Time?', False),
+    datastores_questions_defaults = [
+        (mesh.Fields, 'Store Electric Field and Vector Potential vs. Time?', True),
+        (mesh.Norm, 'Store Wavefunction Norm vs. Time?', True),
+        (mesh.InnerProducts, 'Store Wavefunction Inner Products vs. Time?', True),
+        (mesh.InternalEnergyExpectationValue, 'Store Internal Energy Expectation Value vs. Time?', False),
+        (mesh.TotalEnergyExpectationValue, 'Store Total Energy Expectation Value vs. Time?', False),
+        (mesh.ZExpectationValue, 'Store Z Expectation Value vs. Time?', False),
+        (mesh.RExpectationValue, 'Store R Expectation Value vs. Time?', False),
+        (mesh.NormWithinRadius, 'Store Norm Within Radius vs. Time?', False),
     ]
     if spec_type == mesh.SphericalHarmonicSpecification:
-        names_questions_defaults += [
-            ('store_radial_probability_current', 'Store Radial Probability Current vs. Time?', False),
-            ('store_norm_by_l', 'Store Norm-by-L?', False),
+        datastores_questions_defaults += [
+            (mesh.DirectionalRadialProbabilityCurrent, 'Store Radial Probability Current vs. Time?', False),
+            (mesh.NormByL, 'Store Norm-by-L?', False),
         ]
 
-    for name, question, default in names_questions_defaults:
-        parameters.append(
-            clu.Parameter(
-                name = name,
-                value = clu.ask_for_bool(question, default = default)
-            ))
+    datastores = []
+    for ds, question, default in datastores_questions_defaults:
+        if clu.ask_for_bool(question, default = default):
+            init_args = inspect.getfullargspec(ds.__init__).args
+
+            args = {arg: clu.ask_for_eval(f'Value for {arg}?') for arg in init_args if arg != 'self'}
+
+            datastores.append(ds(**args))
+
+    parameters.append(
+        clu.Parameter(
+            name = 'datastores',
+            value = datastores,
+        ))
 
 
 def ask_data_storage_ide(parameters, *, spec_type):
