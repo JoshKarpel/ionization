@@ -535,13 +535,6 @@ def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameter
 
     clu.specification_check(specs)
 
-    submit_string = clu.generate_chtc_submit_string(
-        args.job_name,
-        len(specs),
-        do_checkpoints = do_checkpoints
-    )
-    clu.submit_check(submit_string)
-
     # point of no return
     shutil.rmtree(job_dir, ignore_errors = True)
 
@@ -559,4 +552,4 @@ def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameter
     }
     clu.write_job_info_to_file(job_info, job_dir)
 
-    clu.write_submit_file(submit_string, job_dir)
+    return job_dir

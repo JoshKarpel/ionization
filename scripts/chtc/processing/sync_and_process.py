@@ -30,12 +30,40 @@ DROPBOX_PROCESS_NAMES = ['Dropbox.exe']
 def synchronize_with_cluster(cluster_interface):
     with si.utils.SuspendProcesses(*DROPBOX_PROCESS_NAMES):
         with cluster_interface as ci:
-            js = ci.get_job_status()
+            js = get_job_status(cluster_interface)
             logger.info(js)
             with open('report_cluster.txt', mode = 'w', encoding = 'utf-8') as f:
                 f.write(js)
 
-            ci.mirror_remote_home_dir()
+            ci.mirror_dir()
+
+
+def get_job_status(cluster_interface):
+    """Get the status of jobs on the cluster."""
+    cmd_output = cluster_interface.cmd('condor_q -wide')
+
+    status = cmd_output.stdout.readlines()
+
+    status_str = 'Job Status:\n' + ''.join(status[1:])
+
+    return status_str
+
+
+def process_jobs(jobs_dir):
+    job_names = [f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))]
+    logger.debug(f'Found jobs: {", ".join(job_names)}')
+
+    job_processors = [si.utils.run_in_process(process_job, args = (job_name, jobs_dir)) for job_name in job_names]  # avoid memory leaks
+
+    total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
+    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
+
+    logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
+
+    report = generate_processing_report(job_processors)
+    print(report)
+    with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
+        f.write(report)
 
 
 def process_job(job_name, jobs_dir = None):
@@ -69,25 +97,6 @@ def process_job(job_name, jobs_dir = None):
             logger.exception(e)
 
         return jp
-
-
-def process_jobs(jobs_dir):
-    job_processors = []
-
-    job_names = [f for f in os.listdir(jobs_dir) if os.path.isdir(os.path.join(jobs_dir, f))]
-    logger.debug(f'Found jobs: {", ".join(job_names)}')
-
-    job_processors = [si.utils.run_in_process(process_job, args = (job_name, jobs_dir)) for job_name in job_names]
-
-    total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
-    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
-
-    logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
-
-    report = generate_processing_report(job_processors)
-    print(report)
-    with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
-        f.write(report)
 
 
 def generate_processing_report(job_processors):
@@ -149,7 +158,7 @@ if __name__ == '__main__':
                 wait_after_failure = dt.timedelta(minutes = 10),
             )
         except KeyboardInterrupt:
-            logger.info('Detected keyboard interrupt, exiting')
+            logger.critical('Detected keyboard interrupt. Exiting...')
             for process_name in DROPBOX_PROCESS_NAMES:
                 si.utils.resume_processes_by_name(process_name)
             sys.exit(0)

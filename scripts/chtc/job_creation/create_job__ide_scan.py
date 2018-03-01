@@ -11,6 +11,8 @@ import ionization.cluster as iclu
 import ionization.ide as ide
 import ionization.jobutils as ju
 
+import chtc_job_utils as chtc
+
 JOB_PROCESSOR_TYPE = iclu.IDEJobProcessor
 
 if __name__ == '__main__':
@@ -91,7 +93,7 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
-        ju.create_job_files(
+        job_dir = ju.create_job_files(
             args = args,
             specs = specs,
             do_checkpoints = do_checkpoints,
@@ -100,5 +102,12 @@ if __name__ == '__main__':
             job_processor_type = JOB_PROCESSOR_TYPE,
         )
 
+        submit_string = chtc.generate_chtc_submit_string(
+            args.job_name,
+            len(specs),
+            do_checkpoints = do_checkpoints
+        )
+        chtc.submit_check(submit_string)
+        chtc.write_submit_file(submit_string, job_dir)
         if not args.dry:
-            clu.submit_job(ju.get_job_dir(args))
+            chtc.submit_job(ju.get_job_dir(args))
