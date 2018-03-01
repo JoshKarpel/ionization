@@ -51,4 +51,4 @@ if __name__ == '__main__':
             **PLOT_KWARGS
         )
 
-        print(sim.spec.tunneling_model.tunneling_rate_from_amplitude(amp, -u.rydberg) / u.per_fsec)
+        print(sim.spec.tunneling_model._tunneling_rate(amp, -u.rydberg) / u.per_fsec)

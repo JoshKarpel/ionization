@@ -22,7 +22,7 @@ PLOT_KWARGS = dict(
 if __name__ == '__main__':
     with LOGMAN as logger:
         tunneling_models = [
-            ion.tunneling.LandauRate(),
+            ion.tunneling.LandauRate(upper_amplitude_cutoff = 1 * u.atomic_electric_field),
             ion.tunneling.KeldyshRate(),
             ion.tunneling.PosthumusRate(),
             ion.tunneling.MulserRate(),
@@ -33,7 +33,7 @@ if __name__ == '__main__':
         amplitudes = np.geomspace(.04, 10, 1000) * u.atomic_electric_field
 
         tunneling_rates = [
-            np.abs(model.tunneling_rate_from_amplitude(amplitudes, -u.rydberg).squeeze())
+            np.abs(model.tunneling_rate(amplitudes, -u.rydberg))
             for model in tunneling_models
         ]
         labels = [model.__class__.__name__.rstrip('Rate') for model in tunneling_models]

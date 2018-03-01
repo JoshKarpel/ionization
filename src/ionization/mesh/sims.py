@@ -992,7 +992,6 @@ class MeshSpecification(si.Specification, abc.ABC):
                 info_animation.add_info(animator.info())
         else:
             info_animation.header += ': none'
-
         info.add_info(info_animation)
 
         info_evolution = si.Info(header = 'Time Evolution')
@@ -1003,20 +1002,17 @@ class MeshSpecification(si.Specification, abc.ABC):
             info_evolution.add_field('Time Step', utils.fmt_quantity(self.time_step, utils.TIME_UNITS))
         else:
             info_evolution.add_field('Time Step', f'determined by {self.time_step}')
-
         info.add_info(info_evolution)
 
         info_algorithm = si.Info(header = 'Operators and Evolution Algorithm')
         info_algorithm.add_info(self.operators.info())
         info_algorithm.add_info(self.evolution_method.info())
-
         info.add_info(info_algorithm)
 
         info_potentials = si.Info(header = 'Potentials and Masks')
         info_potentials.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
         for x in itertools.chain(self.internal_potential, self.electric_potential, self.mask):
             info_potentials.add_info(x.info())
-
         info.add_info(info_potentials)
 
         info_analysis = si.Info(header = 'Analysis')
@@ -1030,13 +1026,10 @@ class MeshSpecification(si.Specification, abc.ABC):
             info_analysis.add_field(f'Test States (first 5 of {len(self.test_states)})', ', '.join(str(s) for s in sorted(self.test_states)[:5]))
         else:
             info_analysis.add_field('Test States', ', '.join(str(s) for s in sorted(self.test_states)))
-
         info_analysis.add_field('Datastore Types', ', '.join(ds.__name__ for ds in self.datastore_types))
-
         info_analysis.add_field('Data Storage Decimation', self.store_data_every)
         info_analysis.add_field('Snapshot Indices', ', '.join(sorted(self.snapshot_indices)) if len(self.snapshot_indices) > 0 else 'none')
         info_analysis.add_field('Snapshot Times', (f'{u.uround(st, u.asec)} as' for st in self.snapshot_times) if len(self.snapshot_times) > 0 else 'none')
-
         info.add_info(info_analysis)
 
         return info

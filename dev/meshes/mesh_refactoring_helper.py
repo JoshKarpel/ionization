@@ -179,7 +179,7 @@ if __name__ == '__main__':
         # for k, v in identifier_to_final_initial_overlap.items():
         #     print(k, v)
 
-        expected_results = {
+        expected = {
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.370010185740,
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370008474418,
             (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370924310122,
@@ -194,11 +194,11 @@ if __name__ == '__main__':
         print()
 
         headers = ('Mesh', 'Operators', 'Evolution Method', 'Expected', 'Actual')
-        rows = [(*(k.__name__ for k in key), f'{res:.6f}', f'{identifier_to_final_initial_overlap[key]:.6f}') for key, res in expected_results.items()]
+        rows = [(*(k.__name__ for k in key), f'{res:.6f}', f'{identifier_to_final_initial_overlap[key]:.6f}') for key, res in expected.items()]
 
         print(si.utils.table(headers, rows))
 
         for key, val in identifier_to_final_initial_overlap.items():
-            np.testing.assert_allclose(val, expected_results[key])
+            np.testing.assert_allclose(val, expected[key])
 
         print('\nAll good!')

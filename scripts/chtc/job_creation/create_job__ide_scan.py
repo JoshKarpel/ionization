@@ -52,6 +52,7 @@ if __name__ == '__main__':
             ))
 
         kernel = ju.ask_ide_kernel(parameters)
+        tunneling_model = ju.ask_ide_tunneling(parameters)
 
         # ju.ask_ide_tunneling(parameters)  # TODO: this
 

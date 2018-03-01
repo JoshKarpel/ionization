@@ -9,6 +9,8 @@ import scipy.integrate as integ
 import simulacra as si
 import simulacra.units as u
 
+from .. import utils
+
 
 class TunnelingModel(abc.ABC):
     """
@@ -16,25 +18,42 @@ class TunnelingModel(abc.ABC):
     The tunneling models here operate on the wavefunction itself, so generally they are half as large as reported in literature.
     """
 
-    def tunneling_rate(self, sim, electric_potential, time):
-        amplitude = electric_potential.get_electric_field_amplitude(time)
+    def __init__(self, upper_amplitude_cutoff: float = np.Inf):
+        """
+        Parameters
+        ----------
+        upper_amplitude_cutoff
+            A model-independent upper amplitude cutoff in the tunneling rate.
+        """
+        self.upper_amplitude_cutoff = upper_amplitude_cutoff
 
-        rate = self.tunneling_rate_from_amplitude(electric_field_amplitude = amplitude, ionization_potential = sim.spec.ionization_potential)
+    def tunneling_rate(self, electric_field_amplitude, ionization_potential):
+        rate = self._tunneling_rate(electric_field_amplitude = electric_field_amplitude, ionization_potential = ionization_potential)
+        rate = np.where(
+            electric_field_amplitude <= self.upper_amplitude_cutoff,
+            rate,
+            0,
+        ).squeeze()
 
         return rate
 
     @abc.abstractmethod
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         raise NotImplementedError
 
     def info(self) -> si.Info:
         info = si.Info(header = self.__class__.__name__)
 
+        info.add_field('Upper Electric Field Amplitude Cutoff', utils.fmt_quantity(self.upper_amplitude_cutoff, utils.ELECTRIC_FIELD_UNITS))
+
         return info
 
 
 class NoTunneling(TunnelingModel):
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def __init__(self):
+        super().__init__()
+
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         return 0
 
 
@@ -42,7 +61,7 @@ class NoTunneling(TunnelingModel):
 # https://doi.org/10.1103/PhysRevA.59.569
 
 class LandauRate(TunnelingModel):
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -56,13 +75,13 @@ class LandauRate(TunnelingModel):
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
 
 
 class KeldyshRate(TunnelingModel):
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -77,7 +96,7 @@ class KeldyshRate(TunnelingModel):
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
 
@@ -90,7 +109,7 @@ class PosthumusRate(TunnelingModel):
 
         warnings.warn(f"{self.__class__.__name__} uses a lower cutoff in the electric field amplitude that I haven't fully figured out yet")
 
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -105,13 +124,13 @@ class PosthumusRate(TunnelingModel):
             np.less_equal(scaled_amplitude, 0.0625),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
 
 
 class MulserRate(TunnelingModel):
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -129,7 +148,7 @@ class MulserRate(TunnelingModel):
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
 
@@ -156,7 +175,7 @@ class ADKRate(TunnelingModel):
         self.l = l
         self.m = m
 
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -174,7 +193,7 @@ class ADKRate(TunnelingModel):
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
 
@@ -193,7 +212,7 @@ class ADKExtendedToBSIRate(ADKRate):
 
         raise NotImplementedError("Haven't quite figured out the right expression yet")
 
-    def tunneling_rate_from_amplitude(self, electric_field_amplitude, ionization_potential):
+    def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
 
@@ -219,6 +238,16 @@ class ADKExtendedToBSIRate(ADKRate):
             np.isclose(scaled_amplitude, 0),
             0,
             rate,
-        ).squeeze()
+        )
 
         return rate
+
+
+TUNNELING_MODEL_TYPES = [
+    NoTunneling,
+    LandauRate,
+    KeldyshRate,
+    PosthumusRate,
+    MulserRate,
+    ADKRate,
+]

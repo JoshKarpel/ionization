@@ -4,6 +4,7 @@ import shutil
 import datetime
 import logging
 import inspect
+import itertools
 
 from tqdm import tqdm
 
@@ -13,7 +14,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import core, mesh, states, potentials, ide, exceptions
+from . import core, mesh, states, potentials, ide, tunneling, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -285,6 +286,36 @@ def ask_ide_kernel(parameters):
     return kernel
 
 
+def ask_ide_tunneling(parameters):
+    choices = {
+        cls.__name__.replace('Rate', ''): cls
+        for cls in tunneling.TUNNELING_MODEL_TYPES
+    }
+    model_key = clu.ask_for_input(f'Tunneling Model? [{" | ".join(choices)}]', default = tuple(choices.keys())[0])
+
+    try:
+        cls = choices[model_key]
+    except KeyError:
+        raise exceptions.InvalidChoice(f'{model_key} is not one of {choices.keys()}')
+
+    argspec = inspect.getfullargspec(cls.__init__)
+    arg_names = argspec.args[1:]
+    arg_defaults = argspec.defaults
+    if len(arg_names) > 0:
+        args = {name: clu.ask_for_eval(f'Value for {name}?', default = default) for name, default in reversed(tuple(itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))))}
+        model = cls(**args)
+    else:
+        model = cls()
+
+    parameters.append(
+        clu.Parameter(
+            name = 'tunneling_model',
+            value = model,
+        ))
+
+    return model
+
+
 PULSE_NAMES_TO_TYPES = {
     'sinc': potentials.SincPulse,
     'gaussian': potentials.GaussianPulse,
@@ -488,13 +519,17 @@ def ask_data_storage_tdse(parameters, *, spec_type):
         ]
 
     datastores = []
-    for ds, question, default in datastores_questions_defaults:
+    for cls, question, default in datastores_questions_defaults:
         if clu.ask_for_bool(question, default = default):
-            init_args = inspect.getfullargspec(ds.__init__).args
-
-            args = {arg: clu.ask_for_eval(f'Value for {arg}?') for arg in init_args if arg != 'self'}
-
-            datastores.append(ds(**args))
+            argspec = inspect.getfullargspec(cls.__init__)
+            arg_names = argspec.args[1:]
+            arg_defaults = argspec.defaults
+            if len(arg_names) > 0:
+                args = {name: clu.ask_for_eval(f'Value for {name}?', default = default) for name, default in reversed(tuple(itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))))}
+                datastore = cls(**args)
+            else:
+                datastore = cls()
+            datastores.append(datastore)
 
     parameters.append(
         clu.Parameter(

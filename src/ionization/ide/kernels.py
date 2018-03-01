@@ -38,7 +38,7 @@ class Kernel(ABC):
         raise NotImplementedError
 
     def info(self) -> si.Info:
-        info = si.Info(header = f'Kernel: {self.__class__.__name__}')
+        info = si.Info(header = self.__class__.__name__)
 
         return info
 

@@ -64,7 +64,8 @@ class TunnelingSimulation(si.Simulation):
             self.time_index += 1
 
             dt = self.times[self.time_index] - self.times[self.time_index - 1]
-            tunneling_rate = self.spec.tunneling_model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
+            efield = self.spec.electric_potential.get_electric_field_amplitude(self.time + (dt / 2))
+            tunneling_rate = self.spec.tunneling_model.tunneling_rate(efield, self.spec.ionization_potential)
             self.b[self.time_index] = self.b[self.time_index - 1] * np.exp(tunneling_rate * dt)
 
             logger.debug(f'{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)')
@@ -126,11 +127,10 @@ class TunnelingSpecification(si.Specification):
 
         info.add_field('Initial b', self.b_initial)
 
-        info_potentials = si.Info(header = 'Potentials and Masks')
-        info_potentials.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
+        info_fields = si.Info(header = 'Electric Fields')
+        info_fields.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
         for x in self.electric_potential:
-            info_potentials.add_info(x.info())
-
-        info.add_info(info_potentials)
+            info_fields.add_info(x.info())
+        info.add_info(info_fields)
 
         return info

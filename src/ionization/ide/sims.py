@@ -1,5 +1,6 @@
 import logging
 import datetime
+import itertools
 from typing import Union, Callable
 
 from tqdm import tqdm
@@ -69,9 +70,9 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         elif self.spec.integration_method == 'trapezoid':
             self.integrate = integ.trapz
 
-        if self.spec.evolution_gauge == 'LEN':
+        if self.spec.evolution_gauge == core.Gauge.LENGTH:
             self.f = self.spec.electric_potential.get_electric_field_amplitude
-        elif self.spec.evolution_gauge == 'VEL':
+        elif self.spec.evolution_gauge == core.Gauge.VELOCITY:
             self.f = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
 
     @property
@@ -133,7 +134,8 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             new_b, new_t = self.spec.evolution_method.evolve(self, self.b, self.times, self.time_step)
             dt = new_t - self.time
 
-            tunneling_rate = self.spec.tunneling_model.tunneling_rate(self, self.spec.electric_potential, self.time + (dt / 2))
+            efield = self.spec.electric_potential.get_electric_field_amplitude(self.time + (dt / 2))
+            tunneling_rate = self.spec.tunneling_model.tunneling_rate(efield, self.spec.ionization_potential)
             new_b *= np.exp(dt * tunneling_rate)
 
             self.b.append(new_b)
@@ -346,7 +348,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
             kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
             integration_method: str = 'simpson',
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
-            evolution_gauge: str = 'LEN',
+            evolution_gauge: core.Gauge = core.Gauge.LENGTH,
             checkpoints: bool = False,
             checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
             checkpoint_dir: str = None,
@@ -446,26 +448,26 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         info_evolution.add_field('Initial Time', utils.fmt_quantity(self.time_initial, utils.TIME_UNITS))
         info_evolution.add_field('Final Time', utils.fmt_quantity(self.time_final, utils.TIME_UNITS))
         info_evolution.add_field('Time Step', utils.fmt_quantity(self.time_step, utils.TIME_UNITS))
-
         info.add_info(info_evolution)
 
         info_algorithm = si.Info(header = 'Evolution Algorithm')
         info_algorithm.add_field('Integration Method', self.integration_method)
         info_algorithm.add_info(self.evolution_method.info())
         info_algorithm.add_field('Evolution Gauge', self.evolution_gauge)
-
         info.add_info(info_algorithm)
 
         info_ide = si.Info(header = 'IDE Parameters')
         info_ide.add_field('Initial State', f'b = {self.b_initial}')
         info_ide.add_field('Prefactor', self.integral_prefactor)
-        info_ide.add_info(self.kernel.info())
-        info_ide.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
-
-        info_potential = self.electric_potential.info()
-        info_potential.header = 'Electric Potential: ' + info_potential.header
-        info_ide.add_info(info_potential)
-
         info.add_info(info_ide)
+
+        info.add_info(self.kernel.info())
+        info.add_info(self.tunneling_model.info())
+
+        info_fields = si.Info(header = 'Electric Fields')
+        info_fields.add_field('DC Correct Electric Field', 'yes' if self.electric_potential_dc_correction else 'no')
+        for x in itertools.chain(self.electric_potential):
+            info_fields.add_info(x.info())
+        info.add_info(info_fields)
 
         return info
