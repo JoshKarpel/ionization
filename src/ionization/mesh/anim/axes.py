@@ -154,7 +154,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
 
         super().update_axis()
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Show Electric Field', self.show_electric_field)
@@ -290,7 +290,7 @@ class StackplotAxis(si.vis.AxisManager):
 
         super().update_axis()
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Show Norm', self.show_norm)
@@ -466,7 +466,7 @@ class QuantumMeshAxis(si.vis.AxisManager):
 
         super().update_axis()
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Plotting', self.which)

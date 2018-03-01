@@ -104,7 +104,7 @@ if __name__ == '__main__':
             ion.mesh.LineSpecification(
                 f'Line_SO_LEN',
                 operators = ion.mesh.LineLengthGaugeOperators(),
-                evolution_method = ion.mesh.LineSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **line_kwargs
             )
         )
@@ -113,7 +113,7 @@ if __name__ == '__main__':
             ion.mesh.LineSpecification(
                 f'Line_SO_VEL',
                 operators = ion.mesh.LineVelocityGaugeOperators(),
-                evolution_method = ion.mesh.LineSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **line_kwargs
             )
         )
@@ -151,7 +151,7 @@ if __name__ == '__main__':
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_SO_LEN',
                 operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
-                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs
             )
@@ -161,7 +161,7 @@ if __name__ == '__main__':
             ion.mesh.SphericalHarmonicSpecification(
                 f'SphericalHarmonic_LAG_SO_VEL',
                 operators = ion.mesh.SphericalHarmonicVelocityGaugeOperators(),
-                evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+                evolution_method = ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs
             )

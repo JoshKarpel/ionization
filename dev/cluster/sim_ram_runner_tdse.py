@@ -40,7 +40,7 @@ if __name__ == '__main__':
             time_final = T * asec,
             time_step = 1 * asec,
             store_data_every = 1,
-            evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+            evolution_method = ion.mesh.SplitInteractionOperator(),
         ).to_sim()
         sim.info().log()
 

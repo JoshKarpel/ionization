@@ -427,7 +427,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         self.tunneling_model = tunneling_model
         self.ionization_potential = ionization_potential
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info_checkpoint = si.Info(header = 'Checkpointing')

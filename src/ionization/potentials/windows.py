@@ -60,7 +60,7 @@ class RectangularTimeWindow(TimeWindow):
 
         return np.where(cond, on, off)
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Start Time', utils.fmt_quantity(self.start_time, utils.TIME_UNITS))
@@ -107,7 +107,7 @@ class LinearRampTimeWindow(TimeWindow):
 
         return out_1 * out_2
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Ramp Start Time', utils.fmt_quantity(self.ramp_on_time, utils.TIME_UNITS))
@@ -144,7 +144,7 @@ class SymmetricExponentialTimeWindow(TimeWindow):
         tau = np.array(t) - self.window_center
         return np.abs(1 / (1 + np.exp(-(tau + self.window_time) / self.window_width)) - 1 / (1 + np.exp(-(tau - self.window_time) / self.window_width)))
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Window Time', utils.fmt_quantity(self.window_time, utils.TIME_UNITS))
@@ -186,7 +186,7 @@ class SmoothedTrapezoidalWindow(TimeWindow):
             ('time_plateau', 'asec'),
         )
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Front Time', f'{u.uround(self.time_front, u.asec)} as | {u.uround(self.time_front, u.fsec)} fs | {u.uround(self.time_front, u.atomic_time)} a.u.')

@@ -45,7 +45,7 @@ class CoulombPotential(potential.PotentialEnergy):
             ('charge', 'proton_charge'),
         )
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Charge', utils.fmt_quantity(self.charge, utils.CHARGE_UNITS))
@@ -103,7 +103,7 @@ class SoftCoulombPotential(potential.PotentialEnergy):
             ('softening_distance', 'bohr_radius'),
         )
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Charge', utils.fmt_quantity(self.charge, utils.LENGTH_UNITS))
@@ -147,14 +147,14 @@ class HarmonicOscillator(potential.PotentialEnergy):
         """
         return cls.from_frequency_and_mass(omega = energy_spacing / u.hbar, mass = mass, **kwargs)
 
-    def __call__(self, *, distance, **kwargs):
-        """Return the HarmonicOscillator potential energy evaluated at position distance."""
-        d = (distance - self.center)
+    def __call__(self, *, r, **kwargs):
+        """Return the HarmonicOscillator potential energy evaluated at position r."""
+        centered_r = r - self.center
 
-        inside = 0.5 * self.spring_constant * (d ** 2)
+        inside = 0.5 * self.spring_constant * (centered_r ** 2)
         if self.cutoff_distance is not None:
             outside = 0.5 * self.spring_constant * (self.cutoff_distance ** 2)
-            return np.where(np.less_equal(np.abs(d), self.cutoff_distance), inside, outside)
+            return np.where(np.less_equal(np.abs(centered_r), self.cutoff_distance), inside, outside)
         else:
             return inside
 
@@ -182,7 +182,7 @@ class HarmonicOscillator(potential.PotentialEnergy):
             ('cutoff_distance', 'bohr_radius')
         )
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Spring Constant', utils.fmt_quantity(self.spring_constant, utils.FORCE_UNITS))
@@ -204,12 +204,6 @@ class FiniteSquareWell(potential.PotentialEnergy):
 
         super().__init__()
 
-    def __str__(self):
-        return utils.fmt_fields(self, ('potential_depth', 'u.eV'), ('width', 'u.nm'), ('center', 'u.nm'))
-
-    def __repr__(self):
-        return utils.fmt_fields(self, 'potential_depth', 'width', 'center')
-
     @property
     def left_edge(self):
         return self.center - (self.width / 2)
@@ -218,41 +212,73 @@ class FiniteSquareWell(potential.PotentialEnergy):
     def right_edge(self):
         return self.center + (self.width / 2)
 
-    def __call__(self, *, distance, **kwargs):
-        cond = np.greater_equal(distance, self.left_edge) * np.less_equal(distance, self.right_edge)
+    def __call__(self, *, r, **kwargs):
+        cond = np.greater_equal(r, self.left_edge) * np.less_equal(r, self.right_edge)
 
         return -self.potential_depth * np.where(cond, 1, 0)
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'potential_depth',
+            'width',
+            'center',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('potential_depth', 'u.eV'),
+            ('width', 'u.nm'),
+            ('center', 'u.nm'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Potential Depth', f'{u.uround(self.potential_depth, u.eV)} u.eV')
-        info.add_field('Width', f'{u.uround(self.width, u.bohr_radius, 3)} a_0 | {u.uround(self.width, u.nm, 3)} u.nm')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
+        info.add_field('Potential Depth', utils.fmt_quantity(self.potential_depth, utils.ENERGY_UNITS))
+        info.add_field('Width', utils.fmt_quantity(self.width, utils.LENGTH_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
 
         return info
 
 
 class GaussianPotential(potential.PotentialEnergy):
-    def __init__(self, potential_extrema = -1 * u.eV, width = 1 * u.bohr_radius, center = 0):
+    def __init__(self, potential_depth = -1 * u.eV, width = 1 * u.bohr_radius, center = 0):
         super().__init__()
 
-        self.potential_extrema = potential_extrema
+        self.potential_depth = potential_depth
         self.width = width
         self.center = center
 
     def fwhm(self):
         return 2 * np.sqrt(2 * np.log(2)) * self.width
 
-    def __call__(self, *, distance, **kwargs):
-        x = distance - self.center
-        return self.potential_extrema * np.exp(-.5 * ((x / self.width) ** 2))
+    def __call__(self, *, r, **kwargs):
+        centered_r = r - self.center
+        return self.potential_depth * np.exp(-.5 * ((centered_r / self.width) ** 2))
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'potential_depth',
+            'width',
+            'center',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('potential_depth', 'u.eV'),
+            ('width', 'u.nm'),
+            ('center', 'u.nm'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Potential Depth', f'{u.uround(self.potential_extrema, u.eV)} u.eV')
-        info.add_field('Width', f'{u.uround(self.width, u.bohr_radius, 3)} a_0 | {u.uround(self.width, u.nm, 3)} u.nm')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
+        info.add_field('Potential Depth', utils.fmt_quantity(self.potential_depth, utils.ENERGY_UNITS))
+        info.add_field('Width', utils.fmt_quantity(self.width, utils.LENGTH_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
 
         return info

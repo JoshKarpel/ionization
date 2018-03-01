@@ -29,7 +29,7 @@ class EvolutionMethod(ABC):
     def evolve(self, sim, b, times, time_step):
         raise NotImplementedError
 
-    def info(self):
+    def info(self) -> si.Info:
         info = si.Info(header = f'Evolution Method: {self.__class__.__name__}')
 
         info.add_field('Time Step Type', self.time_step_type.value.title())
@@ -272,7 +272,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
             logger.debug(f'Rejected ARK4 step. Changed time step to {u.uround(sim.time_step, u.asec, 6)} as from {u.uround(old_step, u.asec, 6)} as')
             return self.evolve(sim, b, times, sim.time_step)  # retry with new time step
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Error Control On', self.error_on)

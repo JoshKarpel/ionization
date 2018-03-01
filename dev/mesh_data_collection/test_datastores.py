@@ -125,7 +125,7 @@ if __name__ == '__main__':
             time_final = 100 * u.asec,
             time_step = 1 * u.asec,
             electric_potential = potential,
-            evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+            evolution_method = ion.mesh.SplitInteractionOperator(),
             use_numeric_eigenstates = False,
             test_states = [
                 ion.states.HydrogenBoundState(n, l)

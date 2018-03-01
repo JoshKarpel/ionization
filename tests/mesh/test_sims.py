@@ -70,7 +70,7 @@ def test_with_no_potential_final_state_is_initial_state_for_spherical_harmonic_m
         'test',
         initial_state = initial_state,
         operators = operators,
-        evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+        evolution_method = ion.mesh.SplitInteractionOperator(),
         time_initial = 0,
         time_final = 100 * u.asec,
         time_step = 1 * u.asec,

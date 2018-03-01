@@ -23,7 +23,7 @@ if __name__ == '__main__':
             time_step = 1 * u.asec,
             store_data_every = -1,
             operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
-            evolution_method = ion.mesh.SphericalHarmonicSplitOperator(),
+            evolution_method = ion.mesh.SplitInteractionOperator(),
             datastore_types = (
                 ion.mesh.Fields,
                 ion.mesh.Norm,

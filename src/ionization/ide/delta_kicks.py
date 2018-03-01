@@ -36,7 +36,7 @@ class DeltaKicks(potentials.PotentialEnergy):
     def __call__(self, *args, **kwargs):
         raise ValueError('DeltaKicks potential cannot be evaluated')
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Number of Kicks', len(self))
@@ -315,7 +315,7 @@ class DeltaKickSimulation(si.Simulation):
 
             figman.name += postfix
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_infos(self.spec)
@@ -423,7 +423,7 @@ class DeltaKickSpecification(si.Specification):
     def test_frequency(self):
         return self.test_omega / u.twopi
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info_evolution = si.Info(header = 'Time Evolution')

@@ -37,7 +37,7 @@ class Kernel(ABC):
         """
         raise NotImplementedError
 
-    def info(self):
+    def info(self) -> si.Info:
         info = si.Info(header = f'Kernel: {self.__class__.__name__}')
 
         return info
@@ -99,7 +99,7 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         return kernel_func
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Bound State Energy', f'{u.uround(self.bound_state_energy, u.eV)} eV | {u.uround(self.bound_state_energy, u.hartree)} hartree')

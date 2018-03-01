@@ -1,5 +1,6 @@
 import numpy as np
 
+import simulacra as si
 import simulacra.units as u
 
 from .. import utils
@@ -31,13 +32,27 @@ class ImaginaryGaussianRing(potential.PotentialEnergy):
 
         super().__init__()
 
+    def __call__(self, *, r, **kwargs):
+        rel = r - self.center
+        return self.prefactor * np.exp(-((rel / self.width) ** 2))
+
     def __repr__(self):
-        return f'{self.__class__.__name__}(center = {self.center}, width = {self.width}, decay_time = {self.decay_time})'
+        return utils.fmt_fields(
+            self,
+            self.center,
+            self.width,
+            self.decay_time
+        )
 
     def __str__(self):
-        return f'{self.__class__.__name__}(center = {u.uround(self.center, u.bohr_radius)} a_0, width = {u.uround(self.width, u.bohr_radius)} a_0, decay_time = {u.uround(self.decay_time, u.asec)} as)'
+        return utils.fmt_fields(
+            self,
+            (self.center, 'bohr_radius'),
+            (self.width, 'bohr_radius'),
+            (self.decay_time, 'asec'),
+        )
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
@@ -45,7 +60,3 @@ class ImaginaryGaussianRing(potential.PotentialEnergy):
         info.add_field('Decay Time', utils.fmt_quantity(self.decay_time, utils.TIME_UNITS))
 
         return info
-
-    def __call__(self, *, r, **kwargs):
-        rel = r - self.center
-        return self.prefactor * np.exp(-((rel / self.width) ** 2))

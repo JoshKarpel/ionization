@@ -183,7 +183,7 @@ class Operators(abc.ABC):
     @si.utils.memoize
     def internal_hamiltonian(self, mesh: 'meshes.QuantumMesh') -> SumOfOperators:
         kinetic_operators = self.kinetic_energy(mesh).operators
-        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, distance = mesh.r_mesh, test_charge = mesh.spec.test_charge)
+        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, test_charge = mesh.spec.test_charge)
 
         pre = 1 / len(kinetic_operators)
 
@@ -216,7 +216,7 @@ class Operators(abc.ABC):
 
         return SumOfOperators(*total_operators)
 
-    def info(self):
+    def info(self) -> si.Info:
         return si.Info(header = f'{self.__class__.__name__}')
 
 
@@ -237,7 +237,7 @@ class LineLengthGaugeOperators(Operators):
         return SumOfOperators(DotOperator(matrix, wrapping_direction = None))
 
     def interaction_hamiltonian(self, mesh: 'meshes.LineMesh') -> SumOfOperators:
-        epot = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
+        epot = mesh.spec.electric_potential(t = mesh.sim.time, z = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         matrix = sparse.diags((epot,), offsets = (0,))
 
@@ -359,7 +359,7 @@ class CylindricalSliceLengthGaugeOperators(Operators):
         return DotOperator(rho_kinetic, wrapping_direction = meshes.WrappingDirection.RHO)
 
     def interaction_hamiltonian(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
-        electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
+        electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, z = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         interaction_hamiltonian_z = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.Z))
         interaction_hamiltonian_rho = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.RHO))
@@ -431,7 +431,7 @@ class SphericalSliceLengthGaugeOperators(Operators):
             self.r_kinetic_energy(mesh),
         )
 
-    def r_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh'):
+    def r_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> DotOperator:
         r_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * (mesh.delta_r ** 2))
 
         r_diagonal = -2 * r_prefactor * np.ones(mesh.mesh_points, dtype = np.complex128)
@@ -441,7 +441,7 @@ class SphericalSliceLengthGaugeOperators(Operators):
 
         return DotOperator(r_kinetic, wrapping_direction = meshes.WrappingDirection.R)
 
-    def theta_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
+    def theta_kinetic_energy(self, mesh: 'meshes.SphericalSliceMesh') -> DotOperator:
         theta_prefactor = -(u.hbar ** 2) / (2 * u.electron_mass_reduced * ((mesh.delta_r * mesh.delta_theta) ** 2))
 
         def theta_j_prefactor(x):
@@ -479,7 +479,7 @@ class SphericalSliceLengthGaugeOperators(Operators):
         return DotOperator(theta_kinetic, wrapping_direction = meshes.WrappingDirection.THETA)
 
     def interaction_hamiltonian(self, mesh: 'meshes.SphericalSliceMesh') -> SumOfOperators:
-        electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, distance_along_polarization = mesh.z_mesh, test_charge = mesh.spec.test_charge)
+        electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, z = mesh.z_mesh, test_charge = mesh.spec.test_charge)
 
         interaction_hamiltonian_r = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.R))
         interaction_hamiltonian_theta = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.THETA))

@@ -48,7 +48,7 @@ if __name__ == '__main__':
             z_bound = 100 * u.nm,
             z_points = 2 ** 12,
             evolution_method = ion.mesh.AlternatingDirectionImplicit(),
-            # evolution_method = ion.mesh.LineSplitOperator(),
+            # evolution_method = ion.mesh.SplitInteractionOperator(),
             animators = [
                 ion.mesh.anim.RectangleSplitLowerAnimator(
                     axman_wavefunction = ion.mesh.anim.LineMeshAxis(),

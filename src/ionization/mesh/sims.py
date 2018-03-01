@@ -1072,7 +1072,7 @@ class LineSpecification(MeshSpecification):
         self.use_numeric_eigenstates = use_numeric_eigenstates
         self.number_of_numeric_eigenstates = number_of_numeric_eigenstates
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
@@ -1160,7 +1160,7 @@ class CylindricalSliceSpecification(MeshSpecification):
 #
 #         self.warping = warping
 #
-#     def info(self):
+#     def info(self) -> si.Info:
 #         info = super().info()
 #
 #         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
@@ -1202,7 +1202,7 @@ class SphericalSliceSpecification(MeshSpecification):
         self.r_points = int(r_points)
         self.theta_points = int(theta_points)
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')

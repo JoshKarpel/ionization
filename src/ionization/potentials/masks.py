@@ -50,12 +50,6 @@ class RadialCosineMask(Mask):
         self.outer_radius = outer_radius
         self.smoothness = smoothness
 
-    def __repr__(self):
-        return f'{self.__class__.__name__}(inner_radius = {self.inner_radius}, outer_radius = {self.outer_radius}, smoothness = {self.smoothness})'
-
-    def __str__(self):
-        return f'{self.__class__.__name__}(inner_radius = {u.uround(self.inner_radius, u.bohr_radius)} a_0, outer_radius = {u.uround(self.outer_radius, u.bohr_radius)} a_0, smoothness = {self.smoothness})'
-
     def __call__(self, *, r, **kwargs):
         """
         Return the value(s) of the mask at radial position(s) r.
@@ -72,7 +66,23 @@ class RadialCosineMask(Mask):
             np.where(np.greater_equal(r, self.outer_radius), 0, 1),
         )
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'inner_radius',
+            'outer_radius',
+            'smoothness',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('inner_radius', 'bohr_radius'),
+            ('outer_radius', 'bohr_radius'),
+            'smoothness',
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Inner Radius', utils.fmt_quantity(self.inner_radius, utils.LENGTH_UNITS))
