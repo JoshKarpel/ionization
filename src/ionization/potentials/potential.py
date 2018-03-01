@@ -6,7 +6,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class PotentialEnergy(si.Summand):
+class PotentialEnergy(si.summables.Summand):
     """A class representing some kind of potential energy. Can be summed to form a PotentialEnergySum."""
 
     def __init__(self, *args, **kwargs):
@@ -14,7 +14,7 @@ class PotentialEnergy(si.Summand):
         self.summation_class = PotentialEnergySum
 
 
-class PotentialEnergySum(si.Sum, PotentialEnergy):
+class PotentialEnergySum(si.summables.Sum, PotentialEnergy):
     """A class representing a combination of potential energies."""
 
     container_name = 'potentials'

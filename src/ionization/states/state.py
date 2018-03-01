@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class QuantumState(si.Summand):
+class QuantumState(si.summables.Summand):
     """A class that represents a quantum state, with an amplitude and some basic multiplication/addition rules. Can be summed to form a Superposition."""
 
     bound = None
@@ -86,7 +86,7 @@ class QuantumState(si.Summand):
         return 0
 
 
-class Superposition(si.Sum, QuantumState):
+class Superposition(si.summables.Sum, QuantumState):
     """A class that represents a superposition of bound states."""
 
     container_name = 'states'

@@ -8,7 +8,7 @@ import simulacra.units as u
 from .. import utils, exceptions
 
 
-class Mask(si.Summand):
+class Mask(si.summables.Summand):
     """A class representing a spatial 'mask' that can be applied to the wavefunction to reduce it in certain regions."""
 
     def __init__(self):
@@ -16,7 +16,7 @@ class Mask(si.Summand):
         self.summation_class = MaskSum
 
 
-class MaskSum(si.Sum, Mask):
+class MaskSum(si.summables.Sum, Mask):
     """A class representing a combination of masks."""
 
     container_name = 'masks'

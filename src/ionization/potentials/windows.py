@@ -8,7 +8,7 @@ import simulacra.units as u
 from .. import utils
 
 
-class TimeWindow(si.Summand):
+class TimeWindow(si.summables.Summand):
     """A class representing a time-window that can be attached to another potential."""
 
     def __init__(self):
@@ -16,7 +16,7 @@ class TimeWindow(si.Summand):
         self.summation_class = TimeWindowSum
 
 
-class TimeWindowSum(si.Sum, TimeWindow):
+class TimeWindowSum(si.summables.Sum, TimeWindow):
     """A class representing a combination of time-windows."""
 
     container_name = 'windows'
