@@ -1,14 +1,16 @@
 import logging
 import collections
+from typing import Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.interpolate as interp
 
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, potentials, states
+from .. import core, potentials, states, vis
 
 from . import kernels
 
@@ -84,11 +86,16 @@ class DeltaKickSimulation(si.Simulation):
         self.time_step = self.spec.time_step
 
         if self.spec.electric_potential_dc_correction and not isinstance(self.spec.electric_potential, DeltaKicks):
-            dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, self.times)
             old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
 
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+            logger.warning(f'Replaced electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
+
+        # self.interpolated_vector_potential = interp.CubicSpline(
+        #     x = self.times,
+        #     y = self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times),
+        #     bc_type = 'natural',
+        # )
 
         if not isinstance(self.spec.electric_potential, DeltaKicks):
             self.spec.kicks = decompose_potential_into_kicks(self.spec.electric_potential, self.times)
@@ -98,7 +105,7 @@ class DeltaKickSimulation(si.Simulation):
         self.data_times = np.array([self.spec.time_initial] + [k.time for k in self.spec.kicks] + [self.spec.time_final])  # for consistency with other simulations
 
         self.b = np.empty(len(self.spec.kicks) + 2, dtype = np.complex128) * np.NaN
-        self.b[0] = 1
+        self.b[0] = self.spec.b_initial
 
     @property
     def time_steps(self):
@@ -112,41 +119,41 @@ class DeltaKickSimulation(si.Simulation):
     def b2(self):
         return np.abs(self.b) ** 2
 
-    def eval_kernel(self, time_difference):
+    def evaluate_kernel(self, time_current, time_previous):
         """
         Calculate the values of the IDE kernel as a function of the time difference.
 
         Parameters
         ----------
-        time_difference
-            The time differences to evaluate the kernel at.
-        quiver_difference
-            The quiver motion differences to evaluate the kernel at. Only used for velocity-gauge kernels.
+        time_current
+        time_previous
 
         Returns
         -------
         kernel :
             The value of the kernel at the time differences.
         """
-        return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
+        return self.spec.kernel(
+            time_current,
+            time_previous,
+            self.spec.electric_potential,
+            None
+            # self.interpolated_vector_potential,
+        )
 
     def _solve(self):
         amplitudes = np.array([kick.amplitude for kick in self.spec.kicks])
-        k0 = self.eval_kernel(0)
+        k0 = self.evaluate_kernel(0, 0)
 
         t_idx = 1
         for kick in self.spec.kicks:
-            eta = kick.amplitude
-            print(eta, amplitudes[:t_idx])
-            print((self.data_times[t_idx] - self.data_times[1:t_idx + 1]) / u.asec)
-            print(self.b[:t_idx])
-            history_sum = (self.spec.integral_prefactor * eta) * np.sum(amplitudes[:t_idx - 1] * self.eval_kernel(self.data_times[t_idx] - self.data_times[1:t_idx]) * self.b[1:t_idx])
-            self.b[t_idx] = (self.b[t_idx - 1] + history_sum) / (1 - (self.spec.integral_prefactor * k0 * (eta ** 2)))
+            history_sum = (self.spec.integral_prefactor * kick.amplitude) * np.sum(amplitudes[:t_idx - 1] * self.evaluate_kernel(self.data_times[t_idx], self.data_times[1:t_idx]) * self.b[1:t_idx])
+            self.b[t_idx] = (self.b[t_idx - 1] + history_sum) / (1 - (self.spec.integral_prefactor * k0 * (kick.amplitude ** 2)))
             t_idx += 1
 
         self.b[-1] = self.b[-2]
 
-    def run_simulation(self, callback = None):
+    def run(self, callback = None):
         """
         Run the simulation by repeatedly evolving it forward in time.
 
@@ -167,14 +174,15 @@ class DeltaKickSimulation(si.Simulation):
         self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
-    def attach_electric_potential_plot_to_axis(self,
-                                               axis,
-                                               time_unit = 'asec',
-                                               legend_kwargs = None,
-                                               show_y_label = False,
-                                               show_electric_field = True,
-                                               show_vector_potential = True,
-                                               overlay_kicks = True):
+    def attach_electric_potential_plot_to_axis(
+            self,
+            axis,
+            time_unit = 'asec',
+            legend_kwargs = None,
+            show_y_label = False,
+            show_electric_field = True,
+            show_vector_potential = True,
+            overlay_kicks = True):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if legend_kwargs is None:
@@ -189,16 +197,16 @@ class DeltaKickSimulation(si.Simulation):
 
         y_labels = []
         if show_electric_field:
-            e_label = fr'$ {core.LATEX_EFIELD}(t) $'
+            e_label = fr'$ {vis.LATEX_EFIELD}(t) $'
             axis.plot(self.times / time_unit_value, self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
-                      color = core.COLOR_ELECTRIC_FIELD,
+                      color = vis.COLOR_ELECTRIC_FIELD,
                       linewidth = 1.5,
                       label = e_label)
             y_labels.append(e_label)
         if show_vector_potential:
-            a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
+            a_label = fr'$ e \, {vis.LATEX_AFIELD}(t) $'
             axis.plot(self.times / time_unit_value, u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / u.atomic_momentum,
-                      color = core.COLOR_VECTOR_POTENTIAL,
+                      color = vis.COLOR_VECTOR_POTENTIAL,
                       linewidth = 1.5,
                       label = a_label)
             y_labels.append(a_label)
@@ -318,7 +326,7 @@ class DeltaKickSimulation(si.Simulation):
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_infos(self.spec)
+        info.add_info(self.spec.info())
 
         return info
 
@@ -329,20 +337,19 @@ class DeltaKickSpecification(si.Specification):
     """
     simulation_type = DeltaKickSimulation
 
-    integration_method = si.utils.RestrictedValues(['simpson', 'trapezoid'])
-    pulse_decomposition_strategy = si.utils.RestrictedValues(['amplitude', 'fluence'])
-
     def __init__(self, name,
-                 time_initial = 0 * u.asec, time_final = 200 * u.asec, time_step = 1 * u.asec,
-                 test_mass = u.electron_mass,
-                 test_charge = u.electron_charge,
-                 test_energy = states.HydrogenBoundState(1, 0).energy,
-                 b_initial = 1,
-                 integral_prefactor = -(u.electron_charge / u.hbar) ** 2,
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = False,
-                 kernel = kernels.LengthGaugeHydrogenKernel(),
-                 evolution_gauge = 'LEN',
+                 time_initial = 0 * u.asec,
+                 time_final = 200 * u.asec,
+                 time_step = 1 * u.asec,
+                 test_mass: float = u.electron_mass,
+                 test_charge: float = u.electron_charge,
+                 test_energy: float = states.HydrogenBoundState(1, 0).energy,
+                 b_initial: Union[float, complex] = 1,
+                 integral_prefactor: float = -(u.electron_charge / u.hbar) ** 2,
+                 electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+                 electric_potential_dc_correction: bool = True,
+                 kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+                 evolution_gauge: core.Gauge = core.Gauge.LENGTH,
                  **kwargs):
         """
         The differential equation should be of the form
