@@ -1159,7 +1159,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         if self.spec.use_numeric_eigenstates:
             self.analytic_to_numeric = self.get_numeric_eigenstate_basis(self.spec.numeric_eigenstate_max_energy, self.spec.numeric_eigenstate_max_angular_momentum)
             self.spec.test_states = sorted(list(self.analytic_to_numeric.values()), key = lambda x: x.energy)
-            self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
+            if not self.spec.initial_state.numeric:
+                self.spec.initial_state = self.analytic_to_numeric[self.spec.initial_state]
 
             logger.warning(f'Replaced test states for {self} with numeric eigenbasis')
 

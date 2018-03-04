@@ -66,7 +66,7 @@ class Datastore(abc.ABC):
 def link_property_to_data(datastore_type, method):
     def get_data_property(data):
         try:
-            return getattr(data.sim.datastores[datastore_type.__name__], method.__name__)()
+            return getattr(data.sim.datastores_by_type[datastore_type], method.__name__)()
         except KeyError as e:
             raise exceptions.MissingDatastore(f"Couldn't get data {method.__name__} for {data.sim} because it does not include a {datastore_type.__name__} datastore.")
 

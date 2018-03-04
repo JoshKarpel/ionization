@@ -55,9 +55,8 @@ class MeshSimulation(si.Simulation, abc.ABC):
         self.data_time_steps = len(self.data_times)
 
         self.data = data.Data(self)
-        self.datastores = {ds.__class__.__name__: ds for ds in self.spec.datastores}
-        del self.spec.datastores  # move datastores into the sim when it gets turned into a sim
-        for ds in self.datastores.values():
+        self.datastores_by_type = {ds.__class__: deepcopy(ds) for ds in self.spec.datastores}
+        for ds in self.datastores_by_type.values():
             ds.init(self)
 
         # populate the snapshot times from the two ways of entering snapshot times in the spec (by index or by time)
@@ -120,7 +119,7 @@ class MeshSimulation(si.Simulation, abc.ABC):
         info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
         if hasattr(self.spec, 'use_numeric_eigenstates') and self.spec.use_numeric_eigenstates:
             info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
-        info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores.items())
+        info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores_by_type.items())
         info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
 
         info.add_info(info_mem)
@@ -173,10 +172,9 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
     def store_data(self):
         """Update the time-indexed data arrays with the current values."""
-        for datastore in self.datastores.values():
-            datastore.store()
-
-        logger.debug(f'{self} stored data for time index {self.time_index} (data time index {self.data_time_index})')
+        for ds_type, ds in self.datastores_by_type.items():
+            ds.store()
+            logger.debug(f'{self} stored data for {ds_type}')
 
     def check(self):
         norm = self.data.norm[self.data_time_index]
@@ -922,7 +920,6 @@ class MeshSpecification(si.Specification, abc.ABC):
         snapshot_indices
         snapshot_type
         snapshot_kwargs
-        datastore_types
         kwargs
         """
         super().__init__(name, **kwargs)

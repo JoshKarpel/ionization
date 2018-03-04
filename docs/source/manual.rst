@@ -30,6 +30,9 @@ Mesh-based TDSE simulations and implemented in the ``mesh`` submodule.
 * ``data`` - time-indexed data storage of electric field properties, wavefunction norm and inner products, and operator expectation values.
 * ``anim`` - tools for animating wavefunction evolution.
 
+Note some quirks of datastores: they're passed to the spec, but the real datastores are owned by the sim.
+The datastores given to the spec are "prototypes", which are deep-copied by the sim during startup before they're initialized.
+
 IDE Simulations
 ---------------
 

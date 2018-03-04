@@ -72,25 +72,6 @@ def test_accessing_missing_data_raises_exception(spec_type, datastore_type):
 @pytest.mark.parametrize(
     'spec_type', SPEC_TYPES
 )
-def test_spec_doesnt_have_reference_to_datastores_after_sim_init(spec_type):
-    spec = spec_type(
-        'test',
-        datastores = [ion.mesh.Norm()],
-    )
-
-    assert hasattr(spec, 'datastores')
-    assert hasattr(spec, 'datastore_types')
-
-    sim = spec.to_sim()
-
-    assert not hasattr(spec, 'datastores')
-    assert hasattr(spec, 'datastore_types')
-    assert hasattr(sim, 'datastores')
-
-
-@pytest.mark.parametrize(
-    'spec_type', SPEC_TYPES
-)
 def test_cannot_duplicate_datastores(spec_type):
     with pytest.raises(ion.exceptions.DuplicateDatastores):
         spec_type(
@@ -100,3 +81,17 @@ def test_cannot_duplicate_datastores(spec_type):
                 ion.mesh.Norm(),
             ],
         )
+
+
+@pytest.mark.parametrize(
+    'spec_type', SPEC_TYPES
+)
+def test_to_sim_multiple_times_produces_new_datastores(spec_type):
+    spec = spec_type('test')
+
+    sim_one = spec.to_sim()
+    sim_two = spec.to_sim()
+
+    assert sim_one != sim_two
+    for ds_type in spec.datastore_types:
+        assert sim_one.datastores_by_type[ds_type] != sim_two.datastores_by_type[ds_type]
