@@ -4,15 +4,7 @@ import pytest
 import coverage
 import os
 
-cov = coverage.coverage(
-    branch = True,
-    omit = [
-        'tests/*',
-    ],
-    include = [
-        'src/ionization/*',
-    ]
-)
+cov = coverage.coverage()
 cov.start()
 
 pytest.main()

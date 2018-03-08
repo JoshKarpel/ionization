@@ -3,7 +3,7 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import utils
+from .. import utils, exceptions
 from . import potential
 
 
@@ -23,8 +23,19 @@ class ImaginaryGaussianRing(potential.PotentialEnergy):
         decay_time
             The decay time (1/e time) of a wavefunction packet at the peak of the imaginary potential.
         """
+        if center < 0:
+            raise exceptions.InvalidPotentialParameter('center must be non-negative')
+        if width <= 0:
+            raise exceptions.InvalidPotentialParameter('width must be non-negative')
+
         self.center = center
         self.width = width
+
+        if decay_time.imag != 0:
+            raise exceptions.InvalidPotentialParameter('decay time must be real')
+        if decay_time <= 0:
+            raise exceptions.InvalidPotentialParameter('decay time must be positive')
+
         self.decay_time = decay_time
         self.decay_rate = 1 / decay_time
 

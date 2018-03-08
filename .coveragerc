@@ -1,0 +1,20 @@
+[run]
+branch = True
+
+include =
+    src/ionization/*
+
+omit =
+    tests/*
+
+[report]
+exclude_lines =
+    pragma: no cover
+
+    def __repr__
+    def __str__
+    def info(self)
+
+    raise NotImplementedError
+
+    for _ in \[\]:
