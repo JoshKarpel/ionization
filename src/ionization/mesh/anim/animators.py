@@ -6,6 +6,7 @@ import simulacra as si
 import simulacra.units as u
 
 from . import axes
+from ionization import utils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -21,7 +22,7 @@ class WavefunctionSimulationAnimator(si.vis.Animator):
         self.axis_managers.append(self.axman_wavefunction)
 
     def __str__(self):
-        return si.utils.field_str(self, 'postfix', 'axis_managers')
+        return utils.fmt_fields(self, 'postfix', 'axis_managers')
 
     def __repr__(self):
         return self.__str__()

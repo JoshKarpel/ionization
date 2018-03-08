@@ -21,22 +21,21 @@ PLOT_KWARGS = dict(
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        sim = ion.mesh.CylindricalSliceSpecification(
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass()
+        sim = ion.mesh.LineSpecification(
             'test',
-            z_bound = 20 * u.bohr_radius,
-            rho_bound = 20 * u.bohr_radius,
-            z_points = 500,
-            rho_points = 250,
-            initial_state = ion.states.HydrogenBoundState(1, 0) + ion.states.HydrogenBoundState(2, 1),
+            z_bound = 100 * u.nm,
+            z_points = 1000,
+            initial_state = ion.states.QHOState.from_potential(qho, u.electron_mass),
             time_initial = 0,
             time_final = 100 * u.asec,
             time_step = 1 * u.asec
         ).to_sim()
         sim.run()
 
-        sim.mesh.plot_g(**PLOT_KWARGS)
-        sim.mesh.plot_g2(**PLOT_KWARGS)
-        sim.mesh.plot_psi(**PLOT_KWARGS)
-        sim.mesh.plot_psi2(**PLOT_KWARGS)
+        sim.mesh.plot.g(**PLOT_KWARGS)
+        sim.mesh.plot.g2(**PLOT_KWARGS)
+        sim.mesh.plot.psi(**PLOT_KWARGS)
+        sim.mesh.plot.psi2(**PLOT_KWARGS)
 
-        sim.mesh.plot_g(name_postfix = '_pc', overlay_probability_current = True, **PLOT_KWARGS)
+        # sim.mesh.plot.g(name_postfix = '_pc', overlay_probability_current = True, **PLOT_KWARGS)

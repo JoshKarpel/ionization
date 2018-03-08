@@ -169,16 +169,17 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
 
 
 class StackplotAxis(si.vis.AxisManager):
-    def __init__(self,
-                 show_norm = True,
-                 time_unit: u.Unit = 'asec',
-                 y_label = None,
-                 show_ticks_bottom = True,
-                 show_ticks_top = False,
-                 show_ticks_right = True,
-                 show_ticks_left = True,
-                 grid_kwargs = None,
-                 legend_kwargs = None):
+    def __init__(
+            self,
+            show_norm = True,
+            time_unit: u.Unit = 'asec',
+            y_label = None,
+            show_ticks_bottom = True,
+            show_ticks_top = False,
+            show_ticks_right = True,
+            show_ticks_left = True,
+            grid_kwargs = None,
+            legend_kwargs = None):
         self.show_norm = show_norm
 
         self.time_unit = time_unit
@@ -412,9 +413,10 @@ class AngularMomentumDecompositionAxis(si.vis.AxisManager):
 
 
 class ColorBarAxis(si.vis.AxisManager):
-    def assign_colorable(self,
-                         colorable,
-                         fontsize = 14):
+    def assign_colorable(
+            self,
+            colorable,
+            fontsize = 14):
         self.colorable = colorable
         self.fontsize = fontsize
 
@@ -426,15 +428,16 @@ class ColorBarAxis(si.vis.AxisManager):
 
 
 class QuantumMeshAxis(si.vis.AxisManager):
-    def __init__(self,
-                 which = 'g2',
-                 colormap = vis.COLORMAP_WAVEFUNCTION,
-                 norm = si.vis.AbsoluteRenormalize(),
-                 plot_limit = None,
-                 distance_unit = 'bohr_radius',
-                 shading = 'gouraud',
-                 slicer = 'get_mesh_slicer',
-                 grid_kwargs = None):
+    def __init__(
+            self,
+            which = 'g2',
+            colormap = vis.COLORMAP_WAVEFUNCTION,
+            norm = si.vis.AbsoluteRenormalize(),
+            plot_limit = None,
+            distance_unit = 'bohr_radius',
+            shading = 'gouraud',
+            slicer = 'get_mesh_slicer',
+            grid_kwargs = None):
         self.which = which
         self.colormap = colormap
         self.norm = norm
@@ -450,8 +453,8 @@ class QuantumMeshAxis(si.vis.AxisManager):
         super().__init__()
 
     def initialize(self, simulation):
-        self.attach_method = getattr(simulation.mesh, f'attach_{self.which}_to_axis')
-        self.update_method = getattr(simulation.mesh, f'update_{self.which}_mesh')
+        self.attach_method = getattr(simulation.mesh.plot, f'attach_{self.which}_to_axis')
+        self.update_method = getattr(simulation.mesh.plot, f'update_{self.which}_mesh')
 
         super().initialize(simulation)
 
@@ -480,11 +483,12 @@ class QuantumMeshAxis(si.vis.AxisManager):
 
 
 class LineMeshAxis(QuantumMeshAxis):
-    def __init__(self,
-                 which = 'psi2',
-                 # show_potential = False,
-                 log = False,
-                 **kwargs):
+    def __init__(
+            self,
+            which = 'psi2',
+            # show_potential = False,
+            log = False,
+            **kwargs):
         # self.show_potential = show_potential
 
         super().__init__(which = which, **kwargs)
