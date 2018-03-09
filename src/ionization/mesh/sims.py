@@ -703,7 +703,7 @@ class SphericalHarmonicSpecification(MeshSpecification):
             theta_points: int = 180,
             operators: mesh_operators.Operators = mesh_operators.SphericalHarmonicLengthGaugeOperators(),
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SplitInteractionOperator(),
-            use_numeric_eigenstates: bool = True,
+            use_numeric_eigenstates: bool = False,
             numeric_eigenstate_max_angular_momentum: int = 5,
             numeric_eigenstate_max_energy: float = 20 * u.eV,
             **kwargs):

@@ -268,6 +268,9 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         -------
 
         """
+        if intensity < 0:
+            raise exceptions.InvalidPotentialParameter('intensity must be non-negative')
+
         return cls(photon_energy / u.hbar, amplitude = np.sqrt(2 * intensity / (u.epsilon_0 * u.c)), phase = phase, **kwargs)
 
     @property

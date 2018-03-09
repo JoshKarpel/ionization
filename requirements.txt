@@ -1,4 +1,4 @@
-Cython
+cython
 matplotlib
 mpmath
 numpy
@@ -8,3 +8,7 @@ scipy
 tqdm
 simulacra
 sympy
+pytest
+pytest-mock
+pytest-xdist
+hypothesis
