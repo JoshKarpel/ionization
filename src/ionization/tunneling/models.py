@@ -30,7 +30,7 @@ class TunnelingModel(abc.ABC):
     def tunneling_rate(self, electric_field_amplitude, ionization_potential):
         rate = self._tunneling_rate(electric_field_amplitude = electric_field_amplitude, ionization_potential = ionization_potential)
         rate = np.where(
-            electric_field_amplitude <= self.upper_amplitude_cutoff,
+            np.abs(electric_field_amplitude) <= self.upper_amplitude_cutoff,
             rate,
             0,
         ).squeeze()
@@ -102,12 +102,16 @@ class KeldyshRate(TunnelingModel):
 
 
 class PosthumusRate(TunnelingModel):
-    def __init__(self, atomic_number = 1):
-        super().__init__()
+    """
+    This is actually a BSI model.
+
+    NB: current includes an amplitude cutoff which is only appropriate for hydrogen.
+    """
+
+    def __init__(self, atomic_number = 1, **kwargs):
+        super().__init__(**kwargs)
 
         self.atomic_number = atomic_number
-
-        warnings.warn(f"{self.__class__.__name__} uses a lower cutoff in the electric field amplitude that I haven't fully figured out yet")
 
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
@@ -121,7 +125,7 @@ class PosthumusRate(TunnelingModel):
             rate = -.5 * (1 - ((scaled_potential ** 2) / (4 * self.atomic_number * scaled_amplitude))) / (2 * T) / u.atomic_time
 
         rate = np.where(
-            np.less_equal(scaled_amplitude, 0.0625),
+            np.less_equal(scaled_amplitude, u.atomic_electric_field / 16),
             0,
             rate,
         )
@@ -158,7 +162,7 @@ class ADKRate(TunnelingModel):
     This rate is average over one laser cycle.
     """
 
-    def __init__(self, n_star = 1, l = 0, m = 0):
+    def __init__(self, n_star = 1, l = 0, m = 0, **kwargs):
         """
         Parameters
         ----------
@@ -169,7 +173,7 @@ class ADKRate(TunnelingModel):
         m
             Magnetic quantum number
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.n_star = n_star
         self.l = l
@@ -199,14 +203,14 @@ class ADKRate(TunnelingModel):
 
 
 class ADKExtendedToBSIRate(ADKRate):
-    def __init__(self, n_star = 1):
+    def __init__(self, n_star = 1, **kwargs):
         """
         Parameters
         ----------
         n_star
             Effective quantum number
         """
-        super().__init__()
+        super().__init__(**kwargs)
 
         self.n_star = n_star
 
