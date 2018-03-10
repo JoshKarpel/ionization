@@ -675,15 +675,13 @@ class SphericalSliceSpecification(MeshSpecification):
 
 
 class SphericalHarmonicSimulation(MeshSimulation):
-    """Adds options and data storage that are specific to SphericalHarmonicMesh-using simulations."""
-
     def check(self):
         super().check()
 
         g_for_largest_l = self.mesh.g[-1]
         norm_in_largest_l = self.mesh.state_overlap(g_for_largest_l, g_for_largest_l)
 
-        if norm_in_largest_l > self.data.norm[self.data_time_index] / 1e9:
+        if norm_in_largest_l > 1e-6:
             msg = f'Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.data.norm[self.data_time_index]}), consider increasing l bound'
             logger.warning(msg)
             self.warnings['norm_in_largest_l'].append(core.warning_record(self.time_index, msg))
@@ -703,22 +701,10 @@ class SphericalHarmonicSpecification(MeshSpecification):
             theta_points: int = 180,
             operators: mesh_operators.Operators = mesh_operators.SphericalHarmonicLengthGaugeOperators(),
             evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SplitInteractionOperator(),
-            use_numeric_eigenstates: bool = False,
-            numeric_eigenstate_max_angular_momentum: int = 5,
+            use_numeric_eigenstates: bool = True,
             numeric_eigenstate_max_energy: float = 20 * u.eV,
+            numeric_eigenstate_max_angular_momentum: int = 5,
             **kwargs):
-        """
-        Specification for an ElectricFieldSimulation using a SphericalHarmonicMesh.
-
-        :param name:
-        :param r_bound:
-        :param r_points:
-        :param l_bound:
-        :param evolution_equations: 'L' (recommended) or 'H'
-        :param evolution_method: 'SO' (recommended) or 'CN'
-        :param evolution_gauge: 'V' (recommended) or 'L'
-        :param kwargs: passed to ElectricFieldSpecification
-        """
         super().__init__(
             name,
             operators = operators,
