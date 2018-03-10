@@ -3,6 +3,10 @@
 import pytest
 import coverage
 import os
+import multiprocessing
+
+print('Beginning coverage testing')
+print()
 
 cov = coverage.coverage()
 cov.start()
@@ -11,6 +15,8 @@ pytest.main()
 
 cov.stop()
 cov.save()
+
+print()
 
 print('Coverage Report:')
 cov.report()
