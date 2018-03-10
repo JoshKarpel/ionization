@@ -18,7 +18,7 @@ if __name__ == '__main__':
             # store_data_every = -1,
             evolution_method = ide.RungeKuttaFourMethod(),
             # kernel = ide.LengthGaugeHydrogenKernel(),
-            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+            kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
         ).to_sim()
 
         # sim.info().log()

@@ -46,7 +46,7 @@ def vector_potential(electric_field, times):
     'kernel',
     [
         ide.LengthGaugeHydrogenKernel(),
-        ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+        ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
     ]
 )
 def test_hydrogen_kernel_at_time_difference_zero_is_correct(kernel, electric_field, vector_potential, times, current_time_index):
@@ -61,7 +61,7 @@ def test_hydrogen_kernel_at_time_difference_zero_is_correct(kernel, electric_fie
 )
 @hyp.given(current_time_index = st.integers(min_value = 1, max_value = NUM_TIMES - 1))
 def test_approximate_continuum_continuum_interaction_phase_is_zero_at_time_difference_zero(vector_potential, times, current_time_index):
-    kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+    kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
 
     current_time = times[current_time_index]
     previous_times = times[:current_time_index + 1]
@@ -78,7 +78,7 @@ def test_approximate_continuum_continuum_interaction_phase_is_zero_at_time_diffe
 )
 @hyp.given(current_time_index = st.integers(min_value = 1, max_value = NUM_TIMES - 1))
 def test_integral_of_vector_potential_squared_in_phase_factor_is_never_negative(vector_potential, times, current_time_index):
-    kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+    kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
 
     previous_times = times[:current_time_index + 1]
 

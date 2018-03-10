@@ -53,7 +53,7 @@ if __name__ == '__main__':
         ide_spec = ide.IntegroDifferentialEquationSpecification(
             'ide',
             time_step = .5 * asec,
-            kernel = ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+            kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
             **shared_kwargs,
         )
 

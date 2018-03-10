@@ -67,7 +67,7 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         KERNELS = [
             ide.LengthGaugeHydrogenKernel(),
-            ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(
+            ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(
                 # integration_method = integ.quadrature,
             ),
         ]

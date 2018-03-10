@@ -1,7 +1,6 @@
 import logging
 import abc
-import itertools
-from typing import Union, Optional, Iterable, NewType, Tuple, Dict
+from typing import Union, Optional, Iterable, Tuple
 
 import numpy as np
 import scipy.sparse as sparse

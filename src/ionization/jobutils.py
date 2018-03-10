@@ -269,7 +269,7 @@ def ask_evolution_method_tdse(parameters):
 def ask_ide_kernel(parameters):
     choices = {
         'hydrogen': ide.LengthGaugeHydrogenKernel,
-        'hydrogen_with_cc': ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
+        'hydrogen_with_cc': ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
     }
     kernel_key = clu.ask_for_input(f'IDE Kernel? [{" | ".join(choices)}]', default = 'hydrogen')
     try:

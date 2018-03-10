@@ -54,7 +54,7 @@ if __name__ == '__main__':
         ]
         kernels = [
             ide.LengthGaugeHydrogenKernel(),
-            ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+            ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
         ]
 
         pw = 100 * u.asec
@@ -105,13 +105,13 @@ if __name__ == '__main__':
         identifier_to_final_b2 = {(r.spec.evolution_method.__class__, r.spec.kernel.__class__): r.b2[-1] for r in results}
         expected = {
             (ide.ForwardEulerMethod, ide.LengthGaugeHydrogenKernel): 0.11392725334866653,
-            (ide.ForwardEulerMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23874503549999987,
+            (ide.ForwardEulerMethod, ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23874503549999987,
             (ide.BackwardEulerMethod, ide.LengthGaugeHydrogenKernel): 0.10407548854993905,
-            (ide.BackwardEulerMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.22880463049055752,
+            (ide.BackwardEulerMethod, ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.22880463049055752,
             (ide.TrapezoidMethod, ide.LengthGaugeHydrogenKernel): 0.10891475259299933,
-            (ide.TrapezoidMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23370674421984355,
+            (ide.TrapezoidMethod, ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23370674421984355,
             (ide.RungeKuttaFourMethod, ide.LengthGaugeHydrogenKernel): 0.10898054046019617,
-            (ide.RungeKuttaFourMethod, ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23337076999249678,
+            (ide.RungeKuttaFourMethod, ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction): 0.23337076999249678,
         }
 
         headers = ('Evolution Method', 'Kernel', 'Expected', 'Actual')
