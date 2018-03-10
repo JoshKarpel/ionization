@@ -1,6 +1,6 @@
 import itertools
 import logging
-from typing import Union, Optional, Iterable, NewType, Tuple, Dict
+from typing import Iterable
 import abc
 
 import simulacra as si
@@ -37,7 +37,6 @@ class AlternatingDirectionImplicit(EvolutionMethod):
     """This is the two-dimensional Crank-Nicolson-style Alternating Direction Implicit method for solving PDEs."""
 
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
-        """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
         ham_opers = mesh.operators.total_hamiltonian(mesh).operators

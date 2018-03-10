@@ -41,7 +41,7 @@ class ForwardEulerMethod(EvolutionMethod):
     """
     The forward Euler method.
     This method is first order in time, and not particularly stable.
-    See `Wikipedia<https://en.wikipedia.org/wiki/Euler_method>`_ for examples.
+    See `Forward Euler method <https://en.wikipedia.org/wiki/Euler_method>`_ for examples.
     """
 
     time_step_type = TimeStepType.FIXED
@@ -68,7 +68,7 @@ class BackwardEulerMethod(EvolutionMethod):
     """
     The backward Euler method.
     This method is first order in time, but is much more stable than forward Euler.
-    See `Wikipedia<https://en.wikipedia.org/wiki/Backward_Euler_method>`_ for examples.
+    See `Backward Euler method <https://en.wikipedia.org/wiki/Backward_Euler_method>`_ for examples.
     """
 
     time_step_type = TimeStepType.FIXED

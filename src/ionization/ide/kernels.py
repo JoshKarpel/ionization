@@ -107,7 +107,7 @@ class LengthGaugeHydrogenKernel(Kernel):
         return info
 
 
-class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
+class LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
     """
     The kernel for the hydrogen ground state with plane wave continuum states.
     This version adds an approximation of the continuum-continuum interaction, including only the A^2 phase factor.

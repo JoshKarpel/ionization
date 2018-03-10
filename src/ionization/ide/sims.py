@@ -112,7 +112,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.interpolated_vector_potential,
         )
 
-    def run(self, progress_bar: bool = False, callback: Callable = None):
+    def run(self, progress_bar: bool = False, callback: Callable[['IntegroDifferentialEquationSimulation'], None] = None):
         """
         Run the IDE simulation by repeatedly evolving it forward in time.
 
