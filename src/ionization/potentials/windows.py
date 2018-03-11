@@ -32,7 +32,7 @@ class NoTimeWindow(TimeWindow):
         return 1
 
 
-class RectangularTimeWindow(TimeWindow):
+class RectangularWindow(TimeWindow):
     def __init__(self, start_time = 0 * u.asec, end_time = 50 * u.asec):
         self.start_time = start_time
         self.end_time = end_time
@@ -69,7 +69,7 @@ class RectangularTimeWindow(TimeWindow):
         return info
 
 
-class LinearRampTimeWindow(TimeWindow):
+class LinearRampWindow(TimeWindow):
     def __init__(self, ramp_on_time = 0 * u.asec, ramp_time = 50 * u.asec):
         self.ramp_on_time = ramp_on_time
         self.ramp_time = ramp_time
@@ -116,7 +116,7 @@ class LinearRampTimeWindow(TimeWindow):
         return info
 
 
-class SymmetricExponentialTimeWindow(TimeWindow):
+class SymmetricExponentialWindow(TimeWindow):
     def __init__(self, window_time = 500 * u.asec, window_width = 10 * u.asec, window_center = 0 * u.asec):
         self.window_time = window_time
         self.window_width = window_width

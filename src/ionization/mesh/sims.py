@@ -15,13 +15,15 @@ import simulacra as si
 import simulacra.units as u
 
 from .. import potentials, states, core, utils, exceptions
-from . import meshes, anim, snapshots, data, evolution_methods, mesh_operators, sim_plotters, mesh_plotters
+from . import meshes, anim, snapshots, data, evolution_methods, mesh_operators, sim_plotters
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
 class MeshSimulation(si.Simulation, abc.ABC):
+    """An abstract class for TDSE simulations that use meshes (i.e. :class:`QuantumMesh`s)."""
+
     def __init__(self, spec: 'MeshSpecification'):
         super().__init__(spec)
 
@@ -78,10 +80,12 @@ class MeshSimulation(si.Simulation, abc.ABC):
         Parameters
         ----------
         dtype
+            A numpy ``dtype``, which will be the ``dtype`` of the resulting blank data array.
 
         Returns
         -------
-
+        :class:`np.ndarray`
+            A blank array for time-indexed data.
         """
         # this is the best method according to
         # https://stackoverflow.com/questions/1704823/initializing-numpy-matrix-to-something-other-than-zero-or-one

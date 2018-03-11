@@ -56,7 +56,7 @@ if __name__ == '__main__':
         sim.run()
         sim.info().log()
 
-        # window = ion.LinearRampTimeWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)
+        # window = ion.LinearRampWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)
         # e_field = ion.SineWave.from_frequency(1 / (50 * asec), amplitude = 1 * atomic_electric_field, window = window)
         # mask = ion.RadialCosineMask(inner_radius = (bound - 25) * bohr_radius, outer_radius = bound * bohr_radius)
         #

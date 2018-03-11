@@ -26,9 +26,9 @@ if __name__ == '__main__':
         potentials = [
             ion.potentials.ImaginaryGaussianRing(),
             ion.potentials.RadialCosineMask(),
-            ion.potentials.Rectangle(window = ion.potentials.RectangularTimeWindow()),
-            ion.potentials.SineWave.from_photon_energy(13.6 * u.eV, phase = u.pi / 2, window = ion.potentials.SymmetricExponentialTimeWindow()),
-            ion.potentials.SincPulse(phase = u.pi, window = ion.potentials.LinearRampTimeWindow()),
+            ion.potentials.Rectangle(window = ion.potentials.RectangularWindow()),
+            ion.potentials.SineWave.from_photon_energy(13.6 * u.eV, phase = u.pi / 2, window = ion.potentials.SymmetricExponentialWindow()),
+            ion.potentials.SincPulse(phase = u.pi, window = ion.potentials.LinearRampWindow()),
             ion.potentials.GaussianPulse(phase = u.pi / 3, window = ion.potentials.SmoothedTrapezoidalWindow(time_front = 100 * u.asec, time_plateau = 1000 * u.asec)),
             ion.potentials.SechPulse(phase = u.pi / 3, window = ion.potentials.SmoothedTrapezoidalWindow(time_front = 100 * u.asec, time_plateau = 1000 * u.asec)),
             ion.potentials.CoulombPotential(),
