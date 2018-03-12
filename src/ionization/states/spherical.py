@@ -1,5 +1,6 @@
 import logging
 import functools
+import abc
 
 import mpmath
 import numpy as np
@@ -9,7 +10,7 @@ import scipy.special as special
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, exceptions
+from .. import core, mesh, exceptions, utils
 
 from . import state
 
@@ -17,38 +18,65 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class FreeSphericalWave(state.QuantumState):
-    """A class that represents a free spherical wave."""
+class SphericalHarmonicState(state.QuantumState, abc.ABC):
+    def __init__(self, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+        self.l = l
+        self.m = m
 
-    bound = False
-    discrete_eigenvalues = False
-    analytic = True
-
-    def __init__(self, energy = 1 * u.eV, l = 0, m = 0, amplitude = 1):
-        """
-        Construct a FreeState from its energy and angular momentum quantum numbers.
-
-        :param energy: energy of the free state
-        :param l: orbital angular momentum quantum number
-        :param m: quantum number for angular momentum z-component
-        :param amplitude: the probability amplitude of the state
-        """
         super().__init__(amplitude = amplitude)
 
-        if any(int(x) != x for x in (l, m)):
-            raise exceptions.IllegalQuantumState('l and m must be integers')
+    @property
+    def l(self):
+        return self._l
+
+    @l.setter
+    def l(self, l):
+        if int(l) != l or l < 0:
+            raise exceptions.IllegalQuantumState('l ({}) must be an integer greater than or equal to zero and less than n ({})'.format(l, self.n))
+
+        self._l = int(l)
+
+    @property
+    def m(self):
+        return self._m
+
+    @m.setter
+    def m(self, m):
+        if int(m) != m or not -self.l <= m <= self.l:
+            raise exceptions.IllegalQuantumState('|m| (|{}|) must be an integer less than or equal to l ({})'.format(m, self.l))
+
+        self._m = int(m)
+
+    @si.utils.cached_property
+    def spherical_harmonic(self):
+        """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
+        return si.math.SphericalHarmonic(l = self.l, m = self.m)
+
+
+class FreeSphericalWave(SphericalHarmonicState):
+    """A class that represents a free spherical wave."""
+
+    eigenvalues = state.Eigenvalues.CONTINUOUS
+    binding = state.Binding.FREE
+    derivation = state.Derivation.ANALYTIC
+
+    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+        """
+
+        Parameters
+        ----------
+        energy
+            The energy of the state.
+        l
+            The orbital angular momentum quantum number.
+        m
+            The quantum number for the z-component of the angular momentum.
+        amplitude
+            The probability amplitude of the state.
+        """
+        super().__init__(l = l, m = m, amplitude = amplitude)
 
         self.energy = energy
-
-        if l >= 0:
-            self._l = l
-        else:
-            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
-
-        if -l <= m <= l:
-            self._m = m
-        else:
-            raise exceptions.IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
 
     @classmethod
     def from_wavenumber(cls, k, l = 0, m = 0):
@@ -58,25 +86,36 @@ class FreeSphericalWave(state.QuantumState):
         return cls(energy, l, m)
 
     @property
+    def energy(self):
+        return self._energy
+
+    @energy.setter
+    def energy(self, energy):
+        if energy < 0:
+            raise exceptions.IllegalQuantumState('energy must be greater than zero')
+        self._energy = energy
+
+    @property
     def k(self):
         return core.electron_wavenumber_from_energy(self.energy)
-
-    @property
-    def l(self):
-        return self._l
-
-    @property
-    def m(self):
-        return self._m
 
     @property
     def tuple(self):
         return self.k, self.l, self.m, self.energy
 
-    @property
-    def spherical_harmonic(self):
-        """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
-        return si.math.SphericalHarmonic(l = self.l, m = self.m)
+    def radial_function(self, r):
+        return np.sqrt(2 * (self.k ** 2) / u.pi) * special.spherical_jn(self.l, self.k * r)
+
+    def __call__(self, r, theta, phi):
+        """
+        Evaluate the free spherical wave wavefunction at a point, or vectorized over an array of points.
+
+        :param r: radial coordinate
+        :param theta: polar coordinate
+        :param phi: azimuthal coordinate
+        :return: the value(s) of the wavefunction at (r, theta, phi)
+        """
+        return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
     def __str__(self):
         return self.ket
@@ -94,139 +133,115 @@ class FreeSphericalWave(state.QuantumState):
 
     @property
     def latex(self):
-        """Return a LaTeX-formatted string for the FreeSphericalWave."""
         return r'\phi_{{{},{},{}}}'.format(u.uround(self.energy, u.eV, 3), self.l, self.m)
 
-    def radial_function(self, r):
-        return np.sqrt(2 * (self.k ** 2) / u.pi) * special.spherical_jn(self.l, self.k * r)
+    def info(self) -> si.Info:
+        info = super().info()
 
-    def __call__(self, r, theta, phi):
+        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_field('wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('l', self.l)
+        info.add_field('m', self.m)
+
+        return info
+
+
+class HydrogenBoundState(SphericalHarmonicState):
+    """A class that represents a hydrogen bound state."""
+
+    eigenvalues = state.Eigenvalues.DISCRETE
+    binding = state.Binding.BOUND
+    derivation = state.Derivation.ANALYTIC
+
+    def __init__(self, n: int = 1, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
         """
-        Evaluate the free spherical wave wavefunction at a point, or vectorized over an array of points.
-
-        :param r: radial coordinate
-        :param theta: polar coordinate
-        :param phi: azimuthal coordinate
-        :return: the value(s) of the wavefunction at (r, theta, phi)
+        Parameters
+        ----------
+        n
+            The principal quantum number.
+        l
+            The orbital angular momentum quantum number.
+        m
+            The quantum number for the z-component of the angular momentum.
+        amplitude
+            The probability amplitude of the state.
         """
-        return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
-
-
-class HydrogenBoundState(state.QuantumState):
-    """A class that represents a hydrogenic bound state."""
-
-    bound = True
-    discrete_eigenvalues = True
-    analytic = True
-
-    def __init__(self, n = 1, l = 0, m = 0, amplitude = 1):
-        """
-        Construct a HydrogenBoundState from its three quantum numbers (n, l, m).
-
-        :param n: principal quantum number
-        :param l: orbital angular momentum quantum number
-        :param m: quantum number for angular momentum z-component
-        """
-        super().__init__(amplitude = amplitude)
-
         self.n = n
-        self.l = l
-        self.m = m
+        super().__init__(l = l, m = m, amplitude = amplitude)
 
     @property
     def n(self):
-        """Gets _n."""
         return self._n
 
     @n.setter
     def n(self, n):
-        if 0 < n == int(n):
-            self._n = int(n)
-        else:
-            raise exceptions.IllegalQuantumState('n ({}) must be an integer greater than zero'.format(n))
+        if int(n) != n or n < 0:
+            raise exceptions.IllegalQuantumState(f'n ({n}) must be an integer greater than zero')
 
-    @property
-    def l(self):
-        """Gets _l."""
-        return self._l
+        self._n = int(n)
 
-    @l.setter
+    @SphericalHarmonicState.l.setter
     def l(self, l):
-        if int(l) == l and 0 <= l < self.n:
-            self._l = int(l)
-        else:
-            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero and less than n ({})'.format(l, self.n))
+        if int(l) != l or not 0 <= l < self.n:
+            raise exceptions.IllegalQuantumState(f'l ({l}) must be an integer greater than or equal to zero and less than n ({self.n})')
+
+        self._l = int(l)
 
     @property
-    def m(self):
-        """Gets _m."""
-        return self._m
-
-    @m.setter
-    def m(self, m):
-        if int(m) == m and -self.l <= m <= self.l:
-            self._m = int(m)
-        else:
-            raise exceptions.IllegalQuantumState('|m| (|{}|) must be less than or equal to l ({})'.format(m, self.l))
-
-    @property
-    def energy(self):
+    def energy(self) -> float:
         return -u.rydberg / (self.n ** 2)
 
     @property
     def tuple(self):
         return self.n, self.l, self.m
 
-    @property
-    def spherical_harmonic(self):
-        """Gets the SphericalHarmonic associated with the HydrogenBoundState's l and m."""
-        return si.math.SphericalHarmonic(l = self.l, m = self.m)
-
-    def __str__(self):
-        """Returns the external string representation of the HydrogenBoundState."""
-        return self.ket
-
     def __repr__(self):
-        """Returns the internal string representation of the HydrogenBoundState."""
-        return si.utils.field_str(self, 'n', 'l', 'm', 'amplitude')
+        return utils.fmt_fields(self, 'n', 'l', 'm', 'amplitude')
 
     @property
     def ket(self):
-        """Gets the ket representation of the HydrogenBoundState."""
-        return '|{},{},{}>'.format(*self.tuple)
-
-    @property
-    def bra(self):
-        """Gets the bra representation of the HydrogenBoundState"""
-        return '<{},{},{}|'.format(*self.tuple)
+        return f'{u.uround(self.amplitude)}|{self.n},{self.l},{self.m}>'
 
     @property
     def latex(self):
-        """Gets a LaTeX-formatted string for the HydrogenBoundState."""
-        return r'\psi_{{{},{},{}}}'.format(*self.tuple)
+        return rf'{utils.complex_j_to_i(u.uround(self.amplitude))} \, \psi_{{{self.n}, {self.l}, {self.m}}}'
 
-    @staticmethod
-    def sort_key(state):
-        return state.n, state.l, state.m
+    @property
+    def latex_ket(self):
+        return rf'{utils.complex_j_to_i(u.uround(self.amplitude))} \, \left| \psi_{{{self.n}, {self.l}, {self.m}}} \right\rangle'
 
-    def radial_function(self, r):
-        """Return the radial part of the wavefunction R(r) evaluated at r."""
+    def radial_function(self, r: float):
+        """Return the radial part of the wavefunction, R, evaluated at r."""
         normalization = np.sqrt(((2 / (self.n * u.bohr_radius)) ** 3) * (sp.math.factorial(self.n - self.l - 1) / (2 * self.n * sp.math.factorial(self.n + self.l))))  # Griffith's normalization
         r_dep = np.exp(-r / (self.n * u.bohr_radius)) * ((2 * r / (self.n * u.bohr_radius)) ** self.l)
         lag_poly = special.eval_genlaguerre(self.n - self.l - 1, (2 * self.l) + 1, 2 * r / (self.n * u.bohr_radius))
 
         return self.amplitude * normalization * r_dep * lag_poly
 
-    def __call__(self, r, theta, phi):
+    def __call__(self, r: float, theta: float, phi: float):
         """
-        Evaluate the hydrogenic bound state wavefunction at a point, or vectorized over an array of points.
+        Evaluate the wavefunction at a point, or vectorized over an array of points.
 
-        :param r: radial coordinate
-        :param theta: polar coordinate
-        :param phi: azimuthal coordinate
-        :return: the value(s) of the wavefunction at (r, theta, phi)
+        Parameters
+        ----------
+        r
+        theta
+        phi
+
+        Returns
+        -------
+
         """
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('n', self.n)
+        info.add_field('l', self.l)
+        info.add_field('m', self.m)
+
+        return info
 
 
 def coulomb_phase_shift(l, k):
@@ -240,37 +255,42 @@ def coulomb_phase_shift(l, k):
     return np.angle(special.gamma(1 + l + gamma))
 
 
-class HydrogenCoulombState(state.QuantumState):
+class HydrogenCoulombState(SphericalHarmonicState):
     """A class that represents a hydrogenic free state."""
 
-    bound = False
-    discrete_eigenvalues = False
-    analytic = True
+    eigenvalues = state.Eigenvalues.CONTINUOUS
+    binding = state.Binding.FREE
+    derivation = state.Derivation.ANALYTIC
 
-    def __init__(self, energy = 1 * u.eV, l = 0, m = 0, amplitude = 1):
+    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
         """
-        Construct a HydrogenCoulombState from its energy and angular momentum quantum numbers.
-
-        :param energy: energy of the free state
-        :param l: orbital angular momentum quantum number
-        :param m: quantum number for angular momentum z-component
+        Parameters
+        ----------
+        energy
+            The energy of the state.
+        l
+            The orbital angular momentum quantum number.
+        m
+            The quantum number for the z-component of the angular momentum.
+        amplitude
+            The probability amplitude of the state.
         """
-        super().__init__(amplitude = amplitude)
+        self.energy = energy
+        super().__init__(l = l, m = m, amplitude = amplitude)
 
-        if any(int(x) != x for x in (l, m)):
-            raise exceptions.IllegalQuantumState('l and m must be integers')
+    @property
+    def energy(self):
+        return self._energy
 
+    @energy.setter
+    def energy(self, energy):
         if energy < 0:
             raise exceptions.IllegalQuantumState('energy must be greater than zero')
-        self.energy = energy
+        self._energy = energy
 
-        if l < 0:
-            raise exceptions.IllegalQuantumState('l ({}) must be greater than or equal to zero'.format(l))
-        self.l = int(l)
-
-        if not -l <= m <= l:
-            raise exceptions.IllegalQuantumState('m ({}) must be between -l and l ({} to {})'.format(m, -l, l))
-        self.m = int(m)
+    @property
+    def wavenumber(self):
+        return core.electron_wavenumber_from_energy(self.energy)
 
     @classmethod
     def from_wavenumber(cls, k, l = 0, m = 0):
@@ -280,36 +300,8 @@ class HydrogenCoulombState(state.QuantumState):
         return cls(energy, l, m)
 
     @property
-    def k(self):
-        return core.electron_wavenumber_from_energy(self.energy)
-
-    @property
-    def spherical_harmonic(self):
-        """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
-        return si.math.SphericalHarmonic(l = self.l, m = self.m)
-
-    @property
     def tuple(self):
-        return self.k, self.l, self.m, self.energy
-
-    def __str__(self):
-        return self.ket
-
-    def __repr__(self):
-        return '{}(energy = {} eV, k = {} 1/nm, l = {}, m = {}, amplitude = {})'.format(self.__class__.__name__, u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m, self.amplitude)
-
-    @property
-    def ket(self):
-        return '|{} eV, {} 1/nm, {}, {}>'.format(u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m)
-
-    @property
-    def bra(self):
-        return '<{} eV, {} 1/nm, {}, {}|'.format(u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m)
-
-    @property
-    def latex(self):
-        """Return a LaTeX-formatted string for the HydrogenCoulombState."""
-        return r'\phi_{{{},{},{}}}'.format(u.uround(self.energy, u.eV, 3), self.l, self.m)
+        return self.wavenumber, self.l, self.m, self.energy
 
     def radial_function(self, r):
         x = r / u.bohr_radius
@@ -337,77 +329,100 @@ class HydrogenCoulombState(state.QuantumState):
         elif epsilon == 0:
             bessel_order = (2 * self.l) + 1
             prefactor = unit_prefactor
-            bessel = functools.partial(special.jv, bessel_order)  # construct a partial function with the Bessel function order filled in
+            bessel = functools.partial(special.jv, bessel_order)
 
             return self.amplitude * prefactor * bessel(np.sqrt(8 * x)) * np.sqrt(x) / r
 
     def __call__(self, r, theta, phi):
-        """
-        Evaluate the hydrogenic Coulomb state wavefunction at a point, or vectorized over an array of points.
-
-        :param r: radial coordinate
-        :param theta: polar coordinate
-        :param phi: azimuthal coordinate
-        :return: the value(s) of the wavefunction at (r, theta, phi)
-        """
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
-
-
-class NumericSphericalHarmonicState(state.QuantumState):
-    discrete_eigenvalues = True
-    analytic = False
-
-    def __init__(self, g, l, m, energy, analytic_state, bound = True, amplitude = 1):
-        super().__init__(amplitude = amplitude)
-
-        self.g = g
-
-        self.l = l
-        self.m = m
-        self.energy = energy
-
-        self.analytic_state = analytic_state
-
-        self.bound = bound
-
-    def __str__(self):
-        return str(self.analytic_state) + '_n'
-
-    def __repr__(self):
-        return repr(self.analytic_state) + '_n'
-
-    @property
-    def n(self):
-        return self.analytic_state.n
-
-    @property
-    def k(self):
-        return self.analytic_state.k
-
-    @property
-    def tuple(self):
-        return self.analytic_state.tuple
 
     @property
     def ket(self):
-        return self.analytic_state.ket
-
-    @property
-    def bra(self):
-        return self.analytic_state.bra
+        return f'{u.uround(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
 
     @property
     def latex(self):
-        """Return a LaTeX-formatted string for the NumericSphericalHarmonicState."""
-        return self.analytic_state.latex
+        return rf'{u.uround(self.amplitude)} \, \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
 
     @property
-    def spherical_harmonic(self):
-        """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
-        return si.math.SphericalHarmonic(l = self.l, m = self.m)
+    def latex_ket(self):
+        return rf'{u.uround(self.amplitude)} \, \left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
+
+    def __repr__(self):
+        return utils.fmt_fields(self, 'energy', 'k', 'l', 'm')
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_field('wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('l', self.l)
+        info.add_field('m', self.m)
+
+        return info
+
+
+class NumericSphericalHarmonicState(SphericalHarmonicState):
+    eigenvalues = state.Eigenvalues.DISCRETE
+    derivation = state.Derivation.NUMERIC
+
+    def __init__(
+            self,
+            *,
+            radial_wavefunction: 'mesh.PsiVector',
+            l: int = 0,
+            m: int = 0,
+            energy: float,
+            corresponding_analytic_state: state.QuantumState,
+            binding: state.Binding.FREE,
+            amplitude: state.ProbabilityAmplitude = 1):
+        self.radial_wavefunction = radial_wavefunction
+        self.energy = energy
+        self.corresponding_analytic_state = corresponding_analytic_state
+        self.binding = binding
+
+        super().__init__(l = l, m = m, amplitude = amplitude)
+
+    @property
+    def n(self):
+        return self.corresponding_analytic_state.n
+
+    @property
+    def k(self):
+        return self.corresponding_analytic_state.wavenumber
+
+    @property
+    def tuple(self):
+        return self.corresponding_analytic_state.tuple
 
     def radial_function(self, r):
-        return self.g
+        return self.radial_wavefunction
 
     def __call__(self, r, theta, phi):
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
+
+    def __str__(self):
+        return str(self.corresponding_analytic_state) + '_n'
+
+    def __repr__(self):
+        return repr(self.corresponding_analytic_state) + '_n'
+
+    @property
+    def ket(self):
+        return self.corresponding_analytic_state.ket
+
+    @property
+    def latex(self):
+        return self.corresponding_analytic_state.latex + '^{(n)}'
+
+    @property
+    def latex_ket(self):
+        return self.corresponding_analytic_state.latex_ket + '^{(n)}'
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_info(self.corresponding_analytic_state.info())
+
+        return info

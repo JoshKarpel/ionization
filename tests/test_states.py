@@ -2,11 +2,41 @@ import pytest
 import hypothesis as hyp
 import hypothesis.strategies as st
 
+import numpy as np
+
 import ionization as ion
 from simulacra.units import *
 
 
-class TestHydrogenBoundState:
+def test_single_state_normalized():
+    s = ion.states.HydrogenBoundState(amplitude = .2 + .3j)
+
+    assert np.allclose(s.normalized().norm, 1)
+
+
+def test_superposition_normalized():
+    s = ion.states.HydrogenBoundState(amplitude = .5)
+    s += ion.states.HydrogenBoundState(n = 2, amplitude = .5j)
+
+    sn = s.normalized()
+
+    assert np.allclose(sn.norm, 1)
+    for state in sn:
+        assert np.allclose(np.abs(state.amplitude), np.sqrt(1 / 2))
+
+
+def test_superposition_normalized_with_three_states():
+    s = ion.states.HydrogenBoundState(n = 1, amplitude = 1)
+    s += ion.states.HydrogenBoundState(n = 2, amplitude = 1)
+    s += ion.states.HydrogenBoundState(n = 3, amplitude = 1)
+
+    sn = s.normalized()
+
+    for state in sn:
+        assert np.allclose(state.amplitude, np.sqrt(1 / 3))
+
+
+class TestHydrogenBoundStateConstructor:
     @hyp.given(
         n = st.integers(min_value = 1),
     )

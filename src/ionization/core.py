@@ -20,7 +20,7 @@ def electron_energy_from_wavenumber(k):
 
 
 def electron_wavenumber_from_energy(energy):
-    return np.sqrt(2 * u.electron_mass * energy + 0j) / u.hbar
+    return np.sqrt(2 * u.electron_mass * np.abs(energy)) / u.hbar
 
 
 def triangle_coef(a, b, c):

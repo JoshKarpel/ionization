@@ -1,8 +1,14 @@
+from typing import Union
+
 import simulacra.units as u
 
 LENGTH_UNITS = (
     (u.bohr_radius, 'a_0'),
     (u.nm, 'nm'),
+)
+INVERSE_LENGTH_UNITS = (
+    (u.per_bohr_radius, '1/a_0'),
+    (u.per_nm, '1/nm'),
 )
 TIME_UNITS = (
     (u.asec, 'as'),
@@ -69,3 +75,7 @@ def fmt_fields(obj, *fields, digits: int = 3):
         except (ValueError, TypeError):
             field_strings.append('{} = {}'.format(field, getattr(obj, field)))
     return '{}({})'.format(obj.__class__.__name__, ', '.join(field_strings))
+
+
+def complex_j_to_i(z: Union[float, complex]) -> str:
+    return str(z).replace('j', 'i')

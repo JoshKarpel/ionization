@@ -978,15 +978,22 @@ class SphericalHarmonicMesh(QuantumMesh):
                     continue
                 elif eigenvalue > 0:
                     analytic_state = states.HydrogenCoulombState(energy = eigenvalue, l = l)
-                    bound = False
+                    binding = states.Binding.FREE
                 else:
-                    n_guess = round(np.sqrt(u.rydberg / np.abs(eigenvalue)))
+                    n_guess = int(np.sqrt(u.rydberg / np.abs(eigenvalue)))
                     if n_guess == 0:
                         n_guess = 1
                     analytic_state = states.HydrogenBoundState(n = n_guess, l = l)
-                    bound = True
+                    binding = states.Binding.BOUND
 
-                numeric_state = states.NumericSphericalHarmonicState(eigenvector, l, 0, eigenvalue, analytic_state, bound = bound)
+                numeric_state = states.NumericSphericalHarmonicState(
+                    radial_wavefunction = eigenvector,
+                    l = l,
+                    m = 0,
+                    energy = eigenvalue,
+                    corresponding_analytic_state = analytic_state,
+                    binding = binding,
+                )
 
                 analytic_to_numeric[analytic_state] = numeric_state
 
