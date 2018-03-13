@@ -47,39 +47,76 @@ if __name__ == '__main__':
         # print(n.norm)
         # print(repr(n))
 
-        a = ion.states.HydrogenBoundState()
-        b = ion.states.HydrogenBoundState(amplitude = 1j)
+        # a = ion.states.HydrogenBoundState()
+        # b = ion.states.HydrogenBoundState(amplitude = 1j)
+        #
+        # c = (a + b).normalized()
+        # print(c)
+        # print(c.info())
+        # print()
+        #
+        # d = ion.states.HydrogenBoundState(n = 2)
+        #
+        # e = (c + d).normalized()
+        # print(e)
+        # print(e.info())
+        # print()
+        #
+        # f = ion.states.HydrogenCoulombState()
+        #
+        # g = (e + f).normalized()
+        # print(g)
+        # print(g.info())
+        # print(g.tex)
+        # print()
+        #
+        # num = ion.states.NumericSphericalHarmonicState(
+        #     radial_wavefunction = 0,
+        #     l = 1,
+        #     m = 0,
+        #     energy = -13.6 * u.eV,
+        #     corresponding_analytic_state = ion.states.HydrogenBoundState(),
+        #     binding = ion.states.Binding.BOUND)
+        # print(num)
+        # print(num.corresponding_analytic_state)
+        # print(num.tex)
+        # print(num.tex_ket)
+        # print(num.tex_bra)
+        # print(num.info())
 
-        c = (a + b).normalized()
-        print(c)
-        print(c.info())
-        print()
+        STATES = [
+            ion.states.FreeSphericalWave(),
+            ion.states.HydrogenBoundState(),
+            ion.states.HydrogenCoulombState(),
+            ion.states.NumericSphericalHarmonicState(
+                radial_wavefunction = 0,
+                l = 1,
+                m = 0,
+                energy = 1 * u.eV,
+                corresponding_analytic_state = ion.states.HydrogenCoulombState(),
+                binding = ion.states.Binding.FREE,
+            ),
+            ion.states.OneDPlaneWave(),
+            ion.states.QHOState.from_omega_and_mass(omega = u.atomic_angular_frequency),
+            ion.states.FiniteSquareWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
+            ion.states.GaussianWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
+            ion.states.OneDSoftCoulombState(),
+            ion.states.NumericOneDState(
+                wavefunction = 0,
+                energy = 1 * u.eV,
+                corresponding_analytic_state = ion.states.OneDPlaneWave(),
+                binding = ion.states.Binding.FREE,
+            ),
+        ]
 
-        d = ion.states.HydrogenBoundState(n = 2)
-
-        e = (c + d).normalized()
-        print(e)
-        print(e.info())
-        print()
-
-        f = ion.states.HydrogenCoulombState()
-
-        g = (e + f).normalized()
-        print(g)
-        print(g.info())
-        print(g.latex)
-        print()
-
-        num = ion.states.NumericSphericalHarmonicState(
-            radial_wavefunction = 0,
-            l = 1,
-            m = 0,
-            energy = -13.6 * u.eV,
-            corresponding_analytic_state = ion.states.HydrogenBoundState(),
-            binding = ion.states.Binding.BOUND)
-        print(num)
-        print(num.corresponding_analytic_state)
-        print(num.latex)
-        print(num.latex_ket)
-        print(num.latex_bra)
-        print(num.info())
+        for state in STATES:
+            print(state.__class__.__name__)
+            print('str:', str(state))
+            print('repr:', repr(state))
+            print('ket:', state.ket)
+            print('bra:', state.bra)
+            print('tex:', state.tex)
+            print('tex_ket:', state.tex_ket)
+            print('tex_bra:', state.tex_bra)
+            print(state.info())
+            print()

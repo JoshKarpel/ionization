@@ -2,7 +2,7 @@ import logging
 import abc
 import collections
 from copy import deepcopy
-from typing import NewType, Tuple
+from typing import NewType, Tuple, Optional, Union
 
 import numpy as np
 import simulacra as si
@@ -24,10 +24,25 @@ class Binding(si.utils.StrEnum):
 class Derivation(si.utils.StrEnum):
     ANALYTIC = 'analytic'
     NUMERIC = 'numeric'
+    VARIATIONAL = 'variational'
 
 
-ProbabilityAmplitude = NewType('ProbabilityAmplitude', complex)
+ProbabilityAmplitude = NewType('ProbabilityAmplitude', Union[float, complex])
 Probability = NewType('Probability', float)
+
+
+def fmt_amplitude(amplitude: ProbabilityAmplitude) -> str:
+    if amplitude == 1:
+        return ''
+    else:
+        return str(si.units.uround(amplitude))
+
+
+def fmt_amplitude_for_tex(amplitude: ProbabilityAmplitude) -> str:
+    if amplitude == 1:
+        return ''
+    else:
+        return str(si.units.uround(amplitude)) + ' \, '
 
 
 class QuantumState(si.summables.Summand, abc.ABC):
@@ -120,6 +135,7 @@ class QuantumState(si.summables.Summand, abc.ABC):
     def __ge__(self, other):
         return isinstance(other, self.__class__) and self.tuple >= other.tuple
 
+    @abc.abstractmethod
     def __call__(self, *args, **kwargs):
         raise NotImplementedError
 
@@ -137,17 +153,18 @@ class QuantumState(si.summables.Summand, abc.ABC):
         return self.ket.replace('|', '<').replace('>', '|')
 
     @property
-    def latex(self) -> si.units.TeXString:
+    def tex(self) -> si.units.TeXString:
         """Return a string in TeX notation that should be placed inside bras or kets in output."""
         raise NotImplementedError
 
     @property
-    def latex_ket(self) -> si.units.TeXString:
+    @abc.abstractmethod
+    def tex_ket(self) -> si.units.TeXString:
         raise NotImplementedError
 
     @property
-    def latex_bra(self) -> si.units.TeXString:
-        return self.latex_ket.replace(r'\left|', r'\left\langle').replace(r'\right\rangle', r'\right|')
+    def tex_bra(self) -> si.units.TeXString:
+        return self.tex_ket.replace(r'\left|', r'\left\langle').replace(r'\right\rangle', r'\right|')
 
     def info(self) -> si.Info:
         info = si.Info(header = f'{self.__class__.__name__}(amplitude = {np.around(self.amplitude, 3)}, norm = {np.around(self.norm, 3)})')
@@ -193,12 +210,12 @@ class Superposition(si.summables.Sum, QuantumState):
         return ' + '.join(s.ket for s in self)
 
     @property
-    def latex(self) -> si.units.TeXString:
-        return ' + '.join(s.latex for s in self)
+    def tex(self) -> si.units.TeXString:
+        return ' + '.join(s.tex for s in self)
 
     @property
-    def latex_ket(self) -> si.units.TeXString:
-        return ' + '.join(s.latex_ket for s in self)
+    def tex_ket(self) -> si.units.TeXString:
+        return ' + '.join(s.tex_ket for s in self)
 
     def normalized(self) -> 'Superposition':
         return Superposition(*tuple(s / np.sqrt(self.norm) for s in self))
@@ -210,3 +227,7 @@ class Superposition(si.summables.Sum, QuantumState):
             info.add_info(s.info())
 
         return info
+
+
+def fmt_inner_product_for_tex(a: QuantumState, b: QuantumState, op: si.units.TeXString = ''):
+    return fr'\left\langle {a.tex} \right| {op} \left| {b.tex} \right\rangle'

@@ -176,8 +176,8 @@ if __name__ == '__main__':
         identifier_to_final_initial_overlap = {(r.mesh.__class__, r.spec.operators.__class__, r.spec.evolution_method.__class__): r.data.initial_state_overlap[-1] for r in results}
 
         ### look at results before comparison
-        # for k, v in identifier_to_final_initial_overlap.items():
-        #     print(k, v)
+        # for wavenumber, v in identifier_to_final_initial_overlap.items():
+        #     print(wavenumber, v)
 
         expected = {
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.370010185740,

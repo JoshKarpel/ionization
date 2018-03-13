@@ -323,7 +323,7 @@ class TestStateStackplotAxis(StackplotAxis):
         else:
             data = (overlap for state, overlap in sorted(state_overlaps.items()))
 
-        labels = (r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(state.latex) for state in sorted(state_overlaps))
+        labels = (r'$\left| \left\langle \Psi| {} \right\rangle \right|^2$'.format(state.tex) for state in sorted(state_overlaps))
 
         return data, labels
 
@@ -351,7 +351,7 @@ class WavefunctionStackplotAxis(StackplotAxis):
         ]
 
         labels = (
-            *(r'$ \left| \left\langle \Psi | {} \right\rangle \right|^2 $'.format(state.latex) for state, overlap in sorted(selected_state_overlaps.items())),
+            *(r'$ \left| \left\langle \Psi | {} \right\rangle \right|^2 $'.format(state.tex) for state, overlap in sorted(selected_state_overlaps.items())),
             r'$ \sum_{\mathrm{other \, bound}} \; \left| \left\langle \Psi | \psi_{{n, \, \ell}} \right\rangle \right|^2 $',
             fr'$ \sum_{{ \mathrm{{other \, free}} }} \; \left| \left\langle \Psi | \phi_{{E, \, \ell}} \right\rangle \right|^2 $',
         )

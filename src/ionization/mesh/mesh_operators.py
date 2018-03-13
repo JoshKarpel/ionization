@@ -467,7 +467,7 @@ class SphericalSliceLengthGaugeOperators(Operators):
             if (theta_index + 1) % mesh.spec.theta_points != 0:
                 j = theta_index // mesh.spec.theta_points
                 k = theta_index % mesh.spec.theta_points
-                k_p = k + 1  # add 1 because the entry for the lower diagonal is really for the next point (k -> k + 1), not this one
+                k_p = k + 1  # add 1 because the entry for the lower diagonal is really for the next point (wavenumber -> wavenumber + 1), not this one
                 theta_upper_diagonal[theta_index] = theta_j_prefactor(j) * (1 + (mesh.delta_theta / 2) * cotank(k + 0.5)) * sqrt_sink_ratio(k + 0.5, k + 1.5)
                 theta_lower_diagonal[theta_index] = theta_j_prefactor(j) * (1 - (mesh.delta_theta / 2) * cotank(k_p + 0.5)) * sqrt_sink_ratio(k_p + 0.5, k_p - 0.5)
         theta_upper_diagonal *= theta_prefactor

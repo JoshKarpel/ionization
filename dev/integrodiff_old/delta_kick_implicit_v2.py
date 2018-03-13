@@ -215,7 +215,7 @@ def compare_ide_to_matrix(pulse, tb, dts = (1 * asec,)):
     colors = [f'C{n}' for n in range(len(dts))]
 
     for a, b, kicks, dt, color in zip(a_vs_dt, a_vs_dt_v2, kicks_vs_dt, dts, colors):
-        # kt = np.repeat([k.time for k in kicks], 2)[1:]
+        # kt = np.repeat([wavenumber.time for wavenumber in kicks], 2)[1:]
         # kt[0] = times[0]
         # kt[-1] = times[-1]
 

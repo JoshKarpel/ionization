@@ -75,7 +75,7 @@ class LengthGaugeHydrogenKernel(Kernel):
     @property
     @si.utils.memoize
     def kernel_function(self):
-        k = sym.Symbol('k', real = True)
+        k = sym.Symbol('wavenumber', real = True)
         td = sym.Symbol('td', real = True, positive = True)
         a = sym.Symbol('a', real = True, positive = True)
         m = sym.Symbol('m', real = True, positive = True)

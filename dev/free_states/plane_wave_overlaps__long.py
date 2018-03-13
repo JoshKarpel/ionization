@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
                 si.vis.xy_plot(f'snapshot_t={uround(snapshot.time, asec, 3)}__free_only__theta=0__log={log}',
                                  wavenumber[0, :], np.abs(ip[0, :]) ** 2,
-                                 x_unit = 'per_nm', x_label = r'Wavenumber $k$',
+                                 x_unit = 'per_nm', x_label = r'Wavenumber $wavenumber$',
                                  y_log_axis = log,
                                  **snapshot_spectrum_kwargs
                                  )

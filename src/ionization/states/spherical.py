@@ -1,6 +1,7 @@
 import logging
 import functools
 import abc
+from typing import Union
 
 import mpmath
 import numpy as np
@@ -79,11 +80,10 @@ class FreeSphericalWave(SphericalHarmonicState):
         self.energy = energy
 
     @classmethod
-    def from_wavenumber(cls, k, l = 0, m = 0):
-        """Construct a FreeState from its wavenumber and angular momentum quantum numbers."""
+    def from_wavenumber(cls, k, l = 0, m = 0, amplitude: state.ProbabilityAmplitude = 1):
         energy = core.electron_energy_from_wavenumber(k)
 
-        return cls(energy, l, m)
+        return cls(energy, l = l, m = m, amplitude = amplitude)
 
     @property
     def energy(self):
@@ -96,15 +96,15 @@ class FreeSphericalWave(SphericalHarmonicState):
         self._energy = energy
 
     @property
-    def k(self):
+    def wavenumber(self):
         return core.electron_wavenumber_from_energy(self.energy)
 
     @property
     def tuple(self):
-        return self.k, self.l, self.m, self.energy
+        return self.energy, self.wavenumber, self.l, self.m
 
     def radial_function(self, r):
-        return np.sqrt(2 * (self.k ** 2) / u.pi) * special.spherical_jn(self.l, self.k * r)
+        return np.sqrt(2 * (self.wavenumber ** 2) / u.pi) * special.spherical_jn(self.l, self.wavenumber * r)
 
     def __call__(self, r, theta, phi):
         """
@@ -117,29 +117,26 @@ class FreeSphericalWave(SphericalHarmonicState):
         """
         return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
-    def __str__(self):
-        return self.ket
-
     def __repr__(self):
-        return '{}(energy = {} eV, k = {} 1/nm, l = {}, m = {}, amplitude = {})'.format(self.__class__.__name__, u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m, self.amplitude)
+        return utils.fmt_fields(self, 'energy', 'wavenumber', 'l', 'm')
 
     @property
     def ket(self):
-        return '{}|{} eV, {} 1/nm, {}, {}>'.format(np.around(self.amplitude, 3), u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m)
+        return f'{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
 
     @property
-    def bra(self):
-        return '{}<{} eV, {} 1/nm, {}, {}|'.format(np.around(self.amplitude, 3), u.uround(self.energy, u.eV, 3), u.uround(self.k, 1 / u.nm, 3), self.l, self.m)
+    def tex(self):
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
 
     @property
-    def latex(self):
-        return r'\phi_{{{},{},{}}}'.format(u.uround(self.energy, u.eV, 3), self.l, self.m)
+    def tex_ket(self):
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
-        info.add_field('wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('Energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_field('Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
         info.add_field('l', self.l)
         info.add_field('m', self.m)
 
@@ -200,15 +197,15 @@ class HydrogenBoundState(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f'{u.uround(self.amplitude)}|{self.n},{self.l},{self.m}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{self.n},{self.l},{self.m}>'
 
     @property
-    def latex(self):
-        return rf'{utils.complex_j_to_i(u.uround(self.amplitude))} \, \psi_{{{self.n}, {self.l}, {self.m}}}'
+    def tex(self):
+        return rf'{utils.complex_j_to_i(state.fmt_amplitude_for_tex(self.amplitude))}\psi_{{{self.n}, {self.l}, {self.m}}}'
 
     @property
-    def latex_ket(self):
-        return rf'{utils.complex_j_to_i(u.uround(self.amplitude))} \, \left| \psi_{{{self.n}, {self.l}, {self.m}}} \right\rangle'
+    def tex_ket(self):
+        return rf'{utils.complex_j_to_i(state.fmt_amplitude_for_tex(self.amplitude))}\left| \psi_{{{self.n}, {self.l}, {self.m}}} \right\rangle'
 
     def radial_function(self, r: float):
         """Return the radial part of the wavefunction, R, evaluated at r."""
@@ -218,7 +215,7 @@ class HydrogenBoundState(SphericalHarmonicState):
 
         return self.amplitude * normalization * r_dep * lag_poly
 
-    def __call__(self, r: float, theta: float, phi: float):
+    def __call__(self, r: float, theta: float, phi: float) -> Union['mesh.PsiVector', 'mesh.PsiMesh']:
         """
         Evaluate the wavefunction at a point, or vectorized over an array of points.
 
@@ -336,26 +333,26 @@ class HydrogenCoulombState(SphericalHarmonicState):
     def __call__(self, r, theta, phi):
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
+    def __repr__(self):
+        return utils.fmt_fields(self, 'energy', 'wavenumber', 'l', 'm', 'amplitude')
+
     @property
     def ket(self):
-        return f'{u.uround(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
 
     @property
-    def latex(self):
-        return rf'{u.uround(self.amplitude)} \, \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
+    def tex(self):
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
 
     @property
-    def latex_ket(self):
-        return rf'{u.uround(self.amplitude)} \, \left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
-
-    def __repr__(self):
-        return utils.fmt_fields(self, 'energy', 'k', 'l', 'm')
+    def tex_ket(self):
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
-        info.add_field('wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('Energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_field('Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
         info.add_field('l', self.l)
         info.add_field('m', self.m)
 
@@ -401,28 +398,28 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
     def __call__(self, r, theta, phi):
         return self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
-    def __str__(self):
-        return str(self.corresponding_analytic_state) + '_n'
-
     def __repr__(self):
         return repr(self.corresponding_analytic_state) + '_n'
 
     @property
     def ket(self):
-        return self.corresponding_analytic_state.ket
+        return self.corresponding_analytic_state.ket + '_n'
 
     @property
-    def latex(self):
-        return self.corresponding_analytic_state.latex + '^{(n)}'
+    def tex(self):
+        return self.corresponding_analytic_state.tex + '^{(n)}'
 
     @property
-    def latex_ket(self):
-        return self.corresponding_analytic_state.latex_ket + '^{(n)}'
+    def tex_ket(self):
+        return self.corresponding_analytic_state.tex_ket + '^{(n)}'
 
     def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
-        info.add_info(self.corresponding_analytic_state.info())
+        info.add_field('Energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+
+        analytic_info = self.corresponding_analytic_state.info()
+        analytic_info.header = f'Analytic State: {self.corresponding_analytic_state.__class__.__name__}'
+        info.add_info(analytic_info)
 
         return info

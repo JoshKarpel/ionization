@@ -42,8 +42,8 @@ if __name__ == '__main__':
     sym.init_printing(use_unicode = True, wrap_line = False, no_global = True)
 
     with logman as logger:
-        # k, a, m, t, hb = sym.symbols('k a m t hb')
-        k = sym.Symbol('k', real = True)
+        # wavenumber, a, m, t, hb = sym.symbols('wavenumber a m t hb')
+        k = sym.Symbol('wavenumber', real = True)
         a = sym.Symbol('a', real = True, positive = True)
         m = sym.Symbol('m', real = True, positive = True)
         t = sym.Symbol('t', real = True, positive = True)

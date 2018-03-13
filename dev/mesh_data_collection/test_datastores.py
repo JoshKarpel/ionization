@@ -43,7 +43,7 @@ def plot_norm_and_inner_products(sim):
         line_labels = [
             r'$ \left\langle \Psi | \Psi \right\rangle $',
             r'$ \left| \left\langle \Psi | \Psi(t = 0) \right\rangle \right|^2 $',
-            *[rf'$ \left| \left\langle \Psi | {s.latex} \right\rangle \right|^2 $' for s in sim.data.inner_products.keys()],
+            *[rf'$ \left| \left\langle \Psi | {s.tex} \right\rangle \right|^2 $' for s in sim.data.inner_products.keys()],
         ],
         line_kwargs = [
             None,

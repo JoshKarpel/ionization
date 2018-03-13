@@ -55,7 +55,7 @@ def integrand_from_bessels(k, td = 0):
 
 @np.vectorize
 def integrate(integrand, td):
-    # f = lambda k: integrand(k * twopi / bohr_radius, td)
+    # f = lambda wavenumber: integrand(wavenumber * twopi / bohr_radius, td)
     # return si.math.complex_quad(f, 0, np.inf)[0]
     k = (twopi / bohr_radius) * np.linspace(0, 1, 10000)[1:]
     return integ.simps(y = integrand(k, td), x = k)
@@ -69,13 +69,13 @@ if __name__ == '__main__':
         # for td in tds:
         #     si.vis.xy_plot(
         #         f'integrands_vs_k__td={uround(td, asec)}',
-        #         k,
-        #         np.abs(integrand_from_bessels(k, td)),
-        #         np.real(integrand_from_bessels(k, td)),
-        #         np.imag(integrand_from_bessels(k, td)),
-        #         np.abs(integrand_from_hecht(k, td)),
-        #         np.real(integrand_from_hecht(k, td)),
-        #         np.imag(integrand_from_hecht(k, td)),
+        #         wavenumber,
+        #         np.abs(integrand_from_bessels(wavenumber, td)),
+        #         np.real(integrand_from_bessels(wavenumber, td)),
+        #         np.imag(integrand_from_bessels(wavenumber, td)),
+        #         np.abs(integrand_from_hecht(wavenumber, td)),
+        #         np.real(integrand_from_hecht(wavenumber, td)),
+        #         np.imag(integrand_from_hecht(wavenumber, td)),
         #         line_labels = [
         #             'Bessel ABS',
         #             'Bessel RE',
@@ -93,10 +93,10 @@ if __name__ == '__main__':
         #             {'color': 'C1', 'linestyle': ':'},
         #         ],
         #         x_unit = twopi / bohr_radius,
-        #         x_label = r'$k$',
+        #         x_label = r'$wavenumber$',
         #         x_lower_limit = 0,
         #         y_unit = bohr_radius ** 2,
-        #         y_label = r'$ \left| \left< k | \hat{z} | b \right> \right|^2 $',
+        #         y_label = r'$ \left| \left< wavenumber | \hat{z} | b \right> \right|^2 $',
         #         legend_kwargs = {'loc': 'upper right'},
         #         font_size_legend = 8,
         #         **PLOT_KWARGS

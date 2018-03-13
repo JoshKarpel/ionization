@@ -15,6 +15,10 @@ class IllegalQuantumState(IonizationException):
     pass
 
 
+class InvalidQuantumStateParameter(IonizationException):
+    pass
+
+
 class InvalidChoice(IonizationException):
     pass
 

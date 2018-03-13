@@ -262,9 +262,9 @@ class LineMesh(QuantumMesh):
                 )
             except exceptions.IllegalQuantumState:
                 bound = False
-                analytic_state = states.OneDFreeParticle.from_energy(eigenvalue, mass = self.spec.test_mass)
+                analytic_state = states.OneDPlaneWave.from_energy(eigenvalue, mass = self.spec.test_mass)
 
-            numeric_state = states.NumericOneDState(eigenvector, eigenvalue, bound = bound, analytic_state = analytic_state)
+            numeric_state = states.NumericOneDState(eigenvector, eigenvalue, bound = bound, corresponding_analytic_state = analytic_state)
             if analytic_state is None:
                 analytic_state = numeric_state
 
@@ -898,8 +898,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         # #     return special.legendre(l)(np.cos(theta))
         # #
         # # @si.utils.memoize
-        # # def phase(l, k):
-        # #     return np.exp(1j * states.coulomb_phase_shift(l, k))
+        # # def phase(l, wavenumber):
+        # #     return np.exp(1j * states.coulomb_phase_shift(l, wavenumber))
         # #
         # # # sqrt_mesh = np.sqrt((2 * l_mesh) + 1)
         # #
@@ -923,8 +923,8 @@ class SphericalHarmonicMesh(QuantumMesh):
         #     return special.lpn(l_mesh, np.cos(theta))
         #
         # @si.utils.memoize
-        # def phase(k):
-        #     return np.exp(1j * states.coulomb_phase_shift(l_mesh, k))
+        # def phase(wavenumber):
+        #     return np.exp(1j * states.coulomb_phase_shift(l_mesh, wavenumber))
         #
         # for ii, theta in enumerate(thetas):
         #     for jj, wavenumber in enumerate(wavenumbers):

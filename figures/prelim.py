@@ -26,10 +26,10 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO)
 
-pgf_with_latex = {  # setup matplotlib to use latex for output
+pgf_with_latex = {  # setup matplotlib to use tex for output
     "pgf.texsystem": "pdflatex",  # change this if using xetex or lautex
     "text.usetex": True,  # use LaTeX to write all text
-    "text.latex.unicode": True,
+    "text.tex.unicode": True,
     "font.family": "serif",
     "font.serif": [],  # blank entries should cause plots to inherit fonts from the document
     "font.sans-serif": [],

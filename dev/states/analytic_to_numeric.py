@@ -31,8 +31,8 @@ if __name__ == '__main__':
         print(sim.info())
         print()
 
-        # for k, v in sim.mesh.analytic_to_numeric.items():
-        #     print(f'{k} -> {v}')
+        # for wavenumber, v in sim.mesh.analytic_to_numeric.items():
+        #     print(f'{wavenumber} -> {v}')
 
         print()
         a_state = ion.HydrogenBoundState(1, 0)

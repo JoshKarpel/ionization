@@ -177,7 +177,7 @@ class MeshSimulationPlotter:
                     state_overlaps = {state: overlap for state, overlap in state_overlaps.items() if state in states or (state.numeric and state.analytic_state in states)}
 
             overlaps = [overlap for state, overlap in sorted(state_overlaps.items())]
-            labels = [rf'$ \left| \left\langle \psi | {{{state.latex}}} \right\rangle \right|^2 $' for state, overlap in sorted(state_overlaps.items())]
+            labels = [rf'$ \left| \left\langle \psi | {{{state.tex}}} \right\rangle \right|^2 $' for state, overlap in sorted(state_overlaps.items())]
 
             ax_overlaps.stackplot(
                 self.sim.data_times / time_unit_value,
@@ -287,7 +287,7 @@ class MeshSimulationPlotter:
                 for state in sorted(self.sim.bound_states):
                     if state.n <= bound_state_max_n:
                         overlaps.append(state_overlaps[state])
-                        labels.append(rf'$ \left| \left\langle \Psi | {{{state.latex}}} \right\rangle \right|^2 $')
+                        labels.append(rf'$ \left| \left\langle \Psi | {{{state.tex}}} \right\rangle \right|^2 $')
                         colors.append(matplotlib.colors.to_rgba('C' + str((state.n - 1) % 10), alpha = 1 - state.l / state.n))
                     else:
                         extra_bound_overlap += state_overlaps[state]
@@ -778,10 +778,10 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
 
         if renormalize:
             overlaps = [self.sim.data.norm_by_l[sph_harm] / self.sim.data.norm for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$' for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.tex}}} \right\rangle \right|^2 / \left\langle \psi| \psi \right\rangle$' for sph_harm in self.spec.spherical_harmonics]
         else:
             overlaps = [self.sim.data.norm_by_l[sph_harm] for sph_harm in self.spec.spherical_harmonics]
-            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.latex}}} \right\rangle \right|^2$' for sph_harm in self.spec.spherical_harmonics]
+            l_labels = [rf'$\left| \left\langle \Psi| {{{sph_harm.tex}}} \right\rangle \right|^2$' for sph_harm in self.spec.spherical_harmonics]
         num_colors = len(overlaps)
         ax_momentums.set_prop_cycle(cycler('color', [plt.get_cmap('gist_rainbow')(n / num_colors) for n in range(num_colors)]))
         ax_momentums.stackplot(self.sim.times / u.asec, *overlaps, alpha = 1, labels = l_labels)
