@@ -21,7 +21,20 @@ logger.setLevel(logging.DEBUG)
 
 
 class ThreeDPlaneWave(states.QuantumState):
-    def __init__(self, wavenumber_x, wavenumber_y, wavenumber_z, amplitude: states.ProbabilityAmplitude = 1):
+    """
+    A plane wave in three dimensions.
+
+    NB: ``ThreeDPlaneWave``s with non-zero x or y wavenumbers are not compatible with certain meshes because they do not have azimuthal symmetry!
+    Use with caution!
+    """
+
+    def __init__(
+        self,
+        wavenumber_x,
+        wavenumber_y,
+        wavenumber_z,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         if wavenumber_x != 0 or wavenumber_y != 0:
             warnings.warn('ThreeDPlaneWave states with non-zero x or y wavenumbers are not compatible with certain meshes because they do not have azimuthal symmetry!')
 
@@ -84,7 +97,12 @@ class ThreeDPlaneWave(states.QuantumState):
 
 
 class SphericalHarmonicState(states.QuantumState, abc.ABC):
-    def __init__(self, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        l: states.QuantumNumber = 0,
+        m: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         self.l = l
         self.m = m
 
@@ -97,7 +115,7 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
     @l.setter
     def l(self, l):
         if int(l) != l or l < 0:
-            raise exceptions.IllegalQuantumState('l ({}) must be an integer greater than or equal to zero and less than n ({})'.format(l, self.n))
+            raise exceptions.IllegalQuantumState(f'l ({l}) must be an integer greater than or equal to zero and less than n ({self.n})')
 
         self._l = int(l)
 
@@ -108,7 +126,7 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
     @m.setter
     def m(self, m):
         if int(m) != m or not -self.l <= m <= self.l:
-            raise exceptions.IllegalQuantumState('|m| (|{}|) must be an integer less than or equal to l ({})'.format(m, self.l))
+            raise exceptions.IllegalQuantumState(f'|m| (|{m}|) must be an integer less than or equal to l ({self.l})')
 
         self._m = int(m)
 
@@ -125,7 +143,13 @@ class FreeSphericalWave(SphericalHarmonicState):
     binding = states.Binding.FREE
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        energy: float = 1 * u.eV,
+        l: states.QuantumNumber = 0,
+        m: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
 
         Parameters
@@ -214,7 +238,13 @@ class HydrogenBoundState(SphericalHarmonicState):
     binding = states.Binding.BOUND
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, n: int = 1, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        n: states.QuantumNumber = 1,
+        l: states.QuantumNumber = 0,
+        m: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Parameters
         ----------
@@ -323,7 +353,13 @@ class HydrogenCoulombState(SphericalHarmonicState):
     binding = states.Binding.FREE
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        energy: float = 1 * u.eV,
+        l: states.QuantumNumber = 0,
+        m: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1.
+    ):
         """
         Parameters
         ----------
@@ -428,15 +464,16 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
     derivation = states.Derivation.NUMERIC
 
     def __init__(
-            self,
-            *,
-            radial_wavefunction: 'mesh.PsiVector',
-            l: int = 0,
-            m: int = 0,
-            energy: float,
-            corresponding_analytic_state: states.QuantumState,
-            binding: states.Binding.FREE,
-            amplitude: states.ProbabilityAmplitude = 1):
+        self,
+        *,
+        radial_wavefunction: 'mesh.PsiVector',
+        l: states.QuantumNumber = 0,
+        m: states.QuantumNumber = 0,
+        energy: float,
+        corresponding_analytic_state: states.QuantumState,
+        binding: states.Binding.FREE,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         self.radial_wavefunction = radial_wavefunction
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state

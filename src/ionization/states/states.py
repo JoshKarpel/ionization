@@ -10,6 +10,10 @@ import simulacra as si
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+QuantumNumber = NewType('QuantumNumber', int)
+ProbabilityAmplitude = NewType('ProbabilityAmplitude', Union[float, complex])
+Probability = NewType('Probability', float)
+
 
 class Eigenvalues(si.utils.StrEnum):
     DISCRETE = 'discrete'
@@ -25,10 +29,6 @@ class Derivation(si.utils.StrEnum):
     ANALYTIC = 'analytic'
     NUMERIC = 'numeric'
     VARIATIONAL = 'variational'
-
-
-ProbabilityAmplitude = NewType('ProbabilityAmplitude', Union[float, complex])
-Probability = NewType('Probability', float)
 
 
 def fmt_amplitude(amplitude: ProbabilityAmplitude) -> str:
@@ -229,5 +229,9 @@ class Superposition(si.summables.Sum, QuantumState):
         return info
 
 
-def fmt_inner_product_for_tex(a: QuantumState, b: QuantumState, op: si.units.TeXString = ''):
+def fmt_inner_product_for_tex(
+    a: QuantumState,
+    b: QuantumState,
+    op: si.units.TeXString = '',
+):
     return fr'\left\langle {a.tex} \right| {op} \left| {b.tex} \right\rangle'

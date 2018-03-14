@@ -88,17 +88,18 @@ class TunnelingSpecification(si.Specification):
     simulation_type = TunnelingSimulation
 
     def __init__(
-            self,
-            name: str,
-            time_initial: float = 0 * u.asec,
-            time_final: float = 200 * u.asec,
-            time_step: float = 1 * u.asec,
-            electric_potential = potentials.NoElectricPotential(),
-            electric_potential_dc_correction = False,
-            tunneling_model: models.TunnelingModel = models.LandauRate(),
-            ionization_potential: float = -u.rydberg,
-            b_initial: complex = 1,
-            **kwargs):
+        self,
+        name: str,
+        time_initial: float = 0 * u.asec,
+        time_final: float = 200 * u.asec,
+        time_step: float = 1 * u.asec,
+        electric_potential = potentials.NoElectricPotential(),
+        electric_potential_dc_correction = False,
+        tunneling_model: models.TunnelingModel = models.LandauRate(),
+        ionization_potential: float = -u.rydberg,
+        b_initial: complex = 1,
+        **kwargs,
+    ):
         super().__init__(name, **kwargs)
 
         self.time_initial = time_initial

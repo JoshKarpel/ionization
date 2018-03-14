@@ -515,7 +515,7 @@ def ask_data_storage_tdse(parameters, *, spec_type):
     if spec_type == mesh.SphericalHarmonicSpecification:
         datastores_questions_defaults += [
             (mesh.DirectionalRadialProbabilityCurrent, 'Store Radial Probability Current vs. Time?', False),
-            (mesh.NormByL, 'Store Norm-by-L?', False),
+            (mesh.NormBySphericalHarmonic, 'Store Norm-by-L?', False),
         ]
 
     datastores = []

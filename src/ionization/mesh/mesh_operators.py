@@ -37,7 +37,23 @@ def add_to_diagonal_sparse_matrix_diagonal_inplace(dia_matrix: 'meshes.OperatorM
 
 
 class MeshOperator(abc.ABC):
+    """
+    An abstract class that represents a discretized quantum operator that can act on a ``g`` mesh that represents a wavefunction.
+
+    Generally you should not override :class:`MeshOperator.apply` - it is generic.
+    To define different types of operators, override :class:`MeshOperator._apply`.
+    """
+
     def __init__(self, matrix: 'meshes.OperatorMatrix', *, wrapping_direction: Optional['meshes.WrappingDirection']):
+        """
+
+        Parameters
+        ----------
+        matrix
+            The sparse matrix that represents the discretized form of the quantum operator.
+        wrapping_direction
+            The :class:`WrappingDirection` that this operator operates in.
+        """
         self.matrix = matrix
         self.wrapping_direction = wrapping_direction
 
@@ -46,6 +62,7 @@ class MeshOperator(abc.ABC):
         return f"{self.__class__.__name__}(operator = {matrix_repr}, wrapping_direction = {self.wrapping_direction})"
 
     def apply(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GVector', current_wrapping_direction: Optional['meshes.WrappingDirection']):
+        """Apply the operator to a ``g`` mesh."""
         if current_wrapping_direction != self.wrapping_direction:
             g = mesh.flatten_mesh(mesh.wrap_vector(g, current_wrapping_direction), self.wrapping_direction)
 
@@ -156,7 +173,7 @@ def apply_operators_sequentially(mesh, g: 'meshes.GMesh', operators: Iterable[Me
     return mesh.wrap_vector(g, current_wrapping_direction)
 
 
-class Operators(abc.ABC):
+class MeshOperators(abc.ABC):
     """
     Handles generating operators for a :class:`QuantumMesh`.
 
@@ -219,7 +236,7 @@ class Operators(abc.ABC):
         return si.Info(header = f'{self.__class__.__name__}')
 
 
-class LineLengthGaugeOperators(Operators):
+class LineLengthGaugeOperators(MeshOperators):
     """Operators for :class:`LineMesh`. Interaction operators are evaluated in the length gauge."""
 
     gauge = core.Gauge.LENGTH
@@ -317,7 +334,7 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
         )
 
 
-class CylindricalSliceLengthGaugeOperators(Operators):
+class CylindricalSliceLengthGaugeOperators(MeshOperators):
     """Operators for :class:`CylindricalSliceMesh`. Interaction operators are evaluated in the length gauge."""
 
     gauge = core.Gauge.LENGTH
@@ -418,7 +435,7 @@ class CylindricalSliceLengthGaugeOperators(Operators):
         return DotOperator(rho_current, wrapping_direction = meshes.WrappingDirection.RHO)
 
 
-class SphericalSliceLengthGaugeOperators(Operators):
+class SphericalSliceLengthGaugeOperators(MeshOperators):
     """Operators for :class:`CylindricalSliceMesh`. Interaction operators are evaluated in the velocity gauge."""
 
     gauge = core.Gauge.VELOCITY
@@ -497,7 +514,7 @@ class SphericalSliceLengthGaugeOperators(Operators):
         return SumOfOperators(ElementWiseMultiplyOperator(mesh.z_mesh))
 
 
-class SphericalHarmonicLengthGaugeOperators(Operators):
+class SphericalHarmonicLengthGaugeOperators(MeshOperators):
     """Operators for :class:`SphericalHarmonicMesh`. Interaction operators are evaluated in the length gauge."""
 
     gauge = core.Gauge.LENGTH

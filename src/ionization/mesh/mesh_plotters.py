@@ -24,36 +24,40 @@ class MeshPlotter:
         self.spec = mesh.spec
 
     def attach_mesh_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer: str = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer: str = 'get_mesh_slicer',
+        **kwargs,
+    ):
         raise NotImplementedError
 
     def attach_g2_to_axis(
-            self,
-            axis: plt.Axes,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        **kwargs,
+    ):
         return self.attach_mesh_to_axis(axis, self.mesh.g2, **kwargs)
 
     def attach_psi2_to_axis(
-            self,
-            axis,
-            **kwargs):
+        self,
+        axis,
+        **kwargs,
+    ):
         return self.attach_mesh_to_axis(axis, self.mesh.psi2, **kwargs)
 
     def attach_g_to_axis(
-            self,
-            axis: plt.Axes,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.mesh.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
@@ -62,15 +66,16 @@ class MeshPlotter:
             self.mesh.g,
             colormap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
     def attach_psi_to_axis(
-            self,
-            axis: plt.Axes,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.mesh.psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
@@ -79,17 +84,18 @@ class MeshPlotter:
             self.mesh.psi,
             colormap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
     def update_mesh(
-            self,
-            colormesh,
-            updated_mesh,
-            plot_limit: Optional[float] = None,
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            slicer: str = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        colormesh,
+        updated_mesh,
+        plot_limit: Optional[float] = None,
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        slicer: str = 'get_mesh_slicer',
+        **kwargs,
+    ):
         _slice = getattr(self, slicer)(plot_limit)
         updated_mesh = updated_mesh[_slice]
 
@@ -113,27 +119,29 @@ class MeshPlotter:
         self.update_mesh(colormesh, self.mesh.psi, **kwargs)
 
     def plot_mesh(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            name: str = '',
-            title: Optional[str] = None,
-            distance_unit: str = 'bohr_radius',
-            colormap = vis.COLORMAP_WAVEFUNCTION,
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer: str = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: str = 'bohr_radius',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer: str = 'get_mesh_slicer',
+        **kwargs,
+    ):
         """kwargs go to figman"""
         raise NotImplementedError
 
     def g(
-            self,
-            title: Optional[str] = None,
-            name_postfix: str = '',
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        title: Optional[str] = None,
+        name_postfix: str = '',
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if title is None:
             title = r'$g$'
         name = 'g' + name_postfix
@@ -152,11 +160,12 @@ class MeshPlotter:
         )
 
     def psi(
-            self,
-            name_postfix = '',
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        name_postfix = '',
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         title = r'$\psi$'
         name = 'psi' + name_postfix
 
@@ -174,10 +183,11 @@ class MeshPlotter:
         )
 
     def g2(
-            self,
-            name_postfix: str = '',
-            title: Optional[str] = None,
-            **kwargs):
+        self,
+        name_postfix: str = '',
+        title: Optional[str] = None,
+        **kwargs,
+    ):
         if title is None:
             title = r'$|g|^2$'
         name = 'g2' + name_postfix
@@ -185,9 +195,10 @@ class MeshPlotter:
         self.plot_mesh(self.mesh.g2, name = name, title = title, **kwargs)
 
     def psi2(
-            self,
-            name_postfix: str = '',
-            **kwargs):
+        self,
+        name_postfix: str = '',
+        **kwargs,
+    ):
         title = r'$|\Psi|^2$'
         name = 'psi2' + name_postfix
 
@@ -195,18 +206,18 @@ class MeshPlotter:
 
 
 class LineMeshPlotter(MeshPlotter):
-
     def attach_mesh_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit = None,
-            slicer = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit = None,
+        slicer = 'get_mesh_slicer',
+        **kwargs,
+    ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self, slicer)(plot_limit)
@@ -216,10 +227,11 @@ class LineMeshPlotter(MeshPlotter):
         return line
 
     def plot_mesh(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: u.Unit = 'nm',
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'nm',
+        **kwargs,
+    ):
         si.vis.xy_plot(
             self.sim.name + '_' + kwargs.pop('name'),
             self.mesh.z_mesh,
@@ -238,16 +250,17 @@ class LineMeshPlotter(MeshPlotter):
 
 class CylindricalSliceMeshPlotter(MeshPlotter):
     def attach_mesh_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer = 'get_mesh_slicer',
+        **kwargs,
+    ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
@@ -265,11 +278,12 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         return color_mesh
 
     def attach_probability_current_to_axis(
-            self,
-            axis: plt.Axes,
-            plot_limit: Optional[float] = None,
-            distance_unit: u.Unit = 'bohr_radius',
-            rate_unit = 'per_asec', ):
+        self,
+        axis: plt.Axes,
+        plot_limit: Optional[float] = None,
+        distance_unit: u.Unit = 'bohr_radius',
+        rate_unit = 'per_asec',
+    ):
         distance_unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
         rate_unit_value, _ = u.get_unit_value_and_latex_from_unit(rate_unit)
 
@@ -303,22 +317,23 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         return quiv
 
     def plot_mesh(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            name: str = '',
-            title: Optional[str] = None,
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = vis.COLORMAP_WAVEFUNCTION,
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit = None,
-            slicer = 'get_mesh_slicer',
-            show_colorbar = True,
-            show_title = True,
-            show_axes = True,
-            grid_kwargs = None,
-            overlay_probability_current = False,
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit = None,
+        slicer = 'get_mesh_slicer',
+        show_colorbar = True,
+        show_title = True,
+        show_axes = True,
+        grid_kwargs = None,
+        overlay_probability_current = False,
+        **kwargs,
+    ):
         grid_kwargs = collections.ChainMap(grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS)
         unit_value, unit_name = u.get_unit_value_and_latex_from_unit(distance_unit)
 
@@ -386,16 +401,17 @@ def fmt_polar_axis(fig, axis, colormap, grid_kwargs, unit_latex):
 
 class SphericalSliceMeshPlotter(MeshPlotter):
     def attach_mesh_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer = 'get_mesh_slicer',
+        **kwargs,
+    ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
@@ -421,26 +437,32 @@ class SphericalSliceMeshPlotter(MeshPlotter):
 
         return color_mesh, color_mesh_mirror
 
-    def attach_probability_current_to_axis(self, axis, plot_limit = None, distance_unit: u.Unit = 'bohr_radius'):
+    def attach_probability_current_to_axis(
+        self,
+        axis,
+        plot_limit = None,
+        distance_unit: u.Unit = 'bohr_radius',
+    ):
         raise NotImplementedError
 
     def plot_mesh(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            name: str = '',
-            title: Optional[str] = None,
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = vis.COLORMAP_WAVEFUNCTION,
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit = None,
-            slicer = 'get_mesh_slicer',
-            show_colorbar = True,
-            show_title = True,
-            show_axes = True,
-            grid_kwargs = None,
-            overlay_probability_current = False,
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit = None,
+        slicer = 'get_mesh_slicer',
+        show_colorbar = True,
+        show_title = True,
+        show_axes = True,
+        grid_kwargs = None,
+        overlay_probability_current = False,
+        **kwargs,
+    ):
         grid_kwargs = collections.ChainMap(grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS)
         unit_value, unit_latex = u.get_unit_value_and_latex_from_unit(distance_unit)
 
@@ -478,16 +500,17 @@ class SphericalSliceMeshPlotter(MeshPlotter):
 
 class SphericalHarmonicMeshPlotter(MeshPlotter):
     def attach_mesh_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: str = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer: str = 'get_mesh_slicer_spatial',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: str = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer: str = 'get_mesh_slicer_spatial',
+        **kwargs,
+    ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
@@ -505,22 +528,23 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         return color_mesh
 
     def plot_mesh(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            name: str = '',
-            title: Optional[str] = None,
-            distance_unit: u.Unit = 'bohr_radius',
-            colormap = vis.COLORMAP_WAVEFUNCTION,
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit = None,
-            slicer = 'get_mesh_slicer',
-            show_colorbar = True,
-            show_title = True,
-            show_axes = True,
-            grid_kwargs = None,
-            overlay_probability_current = False,
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: u.Unit = 'bohr_radius',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit = None,
+        slicer = 'get_mesh_slicer',
+        show_colorbar = True,
+        show_title = True,
+        show_axes = True,
+        grid_kwargs = None,
+        overlay_probability_current = False,
+        **kwargs,
+    ):
         grid_kwargs = collections.ChainMap(grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS)
         unit_value, unit_latex = u.get_unit_value_and_latex_from_unit(distance_unit)
 
@@ -561,11 +585,12 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
                 ax.axis('off')
 
     def attach_g_to_axis(
-            self,
-            axis: plt.Axes,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.mesh.space_g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
@@ -574,15 +599,16 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             self.mesh.space_g,
             colormap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
     def g(
-            self,
-            name_postfix: str = '',
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        name_postfix: str = '',
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         title = r'$g$'
         name = 'g' + name_postfix
 
@@ -596,15 +622,16 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             colormap = colormap,
             norm = norm,
             show_colorbar = False,
-            **kwargs
+            **kwargs,
         )
 
     def attach_psi_to_axis(
-            self,
-            axis: plt.Axes,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.mesh.space_psi) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
 
@@ -613,15 +640,16 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             self.mesh.space_psi,
             colormap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
     def psi(
-            self,
-            name_postfix: str = '',
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        name_postfix: str = '',
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         title = r'$\Psi$'
         name = 'psi' + name_postfix
 
@@ -635,7 +663,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             colormap = colormap,
             norm = norm,
             show_colorbar = False,
-            **kwargs
+            **kwargs,
         )
 
     def update_g_mesh(self, colormesh, **kwargs):
@@ -646,16 +674,17 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
 
     # I have no idea what this method does, sinec it doesn't use mesh...
     def attach_mesh_repr_to_axis(
-            self,
-            axis: plt.Axes,
-            mesh: 'meshes.ScalarMesh',
-            distance_unit: str = 'bohr_radius',
-            colormap = plt.get_cmap('inferno'),
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer: str = 'get_mesh_slicer',
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: str = 'bohr_radius',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer: str = 'get_mesh_slicer',
+        **kwargs,
+    ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
         _slice = getattr(self, slicer)(plot_limit)
@@ -673,26 +702,27 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         return color_mesh
 
     def plot_mesh_repr(
-            self,
-            mesh: 'meshes.ScalarMesh',
-            name: str = '',
-            title: Optional[str] = None,
-            distance_unit: str = 'bohr_radius',
-            colormap = vis.COLORMAP_WAVEFUNCTION,
-            norm = si.vis.AbsoluteRenormalize(),
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            plot_limit: Optional[float] = None,
-            slicer: str = 'get_mesh_slicer',
-            aspect_ratio: float = si.vis.GOLDEN_RATIO,
-            show_colorbar: bool = True,
-            show_title: bool = True,
-            show_axes: bool = True,
-            title_y_adjust: float = 1.1,
-            title_size: float = 12,
-            axis_label_size: float = 12,
-            tick_label_size: float = 10,
-            grid_kwargs: Optional[dict] = None,
-            **kwargs):
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: str = 'bohr_radius',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer: str = 'get_mesh_slicer',
+        aspect_ratio: float = si.vis.GOLDEN_RATIO,
+        show_colorbar: bool = True,
+        show_title: bool = True,
+        show_axes: bool = True,
+        title_y_adjust: float = 1.1,
+        title_size: float = 12,
+        axis_label_size: float = 12,
+        tick_label_size: float = 10,
+        grid_kwargs: Optional[dict] = None,
+        **kwargs,
+    ):
         if grid_kwargs is None:
             grid_kwargs = {}
         with si.vis.FigureManager(name = f'{self.spec.name}__{name}', aspect_ratio = aspect_ratio, **kwargs) as figman:
@@ -742,12 +772,13 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
                 axis.axis('off')
 
     def g_repr(
-            self,
-            name_postfix: str = '',
-            title: Optional[str] = None,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        name_postfix: str = '',
+        title: Optional[str] = None,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
         if title is None:
             title = r'$g$'
         name = 'g_repr' + name_postfix
@@ -762,15 +793,16 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             colormap = colormap,
             norm = norm,
             show_colorbar = False,
-            **kwargs
+            **kwargs,
         )
 
     def attach_g_repr_to_axis(
-            self,
-            axis: plt.Axes,
-            colormap = plt.get_cmap('richardson'),
-            norm = None,
-            **kwargs):
+        self,
+        axis: plt.Axes,
+        colormap = plt.get_cmap('richardson'),
+        norm = None,
+        **kwargs,
+    ):
 
         if norm is None:
             norm = si.vis.RichardsonNormalization(np.max(np.abs(self.mesh.g) / vis.DEFAULT_RICHARDSON_MAGNITUDE_DIVISOR))
@@ -780,19 +812,20 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             self.mesh.g,
             colormap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
     def electron_momentum_spectrum(
-            self,
-            r_type: u.Unit = 'wavenumber',
-            r_scale: u.Unit = 'per_nm',
-            r_lower_lim: float = u.twopi * .01 * u.per_nm,
-            r_upper_lim: float = u.twopi * 10 * u.per_nm,
-            r_points: int = 100,
-            theta_points: int = 360,
-            g: Optional['meshes.StateOrGMesh'] = None,
-            **kwargs):
+        self,
+        r_type: u.Unit = 'wavenumber',
+        r_scale: u.Unit = 'per_nm',
+        r_lower_lim: float = u.twopi * .01 * u.per_nm,
+        r_upper_lim: float = u.twopi * 10 * u.per_nm,
+        r_points: int = 100,
+        theta_points: int = 360,
+        g: Optional['meshes.StateOrGMesh'] = None,
+        **kwargs,
+    ):
         if r_type not in ('wavenumber', 'energy', 'momentum'):
             raise ValueError("Invalid argument to plot_electron_spectrum: r_type must be either 'wavenumber', 'energy', or 'momentum'")
 
@@ -806,7 +839,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         elif r_type == 'momentum':
             wavenumbers = r / u.hbar
 
-        g = self.mesh.state_to_mesh(g)
+        g = self.mesh.state_to_g(g)
 
         theta_mesh, wavenumber_mesh, inner_product_mesh = self.mesh.inner_product_with_plane_waves(thetas, wavenumbers, g = g)
 
@@ -823,19 +856,20 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             inner_product_mesh,
             r_type,
             r_scale,
-            **kwargs
+            **kwargs,
         )
 
     def electron_momentum_spectrum_from_meshes(
-            self,
-            theta_mesh,
-            r_mesh,
-            inner_product_mesh,
-            r_type: str,
-            r_scale: float,
-            log: bool = False,
-            shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
-            **kwargs):
+        self,
+        theta_mesh,
+        r_mesh,
+        inner_product_mesh,
+        r_type: str,
+        r_scale: float,
+        log: bool = False,
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        **kwargs,
+    ):
         """
         Generate a polar plot of the wavefunction decomposed into plane waves.
 

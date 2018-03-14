@@ -16,12 +16,17 @@ class EvolutionMethod(abc.ABC):
     """An abstract class that represents an evolution method for a wavefunction on a mesh."""
 
     def evolve(self, mesh: 'meshes.QuantumMesh', g: 'meshes.GMesh', time_step: complex) -> 'meshes.GMesh':
+        """Evolve ``g`` in time by ``time_step``."""
         evolution_operators = self.get_evolution_operators(mesh, time_step)
         return mesh_operators.apply_operators_sequentially(mesh, g, evolution_operators)
 
     @abc.abstractmethod
     def get_evolution_operators(self, mesh: 'meshes.QuantumMesh', time_step: complex) -> Iterable[mesh_operators.MeshOperator]:
-        """Evolve the wavefunction forward in time by ``time_step``."""
+        """
+        Return a sequence of operators that collectively evolve a ``g`` mesh in time by ``time_step``.
+
+        This is an abstract method that should be overridden in concrete subclasses to implement the desired evolution algorithm.
+        """
         raise NotImplementedError
 
     def __repr__(self):
@@ -67,10 +72,10 @@ class SplitInteractionOperator(EvolutionMethod):
 
     This implementation only works when the field-free Hamiltonian is given by a single matrix operator.
     Whichever operator in the internal Hamiltonian is the first in the sum will be used.
+    That means that, for the moment, this method only works with :class:`LineMesh` and :class:`SphericalHarmonicMesh` (with ``r`` as the non-interacting dimension).
     """
 
     def get_evolution_operators(self, mesh: 'meshes.SphericalHarmonicMesh', time_step: complex) -> 'meshes.GMesh':
-        """Evolve the wavefunction forward in time by ``time_step``."""
         tau = time_step / (2 * u.hbar)
 
         cn_oper, = mesh.operators.internal_hamiltonian(mesh).operators  # this is the operator we do Crank-Nicolson ADI with

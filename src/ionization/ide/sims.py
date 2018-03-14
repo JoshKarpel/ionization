@@ -182,13 +182,15 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
-    def attach_electric_potential_plot_to_axis(self,
-                                               axis,
-                                               time_unit = 'asec',
-                                               legend_kwargs = None,
-                                               show_y_label: bool = False,
-                                               show_electric_field: bool = True,
-                                               show_vector_potential: bool = True):
+    def attach_electric_potential_plot_to_axis(
+        self,
+        axis,
+        time_unit = 'asec',
+        legend_kwargs = None,
+        show_y_label: bool = False,
+        show_electric_field: bool = True,
+        show_vector_potential: bool = True,
+    ):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if legend_kwargs is None:
@@ -240,12 +242,14 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         """Alias for plot_b2_vs_time."""
         self.plot_b2_vs_time(*args, **kwargs)
 
-    def plot_b2_vs_time(self,
-                        log = False,
-                        time_unit = 'asec',
-                        show_vector_potential = False,
-                        show_title = False,
-                        **kwargs):
+    def plot_b2_vs_time(
+        self,
+        log = False,
+        time_unit = 'asec',
+        show_vector_potential = False,
+        show_title = False,
+        **kwargs,
+    ):
         with si.vis.FigureManager(self.file_name + '__b2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
@@ -334,28 +338,29 @@ class IntegroDifferentialEquationSpecification(si.Specification):
     simulation_type = IntegroDifferentialEquationSimulation
 
     def __init__(
-            self,
-            name: str,
-            time_initial: float = 0 * u.asec,
-            time_final: float = 200 * u.asec,
-            time_step: float = 1 * u.asec,
-            test_mass: float = u.electron_mass,
-            test_charge: float = u.electron_charge,
-            b_initial: Union[float, complex] = 1,
-            integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
-            electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
-            electric_potential_dc_correction: bool = False,
-            kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
-            integration_method: str = 'simpson',
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
-            evolution_gauge: core.Gauge = core.Gauge.LENGTH,
-            checkpoints: bool = False,
-            checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
-            checkpoint_dir: str = None,
-            store_data_every: int = 1,
-            tunneling_model: tunneling.TunnelingModel = tunneling.NoTunneling(),
-            ionization_potential = -u.rydberg,
-            **kwargs):
+        self,
+        name: str,
+        time_initial: float = 0 * u.asec,
+        time_final: float = 200 * u.asec,
+        time_step: float = 1 * u.asec,
+        test_mass: float = u.electron_mass,
+        test_charge: float = u.electron_charge,
+        b_initial: Union[float, complex] = 1,
+        integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
+        electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+        electric_potential_dc_correction: bool = False,
+        kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+        integration_method: str = 'simpson',
+        evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
+        evolution_gauge: core.Gauge = core.Gauge.LENGTH,
+        checkpoints: bool = False,
+        checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
+        checkpoint_dir: str = None,
+        store_data_every: int = 1,
+        tunneling_model: tunneling.TunnelingModel = tunneling.NoTunneling(),
+        ionization_potential = -u.rydberg,
+        **kwargs,
+    ):
         """
         The differential equation should be of the form
         da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)

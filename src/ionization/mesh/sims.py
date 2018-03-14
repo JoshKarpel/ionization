@@ -21,8 +21,15 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class MeshSimulation(si.Simulation, abc.ABC):
-    """An abstract class for TDSE simulations that use meshes (i.e. :class:`QuantumMesh`s)."""
+class MeshSimulation(si.Simulation):
+    """
+    A class for a TDSE simulation that uses a mesh (i.e., a :class:`QuantumMesh`).
+
+    Attributes
+    ----------
+    data
+        A :class:`Data` that provides access to time-indexed data.
+    """
 
     def __init__(self, spec: 'MeshSpecification'):
         super().__init__(spec)
@@ -140,18 +147,6 @@ class MeshSimulation(si.Simulation, abc.ABC):
     def times_to_current(self) -> np.array:
         return self.times[:self.time_index + 1]
 
-    @property
-    def total_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for overlap in self.data.state_overlaps_vs_time.values())
-
-    @property
-    def total_bound_state_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for state, overlap in self.data.state_overlaps_vs_time.items() if state.bound)
-
-    @property
-    def total_free_state_overlap_vs_time(self) -> np.array:
-        return np.sum(overlap for state, overlap in self.data.state_overlaps_vs_time.items() if state.free)
-
     def get_times(self) -> np.array:
         if not callable(self.spec.time_step):
             total_time = self.spec.time_final - self.spec.time_initial
@@ -197,9 +192,22 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         logger.info(f'Stored {snapshot.__class__.__name__} for {self} at time index {self.time_index} (t = {u.uround(self.time, u.asec)} as)')
 
-    def run(self, progress_bar: bool = False, callback: Callable = None):
+    def run(
+        self,
+        progress_bar: bool = False,
+        callback: Callable[['MeshSimulation'], None] = None,
+    ):
         """
-        Run the simulation by repeatedly evolving the mesh by the time step and recovering various data from it.
+        Run the simulation by repeatedly evolving the mesh by the time step.
+        During this process, :class:`Datastore` will be used to collect data about the wavefunction.
+
+        Parameters
+        ----------
+        progress_bar
+            If ``True``, a progress bar will be displayed.
+        callback
+            If given, will be called with the :class:`MeshSimulation` as its argument after every time step.
+
         """
         logger.info(f'Performing time evolution on {self}, starting from time index {self.time_index}')
         try:
@@ -282,9 +290,10 @@ class MeshSimulation(si.Simulation, abc.ABC):
         yield from [s for s in self.spec.test_states if not s.bound]
 
     def dipole_moment_vs_frequency(
-            self,
-            first_time: Optional[float] = None,
-            last_time: Optional[float] = None):
+        self,
+        first_time: Optional[float] = None,
+        last_time: Optional[float] = None,
+    ):
         logger.critical('ALERT: dipole_momentum_vs_frequency does not account for non-uniform time step!')
 
         if first_time is None:
@@ -301,7 +310,13 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
         return frequency, dipole_moment
 
-    def save(self, target_dir: Optional[str] = None, file_extension: str = '.sim', save_mesh: bool = False, **kwargs):
+    def save(
+        self,
+        target_dir: Optional[str] = None,
+        file_extension: str = '.sim',
+        save_mesh: bool = False,
+        **kwargs,
+    ):
         """
         Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
 
@@ -329,67 +344,92 @@ class MeshSimulation(si.Simulation, abc.ABC):
 
 
 class MeshSpecification(si.Specification, abc.ABC):
-    """A base Specification for a Simulation with a QuantumMesh."""
+    """An abstract :class:`simulacra.Specification` for a :class:`simulacra.Simulation` with a :class:`QuantumMesh`."""
 
     simulation_type = MeshSimulation
     mesh_type = meshes.QuantumMesh
     simulation_plotter_type = sim_plotters.MeshSimulationPlotter
 
     def __init__(
-            self,
-            name: str,
-            test_mass: float = u.electron_mass_reduced,
-            test_charge: float = u.electron_charge,
-            initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
-            test_states: Iterable[states.QuantumState] = tuple(),
-            internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
-            electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
-            electric_potential_dc_correction: bool = False,
-            mask: potentials.Mask = potentials.NoMask(),
-            operators: mesh_operators.Operators = None,
-            evolution_method: evolution_methods.EvolutionMethod = None,
-            time_initial = 0 * u.asec,
-            time_final = 200 * u.asec,
-            time_step = 1 * u.asec,
-            checkpoints: bool = False,
-            checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
-            checkpoint_dir: Optional[str] = None,
-            animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
-            store_data_every: int = 1,
-            snapshot_times = (),
-            snapshot_indices = (),
-            snapshot_type = None,
-            snapshot_kwargs: Optional[dict] = None,
-            datastores: Optional[Iterable[data.Datastore]] = None,
-            **kwargs):
+        self,
+        name: str,
+        test_mass: float = u.electron_mass_reduced,
+        test_charge: float = u.electron_charge,
+        initial_state: states.QuantumState = states.HydrogenBoundState(1, 0),
+        test_states: Iterable[states.QuantumState] = tuple(),
+        internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
+        electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
+        electric_potential_dc_correction: bool = False,
+        mask: potentials.Mask = potentials.NoMask(),
+        operators: mesh_operators.MeshOperators = None,
+        evolution_method: evolution_methods.EvolutionMethod = None,
+        time_initial: float = 0 * u.asec,
+        time_final: float = 200 * u.asec,
+        time_step: float = 1 * u.asec,
+        checkpoints: bool = False,
+        checkpoint_every: datetime.timedelta = datetime.timedelta(hours = 1),
+        checkpoint_dir: Optional[str] = None,
+        animators: Iterable[anim.WavefunctionSimulationAnimator] = tuple(),
+        store_data_every: int = 1,
+        snapshot_times = (),
+        snapshot_indices = (),
+        snapshot_type = None,
+        snapshot_kwargs: Optional[dict] = None,
+        datastores: Optional[Iterable[data.Datastore]] = None,
+        **kwargs,
+    ):
         """
+
         Parameters
         ----------
         name
+            The name of the specification/simulation.
         test_mass
+            The mass of the test particle.
         test_charge
+            The charge of the test particle.
         initial_state
+            The initial :class:`QuantumState` of the test particle.
         test_states
+            The :class:`QuantumState` that will be tracked during the simulation.
         internal_potential
+            The static, internal potentials.
         electric_potential
+            The possibly-time varying external electric field.
         electric_potential_dc_correction
+            If ``True``, perform DC correction on the ``electric_potential``.
         mask
+            A :class:`ionization.potentials.Mask` to apply to the wavefunction after every time step.
+        operators
+            A :class:`MeshOperators` to generate discretized mesh operators from.
         evolution_method
-        evolution_equations
-        evolution_gauge
+            A :class:`EvolutionMethod` to provide a time evolution algorithm.
         time_initial
+            The time to begin the simulation at.
         time_final
+            The time to end the simulation at.
         time_step
+            The amount of time to evolve by on each evolution step.
         checkpoints
+            If ``True``, the simulation will save checkpoints to ``checkpoint_dir`` every ``checkpoint_every``.
         checkpoint_every
+            The time between checkpoints.
         checkpoint_dir
+            The directory to save checkpoints to.
         animators
+            Any :class:`WavefunctionSimulationAnimator` to run during the simulation.
         store_data_every
+            Data will be stored every ``store_data_every`` time steps.
+            The special value ``store_data_every = -1`` causes data to be stored only on the first and last time steps.
         snapshot_times
         snapshot_indices
         snapshot_type
         snapshot_kwargs
+        datastores
+            A list of prototype datastores to use during the simulation.
+            During :class:`MeshSimulation` initialization they are cloned and the clones are then attached to the simulation.
         kwargs
+            Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
         """
         super().__init__(name, **kwargs)
 
@@ -502,20 +542,41 @@ class MeshSpecification(si.Specification, abc.ABC):
 
 
 class LineSpecification(MeshSpecification):
+    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`LineMesh`."""
+
     mesh_type = meshes.LineMesh
 
     def __init__(
-            self,
-            name,
-            initial_state = states.QHOState(1 * u.N / u.m),
-            z_bound = 10 * u.nm,
-            z_points = 2 ** 9,
-            analytic_eigenstate_type = None,
-            use_numeric_eigenstates = False,
-            number_of_numeric_eigenstates = 100,
-            operators: mesh_operators.Operators = mesh_operators.LineLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
-            **kwargs):
+        self,
+        name,
+        initial_state = states.QHOState(1 * u.N / u.m),
+        z_bound: float = 10 * u.nm,
+        z_points: int = 2 ** 9,
+        use_numeric_eigenstates = False,
+        number_of_numeric_eigenstates = 100,
+        analytic_eigenstate_type: Optional[states.QuantumState] = None,
+        operators: mesh_operators.MeshOperators = mesh_operators.LineLengthGaugeOperators(),
+        evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
+        **kwargs,
+    ):
+        """
+
+        Parameters
+        ----------
+        z_bound
+            The symmetric bounds of the simulation (i.e., the simulation region goes from ``-z`` to ``+z``.
+        z_points
+            The number of coordinate points for the z-dimension.
+        use_numeric_eigenstates
+            If ``True``, the ``test_states`` will be replaced by numeric eigenstates generated from the field-free evolution operators.
+        number_of_numeric_eigenstates
+            The number of numeric eigenstates to generate.
+        analytic_eigenstate_type
+            The type of analytic eigenstate to use.
+            This can be ``None`` only if ``use_numeric_eigenstates`` is ``False``.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`MeshSpecification` constructor.
+        """
         super().__init__(
             name,
             initial_state = initial_state,
@@ -551,23 +612,40 @@ class LineSpecification(MeshSpecification):
 
 
 class CylindricalSliceSpecification(MeshSpecification):
+    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`CylindricalSliceMesh`."""
+
     mesh_type = meshes.CylindricalSliceMesh
 
     def __init__(
-            self,
-            name: str,
-            z_bound: float = 20 * u.bohr_radius,
-            rho_bound: float = 20 * u.bohr_radius,
-            z_points: int = 2 ** 9,
-            rho_points: int = 2 ** 8,
-            operators = mesh_operators.CylindricalSliceLengthGaugeOperators(),
-            evolution_method = evolution_methods.AlternatingDirectionImplicit(),
-            **kwargs):
+        self,
+        name: str,
+        z_bound: float = 20 * u.bohr_radius,
+        rho_bound: float = 20 * u.bohr_radius,
+        z_points: int = 2 ** 9,
+        rho_points: int = 2 ** 8,
+        operators = mesh_operators.CylindricalSliceLengthGaugeOperators(),
+        evolution_method = evolution_methods.AlternatingDirectionImplicit(),
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        z_bound
+            The symmetric bounds of the simulation in :math:`z` (i.e., the simulation region goes from :math:`-z` to :math:`+z`.
+        rho_bound
+            The bound of the simulation in :math:`\\rho` (i.e., the simulation region from :math:`\\sim 0` to :math:`\\sim \\rho`).
+        z_points
+            The number of coordinate points for the z-dimension.
+        rho_points
+            The number of coordinate points for the rho-dimension.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`MeshSpecification` constructor.
+        """
         super().__init__(
             name,
             operators = operators,
             evolution_method = evolution_method,
-            **kwargs
+            **kwargs,
         )
 
         self.z_bound = z_bound
@@ -638,17 +716,32 @@ class CylindricalSliceSpecification(MeshSpecification):
 
 
 class SphericalSliceSpecification(MeshSpecification):
+    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`SphericalSliceMesh`."""
+
     mesh_type = meshes.SphericalSliceMesh
 
     def __init__(
-            self,
-            name: str,
-            r_bound: float = 20 * u.bohr_radius,
-            r_points: int = 2 ** 10,
-            theta_points: int = 2 ** 10,
-            operators: mesh_operators.Operators = mesh_operators.SphericalSliceLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
-            **kwargs):
+        self,
+        name: str,
+        r_bound: float = 20 * u.bohr_radius,
+        r_points: int = 2 ** 10,
+        theta_points: int = 2 ** 10,
+        operators: mesh_operators.MeshOperators = mesh_operators.SphericalSliceLengthGaugeOperators(),
+        evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
+        **kwargs,
+    ):
+        """
+        Parameters
+        ----------
+        r_bound
+            The outer radius of the simulation region.
+        r_points
+            The number of points to use for the :math:`r` coordinate.
+        theta_points
+            The number of points to use for the :math:`\\theta` coordinate (:math:`\\theta` always goes from :math:`0` to :math:`\\pi`).
+        kwargs
+            Any additional keyword arguments are passed to the :class:`MeshSpecification` constructor.
+        """
         super().__init__(
             name,
             operators = operators,
@@ -679,6 +772,8 @@ class SphericalSliceSpecification(MeshSpecification):
 
 
 class SphericalHarmonicSimulation(MeshSimulation):
+    """An extended :class:`MeshSimulation` that takes advantage of particular features of :class:`SphericalHarmonicMesh`."""
+
     def check(self):
         super().check()
 
@@ -692,23 +787,52 @@ class SphericalHarmonicSimulation(MeshSimulation):
 
 
 class SphericalHarmonicSpecification(MeshSpecification):
+    """
+    A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`SphericalHarmonicMesh`.
+
+    Unlike other :class:`MeshSpecification`, :class:`SphericalHarmonicSpecification` produces a :class:`SphericalHarmonicSimulation`.
+    """
+
     simulation_type = SphericalHarmonicSimulation
     mesh_type = meshes.SphericalHarmonicMesh
     simulation_plotter_type = sim_plotters.SphericalHarmonicSimulationPlotter
 
     def __init__(
-            self,
-            name: str,
-            r_bound: float = 100 * u.bohr_radius,
-            r_points: int = 1000,
-            l_bound: int = 300,
-            theta_points: int = 180,
-            operators: mesh_operators.Operators = mesh_operators.SphericalHarmonicLengthGaugeOperators(),
-            evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SplitInteractionOperator(),
-            use_numeric_eigenstates: bool = True,
-            numeric_eigenstate_max_energy: float = 20 * u.eV,
-            numeric_eigenstate_max_angular_momentum: int = 5,
-            **kwargs):
+        self,
+        name: str,
+        r_bound: float = 100 * u.bohr_radius,
+        r_points: int = 1000,
+        l_bound: int = 300,
+        theta_points: int = 180,
+        operators: mesh_operators.MeshOperators = mesh_operators.SphericalHarmonicLengthGaugeOperators(),
+        evolution_method: evolution_methods.EvolutionMethod = evolution_methods.SplitInteractionOperator(),
+        use_numeric_eigenstates: bool = True,
+        numeric_eigenstate_max_energy: float = 20 * u.eV,
+        numeric_eigenstate_max_angular_momentum: int = 5,
+        **kwargs,
+    ):
+        """
+
+        Parameters
+        ----------
+        r_bound
+            The outer radius of the simulation region.
+        r_points
+            The number of points to use for the :math:`r` coordinate.
+        l_bound
+            The maximum orbital angular momentum to track.
+        theta_points
+            The number of points to use for the :math:`\\theta` coordinate (:math:`\\theta` always goes from :math:`0` to :math:`\\pi`).
+            This is only used for display purposes, and has no impact on evolution calculations.
+        use_numeric_eigenstates
+            If ``True``, the ``test_states`` will be replaced by numeric eigenstates generated from the field-free evolution operators.
+        numeric_eigenstate_max_energy
+            The maximum energy to keep from the generated numeric eigenstates.
+        numeric_eigenstate_max_angular_momentum
+            The maximum angular momentum to keep from the generated numeric eigenstates.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`MeshSpecification` constructor.
+        """
         super().__init__(
             name,
             operators = operators,

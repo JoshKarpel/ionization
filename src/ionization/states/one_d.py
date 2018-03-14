@@ -9,7 +9,7 @@ import scipy.misc as spmisc
 import simulacra as si
 import simulacra.units as u
 
-from .. import mesh, utils, exceptions
+from .. import mesh, potentials, utils, exceptions
 
 from . import states
 
@@ -24,7 +24,12 @@ class OneDPlaneWave(states.QuantumState):
     binding = states.Binding.FREE
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, wavenumber = u.twopi / u.nm, mass = u.electron_mass, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        wavenumber: float = u.twopi / u.nm,
+        mass: float = u.electron_mass,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
 
         Parameters
@@ -39,7 +44,13 @@ class OneDPlaneWave(states.QuantumState):
         super().__init__(amplitude = amplitude)
 
     @classmethod
-    def from_energy(cls, energy = 1.50412 * u.eV, k_sign = 1, mass = u.electron_mass, amplitude: states.ProbabilityAmplitude = 1):
+    def from_energy(
+        cls,
+        energy: float = 1.50412 * u.eV,
+        k_sign: int = 1,
+        mass = u.electron_mass,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         if k_sign not in [1, -1]:
             raise exceptions.IllegalQuantumState
         return cls(k_sign * np.sqrt(2 * mass * energy) / u.hbar, mass, amplitude = amplitude)
@@ -99,7 +110,13 @@ class QHOState(states.QuantumState):
     binding = states.Binding.BOUND
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, spring_constant, mass = u.electron_mass, n = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        spring_constant: float,
+        mass: float = u.electron_mass,
+        n: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a QHOState from a spring constant, mass, and energy index n.
 
@@ -116,7 +133,13 @@ class QHOState(states.QuantumState):
         super().__init__(amplitude = amplitude)
 
     @classmethod
-    def from_omega_and_mass(cls, omega, mass = u.electron_mass, n = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def from_omega_and_mass(
+        cls,
+        omega: float,
+        mass: float = u.electron_mass,
+        n: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a QHOState from an angular frequency, mass, and energy index n.
 
@@ -130,7 +153,13 @@ class QHOState(states.QuantumState):
         return cls(spring_constant = mass * (omega ** 2), mass = mass, n = n, amplitude = amplitude)
 
     @classmethod
-    def from_potential(cls, potential, mass, n = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def from_potential(
+        cls,
+        potential: potentials.HarmonicOscillator,
+        mass: float,
+        n: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a QHOState from a HarmonicOscillator, mass, and energy index n.
 
@@ -213,7 +242,15 @@ class FiniteSquareWellState(states.QuantumState):
     binding = states.Binding.BOUND
     derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, well_depth, well_width, mass, n = 1, well_center = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        well_depth: float,
+        well_width: float,
+        mass: float,
+        n: states.QuantumNumber = 1,
+        well_center: float = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a FiniteSquareWellState from the well properties, the particle mass, and an energy index.
 
@@ -260,7 +297,13 @@ class FiniteSquareWellState(states.QuantumState):
         super().__init__(amplitude = amplitude)
 
     @classmethod
-    def from_potential(cls, potential, mass, n = 1, amplitude: states.ProbabilityAmplitude = 1):
+    def from_potential(
+        cls,
+        potential: potentials.FiniteSquareWell,
+        mass: float,
+        n: states.QuantumNumber = 1,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a FiniteSquareWellState from a FiniteSquareWell potential, the particle mass, and an energy index.
 
@@ -274,7 +317,14 @@ class FiniteSquareWellState(states.QuantumState):
         return cls(potential.potential_depth, potential.width, mass, n = n, well_center = potential.center, amplitude = amplitude)
 
     @classmethod
-    def all_states_of_well_from_parameters(cls, well_depth, well_width, mass, well_center = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def all_states_of_well_from_parameters(
+        cls,
+        well_depth: float,
+        well_width: float,
+        mass: float,
+        well_center: float = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Return a list containing all of the bound states of a well.
 
@@ -296,23 +346,24 @@ class FiniteSquareWellState(states.QuantumState):
 
     @classmethod
     def all_states_of_well_from_well(
-            cls,
-            finite_square_well_potential,
-            mass,
-            amplitude: states.ProbabilityAmplitude = 1):
+        cls,
+        potential: potentials.FiniteSquareWell,
+        mass: float,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Return a list containing all of the bound states of a well.
 
-        :param finite_square_well_potential: a FiniteSquareWell
+        :param potential: a FiniteSquareWell
         :param mass: the mass of the particle
         :param amplitude: the probability amplitude of the states
         :return:
         """
         return cls.all_states_of_well_from_parameters(
-            finite_square_well_potential.potential_depth,
-            finite_square_well_potential.width,
+            potential.potential_depth,
+            potential.width,
             mass,
-            well_center = finite_square_well_potential.center,
+            well_center = potential.center,
             amplitude = amplitude,
         )
 
@@ -344,12 +395,17 @@ class FiniteSquareWellState(states.QuantumState):
         else:
             sym = 1
 
-        psi = np.where(cond,
-                       self.normalization_factor_inside_well * self.function_inside_well(self.wavenumber_inside_well * x),
-                       self.normalization_factor_outside_well * np.exp(-self.wavenumber_outside_well * np.abs(x))).astype(np.complex128)
+        psi = np.where(
+            cond,
+            self.normalization_factor_inside_well * self.function_inside_well(self.wavenumber_inside_well * x),
+            self.normalization_factor_outside_well * np.exp(-self.wavenumber_outside_well * np.abs(x))
+        ).astype(np.complex128)
 
-        symmetrization = np.where(np.less_equal(x, self.left_edge),
-                                  sym, 1)
+        symmetrization = np.where(
+            np.less_equal(x, self.left_edge),
+            sym,
+            1,
+        )
 
         return psi * symmetrization
 
@@ -389,7 +445,15 @@ class GaussianWellState(states.QuantumState):
     binding = states.Binding.BOUND
     derivation = states.Derivation.VARIATIONAL
 
-    def __init__(self, well_depth, well_width, mass, n = 0, well_center = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(
+        self,
+        well_depth: float,
+        well_width: float,
+        mass: float,
+        n: states.QuantumNumber = 0,
+        well_center: float = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a GaussianWellState from the well properties, the particle mass, and an energy index.
 
@@ -420,7 +484,13 @@ class GaussianWellState(states.QuantumState):
         super().__init__(amplitude = amplitude)
 
     @classmethod
-    def from_potential(cls, potential, mass, n = 0, amplitude: states.ProbabilityAmplitude = 1):
+    def from_potential(
+        cls,
+        potential: potentials.GaussianPotential,
+        mass: float,
+        n: states.QuantumNumber = 0,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         """
         Construct a FiniteSquareWellState from a FiniteSquareWell potential, the particle mass, and an energy index.
 
@@ -523,13 +593,14 @@ class NumericOneDState(states.QuantumState):
     derivation = states.Derivation.ANALYTIC
 
     def __init__(
-            self,
-            *,
-            wavefunction: 'mesh.PsiVector',
-            energy: float,
-            corresponding_analytic_state: states.QuantumState,
-            binding: states.Binding.FREE,
-            amplitude: states.ProbabilityAmplitude = 1):
+        self,
+        *,
+        wavefunction: 'mesh.PsiVector',
+        energy: float,
+        corresponding_analytic_state: states.QuantumState,
+        binding: states.Binding.FREE,
+        amplitude: states.ProbabilityAmplitude = 1,
+    ):
         self.wavefunction = wavefunction
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state

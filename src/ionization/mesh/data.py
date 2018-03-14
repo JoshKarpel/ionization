@@ -1,6 +1,7 @@
 import sys
 import abc
 import collections
+from typing import Iterable
 
 import numpy as np
 
@@ -11,7 +12,63 @@ from . import sims
 
 
 class Data:
-    """A central point on a MeshSimulation for accessing the simulation's Datastores."""
+    """
+    A central point on a :class:`MeshSimulation` for accessing the simulation's datastores.
+
+    This object has various attributes on it that are linked to the datastores that belong to the simulation.
+    These attributes are the correct way to get time-indexed data from the simulation.
+    This object is stored in the ``data`` attribute of a :class:`MeshSimulation`, so the proper way to look at, for example, the norm, is to access ``sim.data.norm``.
+
+    Depending on which :class:`Datastore` have been added to the :class:`MeshSimulation`, the following attributes may be available, each a numpy array or dictionary of numpy arrays indexed by data times.
+    The ``times`` attribute is always available.
+
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | Attribute                             | Datastore                                    | Description                                                                                                                           |
+    +=======================================+==============================================+=======================================================================================================================================+
+    | ``times``                             |                                              | The times at which data was taken                                                                                                     |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``electric_field_amplitude``          | :class:`Fields`                              | The electric field amplitude                                                                                                          |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``vector_potential_amplitude``        |                                              | The vector potential amplitude                                                                                                        |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``norm``                              | :class:`Norm`                                | The norm of the wavefunction                                                                                                          |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``inner_products``                    | :class:`InnerProducts`                       | A :class:`dict` of :class:`QuantumState` to the inner product of the wavefunction with that state                                     |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``state_overlaps``                    |                                              | A :class:`dict` of :class:`QuantumState` to the overlap (absolute value of inner product squared) of the wavefunction with that state |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``initial_state_inner_product``       |                                              | The inner product of the wavefunction with the initial state                                                                          |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``initial_state_overlap``             |                                              | The overlap of the wavefunction with the initial state                                                                                |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``bound_state_overlap``               |                                              | The total overlap of the wavefunction with all bound states                                                                           |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``free_state_overlap``                |                                              | The total overlap of the wavefunction with all free states                                                                            |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``total_state_overlap``               |                                              | The total overlap of the wavefunction with all states                                                                                 |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``internal_energy_expectation_value`` | :class:`InternalEnergyExpectationValue`      | The internal energy expectation value (i.e., the expectation value of the Hamiltonian without the interaction term).                  |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``total_energy_expectation_value``    | :class:`TotalEnergyExpectationValue`         | The total energy expectation value (i.e., the expectation value of the energy with the total Hamiltonian at that time)                |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``z_expectation_value``               | :class:`ZExpectationValue`                   | The expectation value of the position along the z-axis                                                                                |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``z_dipole_moment_expectation_value`` |                                              | The expectation value of the z-component of the dipole moment operator                                                                |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``r_expectation_value``               | :class:`RExpectationValue`                   | The expectation value of the distance from the origin                                                                                 |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``norm_within_radius``                | :class:`NormWithinRadius`                    | A :class:`dict` of radii to the norm contained within that radius                                                                     |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``norm_by_sph_harm``                  | :class:`NormBySphericalHarmonic`             | A :class:`dict` of :class:`simulacra.math.SphericalHarmonic` to the norm in that spherical harmonic                                   |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``radial_probability_current__pos_z`` | :class:`DirectionalRadialProbabilityCurrent` | The total radial probability current for all :math:`z > 0`                                                                            |
+    +---------------------------------------+                                              +---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``radial_probability_current__neg_z`` |                                              | The total radial probability current for all :math:`z < 0`                                                                            |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+    | ``radial_probability_current__total`` |                                              | The total radial probability current                                                                                                  |
+    +---------------------------------------+----------------------------------------------+---------------------------------------------------------------------------------------------------------------------------------------+
+
+    """
 
     def __init__(self, sim):
         self.sim = sim
@@ -39,7 +96,15 @@ DATA_NAME_TO_DATASTORE_TYPE = {}
 
 
 class Datastore(abc.ABC):
-    """Handles storing and reporting a type of time-indexed data for a MeshSimulation."""
+    """
+    An abstract class that handles storing and reporting a type of time-indexed data for a :class:`MeshSimulation`.
+
+    Data for times that have not yet occurred are assigned to `np.NaN`.
+
+    Note that the three abstract methods of :class:`Datastore` need to be implemented by subclasses but are not intended to be called by users.
+    They are used internally to initialize and attach the datastores to simulations.
+    To provide initialization options for the user, write an ``__init__`` method as usual.
+    """
 
     @abc.abstractmethod
     def init(self, sim: 'sims.MeshSimulation'):
@@ -56,7 +121,7 @@ class Datastore(abc.ABC):
 
     @abc.abstractmethod
     def attach(self):
-        """Attach references to the simulation's Data object."""
+        """Attach references to the simulation's :class:`Data` object."""
         raise NotImplementedError
 
     def __repr__(self):
@@ -145,6 +210,12 @@ class InnerProducts(Datastore):
     def bound_state_overlap(self):
         return sum(overlap for state, overlap in self.state_overlaps().items() if state.bound)
 
+    def free_state_overlap(self):
+        return sum(overlap for state, overlap in self.state_overlaps().items() if state.free)
+
+    def total_state_overlap(self):
+        return sum(self.state_overlaps().values())
+
     def attach(self):
         self.sim.data.inner_products = self.inner_products
         self.sim.data.initial_state_inner_product = self.inner_products[self.spec.initial_state]
@@ -156,6 +227,8 @@ class InnerProducts(Datastore):
 Data.state_overlaps = link_property_to_data(InnerProducts, InnerProducts.state_overlaps)
 Data.initial_state_overlap = link_property_to_data(InnerProducts, InnerProducts.initial_state_overlap)
 Data.bound_state_overlap = link_property_to_data(InnerProducts, InnerProducts.bound_state_overlap)
+Data.free_state_overlap = link_property_to_data(InnerProducts, InnerProducts.free_state_overlap)
+Data.total_state_overlap = link_property_to_data(InnerProducts, InnerProducts.total_state_overlap)
 
 DATA_NAME_TO_DATASTORE_TYPE.update({
     'inner_products': InnerProducts,
@@ -163,6 +236,8 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
     'state_overlaps': InnerProducts,
     'initial_state_overlap': InnerProducts,
     'bound_state_overlap': InnerProducts,
+    'free_state_overlap': InnerProducts,
+    'total_state_overlap': InnerProducts,
 })
 
 
@@ -265,7 +340,15 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 
 
 class NormWithinRadius(Datastore):
-    def __init__(self, radii = ()):
+    """Stores the norm contained within given radii."""
+
+    def __init__(self, radii: Iterable[float] = ()):
+        """
+        Parameters
+        ----------
+        radii
+            The radii to store the norm contained within.
+        """
         self.radii = tuple(sorted(radii))
 
     def init(self, sim: 'sims.MeshSimulation'):
@@ -294,7 +377,7 @@ DATA_NAME_TO_DATASTORE_TYPE.update({
 })
 
 
-class NormByL(Datastore):
+class NormBySphericalHarmonic(Datastore):
     """Stores the norm of the wavefunction in each spherical harmonic."""
 
     def init(self, sim: 'sims.MeshSimulation'):
@@ -303,19 +386,19 @@ class NormByL(Datastore):
         super().init(sim)
 
     def store(self):
-        norm_by_l = self.sim.mesh.norm_by_l
+        norm_by_l = self.sim.mesh.norm_by_l()
         for sph_harm, l_norm in zip(self.spec.spherical_harmonics, norm_by_l):
             self.norm_by_l[sph_harm][self.sim.data_time_index] = l_norm
 
     def attach(self):
-        self.sim.data.norm_by_l = self.norm_by_l
+        self.sim.data.norm_by_sph_harm = self.norm_by_l
 
     def __sizeof__(self):
         return sum(ip.nbytes for ip in self.norm_by_l.values()) + sys.getsizeof(self.norm_by_l) + super().__sizeof__()
 
 
 DATA_NAME_TO_DATASTORE_TYPE.update({
-    'norm_by_l': NormByL,
+    'norm_by_l': NormBySphericalHarmonic,
 })
 
 

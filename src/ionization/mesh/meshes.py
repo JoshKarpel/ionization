@@ -42,17 +42,6 @@ StateOrGMesh = Optional[Union[states.QuantumState, GMesh]]  # None => the curren
 OperatorMatrix = NewType('SparseMatrixOperator', sparse.dia_matrix)
 
 
-def add_to_diagonal_sparse_matrix_diagonal(dia_matrix: sparse.dia_matrix, value = 1) -> sparse.dia_matrix:
-    s = dia_matrix.copy()
-    s.setdiag(s.diagonal() + value)
-    return s
-
-
-def add_to_diagonal_sparse_matrix_diagonal_inplace(dia_matrix: sparse.dia_matrix, value = 1) -> sparse.dia_matrix:
-    dia_matrix.data[1] += value
-    return dia_matrix
-
-
 class WrappingDirection(si.utils.StrEnum):
     X = 'x'
     Y = 'y'
@@ -65,9 +54,43 @@ class WrappingDirection(si.utils.StrEnum):
 
 
 class QuantumMesh(abc.ABC):
+    """
+    An abstract class for all wavefunction meshes.
+    Each :class:`MeshSimulation` instance creates its own :class:`QuantumMesh` during initialization, so you should never have to manually instantiate this class.
+
+    A :class:`QuantumMesh` subclass must implement, minimally:
+
+    - an internal wavefunction representation :math:`g` (``g``)
+    - a way to convert the ``g`` representation back to the wavefunction :math:`\Psi` (``psi``) (the ``g_factor`` property)
+    - a tuple ``mesh_shape`` that gives the shape of ``g`` (in the numpy sense).
+    - the method :func:`QuantumMesh.wrapping_direction_to_order`, which says which mesh coordinate maps to which "wrapping order"
+    - the method :func:`QuantumMesh.get_g_for_state`, which gets the ``g`` representation of a :class:`QuantumState` on this mesh.
+
+    Attributes
+    ----------
+    g_factor
+        A property that returns the "conversion factor" between :math:`g` and :math:`\Psi`.
+    g
+        The current ``g`` mesh stored by the :class:`QuantumMesh` (i.e., the current state of the wavefunction).
+    psi
+        The current state of ``psi`` (:math:`Psi`).
+    g2
+        The absolute value squared of ``g``.
+    psi2
+        The absolute value squared of ``psi``.
+
+    """
+
     mesh_plotter_type = mesh_plotters.MeshPlotter
 
     def __init__(self, sim: 'sims.MeshSimulation'):
+        """
+
+        Parameters
+        ----------
+        sim
+            The :class:`MeshSimulation` that this ``QuantumMesh`` belongs to.
+        """
         self.sim = sim
         self.spec = sim.spec
         self.operators = self.spec.operators
@@ -78,14 +101,10 @@ class QuantumMesh(abc.ABC):
         self.plot = self.mesh_plotter_type(self)
 
     def __eq__(self, other):
-        """
-        QuantumMeshes should evaluate equal if and only if their Simulations are equal and their g (the only thing which carries state information) are the same.
-        """
         return isinstance(other, self.__class__) and self.sim == other.sim and np.array_equal(self.g, other.g)
 
     def __hash__(self):
-        """Return the hash of the QuantumMesh, which is the same as the hash of the associated Simulation."""
-        return hash(self.sim)
+        return hash((self.__class__.__name__, self.sim))
 
     def __str__(self):
         return f'{self.__class__.__name__} for {self.sim}'
@@ -94,8 +113,8 @@ class QuantumMesh(abc.ABC):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)})'
 
     def flatten_mesh(self, mesh, flatten_along: Optional[WrappingDirection]):
-        """Return a mesh flattened along one of the mesh coordinates ('theta' or 'r')."""
-        flat = self._wrapping_direction_to_order(flatten_along)
+        """Return a mesh flattened along one of the mesh coordinates into a vector."""
+        flat = self.wrapping_direction_to_order(flatten_along)
 
         if flat is None:
             return mesh
@@ -103,7 +122,8 @@ class QuantumMesh(abc.ABC):
         return mesh.flatten(flat)
 
     def wrap_vector(self, vector, wrap_along: Optional[WrappingDirection]):
-        wrap = self._wrapping_direction_to_order(wrap_along)
+        """Return a vector wrapped along one of the mesh coordinates into a mesh."""
+        wrap = self.wrapping_direction_to_order(wrap_along)
 
         if wrap is None:
             return vector
@@ -111,15 +131,20 @@ class QuantumMesh(abc.ABC):
         return np.reshape(vector, self.mesh_shape, wrap)
 
     @abc.abstractmethod
-    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+        """Return the numpy wrapping order (for :func:`numpy.ndarray.flatten` and :func:`numpy.reshape`) associated with a wrapping direction for this :class:`QuantumMesh`."""
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_g_for_state(self, state: StateOrGMesh) -> GMesh:
+        """Return the ``g`` representation of a state."""
         raise NotImplementedError
 
-    def state_to_mesh(self, state_or_mesh: StateOrGMesh) -> GMesh:
-        """Return the mesh associated with the given state, or simply passes the mesh through."""
+    def state_to_g(self, state_or_mesh: StateOrGMesh) -> GMesh:
+        """
+        Return the ``g`` mesh associated with the given state, or simply passes the mesh through.
+        If ``None`` is passed, return the current ``g`` mesh of the :class:`QuantumMesh``.
+        """
         if state_or_mesh is None:
             return self.g
         elif isinstance(state_or_mesh, states.QuantumState):
@@ -131,16 +156,28 @@ class QuantumMesh(abc.ABC):
         else:
             return state_or_mesh
 
-    def get_g_with_states_removed(self, states: Iterable[StateOrGMesh], g: StateOrGMesh = None) -> GMesh:
+    def get_g_with_states_removed(self, states: Iterable[StateOrGMesh], g: StateOrGMesh) -> GMesh:
         """
-        Get a g mesh with the contributions from the states removed.
+        Return a new ``g`` mesh with the given states' contributions removed from the given ``g``.
 
-        :param states: a list of states to remove from g
-        :param g: a g to remove the state contributions from. Defaults to self.g
-        :return:
+        .. math::
+
+            g_{\\mathrm{out}} = g_{\\mathrm{in}} - \\sum_{s \\, \\in \\, \\mathrm{states}} \\left\\langle s | g \\right\\rangle \\left| s \\right\\rangle
+
+
+        Parameters
+        ----------
+        states
+            The states to remove from ``g``.
+        g : GMesh
+            The input ``g`` mesh.
+
+        Returns
+        -------
+        GMesh
+            The input mesh ``g``, but with the ``states`` removed from it.
         """
-        if g is None:
-            g = self.g
+        g = self.state_to_g(g)
 
         g = g.copy()  # always act on a copy of g, regardless of source
 
@@ -150,30 +187,36 @@ class QuantumMesh(abc.ABC):
         return g
 
     def inner_product(self, a: StateOrGMesh = None, b: StateOrGMesh = None) -> complex:
-        """Inner product between two meshes. If either mesh is None, the state on the g is used for that state."""
-        return np.sum(np.conj(self.state_to_mesh(a)) * self.state_to_mesh(b)) * self.inner_product_multiplier
+        """Inner product between two meshes. If either mesh is None, the current ``g`` is used for that state."""
+        return np.sum(np.conj(self.state_to_g(a)) * self.state_to_g(b)) * self.inner_product_multiplier
 
     def state_overlap(self, a: StateOrGMesh = None, b: StateOrGMesh = None) -> float:
-        """State overlap between two states. If either state is None, the state on the g is used for that state."""
+        """State overlap between two states. If either state is None, the current ``g`` is used for that state."""
         return np.abs(self.inner_product(a, b)) ** 2
 
     def expectation_value(self, state: StateOrGMesh = None, operator: mesh_operators.SumOfOperators = mesh_operators.SumOfOperators()) -> float:
-        state_after_oper, _ = operator.apply(self, self.state_to_mesh(state), None)
+        """Return the expectation value of an operator with the given state. If ``state`` is ``None``, the current ``g`` is used."""
+        state_after_oper, _ = operator.apply(self, self.state_to_g(state), None)
         return self.inner_product(state, state_after_oper).real
 
     def norm(self, state: StateOrGMesh = None) -> float:
+        """Return the norm of the given state. If ``state`` is ``None``, the current ``g`` is used."""
         return self.expectation_value(state)
 
     def internal_energy_expectation_value(self, state: StateOrGMesh = None):
+        """Return the internal energy expectation value of the given state (i.e., not including interactions). If ``state`` is ``None``, the current ``g`` is used."""
         return self.expectation_value(state, operator = self.operators.internal_hamiltonian(self))
 
     def total_energy_expectation_value(self, state: StateOrGMesh = None):
+        """Return the total energy expectation value of the given state (i.e., total Hamiltonian including interaction at the current time). If ``state`` is ``None``, the current ``g`` is used."""
         return self.expectation_value(state, operator = self.operators.total_hamiltonian(self))
 
     def z_expectation_value(self, state: StateOrGMesh = None):
+        """Return the expectation value of the :math:`z` (z-axis) position of the given state. If ``state`` is ``None``, the current ``g`` is used."""
         return self.expectation_value(state, operator = self.operators.z(self))
 
     def r_expectation_value(self, state: StateOrGMesh = None):
+        """Return the expectation value of the :math:`r` (radial) position of the given state. If ``state`` is ``None``, the current ``g`` is used."""
         return self.expectation_value(state, operator = self.operators.r(self))
 
     @property
@@ -189,6 +232,10 @@ class QuantumMesh(abc.ABC):
         return np.abs(self.psi) ** 2
 
     def evolve(self, time_step: complex):
+        """
+        Evolve the mesh forward in time by ``time_step``.
+        Used by :func:`MeshSimulation.run`, and should not need to be called manually.
+        """
         self.g = self.spec.evolution_method.evolve(self, self.g, time_step)
         self.g *= self.spec.mask(r = self.r_mesh)
 
@@ -197,6 +244,21 @@ class QuantumMesh(abc.ABC):
 
 
 class LineMesh(QuantumMesh):
+    """
+    A concrete :class:`QuantumMesh` that represents the wavefunction on a one-dimensional line.
+
+    Attributes
+    ----------
+    z : CoordinateVector
+        The array of coordinates along the line.
+    z_mesh : CoordinateMesh
+        An alias for ``z``.
+    r : CoordinateVector
+        An alias for ``z``.
+    r_mesh : CoordinateMesh
+        An alias for ``z``.
+    """
+
     mesh_storage_method = ('z',)
     mesh_plotter_type = mesh_plotters.LineMeshPlotter
 
@@ -223,10 +285,18 @@ class LineMesh(QuantumMesh):
         self.g = self.get_g_for_state(self.spec.initial_state)
 
     @property
+    def z(self):
+        return self.z_mesh
+
+    @property
+    def r(self) -> CoordinateVector:
+        return self.z
+
+    @property
     def r_mesh(self) -> CoordinateMesh:
         return self.z_mesh
 
-    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         return None
 
     @si.utils.memoize
@@ -275,7 +345,7 @@ class LineMesh(QuantumMesh):
         return analytic_to_numeric
 
     def gauge_transformation(self, *, g: GMesh = None, leaving_gauge: core.Gauge) -> GMesh:
-        g = self.state_to_mesh(g)
+        g = self.state_to_g(g)
         if leaving_gauge is None:
             leaving_gauge = self.spec.evolution_gauge
 
@@ -304,6 +374,25 @@ class LineMesh(QuantumMesh):
 
 
 class CylindricalSliceMesh(QuantumMesh):
+    """
+    A concrete :class:`QuantumMesh` that represents the wavefunction on a two-dimensional rectangular-section slice of an azimuthally-symmetric cylinder.
+
+    Attributes
+    ----------
+    z : CoordinateVector
+        The one-dimensional array of distance along the z-axis.
+    z_mesh : CoordinateMesh
+        The two-dimensional mesh of distances along the z-axis.
+    rho : CoordinateVector
+        The one-dimensional array of distance away from the z-axis.
+    rho_mesh : CoordinateMesh
+        The two-dimensional mesh of distances away from the z-axis.
+    r_mesh : CoordinateMesh
+        The mesh of radial distance (distance to ``z = 0, rho = 0``.
+    theta_mesh: CoordinateMesh
+        The mesh of angles away from the +z-axis.
+    """
+
     mesh_storage_method = ('z', 'rho')
     mesh_plotter_type = mesh_plotters.CylindricalSliceMeshPlotter
 
@@ -359,7 +448,7 @@ class CylindricalSliceMesh(QuantumMesh):
     def cos_theta_mesh(self) -> CoordinateMesh:
         return np.cos(self.theta_mesh)
 
-    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         if wrapping_direction is None:
             return None
         elif wrapping_direction == WrappingDirection.Z:
@@ -378,12 +467,20 @@ class CylindricalSliceMesh(QuantumMesh):
         return g
 
     def get_probability_current_density_vector_field(self, state: StateOrGMesh = None) -> VectorMesh:
+        """
+        Construct the probability current vector field of the given state. If ``state`` is ``None``, the current ``g`` is used.
+
+        Returns
+        -------
+        VectorMesh
+            The probability current vector field as a tuple ``(z_component_mesh, rho_component_mesh)``.
+        """
         ops = self.operators.probability_current(self)
         dirs_to_op = {op.wrapping_direction: op for op in ops}
         z_op = dirs_to_op[WrappingDirection.Z]
         rho_op = dirs_to_op[WrappingDirection.RHO]
 
-        mesh = self.state_to_mesh(state)
+        mesh = self.state_to_g(state)
 
         current_density_mesh_z = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, [z_op]))
         current_density_mesh_rho = np.imag(np.conj(mesh) * mesh_operators.apply_operators_sequentially(self, mesh, [rho_op]))
@@ -391,6 +488,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return current_density_mesh_z, current_density_mesh_rho
 
     def get_spline_for_mesh(self, mesh: ScalarMesh):
+        """Construct a two-dimensionsial spline for the given ``mesh`` over the :class:`CylindricalSliceMesh` coordinates (``z``, ``rho``)."""
         return sp.interp.RectBivariateSpline(self.z, self.rho, mesh)
 
     @si.utils.memoize
@@ -464,7 +562,7 @@ class CylindricalSliceMesh(QuantumMesh):
 #     def cos_theta_mesh(self) -> CoordinateMesh:
 #         return np.cos(self.theta_mesh)
 #
-#     def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+#     def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
 #         if wrapping_direction is None:
 #             return None
 #         elif wrapping_direction == WrappingDirection.Z:
@@ -632,6 +730,23 @@ class CylindricalSliceMesh(QuantumMesh):
 
 
 class SphericalSliceMesh(QuantumMesh):
+    """
+    A concrete :class:`QuantumMesh` that represents the wavefunction on a two-dimensional semicircular-section slice of an azimuthally-symmetric cylinder.
+
+    Attributes
+    ----------
+    r : CoordinateVector
+        The one-dimensional array of distance from the center.
+    r_mesh : CoordinateMesh
+        The two-dimensional mesh of distances from the center.
+    theta : CoordinateVector
+        The one-dimensional array of angles away from the +z-axis.
+    theta_mesh : CoordinateMesh
+        The two-dimensional mesh of angles away from the +z-axis.
+    z_mesh : CoordinateMesh
+        The two-dimensional mesh of distances along the z-axis.
+    """
+
     mesh_storage_method = ('r', 'theta')
     mesh_plotter_type = mesh_plotters.SphericalSliceMeshPlotter
 
@@ -674,7 +789,7 @@ class SphericalSliceMesh(QuantumMesh):
     def g_factor(self) -> np.array:
         return np.sqrt(u.twopi * np.sin(self.theta_mesh)) * self.r_mesh
 
-    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         if wrapping_direction is None:
             return None
         elif wrapping_direction == WrappingDirection.R:
@@ -693,6 +808,7 @@ class SphericalSliceMesh(QuantumMesh):
         return g
 
     def get_spline_for_mesh(self, mesh):
+        """Construct a two-dimensionsial spline for the given ``mesh`` over the :class:`SphericalSliceMesh` coordinates (``z``, ``theta``)."""
         return sp.interp.RectBivariateSpline(self.r, self.theta, mesh)
 
     @si.utils.memoize
@@ -708,6 +824,23 @@ class SphericalSliceMesh(QuantumMesh):
 
 
 class SphericalHarmonicMesh(QuantumMesh):
+    """
+    A concrete :class:`QuantumMesh` that represents the wavefunction on a two-dimensional abstract space of radial distance and orbital angular momentum.
+    The first coordinate of this mesh is the orbital angular momentum, which is not a physical coordinate in the same way that the other coordinates are.
+    Therefore, this mesh behaves somewhat differently than other :class:`QuantumMesh` subclasses.
+
+    Attributes
+    ----------
+    r : CoordinateVector
+        The one-dimensional array of distance from the center.
+    r_mesh : CoordinateMesh
+        The two-dimensional mesh of distances from the center.
+    l : CoordinateVector
+        The one-dimensional array of orbital angular momentum quantum numbers.
+    l_mesh : CoordinateMesh
+        The two-dimensional mesh of orbital angular momentum quantum numbers.
+    """
+
     mesh_storage_method = ('l', 'r')
     mesh_plotter_type = mesh_plotters.SphericalHarmonicMeshPlotter
 
@@ -750,7 +883,7 @@ class SphericalHarmonicMesh(QuantumMesh):
     def g_factor(self) -> np.array:
         return self.r
 
-    def _wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         if wrapping_direction is None:
             return None
         elif wrapping_direction == WrappingDirection.L:
@@ -761,9 +894,6 @@ class SphericalHarmonicMesh(QuantumMesh):
             raise ValueError(f"{wrapping_direction} is not a valid specifier for flatten_mesh (valid specifiers: 'l', 'r')")
 
     def get_g_for_state(self, state: StateOrGMesh) -> GMesh:
-        """
-        Get g for a state.
-        """
         if isinstance(state, states.QuantumState) and all(hasattr(s, 'spherical_harmonic') for s in state):
             if state.analytic and self.spec.use_numeric_eigenstates:
                 try:
@@ -816,9 +946,10 @@ class SphericalHarmonicMesh(QuantumMesh):
         else:
             return super().inner_product(a, b)
 
-    @property
-    def norm_by_l(self) -> np.array:
-        return np.abs(np.sum(np.conj(self.g) * self.g, axis = 1) * self.delta_r)
+    def norm_by_l(self, state: StateOrGMesh = None) -> np.array:
+        """Return the wavefunction norm in each spherical harmonic individually."""
+        g = self.state_to_g(state)
+        return np.abs(np.sum(np.conj(g) * g, axis = 1) * self.delta_r)
 
     def inner_product_with_plane_waves(self, thetas, wavenumbers, g: Optional[GMesh] = None):
         """
@@ -827,8 +958,11 @@ class SphericalHarmonicMesh(QuantumMesh):
         Parameters
         ----------
         thetas
+            The polar angles of the propagation direction of the plane waves.
         wavenumbers
+            The wavenumbers of the plane waves.
         g
+            The ``g`` mesh to take the inner products with.
 
         Returns
         -------
@@ -1030,7 +1164,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         return g_transformed
 
     def gauge_transformation(self, *, g: Optional[StateOrGMesh] = None, leaving_gauge: Optional[str] = None) -> GMesh:
-        g = self.state_to_mesh(g)
+        g = self.state_to_g(g)
         if leaving_gauge is None:
             leaving_gauge = self.spec.evolution_gauge
 

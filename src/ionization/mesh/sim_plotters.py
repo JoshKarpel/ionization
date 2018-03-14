@@ -26,12 +26,13 @@ class MeshSimulationPlotter:
         self.spec = sim.spec
 
     def group_free_states_by_continuous_attr(
-            self,
-            attr = 'energy',
-            divisions = 10,
-            cutoff_value = None,
-            label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}',
-            attr_unit: u.Unit = 'eV'):
+        self,
+        attr = 'energy',
+        divisions = 10,
+        cutoff_value = None,
+        label_format_str = r'\phi_{{    {} \; \mathrm{{to}} \; {} \, {}, \ell   }}',
+        attr_unit: u.Unit = 'eV',
+    ):
         spectrum = set(getattr(s, attr) for s in self.sim.free_states)
 
         grouped_states = collections.defaultdict(list)
@@ -55,7 +56,11 @@ class MeshSimulationPlotter:
         for ii, lower_boundary in enumerate(boundaries[:-1]):
             upper_boundary = boundaries[ii + 1]
 
-            label = label_format_str.format(u.uround(lower_boundary, label_unit_value, 2), u.uround(upper_boundary, label_unit_value, 2), label_unit_latex)
+            label = label_format_str.format(
+                u.uround(lower_boundary, label_unit_value, 2),
+                u.uround(upper_boundary, label_unit_value, 2),
+                label_unit_latex,
+            )
             group_labels[(lower_boundary, upper_boundary)] = label
 
             for s in copy(free_states):
@@ -65,7 +70,12 @@ class MeshSimulationPlotter:
 
         return grouped_states, group_labels
 
-    def group_free_states_by_discrete_attr(self, attr = 'l', cutoff_value = 9, label_format_str = r'\phi_{{ E, {} }}'):
+    def group_free_states_by_discrete_attr(
+        self,
+        attr = 'l',
+        cutoff_value = 9,
+        label_format_str = r'\phi_{{ E, {} }}',
+    ):
         grouped_states = collections.defaultdict(list)
 
         cutoff = []
@@ -90,13 +100,14 @@ class MeshSimulationPlotter:
         return grouped_states, group_labels
 
     def attach_electric_potential_plot_to_axis(
-            self,
-            axis: plt.Axes,
-            show_electric_field: bool = True,
-            show_vector_potential: bool = True,
-            time_unit: u.Unit = 'asec',
-            legend_kwargs: Optional[dict] = None,
-            show_y_label: bool = False):
+        self,
+        axis: plt.Axes,
+        show_electric_field: bool = True,
+        show_vector_potential: bool = True,
+        time_unit: u.Unit = 'asec',
+        legend_kwargs: Optional[dict] = None,
+        show_y_label: bool = False,
+    ):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if legend_kwargs is None:
@@ -127,26 +138,34 @@ class MeshSimulationPlotter:
             )
 
         if show_y_label:
-            axis.set_ylabel(rf'${vis.LATEX_EFIELD}(t)$', fontsize = 13, color = vis.COLOR_EFIELD)
+            axis.set_ylabel(
+                rf'${vis.LATEX_EFIELD}(t)$',
+                fontsize = 13,
+                color = vis.COLOR_EFIELD,
+            )
 
         axis.set_xlabel(rf'Time $t$ (${time_unit_latex}$)', fontsize = 13)
 
         axis.tick_params(labelright = True)
 
-        axis.set_xlim(self.sim.times[0] / time_unit_value, self.sim.times[-1] / time_unit_value)
+        axis.set_xlim(
+            self.sim.times[0] / time_unit_value,
+            self.sim.times[-1] / time_unit_value,
+        )
 
         axis.legend(**legend_kwargs)
 
         axis.grid(True, **si.vis.GRID_KWARGS)
 
     def state_overlaps_vs_time(
-            self,
-            states: Iterable[states.QuantumState] = None,
-            log: bool = False,
-            time_unit: u.Unit = 'asec',
-            show_electric_field: bool = True,
-            show_vector_potential: bool = True,
-            **kwargs):
+        self,
+        states: Iterable[states.QuantumState] = None,
+        log: bool = False,
+        time_unit: u.Unit = 'asec',
+        show_electric_field: bool = True,
+        show_vector_potential: bool = True,
+        **kwargs,
+    ):
         with si.vis.FigureManager(name = f'{self.spec.name}', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
@@ -166,7 +185,13 @@ class MeshSimulationPlotter:
                 # ),
             )
 
-            ax_overlaps.plot(self.sim.data_times / time_unit_value, self.sim.data.norm, label = r'$\left\langle \psi|\psi \right\rangle$', color = 'black', linewidth = 2)
+            ax_overlaps.plot(
+                self.sim.data_times / time_unit_value,
+                self.sim.data.norm,
+                label = r'$\left\langle \psi|\psi \right\rangle$',
+                color = 'black',
+                linewidth = 2,
+            )
 
             state_overlaps = self.sim.data.state_overlaps
             if states is not None:
@@ -196,7 +221,10 @@ class MeshSimulationPlotter:
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
                 ax_overlaps.grid(True, **si.vis.GRID_KWARGS)
 
-            ax_overlaps.set_xlim(self.sim.times[0] / time_unit_value, self.sim.times[-1] / time_unit_value)
+            ax_overlaps.set_xlim(
+                self.sim.times[0] / time_unit_value,
+                self.sim.times[-1] / time_unit_value,
+            )
 
             ax_overlaps.set_ylabel('Wavefunction Metric', fontsize = 13)
 
@@ -232,18 +260,19 @@ class MeshSimulationPlotter:
             figman.name += postfix
 
     def wavefunction_vs_time(
-            self,
-            log: bool = False,
-            time_unit: u.Unit = 'asec',
-            bound_state_max_n: int = 5,
-            collapse_bound_state_angular_momenta: bool = True,
-            grouped_free_states = None,
-            group_free_states_labels = None,
-            show_title: bool = False,
-            plot_name_from: str = 'file_name',
-            show_electric_field: bool = True,
-            show_vector_potential: bool = True,
-            **kwargs):
+        self,
+        log: bool = False,
+        time_unit: u.Unit = 'asec',
+        bound_state_max_n: int = 5,
+        collapse_bound_state_angular_momenta: bool = True,
+        grouped_free_states = None,
+        group_free_states_labels = None,
+        show_title: bool = False,
+        plot_name_from: str = 'file_name',
+        show_electric_field: bool = True,
+        show_vector_potential: bool = True,
+        **kwargs,
+    ):
         with si.vis.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
@@ -378,18 +407,19 @@ class MeshSimulationPlotter:
             figman.name += postfix
 
     def energy_spectrum(
-            self,
-            states: str = 'all',
-            time_index: int = -1,
-            energy_scale: str = 'eV',
-            time_scale: str = 'asec',
-            bins: int = 100,
-            log: bool = False,
-            energy_lower_bound: Optional[float] = None,
-            energy_upper_bound: Optional[float] = None,
-            group_angular_momentum: bool = True,
-            angular_momentum_cutoff: Optional[int] = None,
-            **kwargs):
+        self,
+        states: str = 'all',
+        time_index: int = -1,
+        energy_scale: str = 'eV',
+        time_scale: str = 'asec',
+        bins: int = 100,
+        log: bool = False,
+        energy_lower_bound: Optional[float] = None,
+        energy_upper_bound: Optional[float] = None,
+        group_angular_momentum: bool = True,
+        angular_momentum_cutoff: Optional[int] = None,
+        **kwargs,
+    ):
         energy_unit, energy_unit_str = u.get_unit_value_and_latex_from_unit(energy_scale)
         time_unit, time_unit_str = u.get_unit_value_and_latex_from_unit(time_scale)
 
@@ -533,13 +563,14 @@ class MeshSimulationPlotter:
         )
 
     def dipole_moment_vs_frequency(
-            self,
-            use_name: bool = False,
-            gauge: str = 'length',
-            frequency_range: float = 10000 * u.THz,
-            first_time: Optional[float] = None,
-            last_time: Optional[float] = None,
-            **kwargs):
+        self,
+        use_name: bool = False,
+        gauge: str = 'length',
+        frequency_range: float = 10000 * u.THz,
+        first_time: Optional[float] = None,
+        last_time: Optional[float] = None,
+        **kwargs,
+    ):
         prefix = self.sim.file_name
         if use_name:
             prefix = self.sim.name
@@ -561,20 +592,20 @@ class MeshSimulationPlotter:
 
 
 class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
-
     def radial_probability_current_vs_time(
-            self,
-            time_unit: u.Unit = 'asec',
-            time_lower_limit: Optional[float] = None,
-            time_upper_limit: Optional[float] = None,
-            r_lower_limit: Optional[float] = None,
-            r_upper_limit: Optional[float] = None,
-            distance_unit: str = 'bohr_radius',
-            z_unit: str = 'per_asec',
-            z_limit: Optional[float] = None,
-            use_name: bool = False,
-            which: str = 'sum',
-            **kwargs):
+        self,
+        time_unit: u.Unit = 'asec',
+        time_lower_limit: Optional[float] = None,
+        time_upper_limit: Optional[float] = None,
+        r_lower_limit: Optional[float] = None,
+        r_upper_limit: Optional[float] = None,
+        distance_unit: str = 'bohr_radius',
+        z_unit: str = 'per_asec',
+        z_limit: Optional[float] = None,
+        use_name: bool = False,
+        which: str = 'sum',
+        **kwargs,
+    ):
         if which == 'sum':
             z = self.radial_probability_current_vs_time
         elif which == 'pos':
@@ -628,27 +659,28 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
         )
 
     def radial_probability_current_vs_time__combined(
-            self,
-            r_upper_limit: Optional[float] = None,
-            t_lower_limit: Optional[float] = None,
-            t_upper_limit: Optional[float] = None,
-            distance_unit: str = 'bohr_radius',
-            time_unit: u.Unit = 'asec',
-            current_unit: str = 'per_asec',
-            z_cut: float = .7,
-            colormap = plt.get_cmap('coolwarm'),
-            overlay_electric_field: bool = True,
-            efield_unit: str = 'atomic_electric_field',
-            efield_color: str = 'black',
-            efield_label_fontsize: float = 12,
-            title_fontsize: float = 12,
-            y_axis_label_fontsize: float = 14,
-            x_axis_label_fontsize: float = 12,
-            cbar_label_fontsize: float = 12,
-            aspect_ratio: float = 1.2,
-            shading: str = 'flat',
-            use_name: bool = False,
-            **kwargs):
+        self,
+        r_upper_limit: Optional[float] = None,
+        t_lower_limit: Optional[float] = None,
+        t_upper_limit: Optional[float] = None,
+        distance_unit: str = 'bohr_radius',
+        time_unit: u.Unit = 'asec',
+        current_unit: str = 'per_asec',
+        z_cut: float = .7,
+        colormap = plt.get_cmap('coolwarm'),
+        overlay_electric_field: bool = True,
+        efield_unit: str = 'atomic_electric_field',
+        efield_color: str = 'black',
+        efield_label_fontsize: float = 12,
+        title_fontsize: float = 12,
+        y_axis_label_fontsize: float = 14,
+        x_axis_label_fontsize: float = 12,
+        cbar_label_fontsize: float = 12,
+        aspect_ratio: float = 1.2,
+        shading: str = 'flat',
+        use_name: bool = False,
+        **kwargs,
+    ):
         prefix = self.sim.file_name
         if use_name:
             prefix = self.sim.name
@@ -690,7 +722,7 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
 
             # COLORMESHES
             try:
-                r = self.mesh.r
+                r = self.sim.mesh.r
             except AttributeError:
                 r = np.linspace(0, self.spec.r_bound, self.spec.r_points)
                 delta_r = r[1] - r[0]
@@ -700,20 +732,20 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
 
             # slicer = (slice(), slice(0, 50, 1))
 
-            z_max = max(np.nanmax(np.abs(self.radial_probability_current_vs_time__pos_z)), np.nanmax(np.abs(self.radial_probability_current_vs_time__neg_z)))
+            z_max = max(np.nanmax(np.abs(self.sim.data.radial_probability_current_vs_time__pos_z)), np.nanmax(np.abs(self.radial_probability_current_vs_time__neg_z)))
             norm = matplotlib.colors.Normalize(vmin = -z_cut * z_max / current_unit_value, vmax = z_cut * z_max / current_unit_value)
 
             pos_mesh = ax_pos.pcolormesh(
                 t_mesh / time_unit_value,
                 r_mesh / distance_unit_value,
-                self.radial_probability_current_vs_time__pos_z / current_unit_value,
+                self.sim.data.radial_probability_current_vs_time__pos_z / current_unit_value,
                 norm = norm,
                 shading = shading,
             )
             neg_mesh = ax_neg.pcolormesh(
                 t_mesh / time_unit_value,
                 -r_mesh / distance_unit_value,
-                self.radial_probability_current_vs_time__neg_z / current_unit_value,
+                self.sim.data.radial_probability_current_vs_time__neg_z / current_unit_value,
                 norm = norm,
                 shading = shading,
             )
@@ -766,7 +798,13 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
                 ax_efield.set_ylabel(rf'Electric Field Amplitude $ {vis.LATEX_EFIELD}(t) \; ({efield_unit_latex}) $', color = efield_color, fontsize = efield_label_fontsize)
                 ax_efield.yaxis.set_label_position('right')
 
-    def angular_momentum_vs_time(self, use_name: bool = False, log: bool = False, renormalize: bool = False, **kwargs):
+    def angular_momentum_vs_time(
+        self,
+        use_name: bool = False,
+        log: bool = False,
+        renormalize: bool = False,
+        **kwargs,
+    ):
         fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
 
         grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.06)
