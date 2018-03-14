@@ -410,7 +410,7 @@ class SphericalSliceMeshPlotter(MeshPlotter):
             **kwargs
         )
         color_mesh_mirror = axis.pcolormesh(
-            u.twopi - self.mesh.theta_mesh[_slice],
+            -self.mesh.theta_mesh[_slice],
             self.mesh.r_mesh[_slice] / unit_value,
             mesh[_slice],
             shading = shading,

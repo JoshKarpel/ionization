@@ -107,6 +107,7 @@ if __name__ == '__main__':
                 corresponding_analytic_state = ion.states.OneDPlaneWave(),
                 binding = ion.states.Binding.FREE,
             ),
+            ion.states.ThreeDPlaneWave(0, 0, u.twopi / u.nm),
         ]
 
         for state in STATES:

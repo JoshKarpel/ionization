@@ -1,6 +1,7 @@
 import logging
 import functools
 import abc
+import warnings
 from typing import Union
 
 import mpmath
@@ -13,14 +14,77 @@ import simulacra.units as u
 
 from .. import core, mesh, exceptions, utils
 
-from . import state
+from . import states
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class SphericalHarmonicState(state.QuantumState, abc.ABC):
-    def __init__(self, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+class ThreeDPlaneWave(states.QuantumState):
+    def __init__(self, wavenumber_x, wavenumber_y, wavenumber_z, amplitude: states.ProbabilityAmplitude = 1):
+        if wavenumber_x != 0 or wavenumber_y != 0:
+            warnings.warn('ThreeDPlaneWave states with non-zero x or y wavenumbers are not compatible with certain meshes because they do not have azimuthal symmetry!')
+
+        self.wavenumber_x = wavenumber_x
+        self.wavenumber_y = wavenumber_y
+        self.wavenumber_z = wavenumber_z
+
+        super().__init__(amplitude = amplitude)
+
+    @property
+    def wavenumber(self):
+        return np.sqrt(self.wavenumber_x ** 2 + self.wavenumber_y ** 2 + self.wavenumber_z ** 2)
+
+    @property
+    def energy(self):
+        return core.electron_energy_from_wavenumber(self.wavenumber)
+
+    @property
+    def tuple(self):
+        return self.wavenumber_x, self.wavenumber_y, self.wavenumber_z
+
+    def eval_x_y_z(self, x, y, z):
+        return np.exp(1j * self.wavenumber_x * x) * np.exp(1j * self.wavenumber_y * y) * np.exp(1j * self.wavenumber_z * z) / (np.sqrt(u.pi) ** 3)
+
+    def eval_r_theta_phi(self, r, theta, phi):
+        x = r * np.cos(phi) * np.sin(theta)
+        y = r * np.sin(phi) * np.sin(theta)
+        z = r * np.cos(theta)
+
+        return self.eval_x_y_z(x, y, z)
+
+    def __call__(self, r, theta, phi):
+        return self.eval_r_theta_phi(r, theta, phi)
+
+    def __repr__(self):
+        return utils.fmt_fields(self, 'wavenumber_x', 'wavenumber_y', 'wavenumber_z')
+
+    @property
+    def ket(self):
+        return f'{states.fmt_amplitude(self.amplitude)}|kx={u.uround(self.wavenumber_x, u.per_nm)} 1/nm, ky={u.uround(self.wavenumber_y, u.per_nm)} 1/nm, kz={u.uround(self.wavenumber_z, u.per_nm)} 1/nm>'
+
+    @property
+    def tex(self):
+        return fr'{states.fmt_amplitude_for_tex(self.amplitude)}\phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_y={u.uround(self.wavenumber_y, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}}'
+
+    @property
+    def tex_ket(self):
+        return fr'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_y={u.uround(self.wavenumber_y, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}} \right\rangle'
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info.add_field('X Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('Y Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('Z Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+        info.add_field('Energy', utils.fmt_quantity(self.energy, utils.ENERGY_UNITS))
+        info.add_field('Wavenumber', utils.fmt_quantity(self.wavenumber, utils.INVERSE_LENGTH_UNITS))
+
+        return info
+
+
+class SphericalHarmonicState(states.QuantumState, abc.ABC):
+    def __init__(self, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
         self.l = l
         self.m = m
 
@@ -57,11 +121,11 @@ class SphericalHarmonicState(state.QuantumState, abc.ABC):
 class FreeSphericalWave(SphericalHarmonicState):
     """A class that represents a free spherical wave."""
 
-    eigenvalues = state.Eigenvalues.CONTINUOUS
-    binding = state.Binding.FREE
-    derivation = state.Derivation.ANALYTIC
+    eigenvalues = states.Eigenvalues.CONTINUOUS
+    binding = states.Binding.FREE
+    derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
         """
 
         Parameters
@@ -80,7 +144,7 @@ class FreeSphericalWave(SphericalHarmonicState):
         self.energy = energy
 
     @classmethod
-    def from_wavenumber(cls, k, l = 0, m = 0, amplitude: state.ProbabilityAmplitude = 1):
+    def from_wavenumber(cls, k, l = 0, m = 0, amplitude: states.ProbabilityAmplitude = 1):
         energy = core.electron_energy_from_wavenumber(k)
 
         return cls(energy, l = l, m = m, amplitude = amplitude)
@@ -122,15 +186,15 @@ class FreeSphericalWave(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f'{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
+        return f'{states.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
 
     @property
     def tex(self):
-        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
+        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
 
     @property
     def tex_ket(self):
-        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
+        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -146,11 +210,11 @@ class FreeSphericalWave(SphericalHarmonicState):
 class HydrogenBoundState(SphericalHarmonicState):
     """A class that represents a hydrogen bound state."""
 
-    eigenvalues = state.Eigenvalues.DISCRETE
-    binding = state.Binding.BOUND
-    derivation = state.Derivation.ANALYTIC
+    eigenvalues = states.Eigenvalues.DISCRETE
+    binding = states.Binding.BOUND
+    derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, n: int = 1, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+    def __init__(self, n: int = 1, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
         """
         Parameters
         ----------
@@ -197,15 +261,15 @@ class HydrogenBoundState(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f'{state.fmt_amplitude(self.amplitude)}|{self.n},{self.l},{self.m}>'
+        return f'{states.fmt_amplitude(self.amplitude)}|{self.n},{self.l},{self.m}>'
 
     @property
     def tex(self):
-        return rf'{utils.complex_j_to_i(state.fmt_amplitude_for_tex(self.amplitude))}\psi_{{{self.n}, {self.l}, {self.m}}}'
+        return rf'{utils.complex_j_to_i(states.fmt_amplitude_for_tex(self.amplitude))}\psi_{{{self.n}, {self.l}, {self.m}}}'
 
     @property
     def tex_ket(self):
-        return rf'{utils.complex_j_to_i(state.fmt_amplitude_for_tex(self.amplitude))}\left| \psi_{{{self.n}, {self.l}, {self.m}}} \right\rangle'
+        return rf'{utils.complex_j_to_i(states.fmt_amplitude_for_tex(self.amplitude))}\left| \psi_{{{self.n}, {self.l}, {self.m}}} \right\rangle'
 
     def radial_function(self, r: float):
         """Return the radial part of the wavefunction, R, evaluated at r."""
@@ -255,11 +319,11 @@ def coulomb_phase_shift(l, k):
 class HydrogenCoulombState(SphericalHarmonicState):
     """A class that represents a hydrogenic free state."""
 
-    eigenvalues = state.Eigenvalues.CONTINUOUS
-    binding = state.Binding.FREE
-    derivation = state.Derivation.ANALYTIC
+    eigenvalues = states.Eigenvalues.CONTINUOUS
+    binding = states.Binding.FREE
+    derivation = states.Derivation.ANALYTIC
 
-    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: state.ProbabilityAmplitude = 1):
+    def __init__(self, energy: float = 1 * u.eV, l: int = 0, m: int = 0, amplitude: states.ProbabilityAmplitude = 1):
         """
         Parameters
         ----------
@@ -338,15 +402,15 @@ class HydrogenCoulombState(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f'{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
+        return f'{states.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>'
 
     @property
     def tex(self):
-        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
+        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}'
 
     @property
     def tex_ket(self):
-        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
+        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -360,8 +424,8 @@ class HydrogenCoulombState(SphericalHarmonicState):
 
 
 class NumericSphericalHarmonicState(SphericalHarmonicState):
-    eigenvalues = state.Eigenvalues.DISCRETE
-    derivation = state.Derivation.NUMERIC
+    eigenvalues = states.Eigenvalues.DISCRETE
+    derivation = states.Derivation.NUMERIC
 
     def __init__(
             self,
@@ -370,9 +434,9 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
             l: int = 0,
             m: int = 0,
             energy: float,
-            corresponding_analytic_state: state.QuantumState,
-            binding: state.Binding.FREE,
-            amplitude: state.ProbabilityAmplitude = 1):
+            corresponding_analytic_state: states.QuantumState,
+            binding: states.Binding.FREE,
+            amplitude: states.ProbabilityAmplitude = 1):
         self.radial_wavefunction = radial_wavefunction
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state
