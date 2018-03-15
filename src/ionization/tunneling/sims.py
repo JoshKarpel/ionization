@@ -130,6 +130,8 @@ class TunnelingSpecification(si.Specification):
         """
         Parameters
         ----------
+        name
+            The name of the specification/simulation.
         time_initial
             The time to begin the simulation at.
         time_final

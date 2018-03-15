@@ -362,46 +362,52 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         **kwargs,
     ):
         """
-        The differential equation should be of the form
-        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
 
         Parameters
         ----------
-        name : :class:`str`
-            The name for the simulation.
-        time_initial : :class:`float`
-            The initial time.
-        time_final : :class:`float`
-            The final time.
-        time_step : :class:`float`
-            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
-        test_mass : :class:`float`
+        name
+            The name of the specification/simulation.
+        time_initial
+            The time to begin the simulation at.
+        time_final
+            The time to end the simulation at.
+        time_step
+            The amount of time to evolve by on each evolution step.
+        test_mass
             The mass of the test particle.
-        test_charge : :class:`float`
+        test_charge
             The charge of the test particle.
-        b_initial : :class:`complex`
-            The initial value of a, the bound state probability amplitude.
+        b_initial
+            The initial bound state amplitude.
         integral_prefactor
-            The overall prefactor of the IDE.
+            The prefactor of the integral term of the IDE.
         electric_potential
-            The electric potential that provides ``f`` (either as the electric field or the vector potential).
+            The possibly-time varying external electric field.
         electric_potential_dc_correction
-            If ``True``, DC correction is performed on the electric field.
+            If ``True``, perform DC correction on the ``electric_potential``.
         kernel
-            The kernel function of the IDE.
-        kernel_kwargs
-            Additional keyword arguments to pass to `kernel`.
-        integration_method
-            Which integration method to use, when applicable.
+            The :class:`Kernel` to use for the simulation.
+        integration_method : {'trapezoid', 'simpson'}
+            The kind of integration rule to use.
         evolution_method
-            Which evolution algorithm/method to use.
+            The :class:`EvolutionMethod` to use.
         evolution_gauge
-            Which gauge to perform time evolution in.
+            The :class:`Gauge` to work in.
         checkpoints
+            If ``True``, the simulation will save checkpoints to ``checkpoint_dir`` every ``checkpoint_every``.
         checkpoint_every
+            The time between checkpoints.
         checkpoint_dir
+            The directory to save checkpoints to.
         store_data_every
+            Data will be stored every ``store_data_every`` time steps.
+            The special value ``store_data_every = -1`` causes data to be stored only on the first and last time steps.
+        tunneling_model
+            A :class:`TunnelingModel` that will be applied to the wavefunction after every time step.
+        ionization_potential
+            The ionization pot
         kwargs
+            Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
         """
         super().__init__(name, **kwargs)
 

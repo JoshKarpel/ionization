@@ -47,7 +47,25 @@ class DeltaKicks(potentials.PotentialEnergy):
         return info
 
 
-def decompose_potential_into_kicks(electric_potential, times):
+def decompose_potential_into_kicks(
+    electric_potential: potentials.ElectricPotential,
+    times: np.array,
+) -> DeltaKicks:
+    """
+    Decomposes an electric potential into a series of delta-function kicks.
+
+    Parameters
+    ----------
+    electric_potential
+        The electric potentials to decompose.
+    times
+        The times to consider when performing the decomposition.
+
+    Returns
+    -------
+    delta_kicks
+        The decomposed electric potential.
+    """
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
@@ -77,6 +95,19 @@ def decompose_potential_into_kicks(electric_potential, times):
 
 
 class DeltaKickSimulation(si.Simulation):
+    """
+    A :class:`simulacra.Simulation` that implements the delta-kick model.
+
+    Attributes
+    ----------
+    data_times
+        The times that the simulation calculated data for.
+    b
+        The probability amplitude of the bound state at the ``data_times``.
+    b2
+        The absolute value squared of the probability amplitude of the bound state.
+    """
+
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -148,7 +179,6 @@ class DeltaKickSimulation(si.Simulation):
         """
         Run the simulation by repeatedly evolving it forward in time.
 
-
         Parameters
         ----------
         callback : callable
@@ -166,11 +196,11 @@ class DeltaKickSimulation(si.Simulation):
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
     def attach_electric_potential_plot_to_axis(
-            self,
-            axis,
-            time_unit = 'asec',
-            show_electric_field = True,
-            overlay_kicks = True):
+        self,
+        axis,
+        time_unit = 'asec',
+        show_electric_field = True,
+        overlay_kicks = True):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
         if show_electric_field and not isinstance(self.spec.electric_potential, DeltaKicks):
@@ -215,15 +245,15 @@ class DeltaKickSimulation(si.Simulation):
         self.plot_b2_vs_time(*args, **kwargs)
 
     def plot_b2_vs_time(
-            self,
-            log = False,
-            show_electric_field = True,
-            overlay_kicks = True,
-            time_unit = 'asec',
-            show_title = False,
-            y_lower_limit = 0,
-            y_upper_limit = 1,
-            **kwargs):
+        self,
+        log = False,
+        show_electric_field = True,
+        overlay_kicks = True,
+        time_unit = 'asec',
+        show_title = False,
+        y_lower_limit = 0,
+        y_upper_limit = 1,
+        **kwargs):
         with si.vis.FigureManager(self.file_name + '__b2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
@@ -325,69 +355,52 @@ class DeltaKickSpecification(si.Specification):
     """
     simulation_type = DeltaKickSimulation
 
-    def __init__(self, name,
-                 time_initial = 0 * u.asec,
-                 time_final = 200 * u.asec,
-                 time_step = 1 * u.asec,
-                 test_mass: float = u.electron_mass,
-                 test_charge: float = u.electron_charge,
-                 test_energy: float = states.HydrogenBoundState(1, 0).energy,
-                 b_initial: Union[float, complex] = 1,
-                 integral_prefactor: float = -(u.electron_charge / u.hbar) ** 2,
-                 electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction: bool = True,
-                 kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
-                 evolution_gauge: core.Gauge = core.Gauge.LENGTH,
-                 **kwargs):
+    def __init__(
+        self,
+        name,
+        time_initial = 0 * u.asec,
+        time_final = 200 * u.asec,
+        time_step = 1 * u.asec,
+        test_mass: float = u.electron_mass,
+        test_charge: float = u.electron_charge,
+        b_initial: Union[float, complex] = 1,
+        integral_prefactor: float = -(u.electron_charge / u.hbar) ** 2,
+        electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+        electric_potential_dc_correction: bool = True,
+        kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+        evolution_gauge: core.Gauge = core.Gauge.LENGTH,
+        **kwargs,
+    ):
         """
-        The differential equation should be of the form
-        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
 
         Parameters
         ----------
-        name : :class:`str`
-            The name for the simulation.
-        time_initial : :class:`float`
-            The initial time.
-        time_final : :class:`float`
-            The final time.
-        time_step : :class:`float`
-            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
-        test_mass : :class:`float`
+        name
+            The name of the specification/simulation.
+        time_initial
+            The time to begin the simulation at.
+        time_final
+            The time to end the simulation at.
+        time_step
+            The amount of time to evolve by on each evolution step.
+        test_mass
             The mass of the test particle.
-        test_charge : :class:`float`
+        test_charge
             The charge of the test particle.
         b_initial
-            The initial value of a, the bound state probability amplitude.
+            The initial bound state amplitude.
         integral_prefactor
-            The overall prefactor of the IDE.
+            The prefactor of the integral term of the IDE.
         electric_potential
-            The electric potential that provides ``f`` (either as the electric field or the vector potential).
+            The possibly-time varying external electric field.
         electric_potential_dc_correction
-            If True, DC correction is performed on the electric field.
+            If ``True``, perform DC correction on the ``electric_potential``.
         kernel
-            The kernel function of the IDE.
-        integration_method : {``'trapz'``, ``'simps'``}
-            Which integration method to use, when applicable.
-        evolution_method
-            Which evolution algorithm/method to use.
-        evolution_gauge : {``'LEN'``, ``'VEL'``}
-            Which gauge to perform time evolution in.
-        checkpoints
-        checkpoint_every
-        checkpoint_dir
-        store_data_every
-        time_step_minimum : :class:`float`
-            The minimum time step that can be used by an adaptive algorithm.
-        time_step_maximum : :class:`float`
-            the maximum time step that can be used by an adaptive algorithm.
-        epsilon : :class:`float`
-            The acceptable fractional error in the quantity specified by `error_on`.
-        error_on : {``'a'``, ``'da/dt'``}
-            Which quantity to control the fractional error in.
-        safety_factor : :class:`float`
-            The safety factor that new time steps are multiplicatively fudged by.
+            The :class:`Kernel` to use for the simulation.
+        evolution_gauge
+            The :class:`Gauge` to work in.
         kwargs
+            Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
         """
         super().__init__(name, **kwargs)
 
@@ -397,7 +410,6 @@ class DeltaKickSpecification(si.Specification):
 
         self.test_mass = test_mass
         self.test_charge = test_charge
-        self.test_energy = test_energy
 
         self.b_initial = b_initial
 

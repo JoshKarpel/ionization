@@ -22,11 +22,32 @@ class EvolutionMethod(ABC):
 
     Any subclass must have a class attribute called `time_step_type` that is assigned to a member of :class:`TimeStepType`.
     Which one obviously depends on what kind of time step the method uses.
+
+    Subclasses should implement the abstract ``evolve`` method.
     """
     time_step_type = None
 
     @abstractmethod
-    def evolve(self, sim, b, times, time_step):
+    def evolve(self, sim, b, times, time_step) -> complex:
+        """
+        Given the history of the bound state amplitude ``b``, construct ``b`` at the last of the ``times`` plus the ``time_step``.
+
+        Parameters
+        ----------
+        sim
+            The :class:`IDESimulation`.
+        b
+            The history of the bound state amplitude, :math:`b(t)`.
+        times
+            The times at which ``b`` is given, :math:`t`.
+        time_step
+            The amount of time to evolve forward by.
+
+        Returns
+        -------
+        next_b
+            The next value of ``b``, at ``times[-1] + time_step``.
+        """
         raise NotImplementedError
 
     def info(self) -> si.Info:
@@ -136,7 +157,7 @@ class RungeKuttaFourMethod(EvolutionMethod):
     """
     The fourth-order Runge-Kutta method.
     This method is fourth-order in time.
-    See `Wikipedia<https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge–Kutta_method>` for discussion.
+    See `Wikipedia <https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge–Kutta_method>`_ for discussion.
     """
 
     time_step_type = TimeStepType.FIXED
@@ -203,29 +224,29 @@ class RungeKuttaFourMethod(EvolutionMethod):
 
 class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
     """
-    An adaptive fourth-order Runge-Kutta method.
+    An adaptive fourth-order Runge-Kutta algorithm.
     """
 
     time_step_type = TimeStepType.ADAPTIVE
 
     def __init__(self,
-                 time_step_min = .01 * u.asec,
-                 time_step_max = 1 * u.asec,
-                 epsilon = 1e-6,
-                 error_on = 'db/dt',
-                 safety_factor = .98):
+                 time_step_min: float = .1 * u.asec,
+                 time_step_max: float = 1 * u.asec,
+                 epsilon: float = 1e-6,
+                 error_on: str = 'db/dt',
+                 safety_factor: float = .98):
         """
         Parameters
         ----------
-        time_step_min : :class:`float`
+        time_step_min
             The minimum time step that can be used by the adaptive algorithm.
-        time_step_max : :class:`float`
+        time_step_max
             The maximum time step that can be used by the adaptive algorithm.
-        epsilon : :class:`float`
+        epsilon
             The acceptable fractional error in the quantity specified by `error_on`.
         error_on : {``'b'``, ``'db/dt'``}
             Which quantity to control the fractional error in.
-        safety_factor : :class:`float`
+        safety_factor
             The safety factor that new time steps are multiplicatively fudged by.
         """
         self.time_step_min = time_step_min
