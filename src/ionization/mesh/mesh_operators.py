@@ -8,7 +8,7 @@ import scipy.sparse as sparse
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, cy
+from .. import core, cy, utils
 from . import meshes
 
 logger = logging.getLogger(__name__)
@@ -186,7 +186,7 @@ class MeshOperators(abc.ABC):
     gauge = None
 
     def __repr__(self):
-        return self.__class__.__name__
+        return utils.fmt_fields(self)
 
     @abc.abstractmethod
     def kinetic_energy(self, mesh: 'meshes.QuantumMesh') -> SumOfOperators:
@@ -746,6 +746,9 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
 
     def __init__(self, hydrogen_zero_angular_momentum_correction: bool = True):
         super().__init__(hydrogen_zero_angular_momentum_correction = hydrogen_zero_angular_momentum_correction)
+
+    def __repr__(self):
+        return utils.fmt_fields(self, 'hydrogen_zero_angular_momentum_correction')
 
     @si.utils.memoize
     def interaction_hamiltonian_matrices_without_field(self, mesh: 'meshes.SphericalHarmonicMesh') -> Tuple['meshes.OperatorMatrix', ...]:

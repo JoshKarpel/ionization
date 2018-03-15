@@ -78,7 +78,6 @@ class QuantumMesh(abc.ABC):
         The absolute value squared of ``g``.
     psi2
         The absolute value squared of ``psi``.
-
     """
 
     mesh_plotter_type = mesh_plotters.MeshPlotter

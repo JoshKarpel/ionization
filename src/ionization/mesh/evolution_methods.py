@@ -6,6 +6,7 @@ import abc
 import simulacra as si
 import simulacra.units as u
 
+from .. import utils
 from . import meshes, mesh_operators
 
 logger = logging.getLogger(__name__)
@@ -30,7 +31,7 @@ class EvolutionMethod(abc.ABC):
         raise NotImplementedError
 
     def __repr__(self):
-        return f'{self.__class__.__name__}'
+        return utils.fmt_fields(self)
 
     def info(self) -> si.Info:
         info = si.Info(header = self.__class__.__name__)

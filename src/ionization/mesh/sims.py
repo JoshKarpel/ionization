@@ -207,7 +207,6 @@ class MeshSimulation(si.Simulation):
             If ``True``, a progress bar will be displayed.
         callback
             If given, will be called with the :class:`MeshSimulation` as its argument after every time step.
-
         """
         logger.info(f'Performing time evolution on {self}, starting from time index {self.time_index}')
         try:
