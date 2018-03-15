@@ -40,7 +40,10 @@ class MeshSimulation(si.Simulation):
 
         if self.spec.electric_potential_dc_correction:
             old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(
+                self.spec.electric_potential,
+                self.times,
+            )
 
             logger.warning(f'Replaced electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
@@ -107,14 +110,19 @@ class MeshSimulation(si.Simulation):
         mem_mesh = self.mesh.g.nbytes if self.mesh is not None else 0
 
         mem_matrix_operators = 6 * mem_mesh
-        mem_numeric_eigenstates = sum(state.g.nbytes for state in self.spec.test_states if state.numeric and state.g is not None)
+        mem_numeric_eigenstates = sum(
+            state.g.nbytes
+            for state in self.spec.test_states
+            if state.numeric and state.g is not None
+        )
 
-        mem_misc = sum(x.nbytes for x in (
-            self.times,
-            self.data_times,
-            self.data_mask,
-            self.data_indices,
-        ))
+        mem_misc = sum(
+            x.nbytes for x in (
+                self.times,
+                self.data_times,
+                self.data_mask,
+                self.data_indices,
+            ))
 
         mem_total = sum((
             mem_mesh,
@@ -150,7 +158,11 @@ class MeshSimulation(si.Simulation):
     def get_times(self) -> np.array:
         if not callable(self.spec.time_step):
             total_time = self.spec.time_final - self.spec.time_initial
-            times = np.linspace(self.spec.time_initial, self.spec.time_final, int(total_time / self.spec.time_step) + 1)
+            times = np.linspace(
+                self.spec.time_initial,
+                self.spec.time_final,
+                int(total_time / self.spec.time_step) + 1,
+            )
         else:
             t = self.spec.time_initial
             times = [t]
@@ -216,7 +228,11 @@ class MeshSimulation(si.Simulation):
                 animator.initialize(self)
 
             if progress_bar:
-                pbar = tqdm(total = self.time_steps - self.time_index - 1, ascii = True, ncols = 80)
+                pbar = tqdm(
+                    total = self.time_steps - self.time_index - 1,
+                    ascii = True,
+                    ncols = 80,
+                )
 
             while True:
                 is_data_time = self.time in self.data_times
@@ -471,7 +487,12 @@ class MeshSpecification(si.Specification, abc.ABC):
         if datastores is None:
             datastores = [ds_type() for ds_type in data.DEFAULT_DATASTORE_TYPES]
         self.datastores = datastores
-        self.datastore_types = tuple(sorted(set(ds.__class__ for ds in self.datastores), key = lambda ds: ds.__class__.__name__))
+        self.datastore_types = tuple(
+            sorted(
+                set(ds.__class__ for ds in self.datastores),
+                key = lambda ds: ds.__class__.__name__
+            )
+        )
 
         if len(self.datastores) != len(self.datastore_types):
             raise exceptions.DuplicateDatastores('Cannot duplicate datastores')

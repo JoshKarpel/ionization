@@ -52,12 +52,18 @@ class AlternatingDirectionImplicit(EvolutionMethod):
         for oper in itertools.chain(ham_opers, reversed(ham_opers)):
             if explicit:
                 e_oper = mesh_operators.DotOperator(
-                    mesh_operators.add_to_diagonal_sparse_matrix_diagonal(-1j * tau * oper.matrix, value = 1),
+                    mesh_operators.add_to_diagonal_sparse_matrix_diagonal(
+                        -1j * tau * oper.matrix,
+                        value = 1,
+                    ),
                     wrapping_direction = oper.wrapping_direction,
                 )
             else:
                 e_oper = mesh_operators.TDMAOperator(
-                    mesh_operators.add_to_diagonal_sparse_matrix_diagonal(1j * tau * oper.matrix, value = 1),
+                    mesh_operators.add_to_diagonal_sparse_matrix_diagonal(
+                        1j * tau * oper.matrix,
+                        value = 1,
+                    ),
                     wrapping_direction = oper.wrapping_direction,
                 )
 
@@ -82,11 +88,26 @@ class SplitInteractionOperator(EvolutionMethod):
         cn_oper, = mesh.operators.internal_hamiltonian(mesh).operators  # this is the operator we do Crank-Nicolson ADI with
 
         evolution_operators = [
-            mesh_operators.DotOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal((-1j * tau) * cn_oper.matrix, value = 1), wrapping_direction = cn_oper.wrapping_direction),
-            mesh_operators.TDMAOperator(mesh_operators.add_to_diagonal_sparse_matrix_diagonal((1j * tau) * cn_oper.matrix, value = 1), wrapping_direction = cn_oper.wrapping_direction),
+            mesh_operators.DotOperator(
+                mesh_operators.add_to_diagonal_sparse_matrix_diagonal(
+                    (-1j * tau) * cn_oper.matrix,
+                    value = 1,
+                ),
+                wrapping_direction = cn_oper.wrapping_direction,
+            ),
+            mesh_operators.TDMAOperator(
+                mesh_operators.add_to_diagonal_sparse_matrix_diagonal(
+                    (1j * tau) * cn_oper.matrix,
+                    value = 1,
+                ),
+                wrapping_direction = cn_oper.wrapping_direction),
         ]
 
-        split_operators = mesh.operators.split_interaction_operators(mesh, mesh.operators.interaction_hamiltonian(mesh), tau)
+        split_operators = mesh.operators.split_interaction_operators(
+            mesh,
+            mesh.operators.interaction_hamiltonian(mesh),
+            tau,
+        )
 
         evolution_operators = (
             *split_operators,

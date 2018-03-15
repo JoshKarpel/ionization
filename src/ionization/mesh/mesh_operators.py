@@ -292,7 +292,10 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
         matrices = self.interaction_hamiltonian_matrices_without_field(mesh)
         vector_potential_amp = mesh.spec.electric_potential.get_vector_potential_amplitude_numeric(mesh.sim.times_to_current)  # decouple
 
-        return SumOfOperators(*(DotOperator(vector_potential_amp * matrix, wrapping_direction = None) for matrix in matrices))
+        return SumOfOperators(
+            *(DotOperator(vector_potential_amp * matrix, wrapping_direction = None)
+              for matrix in matrices)
+        )
 
     def split_interaction_operators(self, mesh: 'meshes.LineMesh', interaction_hamiltonian, tau: complex) -> Tuple[MeshOperator, ...]:
         a = interaction_hamiltonian.operators[0].matrix.data[-1][1:] * tau * (-1j)  # I happen to know that it's 1D, but this is a little ugly
@@ -350,7 +353,11 @@ class CylindricalSliceLengthGaugeOperators(MeshOperators):
         z_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
 
         z_diagonal = z_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
-        z_offdiagonal = z_prefactor * np.array([1 if (z_index + 1) % mesh.spec.z_points != 0 else 0 for z_index in range(mesh.mesh_points - 1)], dtype = np.complex128)
+        z_offdiagonal = z_prefactor * np.array(
+            [1 if (z_index + 1) % mesh.spec.z_points != 0 else 0
+             for z_index in range(mesh.mesh_points - 1)],
+            dtype = np.complex128,
+        )
 
         z_kinetic = sparse.diags((z_offdiagonal, z_diagonal, z_offdiagonal), offsets = (-1, 0, 1))
 
@@ -375,10 +382,18 @@ class CylindricalSliceLengthGaugeOperators(MeshOperators):
         return DotOperator(rho_kinetic, wrapping_direction = meshes.WrappingDirection.RHO)
 
     def interaction_hamiltonian(self, mesh: 'meshes.CylindricalSliceMesh') -> SumOfOperators:
-        electric_potential_energy_mesh = mesh.spec.electric_potential(t = mesh.sim.time, z = mesh.z_mesh, test_charge = mesh.spec.test_charge)
+        electric_potential_energy_mesh = mesh.spec.electric_potential(
+            t = mesh.sim.time,
+            z = mesh.z_mesh,
+            test_charge = mesh.spec.test_charge,
+        )
 
-        interaction_hamiltonian_z = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.Z))
-        interaction_hamiltonian_rho = sparse.diags(mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.RHO))
+        interaction_hamiltonian_z = sparse.diags(
+            mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.Z)
+        )
+        interaction_hamiltonian_rho = sparse.diags(
+            mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.RHO)
+        )
 
         return SumOfOperators(
             DotOperator(interaction_hamiltonian_rho, wrapping_direction = meshes.WrappingDirection.RHO),
@@ -951,16 +966,33 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         odd_odd_diag = np.hstack(odd_odd_diag)
         odd_odd_offdiag = np.hstack(odd_odd_offdiag)[:-1]  # last element is bogus
 
-        even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = (-1, 0, 1))
-        even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_odd_offdiag), offsets = (-1, 0, 1))
-        odd_even_matrix = sparse.diags((-odd_even_offdiag, odd_even_diag, odd_even_offdiag), offsets = (-1, 0, 1))
-        odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = (-1, 0, 1))
+        offsets = (-1, 0, 1)
+        even_even_matrix = sparse.diags((-even_even_offdiag, even_even_diag, even_even_offdiag), offsets = offsets)
+        even_odd_matrix = sparse.diags((-even_odd_offdiag, even_odd_diag, even_odd_offdiag), offsets = offsets)
+        odd_even_matrix = sparse.diags((-odd_even_offdiag, odd_even_diag, odd_even_offdiag), offsets = offsets)
+        odd_odd_matrix = sparse.diags((-odd_odd_offdiag, odd_odd_diag, odd_odd_offdiag), offsets = offsets)
 
         operators = (
-            SimilarityOperator(even_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.EVEN),
-            SimilarityOperator(even_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.EVEN),  # parity is based off FIRST splitting
-            SimilarityOperator(odd_even_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.ODD),
-            SimilarityOperator(odd_odd_matrix, wrapping_direction = meshes.WrappingDirection.R, parity = SimilarityOperatorParity.ODD),
+            SimilarityOperator(
+                even_even_matrix,
+                wrapping_direction = meshes.WrappingDirection.R,
+                parity = SimilarityOperatorParity.EVEN,
+            ),
+            SimilarityOperator(
+                even_odd_matrix,
+                wrapping_direction = meshes.WrappingDirection.R,
+                parity = SimilarityOperatorParity.EVEN,  # parity is based off FIRST splitting
+            ),
+            SimilarityOperator(
+                odd_even_matrix,
+                wrapping_direction = meshes.WrappingDirection.R,
+                parity = SimilarityOperatorParity.ODD,
+            ),
+            SimilarityOperator(
+                odd_odd_matrix,
+                wrapping_direction = meshes.WrappingDirection.R,
+                parity = SimilarityOperatorParity.ODD,
+            ),
         )
 
         return operators
