@@ -3,6 +3,16 @@ Manual
 
 .. currentmodule:: ionization
 
+.. toctree::
+   :hidden:
+   :maxdepth: 2
+
+   manual/mesh
+   manual/ide
+   manual/tunneling
+   manual/states
+   manual/potentials
+
 The ``ionization`` library implements a variety of functionality, all with the goal of simulating the interaction between electric fields and electrons.
 It builds off of ``simulacra``, making heavy use of the ``Specification``/``Simulation`` architecture.
 
@@ -22,12 +32,3 @@ These approaches are supported by the other submodules, which provide abstractio
 * ``potentials`` - electrical potentials, wavefunction masks, imaginary potentials, and similar.
 
 
-.. toctree::
-   :hidden:
-   :maxdepth: 2
-
-   manual/mesh
-   manual/ide
-   manual/tunneling
-   manual/states
-   manual/potentials

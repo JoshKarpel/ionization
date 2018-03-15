@@ -34,11 +34,21 @@ class ThreeDPlaneWave(states.QuantumState):
 
     def __init__(
         self,
-        wavenumber_x,
-        wavenumber_y,
-        wavenumber_z,
+        wavenumber_x: float,
+        wavenumber_y: float,
+        wavenumber_z: float,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
+        """
+        Parameters
+        ----------
+        wavenumber_x
+            The :math:`x`-component of the state's wavevector.
+        wavenumber_y
+            The :math:`y`-component of the state's wavevector.
+        wavenumber_z
+            The :math:`z`-component of the state's wavevector.
+        """
         if wavenumber_x != 0 or wavenumber_y != 0:
             warnings.warn('ThreeDPlaneWave states with non-zero x or y wavenumbers are not compatible with certain meshes because they do not have azimuthal symmetry!')
 
@@ -118,6 +128,15 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
         m: states.QuantumNumber = 0,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
+        """
+
+        Parameters
+        ----------
+        l
+            The orbital angular momentum quantum number of the state.
+        m
+            The quantum number for the :math:`z`-component of the angular momentum of the state.
+        """
         self.l = l
         self.m = m
 
@@ -147,7 +166,6 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
 
     @si.utils.cached_property
     def spherical_harmonic(self):
-        """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
         return si.math.SphericalHarmonic(l = self.l, m = self.m)
 
     @abc.abstractmethod
@@ -155,14 +173,6 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
         raise NotImplementedError
 
     def __call__(self, r, theta, phi):
-        """
-        Evaluate the wavefunction at a point, or vectorized over an array of points.
-
-        :param r: radial coordinate
-        :param theta: polar coordinate
-        :param phi: azimuthal coordinate
-        :return: the value(s) of the wavefunction at (r, theta, phi)
-        """
         return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
 
@@ -195,12 +205,6 @@ class FreeSphericalWave(SphericalHarmonicState):
         ----------
         energy
             The energy of the state.
-        l
-            The orbital angular momentum quantum number.
-        m
-            The quantum number for the z-component of the angular momentum.
-        amplitude
-            The probability amplitude of the state.
         """
         super().__init__(l = l, m = m, amplitude = amplitude)
 
@@ -287,12 +291,6 @@ class HydrogenBoundState(SphericalHarmonicState):
         ----------
         n
             The principal quantum number.
-        l
-            The orbital angular momentum quantum number.
-        m
-            The quantum number for the z-component of the angular momentum.
-        amplitude
-            The probability amplitude of the state.
         """
         self.n = n
         super().__init__(l = l, m = m, amplitude = amplitude)
@@ -395,12 +393,6 @@ class HydrogenCoulombState(SphericalHarmonicState):
         ----------
         energy
             The energy of the state.
-        l
-            The orbital angular momentum quantum number.
-        m
-            The quantum number for the z-component of the angular momentum.
-        amplitude
-            The probability amplitude of the state.
         """
         self.energy = energy
         super().__init__(l = l, m = m, amplitude = amplitude)
@@ -515,6 +507,18 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         binding: states.Binding,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
+        """
+        Parameters
+        ----------
+        radial_wavefunction
+            The numerically-determined wavefunction as a function of the radial coordinate.
+        energy
+            The numerically-determined energy of the state.
+        corresponding_analytic_state
+            The analytic state that this state approximates.
+        binding
+            Whether the state is bound or free.
+        """
         self.radial_wavefunction = radial_wavefunction
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state

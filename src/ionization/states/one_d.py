@@ -1,5 +1,6 @@
 import logging
 import itertools
+from typing import List
 
 import numpy as np
 import scipy.optimize as optimize
@@ -29,7 +30,6 @@ class OneDPlaneWave(states.QuantumState):
         The energy of the state.
     momentum: :class:`float`
         The momentum of the state.
-
     """
 
     eigenvalues = states.Eigenvalues.CONTINUOUS
@@ -43,12 +43,12 @@ class OneDPlaneWave(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-
         Parameters
         ----------
         wavenumber
+            The wavenumber of the plane wave.
         mass
-        amplitude
+            The mass of the particle.
         """
         self.wavenumber = wavenumber
         self.mass = mass
@@ -60,9 +60,24 @@ class OneDPlaneWave(states.QuantumState):
         cls,
         energy: float = 1.50412 * u.eV,
         k_sign: int = 1,
-        mass = u.electron_mass,
+        mass: float = u.electron_mass,
         amplitude: states.ProbabilityAmplitude = 1,
-    ):
+    ) -> 'OneDPlaneWave':
+        """
+        Parameters
+        ----------
+        energy: :class:`float`
+            The energy of the state.
+        k_sign: {1, -1}
+            The desired sign of the momentum.
+        mass: :class:`float`
+            The mass of the particle.
+
+        Returns
+        -------
+        state
+            The state constructed from the parameters.
+        """
         if k_sign not in (1, -1):
             raise exceptions.IllegalQuantumState('k_sign must be +1 or -1')
         return cls(k_sign * np.sqrt(2 * mass * energy) / u.hbar, mass, amplitude = amplitude)
@@ -80,12 +95,7 @@ class OneDPlaneWave(states.QuantumState):
         return self.wavenumber, self.mass
 
     def __call__(self, x):
-        """
-        Evaluate the free particle wavefunction at a point, or vectorized over an array of points.
-
-        :param x: the distance coordinate along the direction of motion
-        :return: the value(s) of the wavefunction at x
-        """
+        """Evaluate the wavefunction."""
         return np.exp(1j * self.wavenumber * x) / np.sqrt(u.twopi)
 
     def __repr__(self):
@@ -149,13 +159,14 @@ class QHOState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a QHOState from a spring constant, mass, and energy index n.
-
-        :param spring_constant: the spring constant for the quantum harmonic oscillator
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
+        Parameters
+        ----------
+        spring_constant
+            The spring constant for the quantum harmonic oscillator.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
         """
         self.n = n
         self.spring_constant = spring_constant
@@ -172,14 +183,19 @@ class QHOState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a QHOState from an angular frequency, mass, and energy index n.
+        Parameters
+        ----------
+        omega
+            The angular frequency of the state.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
 
-        :param omega: the fundamental angular frequency of the quantum harmonic oscillator
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
-        :return: a QHOState instance
+        Returns
+        -------
+        state
+            The state constructed from the parameters.
         """
         return cls(spring_constant = mass * (omega ** 2), mass = mass, n = n, amplitude = amplitude)
 
@@ -192,14 +208,20 @@ class QHOState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a QHOState from a HarmonicOscillator, mass, and energy index n.
 
-        :param potential: a HarmonicOscillator instance
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
-        :return: a QHOState instance
+        Parameters
+        ----------
+        potential
+            A harmonic oscillator potential.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
+
+        Returns
+        -------
+        state
+            The state constructed from the parameters.
         """
         return cls(spring_constant = potential.spring_constant, mass = mass, n = n, amplitude = amplitude)
 
@@ -225,12 +247,7 @@ class QHOState(states.QuantumState):
 
     def __call__(self, x):
         """
-        Evaluate the quantum harmonic oscillator bound state wavefunction at a point, or vectorized over an array of points.
-
         Warning: for large enough n (>= ~60) this will fail due to n! overflowing.
-
-        :param x: the distance coordinate along the direction of confinement
-        :return: the value(s) of the wavefunction at x
         """
         norm = ((self.mass * self.omega / (u.pi * u.hbar)) ** (1 / 4)) / (np.float64(2 ** (self.n / 2)) * np.sqrt(np.float64(spmisc.factorial(self.n))))
         exp = np.exp(-self.mass * self.omega * (x ** 2) / (2 * u.hbar))
@@ -302,15 +319,18 @@ class FiniteSquareWellState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a FiniteSquareWellState from the well properties, the particle mass, and an energy index.
-
-        :param well_depth: the depth of the potential well
-        :param well_width: the full width of the potential well
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param well_center: the center position of the well
-        :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
+        Parameters
+        ----------
+        well_depth
+            The depth of the potential well, in energy units.
+        well_width
+            The width of the potential well.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
+        well_center
+            The position of the center of the well.
         """
         self.well_depth = well_depth
         self.well_width = well_width
@@ -355,14 +375,19 @@ class FiniteSquareWellState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a FiniteSquareWellState from a FiniteSquareWell potential, the particle mass, and an energy index.
+        Parameters
+        ----------
+        potential
+            A finite square well potential.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
 
-        :param potential: a FiniteSquareWell potential.
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
-        :return: a FiniteSquareWellState instance
+        Returns
+        -------
+        state
+            The state constructed from the parameters.
         """
         return cls(potential.potential_depth, potential.width, mass, n = n, well_center = potential.center, amplitude = amplitude)
 
@@ -374,24 +399,29 @@ class FiniteSquareWellState(states.QuantumState):
         mass: float,
         well_center: float = 0,
         amplitude: states.ProbabilityAmplitude = 1,
-    ):
+    ) -> List[states.QuantumState]:
         """
-        Return a list containing all of the bound states of a well.
+        Parameters
+        ----------
+        well_depth
+            The depth of the potential well, in energy units.
+        well_width
+            The width of the potential well.
+        mass
+            The mass of the particle.
+        well_center
+            The position of the center of the well.
 
-        The states are ordered in increasing energy.
-
-        :param well_depth: the depth of the potential well
-        :param well_width: the full width of the potential well
-        :param mass: the mass of the particle
-        :param well_center: the center position of the well
-        :param amplitude: the probability amplitude of the states
-        :return: a list of FiniteSquareWell instances
+        Returns
+        -------
+        states
+            The bound states of the finite square well with the given parameters.
         """
         states = []
         for n in itertools.count(1):
             try:
                 states.append(cls(well_depth, well_width, mass, n = n, well_center = well_center, amplitude = amplitude))
-            except exceptions.Illegalstate.QuantumState:
+            except exceptions.IllegalQuantumState:
                 return states
 
     @classmethod
@@ -400,14 +430,19 @@ class FiniteSquareWellState(states.QuantumState):
         potential: potentials.FiniteSquareWell,
         mass: float,
         amplitude: states.ProbabilityAmplitude = 1,
-    ):
+    ) -> List[states.QuantumState]:
         """
-        Return a list containing all of the bound states of a well.
+        Parameters
+        ----------
+        potential
+            A finite square well.
+        mass
+            The mass of the particle.
 
-        :param potential: a FiniteSquareWell
-        :param mass: the mass of the particle
-        :param amplitude: the probability amplitude of the states
-        :return:
+        Returns
+        -------
+        states
+            The bound states of the finite square well.
         """
         return cls.all_states_of_well_from_parameters(
             potential.potential_depth,
@@ -432,12 +467,6 @@ class FiniteSquareWellState(states.QuantumState):
         return self.well_depth, self.well_width, self.mass, self.n
 
     def __call__(self, x):
-        """
-        Evaluate the finite square well bound state wavefunction at a point, or vectorized over an array of points.
-
-        :param x: the distance coordinate along the direction of confinement
-        :return: the value(s) of the wavefunction at x
-        """
         cond = np.greater_equal(x, self.left_edge) * np.less_equal(x, self.right_edge)
 
         if self.symmetry == 'antisymmetric':
@@ -520,14 +549,19 @@ class GaussianWellState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a GaussianWellState from the well properties, the particle mass, and an energy index.
 
-        :param well_depth: the depth of the potential well
-        :param well_width: the full width of the potential well
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param well_center: the center position of the well
-        :param amplitude: the probability amplitude of the state
+        Parameters
+        ----------
+        well_depth
+            The depth of the potential well, in energy units.
+        well_width
+            The width of the potential well.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
+        well_center
+            The position of the center of the well.
         """
         self.well_depth = np.abs(well_depth)
         self.well_width = well_width
@@ -556,13 +590,19 @@ class GaussianWellState(states.QuantumState):
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         """
-        Construct a FiniteSquareWellState from a FiniteSquareWell potential, the particle mass, and an energy index.
+        Parameters
+        ----------
+        potential
+            A Gaussian well potential.
+        mass
+            The mass of the particle.
+        n
+            The energy quantum number of the state.
 
-        :param potential: a FiniteSquareWell potential.
-        :param mass: the mass of the particle
-        :param n: the energy index of the state
-        :param amplitude: the probability amplitude of the state
-        :return: a FiniteSquareWellState instance
+        Returns
+        -------
+        state
+            The state constructed from the parameters.
         """
         return cls(potential.potential_extrema, potential.width, mass, n = n, well_center = potential.center, amplitude = amplitude)
 
@@ -571,13 +611,6 @@ class GaussianWellState(states.QuantumState):
         return self.well_depth, self.well_width, self.mass, self.n
 
     def __call__(self, x):
-        """
-        Evaluate the finite square well bound state wavefunction at a point, or vectorized over an array of points.
-
-        :param x: the distance coordinate along the direction of confinement
-        :return: the value(s) of the wavefunction at x
-        """
-
         return np.exp(-.25 * (x / self.width) ** 2) / (np.sqrt(np.sqrt(u.twopi) * self.width))
 
     def __repr__(self):
@@ -622,6 +655,12 @@ class OneDSoftCoulombState(states.QuantumState):
     derivation = states.Derivation.ANALYTIC
 
     def __init__(self, n = 1, amplitude: states.ProbabilityAmplitude = 1):
+        """
+        Parameters
+        ----------
+        n
+            The energy quantum number of the state.
+        """
         self.n = n
 
         super().__init__(amplitude = amplitude)
@@ -687,6 +726,18 @@ class NumericOneDState(states.QuantumState):
         binding: states.Binding,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
+        """
+        Parameters
+        ----------
+        wavefunction
+            The numerically-determined wavefunction as a function of space.
+        energy
+            The numerically-determined energy of the state.
+        corresponding_analytic_state
+            The analytic state that this state approximates.
+        binding
+            Whether the state is bound or free.
+        """
         self.wavefunction = wavefunction
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state

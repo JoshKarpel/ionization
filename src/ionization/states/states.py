@@ -39,10 +39,12 @@ def fmt_amplitude(amplitude: ProbabilityAmplitude) -> str:
 
 
 def fmt_amplitude_for_tex(amplitude: ProbabilityAmplitude) -> str:
-    if amplitude == 1:
-        return ''
-    else:
-        return str(si.units.uround(amplitude)) + ' \, '
+    out = fmt_amplitude(amplitude)
+
+    if out == '':
+        out += r' \, '
+
+    return out
 
 
 class QuantumState(si.summables.Summand, abc.ABC):
@@ -90,7 +92,6 @@ class QuantumState(si.summables.Summand, abc.ABC):
 
     def __init__(self, amplitude: ProbabilityAmplitude = 1):
         """
-
         Parameters
         ----------
         amplitude
@@ -185,12 +186,10 @@ class QuantumState(si.summables.Summand, abc.ABC):
 
     @property
     def bra(self) -> str:
-        """Gets the bra representation of the HydrogenBoundState"""
         return self.ket.replace('|', '<').replace('>', '|')
 
     @property
     def tex(self) -> si.units.TeXString:
-        """Return a string in TeX notation that should be placed inside bras or kets in output."""
         raise NotImplementedError
 
     @property
