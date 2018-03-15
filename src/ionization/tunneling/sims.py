@@ -1,8 +1,5 @@
 import logging
-import warnings
 from typing import Callable
-import datetime
-import itertools
 
 from tqdm import tqdm
 
@@ -19,6 +16,19 @@ logger.setLevel(logging.DEBUG)
 
 
 class TunnelingSimulation(si.Simulation):
+    """
+    A :class:`simulacra.Simulation` for a wavefunction that decays based on the instantaneous electric field amplitude.
+
+    Attributes
+    ----------
+    b
+        The bound state wavefunction probability amplitude.
+        May not be an actual probability amplitude of an actual state, depending on the model used.
+    b2
+        The absolute value squared of the bound state wavefunction probability amplitude (i.e., probability to remaing in the bound state).
+        May not be an actual probability of an actual state, depending on the model used.
+    """
+
     def __init__(self, spec: 'TunnelingSpecification'):
         super().__init__(spec)
 
@@ -48,7 +58,22 @@ class TunnelingSimulation(si.Simulation):
     def b2(self):
         return np.abs(self.b) ** 2
 
-    def run(self, progress_bar: bool = False, callback: Callable = None):
+    def run(
+        self,
+        progress_bar: bool = False,
+        callback: Callable[['TunnelingSimulation'], None] = None,
+    ):
+        """
+        Run the simulation by repeatedly decaying the wavefunction in increments of the time step.
+
+        Parameters
+        ----------
+        progress_bar
+            If ``True``, a progress bar will be displayed.
+        callback
+            If given, will be called with the :class:`TunnelingSimulation` as its argument after every time step.
+        """
+
         self.status = si.Status.RUNNING
 
         if progress_bar:
@@ -85,6 +110,8 @@ class TunnelingSimulation(si.Simulation):
 
 
 class TunnelingSpecification(si.Specification):
+    """A :class:`simulacra.Specification` for a :class:`simulacra.Simulation` based on a :class:`TunnelingModel`."""
+
     simulation_type = TunnelingSimulation
 
     def __init__(
@@ -100,6 +127,28 @@ class TunnelingSpecification(si.Specification):
         b_initial: complex = 1,
         **kwargs,
     ):
+        """
+        Parameters
+        ----------
+        time_initial
+            The time to begin the simulation at.
+        time_final
+            The time to end the simulation at.
+        time_step
+            The amount of time to evolve by on each evolution step.
+        electric_potential
+            The possibly-time varying external electric field.
+        electric_potential_dc_correction
+            If ``True``, perform DC correction on the ``electric_potential``.
+        tunneling_model
+            The :class:`TunnelingModel` to use for the simulation.
+        ionization_potential
+            The ionization potential of the bound state.
+        b_initial
+            The initial probability amplitude.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
+        """
         super().__init__(name, **kwargs)
 
         self.time_initial = time_initial

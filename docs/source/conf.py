@@ -20,8 +20,6 @@
 import os
 import sys
 
-import sphinx_rtd_theme
-
 # sys.path.insert(0, os.path.abspath('../../src'))
 
 
@@ -94,6 +92,10 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
+
+import sphinx_rtd_theme
+
+html_style = 'css/ionization.css'
 html_theme = 'sphinx_rtd_theme'
 html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 
@@ -101,7 +103,10 @@ html_theme_path = [sphinx_rtd_theme.get_html_theme_path()]
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    # 'globaltoc_depth': -1,
+}
+# html_sidebars = {'**': ['globaltoc.html', 'relations.html', 'sourcelink.html', 'searchbox.html'], }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -189,3 +194,4 @@ intersphinx_mapping = {
 
 autodoc_member_order = 'bysource'
 autoclass_content = 'both'
+napoleon_use_rtype = False

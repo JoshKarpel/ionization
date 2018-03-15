@@ -14,7 +14,9 @@ from .. import utils
 
 class TunnelingModel(abc.ABC):
     """
-    IMPORTANT: tunneling rates are often given in terms of the probability to remain in the bound state.
+    A class that implements a tunneling model based on the instantaneous amplitude of the electric field.
+
+    NB: tunneling rates are often given in terms of the probability to remain in the bound state.
     The tunneling models here operate on the wavefunction itself, so generally they are half as large as reported in literature.
     """
 
@@ -27,7 +29,24 @@ class TunnelingModel(abc.ABC):
         """
         self.upper_amplitude_cutoff = upper_amplitude_cutoff
 
-    def tunneling_rate(self, electric_field_amplitude, ionization_potential):
+    def tunneling_rate(self, electric_field_amplitude: float, ionization_potential: float) -> float:
+        """
+        Calculate the tunneling rate for this model from the instantaneous electric field amplitude and the bound state's ionization potential.
+
+        Should generally not be overridden in subclasses.
+
+        Parameters
+        ----------
+        electric_field_amplitude
+            The instantaneous electric field amplitude.
+        ionization_potential
+            The ionization potential of the bound state being ionized.
+
+        Returns
+        -------
+        tunneling_rate
+            The tunneling rate at this instant.
+        """
         rate = self._tunneling_rate(electric_field_amplitude = electric_field_amplitude, ionization_potential = ionization_potential)
         rate = np.where(
             np.abs(electric_field_amplitude) <= self.upper_amplitude_cutoff,
@@ -39,6 +58,7 @@ class TunnelingModel(abc.ABC):
 
     @abc.abstractmethod
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
+        """This method should be overridden in subclasses to implement the actual tunneling model."""
         raise NotImplementedError
 
     def info(self) -> si.Info:
@@ -50,8 +70,7 @@ class TunnelingModel(abc.ABC):
 
 
 class NoTunneling(TunnelingModel):
-    def __init__(self):
-        super().__init__()
+    """A tunneling model with zero tunneling rate for any electric field amplitude."""
 
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         return 0
@@ -61,6 +80,12 @@ class NoTunneling(TunnelingModel):
 # https://doi.org/10.1103/PhysRevA.59.569
 
 class LandauRate(TunnelingModel):
+    """
+    A tunneling rate based on calculating the tunneling rate through a barrier in parabolic coordinates.
+
+    Taken from https://doi.org/10.1103/PhysRevA.59.569 based on a derivation in Landau, L. D., & Lifshitz, E. M. (1977). Quantum Mechanics: Non-Relativistic Theory (3rd ed.). Pergamon Press.
+    """
+
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
@@ -81,6 +106,10 @@ class LandauRate(TunnelingModel):
 
 
 class KeldyshRate(TunnelingModel):
+    """
+    A tunneling rate based on calculating the tunneling rate through a barrier formed by an oscillating field.
+    """
+
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
@@ -103,12 +132,22 @@ class KeldyshRate(TunnelingModel):
 
 class PosthumusRate(TunnelingModel):
     """
-    This is actually a BSI model.
+    This is actually a BSI model, based on a semi-classical picture of the electron oscillating back and forth near a "hole" in the potential barrier.
+
+    Taken from https://doi.org/10.1103/PhysRevA.59.569
 
     NB: current includes an amplitude cutoff which is only appropriate for hydrogen.
     """
 
     def __init__(self, atomic_number = 1, **kwargs):
+        """
+        Parameters
+        ----------
+        atomic_number
+            The atomic number of the atom the electron is bound to (i.e., the number of protons, :math:`Z`).
+        kwargs
+            Any additional keyword arguments are passed to the :class:`TunnelingModel` constructor.
+        """
         super().__init__(**kwargs)
 
         self.atomic_number = atomic_number
@@ -134,6 +173,12 @@ class PosthumusRate(TunnelingModel):
 
 
 class MulserRate(TunnelingModel):
+    """
+    A tunneling rate based on approximating the tunneling barrier as a parabola.
+
+    Taken from https://doi.org/10.1103/PhysRevA.59.569
+    """
+
     def _tunneling_rate(self, electric_field_amplitude, ionization_potential):
         scaled_amplitude = np.abs(electric_field_amplitude) / u.atomic_electric_field
         scaled_potential = np.abs(ionization_potential) / u.hartree
@@ -159,7 +204,12 @@ class MulserRate(TunnelingModel):
 
 class ADKRate(TunnelingModel):
     """
-    This rate is average over one laser cycle.
+    An extension of the Keldysh model to complex atoms.
+    ADK stands for the derivers: Ammosov, Delone, and Krainov.
+
+    Taken from https://doi.org/10.1103/PhysRevA.59.569
+
+    NB: This rate is already averaged over one laser cycle, so it's not technically appropriate to use it in a simulation.
     """
 
     def __init__(self, n_star = 1, l = 0, m = 0, **kwargs):
@@ -172,6 +222,8 @@ class ADKRate(TunnelingModel):
             Angular momentum quantum number
         m
             Magnetic quantum number
+        kwargs
+            Any additional keyword arguments are passed to the :class:`TunnelingModel` constructor.
         """
         super().__init__(**kwargs)
 
@@ -203,12 +255,20 @@ class ADKRate(TunnelingModel):
 
 
 class ADKExtendedToBSIRate(ADKRate):
+    """
+    An extension of the ADI theory to the barrier-suppression regime.
+
+    Taken from https://doi.org/10.1103/PhysRevA.59.569
+    """
+
     def __init__(self, n_star = 1, **kwargs):
         """
         Parameters
         ----------
         n_star
             Effective quantum number
+        kwargs
+            Any additional keyword arguments are passed to the :class:`TunnelingModel` constructor.
         """
         super().__init__(**kwargs)
 

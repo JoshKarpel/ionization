@@ -394,7 +394,6 @@ class MeshSpecification(si.Specification, abc.ABC):
         **kwargs,
     ):
         """
-
         Parameters
         ----------
         name
