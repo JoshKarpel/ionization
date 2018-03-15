@@ -50,7 +50,38 @@ class QuantumState(si.summables.Summand, abc.ABC):
     A class that represents a quantum state, with an amplitude and some basic multiplication/addition rules.
     Can be summed to form a Superposition.
 
-    Currently, there is no support for product states of multiple particles.
+    Attributes
+    ----------
+    numeric: :class:`bool`
+        ``True`` if the state was constructed numerically.
+    analytic: :class:`bool`
+        ``True`` if the state was constructed analytically.
+    variational: :class:`bool`
+        ``True`` if the state was constructed variationally.
+    bound: :class:`bool`
+        ``True`` if the state is a bound (i.e., not free) state.
+    free: :class:`bool`
+        ``True`` if the state is a free (i.e., not bound) state.
+    discrete_eigenvalues: :class:`bool`
+        ``True`` if the state has fully discrete eigenvalues.
+    continuous_eigenvalues: :class:`bool`
+        ``True`` if the state has any continuous eigenvalues.
+
+    amplitude: ProbabilityAmplitude
+        The probability amplitude of the state (i.e., expansion coefficient in this basis).
+    norm: Probability
+        The norm of the state.
+
+    ket: :class:`str`
+        An ASCII representation of the state as a ket.
+    bra: :class:`str`
+        An ASCII representation of the state as a bra.
+    tex: :class:`str`
+        A TeX-formatted string of the state.
+    tex_ket: :class:`str`
+        A TeX-formatted string of the state as a ket.
+    tex_bra: :class:`str`
+        A TeX-formatted string of the state as a bra.
     """
 
     eigenvalues = None
@@ -78,6 +109,10 @@ class QuantumState(si.summables.Summand, abc.ABC):
         return self.derivation == Derivation.ANALYTIC
 
     @property
+    def variational(self) -> bool:
+        return self.derivation == Derivation.VARIATIONAL
+
+    @property
     def bound(self) -> bool:
         return self.binding == Binding.BOUND
 
@@ -98,6 +133,7 @@ class QuantumState(si.summables.Summand, abc.ABC):
         return np.abs(self.amplitude) ** 2
 
     def normalized(self) -> 'QuantumState':
+        """Return a normalized version of the state."""
         return self / np.sqrt(self.norm)
 
     def __mul__(self, other: ProbabilityAmplitude) -> 'QuantumState':
@@ -173,15 +209,20 @@ class QuantumState(si.summables.Summand, abc.ABC):
 
 
 class Superposition(si.summables.Sum, QuantumState):
-    """A class that represents a superposition of bound states."""
+    """
+    A class that represents a discrete superposition of states.
+
+    Although a :class:`Superposition` of states with continuous eigenvalues can be created, such states are non-physical and may have unexpected properties.
+    """
 
     container_name = 'states'
 
     def __init__(self, *states: QuantumState):
         """
-        Construct a discrete superposition of states.
-
-        :param states: any number of QuantumStates
+        Parameters
+        ----------
+        states
+             Any number of :class:`QuantumState`
         """
         states_to_amplitudes = collections.defaultdict(float)
 
@@ -218,6 +259,7 @@ class Superposition(si.summables.Sum, QuantumState):
         return ' + '.join(s.tex_ket for s in self)
 
     def normalized(self) -> 'Superposition':
+        """Return a normalized version of the state."""
         return Superposition(*tuple(s / np.sqrt(self.norm) for s in self))
 
     def info(self) -> si.Info:
@@ -233,5 +275,17 @@ def fmt_inner_product_for_tex(
     a: QuantumState,
     b: QuantumState,
     op: si.units.TeXString = '',
-):
+) -> si.units.TeXString:
+    """
+
+    Parameters
+    ----------
+    a
+    b
+    op
+
+    Returns
+    -------
+
+    """
     return fr'\left\langle {a.tex} \right| {op} \left| {b.tex} \right\rangle'

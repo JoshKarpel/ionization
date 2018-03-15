@@ -24,9 +24,13 @@ class ThreeDPlaneWave(states.QuantumState):
     """
     A plane wave in three dimensions.
 
-    NB: ``ThreeDPlaneWave``s with non-zero x or y wavenumbers are not compatible with certain meshes because they do not have azimuthal symmetry!
+    NB: A ``ThreeDPlaneWave`` with non-zero :math:`x` or :math:`y` wavenumbers is not compatible with certain meshes because it does not have azimuthal symmetry!
     Use with caution!
     """
+
+    eigenvalues = states.Eigenvalues.CONTINUOUS
+    binding = states.Binding.FREE
+    derivation = states.Derivation.ANALYTIC
 
     def __init__(
         self,
@@ -97,6 +101,17 @@ class ThreeDPlaneWave(states.QuantumState):
 
 
 class SphericalHarmonicState(states.QuantumState, abc.ABC):
+    """
+    An abstract class for any state that is just a radial function times a spherical harmonic.
+
+    Attributes
+    ----------
+    l: :class:`int`
+        The orbital angular momentum quantum number.
+    m: :class:`int`
+        The quantum number for the z-component of the angular momentum.
+    """
+
     def __init__(
         self,
         l: states.QuantumNumber = 0,
@@ -135,9 +150,33 @@ class SphericalHarmonicState(states.QuantumState, abc.ABC):
         """Return the SphericalHarmonic for the state's angular momentum quantum numbers."""
         return si.math.SphericalHarmonic(l = self.l, m = self.m)
 
+    @abc.abstractmethod
+    def radial_function(self, r):
+        raise NotImplementedError
+
+    def __call__(self, r, theta, phi):
+        """
+        Evaluate the wavefunction at a point, or vectorized over an array of points.
+
+        :param r: radial coordinate
+        :param theta: polar coordinate
+        :param phi: azimuthal coordinate
+        :return: the value(s) of the wavefunction at (r, theta, phi)
+        """
+        return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
+
 
 class FreeSphericalWave(SphericalHarmonicState):
-    """A class that represents a free spherical wave."""
+    """
+    A class that represents a free spherical wave.
+
+    Attributes
+    ----------
+    energy: :class:`float`
+        The energy of the state.
+    wavenumber: :class:`float`
+        The wavenumber of the state.
+    """
 
     eigenvalues = states.Eigenvalues.CONTINUOUS
     binding = states.Binding.FREE
@@ -194,17 +233,6 @@ class FreeSphericalWave(SphericalHarmonicState):
     def radial_function(self, r):
         return np.sqrt(2 * (self.wavenumber ** 2) / u.pi) * special.spherical_jn(self.l, self.wavenumber * r)
 
-    def __call__(self, r, theta, phi):
-        """
-        Evaluate the free spherical wave wavefunction at a point, or vectorized over an array of points.
-
-        :param r: radial coordinate
-        :param theta: polar coordinate
-        :param phi: azimuthal coordinate
-        :return: the value(s) of the wavefunction at (r, theta, phi)
-        """
-        return self.amplitude * self.radial_function(r) * self.spherical_harmonic(theta, phi)
-
     def __repr__(self):
         return utils.fmt_fields(self, 'energy', 'wavenumber', 'l', 'm')
 
@@ -232,7 +260,16 @@ class FreeSphericalWave(SphericalHarmonicState):
 
 
 class HydrogenBoundState(SphericalHarmonicState):
-    """A class that represents a hydrogen bound state."""
+    """
+    A class that represents a hydrogen bound state.
+
+    Attributes
+    ----------
+    n: :class:`int`
+        The principal quantum number.
+    energy: :class:`float`
+        The energy of the state.
+    """
 
     eigenvalues = states.Eigenvalues.DISCRETE
     binding = states.Binding.BOUND
@@ -309,22 +346,6 @@ class HydrogenBoundState(SphericalHarmonicState):
 
         return self.amplitude * normalization * r_dep * lag_poly
 
-    def __call__(self, r: float, theta: float, phi: float) -> Union['mesh.PsiVector', 'mesh.PsiMesh']:
-        """
-        Evaluate the wavefunction at a point, or vectorized over an array of points.
-
-        Parameters
-        ----------
-        r
-        theta
-        phi
-
-        Returns
-        -------
-
-        """
-        return self.radial_function(r) * self.spherical_harmonic(theta, phi)
-
     def info(self):
         info = super().info()
 
@@ -347,7 +368,16 @@ def coulomb_phase_shift(l, k):
 
 
 class HydrogenCoulombState(SphericalHarmonicState):
-    """A class that represents a hydrogenic free state."""
+    """
+    A class that represents a hydrogen free state.
+
+    Attributes
+    ----------
+    energy: :class:`float`
+        The energy of the state.
+    wavenumber: :class:`float`
+        The wavenumber of the state.
+    """
 
     eigenvalues = states.Eigenvalues.CONTINUOUS
     binding = states.Binding.FREE
@@ -430,9 +460,6 @@ class HydrogenCoulombState(SphericalHarmonicState):
 
             return self.amplitude * prefactor * bessel(np.sqrt(8 * x)) * np.sqrt(x) / r
 
-    def __call__(self, r, theta, phi):
-        return self.radial_function(r) * self.spherical_harmonic(theta, phi)
-
     def __repr__(self):
         return utils.fmt_fields(self, 'energy', 'wavenumber', 'l', 'm', 'amplitude')
 
@@ -460,6 +487,20 @@ class HydrogenCoulombState(SphericalHarmonicState):
 
 
 class NumericSphericalHarmonicState(SphericalHarmonicState):
+    """
+    A numerically-derived spherical-harmonic-radial quantum state.
+
+    Attributes
+    ----------
+    corresponding_analytic_state: :class:`QuantumState`
+        The analytic state that this numeric state nominally approximates.
+    n: :class:`int`
+        The principal quantum number of a bound state.
+        Will raise an exception if the corresponding analytic state is not bound.
+    wavenumber: :class:`float`
+        The wavenumber of a free state.
+        Will raise an exception if the corresponding analytic state is not free.
+    """
     eigenvalues = states.Eigenvalues.DISCRETE
     derivation = states.Derivation.NUMERIC
 
@@ -471,7 +512,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         m: states.QuantumNumber = 0,
         energy: float,
         corresponding_analytic_state: states.QuantumState,
-        binding: states.Binding.FREE,
+        binding: states.Binding,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         self.radial_wavefunction = radial_wavefunction
@@ -486,7 +527,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         return self.corresponding_analytic_state.n
 
     @property
-    def k(self):
+    def wavenumber(self):
         return self.corresponding_analytic_state.wavenumber
 
     @property
@@ -495,9 +536,6 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
 
     def radial_function(self, r):
         return self.radial_wavefunction
-
-    def __call__(self, r, theta, phi):
-        return self.radial_function(r) * self.spherical_harmonic(theta, phi)
 
     def __repr__(self):
         return repr(self.corresponding_analytic_state) + '_n'

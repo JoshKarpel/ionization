@@ -3,6 +3,12 @@ API Reference
 
 .. currentmodule:: ionization
 
+On Type Annotations
+-------------------
+
+``ionization`` has type annotations, but (as yet) we don't use static type checking.
+For the moment, the type annotations are meant to help humans, not machines.
+
 
 .. toctree::
    :hidden:

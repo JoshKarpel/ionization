@@ -18,7 +18,19 @@ logger.setLevel(logging.DEBUG)
 
 
 class OneDPlaneWave(states.QuantumState):
-    """A class representing a free particle in one dimension."""
+    """
+    A class representing a free particle in one dimension.
+
+    Attributes
+    ----------
+    wavenumber: :class:`float`
+        The wavenumber of the state.
+    energy: :class:`float`
+        The energy of the state.
+    momentum: :class:`float`
+        The momentum of the state.
+
+    """
 
     eigenvalues = states.Eigenvalues.CONTINUOUS
     binding = states.Binding.FREE
@@ -51,16 +63,16 @@ class OneDPlaneWave(states.QuantumState):
         mass = u.electron_mass,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
-        if k_sign not in [1, -1]:
-            raise exceptions.IllegalQuantumState
+        if k_sign not in (1, -1):
+            raise exceptions.IllegalQuantumState('k_sign must be +1 or -1')
         return cls(k_sign * np.sqrt(2 * mass * energy) / u.hbar, mass, amplitude = amplitude)
 
     @property
-    def energy(self):
+    def energy(self) -> float:
         return ((u.hbar * self.wavenumber) ** 2) / (2 * self.mass)
 
     @property
-    def momentum(self):
+    def momentum(self) -> float:
         return u.hbar * self.wavenumber
 
     @property
@@ -81,7 +93,7 @@ class OneDPlaneWave(states.QuantumState):
 
     @property
     def ket(self):
-        return rf'{states.fmt_amplitude(self.amplitude)}|k = {u.uround(self.wavenumber, u.per_nm)} 1/nm, E = {u.uround(self.energy, u.eV)} eV>'
+        return rf'{states.fmt_amplitude(self.amplitude)}|wavenumber = {u.uround(self.wavenumber, u.per_nm)} 1/nm, E = {u.uround(self.energy, u.eV)} eV>'
 
     @property
     def tex(self):
@@ -102,7 +114,26 @@ class OneDPlaneWave(states.QuantumState):
 
 
 class QHOState(states.QuantumState):
-    """A class representing a bound state of the quantum harmonic oscillator."""
+    """
+    A class representing a bound state of the quantum harmonic oscillator.
+
+    Attributes
+    ----------
+    n: QuantumNumber
+        The quantum number of the state.
+    spring_constant: :class:`float`
+        The spring constant of the harmonic oscillator this is a state of.
+    mass: :class:`float`
+        The mass of the particle associated with this state.
+    energy: :class:`float`
+        The energy of the state.
+    omega: :class:`float`
+        The angular frequency of the state.
+    frequency: :class:`float`
+        The cyclic frequency of the state.
+    period: :class:`float`
+        The period of the state.
+    """
 
     smallest_n = 0
 
@@ -234,7 +265,26 @@ class QHOState(states.QuantumState):
 
 
 class FiniteSquareWellState(states.QuantumState):
-    """A class representing a bound state of a finite square well."""
+    """
+    A class representing a bound state of a finite square well.
+
+    Attributes
+    ----------
+    n: QuantumNumber
+        The quantum number of the state.
+    well_depth: :class:`float`
+        The depth of the potential well, in energy units.
+    well_width: :class:`float`
+        The width of the potential well.
+    well_center: :class:`float`
+        The position of the center of the well.
+    left_edge: :class:`float`
+        The position of the left edge of the well.
+    right_edge: :class:`float`
+        The position of the right edge of the well.
+    mass: :class:`float`
+        The mass of the particle.
+    """
 
     smallest_n = 1
 
@@ -437,7 +487,22 @@ class FiniteSquareWellState(states.QuantumState):
 
 
 class GaussianWellState(states.QuantumState):
-    """A class representing a bound state of a finite square well."""
+    """
+    A class representing a bound state of a Gaussian well.
+
+    Attributes
+    ----------
+    n: :class:`int`
+        The quantum number of the state.
+    well_depth: :class:`float`
+        The depth of the potential well, in energy units.
+    well_width: :class:`float`
+        The width of the potential well.
+    well_center: :class:`float`
+        The position of the center of the well.
+    mass: :class:`float`
+        The mass of the particle.
+    """
 
     smallest_n = 0
 
@@ -463,7 +528,6 @@ class GaussianWellState(states.QuantumState):
         :param n: the energy index of the state
         :param well_center: the center position of the well
         :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
         """
         self.well_depth = np.abs(well_depth)
         self.well_width = well_width
@@ -498,7 +562,6 @@ class GaussianWellState(states.QuantumState):
         :param mass: the mass of the particle
         :param n: the energy index of the state
         :param amplitude: the probability amplitude of the state
-        :param dimension_label: a label indicating which dimension the particle is confined in
         :return: a FiniteSquareWellState instance
         """
         return cls(potential.potential_extrema, potential.width, mass, n = n, well_center = potential.center, amplitude = amplitude)
@@ -543,6 +606,15 @@ class GaussianWellState(states.QuantumState):
 
 
 class OneDSoftCoulombState(states.QuantumState):
+    """
+    A class representing a bound state of the soft Coulomb potential in one dimension.
+
+    Attributes
+    ----------
+    n: QuantumNumber
+        The quantum number of the state.
+
+    """
     smallest_n = 1
 
     eigenvalues = states.Eigenvalues.DISCRETE
@@ -589,6 +661,20 @@ class OneDSoftCoulombState(states.QuantumState):
 
 
 class NumericOneDState(states.QuantumState):
+    """
+    A numerically-derived one-dimensional quantum state.
+
+    Attributes
+    ----------
+    corresponding_analytic_state: :class:`QuantumState`
+        The analytic state that this numeric state nominally approximates.
+    n: :class:`int`
+        The quantum number of a bound state.
+        Will raise an exception if the corresponding analytic state is not bound.
+    wavenumber: :class:`float`
+        The wavenumber of a free state.
+        Will raise an exception if the corresponding analytic state is not free.
+    """
     eigenvalues = states.Eigenvalues.CONTINUOUS
     derivation = states.Derivation.ANALYTIC
 
@@ -598,7 +684,7 @@ class NumericOneDState(states.QuantumState):
         wavefunction: 'mesh.PsiVector',
         energy: float,
         corresponding_analytic_state: states.QuantumState,
-        binding: states.Binding.FREE,
+        binding: states.Binding,
         amplitude: states.ProbabilityAmplitude = 1,
     ):
         self.wavefunction = wavefunction
