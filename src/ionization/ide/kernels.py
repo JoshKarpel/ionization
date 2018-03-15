@@ -10,7 +10,7 @@ import sympy as sym
 import simulacra as si
 import simulacra.units as u
 
-from .. import states
+from .. import states, utils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -41,6 +41,9 @@ class Kernel(ABC):
         """
         raise NotImplementedError
 
+    def __repr__(self):
+        return utils.fmt_fields(self)
+
     def info(self) -> si.Info:
         info = si.Info(header = self.__class__.__name__)
 
@@ -50,8 +53,6 @@ class Kernel(ABC):
 class LengthGaugeHydrogenKernel(Kernel):
     """
     The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge.
-
-
     """
 
     def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
@@ -120,6 +121,9 @@ class LengthGaugeHydrogenKernel(Kernel):
         )
 
         return kernel_func
+
+    def __repr__(self):
+        return utils.fmt_fields(self, 'bound_state_energy')
 
     def info(self) -> si.Info:
         info = super().info()

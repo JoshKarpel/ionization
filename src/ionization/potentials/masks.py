@@ -33,10 +33,26 @@ class NoMask(Mask):
 
 
 class RadialCosineMask(Mask):
-    """A class representing a masks which begins at some radius and smoothly decreases to 0 as the nth-root of cosine."""
+    """A mask which begins at some radius and smoothly decreases to 0 as the :math:`n` th-root of cosine."""
 
-    def __init__(self, inner_radius = 50 * u.bohr_radius, outer_radius = 100 * u.bohr_radius, smoothness = 8):
-        """Construct a RadialCosineMask from an inner radius, outer radius, and cosine 'smoothness' (the cosine will be raised to the 1/smoothness power)."""
+    def __init__(
+        self,
+        inner_radius: float = 50 * u.bohr_radius,
+        outer_radius: float = 100 * u.bohr_radius,
+        smoothness: float = 8,
+    ):
+        """
+        Parameters
+        ----------
+        inner_radius
+            The inner radius of the mask.
+            The mask evaluates to ``1`` for the last time here.
+        outer_radius
+            The outer radius of the mask.
+            The mask evaluates to ``0`` for the first time here.
+        smoothness
+            The inverse of the power to which the cosine will be taken.
+        """
         if inner_radius < 0 or outer_radius < 0:
             raise exceptions.InvalidMaskParameter('inner and outer radius must be non-negative')
         if inner_radius >= outer_radius:
@@ -51,15 +67,6 @@ class RadialCosineMask(Mask):
         self.smoothness = smoothness
 
     def __call__(self, *, r, **kwargs):
-        """
-        Return the value(s) of the mask at radial position(s) r.
-
-        Accepts only keyword arguments.
-
-        :param r: the radial position coordinate
-        :param kwargs: absorbs keyword arguments.
-        :return: the value(s) of the mask at r
-        """
         return np.where(
             np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
             np.abs(np.cos(0.5 * u.pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),

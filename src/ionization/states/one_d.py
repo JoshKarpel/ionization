@@ -12,13 +12,13 @@ import simulacra.units as u
 
 from .. import mesh, potentials, utils, exceptions
 
-from . import states
+from . import state
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class OneDPlaneWave(states.QuantumState):
+class OneDPlaneWave(state.QuantumState):
     """
     A class representing a free particle in one dimension.
 
@@ -32,15 +32,15 @@ class OneDPlaneWave(states.QuantumState):
         The momentum of the state.
     """
 
-    eigenvalues = states.Eigenvalues.CONTINUOUS
-    binding = states.Binding.FREE
-    derivation = states.Derivation.ANALYTIC
+    eigenvalues = state.Eigenvalues.CONTINUOUS
+    binding = state.Binding.FREE
+    derivation = state.Derivation.ANALYTIC
 
     def __init__(
         self,
         wavenumber: float = u.twopi / u.nm,
         mass: float = u.electron_mass,
-        amplitude: states.ProbabilityAmplitude = 1,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -61,7 +61,7 @@ class OneDPlaneWave(states.QuantumState):
         energy: float = 1.50412 * u.eV,
         k_sign: int = 1,
         mass: float = u.electron_mass,
-        amplitude: states.ProbabilityAmplitude = 1,
+        amplitude: state.ProbabilityAmplitude = 1,
     ) -> 'OneDPlaneWave':
         """
         Parameters
@@ -103,15 +103,15 @@ class OneDPlaneWave(states.QuantumState):
 
     @property
     def ket(self):
-        return rf'{states.fmt_amplitude(self.amplitude)}|wavenumber = {u.uround(self.wavenumber, u.per_nm)} 1/nm, E = {u.uround(self.energy, u.eV)} eV>'
+        return rf'{state.fmt_amplitude(self.amplitude)}|wavenumber = {u.uround(self.wavenumber, u.per_nm)} 1/nm, E = {u.uround(self.energy, u.eV)} eV>'
 
     @property
     def tex(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}}'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}}'
 
     @property
     def tex_ket(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}} \right\rangle'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -123,7 +123,7 @@ class OneDPlaneWave(states.QuantumState):
         return info
 
 
-class QHOState(states.QuantumState):
+class QHOState(state.QuantumState):
     """
     A class representing a bound state of the quantum harmonic oscillator.
 
@@ -147,16 +147,16 @@ class QHOState(states.QuantumState):
 
     smallest_n = 0
 
-    eigenvalues = states.Eigenvalues.DISCRETE
-    binding = states.Binding.BOUND
-    derivation = states.Derivation.ANALYTIC
+    eigenvalues = state.Eigenvalues.DISCRETE
+    binding = state.Binding.BOUND
+    derivation = state.Derivation.ANALYTIC
 
     def __init__(
         self,
         spring_constant: float,
         mass: float = u.electron_mass,
-        n: states.QuantumNumber = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        n: state.QuantumNumber = 0,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -179,8 +179,8 @@ class QHOState(states.QuantumState):
         cls,
         omega: float,
         mass: float = u.electron_mass,
-        n: states.QuantumNumber = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        n: state.QuantumNumber = 0,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -204,8 +204,8 @@ class QHOState(states.QuantumState):
         cls,
         potential: potentials.HarmonicOscillator,
         mass: float,
-        n: states.QuantumNumber = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        n: state.QuantumNumber = 0,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
 
@@ -260,15 +260,15 @@ class QHOState(states.QuantumState):
 
     @property
     def ket(self):
-        return f'{states.fmt_amplitude(self.amplitude)}|{self.n}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{self.n}>'
 
     @property
     def tex(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
 
     @property
     def tex_ket(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -281,7 +281,7 @@ class QHOState(states.QuantumState):
         return info
 
 
-class FiniteSquareWellState(states.QuantumState):
+class FiniteSquareWellState(state.QuantumState):
     """
     A class representing a bound state of a finite square well.
 
@@ -305,18 +305,18 @@ class FiniteSquareWellState(states.QuantumState):
 
     smallest_n = 1
 
-    eigenvalues = states.Eigenvalues.DISCRETE
-    binding = states.Binding.BOUND
-    derivation = states.Derivation.ANALYTIC
+    eigenvalues = state.Eigenvalues.DISCRETE
+    binding = state.Binding.BOUND
+    derivation = state.Derivation.ANALYTIC
 
     def __init__(
         self,
         well_depth: float,
         well_width: float,
         mass: float,
-        n: states.QuantumNumber = 1,
+        n: state.QuantumNumber = 1,
         well_center: float = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -371,8 +371,8 @@ class FiniteSquareWellState(states.QuantumState):
         cls,
         potential: potentials.FiniteSquareWell,
         mass: float,
-        n: states.QuantumNumber = 1,
-        amplitude: states.ProbabilityAmplitude = 1,
+        n: state.QuantumNumber = 1,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -398,8 +398,8 @@ class FiniteSquareWellState(states.QuantumState):
         well_width: float,
         mass: float,
         well_center: float = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
-    ) -> List[states.QuantumState]:
+        amplitude: state.ProbabilityAmplitude = 1,
+    ) -> List[state.QuantumState]:
         """
         Parameters
         ----------
@@ -414,7 +414,7 @@ class FiniteSquareWellState(states.QuantumState):
 
         Returns
         -------
-        states
+        state
             The bound states of the finite square well with the given parameters.
         """
         states = []
@@ -429,8 +429,8 @@ class FiniteSquareWellState(states.QuantumState):
         cls,
         potential: potentials.FiniteSquareWell,
         mass: float,
-        amplitude: states.ProbabilityAmplitude = 1,
-    ) -> List[states.QuantumState]:
+        amplitude: state.ProbabilityAmplitude = 1,
+    ) -> List[state.QuantumState]:
         """
         Parameters
         ----------
@@ -441,7 +441,7 @@ class FiniteSquareWellState(states.QuantumState):
 
         Returns
         -------
-        states
+        state
             The bound states of the finite square well.
         """
         return cls.all_states_of_well_from_parameters(
@@ -493,15 +493,15 @@ class FiniteSquareWellState(states.QuantumState):
 
     @property
     def ket(self):
-        return f'{states.fmt_amplitude(self.amplitude)}|{self.n}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{self.n}>'
 
     @property
     def tex(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
 
     @property
     def tex_ket(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -515,7 +515,7 @@ class FiniteSquareWellState(states.QuantumState):
         return info
 
 
-class GaussianWellState(states.QuantumState):
+class GaussianWellState(state.QuantumState):
     """
     A class representing a bound state of a Gaussian well.
 
@@ -535,18 +535,18 @@ class GaussianWellState(states.QuantumState):
 
     smallest_n = 0
 
-    eigenvalues = states.Eigenvalues.DISCRETE
-    binding = states.Binding.BOUND
-    derivation = states.Derivation.VARIATIONAL
+    eigenvalues = state.Eigenvalues.DISCRETE
+    binding = state.Binding.BOUND
+    derivation = state.Derivation.VARIATIONAL
 
     def __init__(
         self,
         well_depth: float,
         well_width: float,
         mass: float,
-        n: states.QuantumNumber = 0,
+        n: state.QuantumNumber = 0,
         well_center: float = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
 
@@ -586,8 +586,8 @@ class GaussianWellState(states.QuantumState):
         cls,
         potential: potentials.GaussianPotential,
         mass: float,
-        n: states.QuantumNumber = 0,
-        amplitude: states.ProbabilityAmplitude = 1,
+        n: state.QuantumNumber = 0,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters
@@ -618,15 +618,15 @@ class GaussianWellState(states.QuantumState):
 
     @property
     def ket(self):
-        return f'{states.fmt_amplitude(self.amplitude)}|{self.n}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{self.n}>'
 
     @property
     def tex(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
 
     @property
     def tex_ket(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -638,7 +638,7 @@ class GaussianWellState(states.QuantumState):
         return info
 
 
-class OneDSoftCoulombState(states.QuantumState):
+class OneDSoftCoulombState(state.QuantumState):
     """
     A class representing a bound state of the soft Coulomb potential in one dimension.
 
@@ -650,11 +650,11 @@ class OneDSoftCoulombState(states.QuantumState):
     """
     smallest_n = 1
 
-    eigenvalues = states.Eigenvalues.DISCRETE
-    binding = states.Binding.BOUND
-    derivation = states.Derivation.ANALYTIC
+    eigenvalues = state.Eigenvalues.DISCRETE
+    binding = state.Binding.BOUND
+    derivation = state.Derivation.ANALYTIC
 
-    def __init__(self, n = 1, amplitude: states.ProbabilityAmplitude = 1):
+    def __init__(self, n = 1, amplitude: state.ProbabilityAmplitude = 1):
         """
         Parameters
         ----------
@@ -681,15 +681,15 @@ class OneDSoftCoulombState(states.QuantumState):
 
     @property
     def ket(self):
-        return f'{states.fmt_amplitude(self.amplitude)}|{self.n}>'
+        return f'{state.fmt_amplitude(self.amplitude)}|{self.n}>'
 
     @property
     def tex(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\psi_{{{self.n}}}'
 
     @property
     def tex_ket(self):
-        return rf'{states.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
+        return rf'{state.fmt_amplitude_for_tex(self.amplitude)}\left| \psi_{{{self.n}}} \right\rangle'
 
     def info(self) -> si.Info:
         info = super().info()
@@ -699,7 +699,7 @@ class OneDSoftCoulombState(states.QuantumState):
         return info
 
 
-class NumericOneDState(states.QuantumState):
+class NumericOneDState(state.QuantumState):
     """
     A numerically-derived one-dimensional quantum state.
 
@@ -714,17 +714,17 @@ class NumericOneDState(states.QuantumState):
         The wavenumber of a free state.
         Will raise an exception if the corresponding analytic state is not free.
     """
-    eigenvalues = states.Eigenvalues.CONTINUOUS
-    derivation = states.Derivation.ANALYTIC
+    eigenvalues = state.Eigenvalues.CONTINUOUS
+    derivation = state.Derivation.ANALYTIC
 
     def __init__(
         self,
         *,
         wavefunction: 'mesh.PsiVector',
         energy: float,
-        corresponding_analytic_state: states.QuantumState,
-        binding: states.Binding,
-        amplitude: states.ProbabilityAmplitude = 1,
+        corresponding_analytic_state: state.QuantumState,
+        binding: state.Binding,
+        amplitude: state.ProbabilityAmplitude = 1,
     ):
         """
         Parameters

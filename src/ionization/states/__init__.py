@@ -1,3 +1,3 @@
-from .states import *
+from .state import *
 from .three_d import *
 from .one_d import *

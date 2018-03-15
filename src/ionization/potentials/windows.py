@@ -33,7 +33,21 @@ class NoTimeWindow(TimeWindow):
 
 
 class RectangularWindow(TimeWindow):
-    def __init__(self, start_time = 0 * u.asec, end_time = 50 * u.asec):
+    """A sharp-edged rectangular window."""
+
+    def __init__(
+        self,
+        start_time: float = 0 * u.asec,
+        end_time: float = 50 * u.asec,
+    ):
+        """
+        Parameters
+        ----------
+        start_time
+            The time when the window opens.
+        end_time
+            The time when the window closes.
+        """
         self.start_time = start_time
         self.end_time = end_time
 
@@ -70,11 +84,19 @@ class RectangularWindow(TimeWindow):
 
 
 class LinearRampWindow(TimeWindow):
+    """A window which ramps up from ``0`` to ``1`` over some amount to time."""
+
     def __init__(self, ramp_on_time = 0 * u.asec, ramp_time = 50 * u.asec):
+        """
+        Parameters
+        ----------
+        ramp_on_time
+            The time when the ramp begins.
+        ramp_time
+            How long the ramp lasts.
+        """
         self.ramp_on_time = ramp_on_time
         self.ramp_time = ramp_time
-
-        # TODO: ramp_from and ramp_to
 
         super().__init__()
 
@@ -117,7 +139,23 @@ class LinearRampWindow(TimeWindow):
 
 
 class SymmetricExponentialWindow(TimeWindow):
-    def __init__(self, window_time = 500 * u.asec, window_width = 10 * u.asec, window_center = 0 * u.asec):
+    def __init__(
+        self,
+        *,
+        window_time: float,
+        window_width: float,
+        window_center: float = 0 * u.asec,
+    ):
+        """
+        Parameters
+        ----------
+        window_time
+            The time of the center of the exponential decay (i.e., where it becomes ``1/2``.
+        window_width
+            The timescale of the exponential decay.
+        window_center
+            The center time of the open part of the window.
+        """
         self.window_time = window_time
         self.window_width = window_width
         self.window_center = window_center
@@ -155,7 +193,22 @@ class SymmetricExponentialWindow(TimeWindow):
 
 
 class SmoothedTrapezoidalWindow(TimeWindow):
-    def __init__(self, *, time_front, time_plateau):
+    """A smooth-edged trapezoidally-shaped window."""
+
+    def __init__(
+        self,
+        *,
+        time_front: float,
+        time_plateau: float,
+    ):
+        """
+        Parameters
+        ----------
+        time_front
+            The time that the ramp up begins.
+        time_plateau
+            The time that the plateau lasts.
+        """
         super().__init__()
 
         self.time_front = time_front
