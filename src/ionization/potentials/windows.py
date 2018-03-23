@@ -180,7 +180,7 @@ class SymmetricExponentialWindow(TimeWindow):
 
     def __call__(self, t):
         tau = np.array(t) - self.window_center
-        return np.abs(1 / (1 + np.exp(-(tau + self.window_time) / self.window_width)) - 1 / (1 + np.exp(-(tau - self.window_time) / self.window_width)))
+        return (1 / (1 + np.exp(-(tau + self.window_time) / self.window_width))) - (1 / (1 + np.exp(-(tau - self.window_time) / self.window_width)))
 
     def info(self) -> si.Info:
         info = super().info()

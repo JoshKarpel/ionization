@@ -45,7 +45,7 @@ if __name__ == '__main__':
         do_checkpoints = ju.ask_checkpoints(parameters)
         ju.ask_data_storage_tdse(parameters, spec_type = spec_type)
 
-        spec_kwargs_list = clu.expand_parameters_to_dicts(parameters)
+        spec_kwargs_list = clu.expand_parameters(parameters)
         specs = []
 
         print('Generating specifications...')
