@@ -96,7 +96,7 @@ class MeshPlotter:
         slicer: str = 'get_mesh_slicer',
         **kwargs,
     ):
-        _slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self.mesh, slicer)(plot_limit)
         updated_mesh = updated_mesh[_slice]
 
         try:
@@ -220,7 +220,7 @@ class LineMeshPlotter(MeshPlotter):
     ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
-        _slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self.mesh, slicer)(plot_limit)
 
         line, = axis.plot(self.mesh.z_mesh[_slice] / unit_value, norm(mesh[_slice]), **kwargs)
 
@@ -246,6 +246,135 @@ class LineMeshPlotter(MeshPlotter):
             updated_mesh = norm(updated_mesh)
 
         super().update_mesh(colormesh, updated_mesh, **kwargs)
+
+
+class RectangleMeshPlotter(MeshPlotter):
+    def attach_mesh_to_axis(
+        self,
+        axis: plt.Axes,
+        mesh: 'meshes.ScalarMesh',
+        distance_unit: u.Unit = 'nm',
+        colormap = plt.get_cmap('inferno'),
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit: Optional[float] = None,
+        slicer = 'get_mesh_slicer',
+        **kwargs,
+    ):
+        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+
+        _slice = getattr(self.mesh, slicer)(plot_limit)
+
+        color_mesh = axis.pcolormesh(
+            self.mesh.x_mesh[_slice] / unit_value,
+            self.mesh.z_mesh[_slice] / unit_value,
+            mesh[_slice],
+            shading = shading,
+            cmap = colormap,
+            norm = norm,
+            **kwargs
+        )
+
+        return color_mesh
+
+    #
+    # def attach_probability_current_to_axis(
+    #     self,
+    #     axis: plt.Axes,
+    #     plot_limit: Optional[float] = None,
+    #     distance_unit: u.Unit = 'bohr_radius',
+    #     rate_unit = 'per_asec',
+    # ):
+    #     distance_unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+    #     rate_unit_value, _ = u.get_unit_value_and_latex_from_unit(rate_unit)
+    #
+    #     current_mesh_z, current_mesh_rho = self.mesh.get_probability_current_density_vector_field()  # actually densities here
+    #
+    #     current_mesh_z *= self.mesh.delta_z
+    #     current_mesh_rho *= self.mesh.delta_rho
+    #
+    #     skip_count = int(self.mesh.z_mesh.shape[0] / 50), int(self.mesh.z_mesh.shape[1] / 50)
+    #     skip = (slice(None, None, skip_count[0]), slice(None, None, skip_count[1]))
+    #
+    #     normalization = np.nanmax(np.sqrt((current_mesh_z ** 2) + (current_mesh_rho ** 2))[skip])
+    #     if normalization == 0:
+    #         normalization = 1
+    #
+    #     sli = self.mesh.get_mesh_slicer(plot_limit)
+    #
+    #     quiv = axis.quiver(
+    #         self.mesh.z_mesh[sli][skip] / distance_unit_value,
+    #         self.mesh.rho_mesh[sli][skip] / distance_unit_value,
+    #         current_mesh_z[sli][skip] / normalization,
+    #         current_mesh_rho[sli][skip] / normalization,
+    #         pivot = 'middle',
+    #         scale = 10,
+    #         units = 'width',
+    #         scale_units = 'width',
+    #         alpha = 0.5,
+    #         color = 'white',
+    #     )
+    #
+    #     return quiv
+
+    def plot_mesh(
+        self,
+        mesh: 'meshes.ScalarMesh',
+        name: str = '',
+        title: Optional[str] = None,
+        distance_unit: u.Unit = 'nm',
+        colormap = vis.COLORMAP_WAVEFUNCTION,
+        norm = si.vis.AbsoluteRenormalize(),
+        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
+        plot_limit = None,
+        slicer = 'get_mesh_slicer',
+        show_colorbar = True,
+        show_title = True,
+        show_axes = True,
+        grid_kwargs = None,
+        overlay_probability_current = False,
+        **kwargs,
+    ):
+        grid_kwargs = collections.ChainMap(grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS)
+        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(distance_unit)
+
+        with si.vis.FigureManager(f'{self.spec.name}__{name}', **kwargs) as figman:
+            fig = figman.fig
+            ax = plt.subplot(111)
+
+            color_mesh = self.attach_mesh_to_axis(
+                ax,
+                mesh,
+                distance_unit = distance_unit,
+                colormap = colormap,
+                norm = norm,
+                shading = shading,
+                plot_limit = plot_limit,
+                slicer = slicer
+            )
+
+            ax.set_xlabel(rf'$x$ (${unit_name}$)')
+            ax.set_ylabel(rf'$z$ (${unit_name}$)')
+            if title is not None and title != '' and show_axes and show_title:
+                ax.set_title(title, y = 1.1)
+
+            if show_colorbar and show_axes:
+                cax = fig.add_axes([1.0, .1, .02, .8])
+                plt.colorbar(mappable = color_mesh, cax = cax)
+
+            # if overlay_probability_current:
+            #     self.attach_probability_current_to_axis(ax)
+
+            ax.axis('tight')  # removes blank space between color mesh and axes
+
+            ax.grid(True, color = si.vis.CMAP_TO_OPPOSITE[colormap], **grid_kwargs)  # change grid color to make it show up against the colormesh
+
+            ax.tick_params(labelright = True, labeltop = True)  # ticks on all sides
+
+            if not show_axes:
+                ax.axis('off')
+
+        return figman
 
 
 class CylindricalSliceMeshPlotter(MeshPlotter):
@@ -687,7 +816,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
     ):
         unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
 
-        _slice = getattr(self, slicer)(plot_limit)
+        _slice = getattr(self.mesh, slicer)(plot_limit)
 
         color_mesh = axis.pcolormesh(
             self.mesh.l_mesh[_slice],

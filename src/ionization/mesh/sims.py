@@ -617,7 +617,7 @@ class LineSpecification(MeshSpecification):
         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
         info_mesh.add_field('Z Boundary', utils.fmt_quantity(self.z_bound, utils.LENGTH_UNITS))
         info_mesh.add_field('Z Points', self.z_points)
-        info_mesh.add_field('Z Mesh Spacing', utils.fmt_quantity(self.z_bound / self.z_points, utils.LENGTH_UNITS))
+        info_mesh.add_field('Z Mesh Spacing', utils.fmt_quantity(2 * self.z_bound / self.z_points, utils.LENGTH_UNITS))
 
         info.add_info(info_mesh)
 
@@ -626,6 +626,70 @@ class LineSpecification(MeshSpecification):
             info_eigenstates.add_field('Number of Numeric Eigenstates', self.number_of_numeric_eigenstates)
 
         info.add_info(info_eigenstates)
+
+        return info
+
+
+class RectangleSpecification(MeshSpecification):
+    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`LineMesh`."""
+
+    mesh_type = meshes.RectangleMesh
+
+    def __init__(
+        self,
+        name,
+        initial_state = states.OneDPlaneWave(),
+        z_bound: float = 10 * u.nm,
+        z_points: int = 2 ** 9,
+        x_bound: float = 10 * u.nm,
+        x_points: int = 2 ** 9,
+        operators: mesh_operators.MeshOperators = mesh_operators.RectangleLengthGaugeOperators(),
+        evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
+        **kwargs,
+    ):
+        """
+
+        Parameters
+        ----------
+        z_bound
+            The symmetric bounds of the simulation (i.e., the simulation region goes from ``-z`` to ``+z``.
+        z_points
+            The number of coordinate points for the z-dimension.
+        use_numeric_eigenstates
+            If ``True``, the ``test_states`` will be replaced by numeric eigenstates generated from the field-free evolution operators.
+        number_of_numeric_eigenstates
+            The number of numeric eigenstates to generate.
+        analytic_eigenstate_type
+            The type of analytic eigenstate to use.
+            This can be ``None`` only if ``use_numeric_eigenstates`` is ``False``.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`MeshSpecification` constructor.
+        """
+        super().__init__(
+            name,
+            initial_state = initial_state,
+            operators = operators,
+            evolution_method = evolution_method,
+            **kwargs
+        )
+
+        self.z_bound = z_bound
+        self.z_points = int(z_points)
+        self.x_bound = x_bound
+        self.x_points = int(x_points)
+
+    def info(self) -> si.Info:
+        info = super().info()
+
+        info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
+        info_mesh.add_field('Z Boundary', utils.fmt_quantity(self.z_bound, utils.LENGTH_UNITS))
+        info_mesh.add_field('Z Points', self.z_points)
+        info_mesh.add_field('Z Mesh Spacing', utils.fmt_quantity(2 * self.z_bound / self.z_points, utils.LENGTH_UNITS))
+        info_mesh.add_field('X Boundary', utils.fmt_quantity(self.x_bound, utils.LENGTH_UNITS))
+        info_mesh.add_field('X Points', self.x_points)
+        info_mesh.add_field('X Mesh Spacing', utils.fmt_quantity(2 * self.x_bound / self.z_points, utils.LENGTH_UNITS))
+
+        info.add_info(info_mesh)
 
         return info
 

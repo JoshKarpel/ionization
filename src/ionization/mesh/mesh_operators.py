@@ -337,6 +337,115 @@ class LineVelocityGaugeOperators(LineLengthGaugeOperators):
         )
 
 
+class RectangleLengthGaugeOperators(MeshOperators):
+    """Operators for :class:`RectangleSliceMesh`. Interaction operators are evaluated in the length gauge."""
+
+    gauge = core.Gauge.LENGTH
+
+    @si.utils.memoize
+    def kinetic_energy(self, mesh: 'meshes.RectangleMesh') -> SumOfOperators:
+        return SumOfOperators(
+            self.x_kinetic_energy(mesh),
+            self.z_kinetic_energy(mesh),
+        )
+
+    def z_kinetic_energy(self, mesh: 'meshes.RectangleMesh') -> MeshOperator:
+        z_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_z ** 2))
+
+        z_diagonal = z_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
+        z_offdiagonal = z_prefactor * np.array(
+            [1 if (z_index + 1) % mesh.spec.z_points != 0 else 0
+             for z_index in range(mesh.mesh_points - 1)],
+            dtype = np.complex128,
+        )
+
+        z_kinetic = sparse.diags((z_offdiagonal, z_diagonal, z_offdiagonal), offsets = (-1, 0, 1))
+
+        return DotOperator(z_kinetic, wrapping_direction = meshes.WrappingDirection.Z)
+
+    def x_kinetic_energy(self, mesh: 'meshes.RectangleMesh') -> MeshOperator:
+        x_prefactor = -(u.hbar ** 2) / (2 * mesh.spec.test_mass * (mesh.delta_x ** 2))
+
+        x_diagonal = x_prefactor * (-2) * np.ones(mesh.mesh_points, dtype = np.complex128)
+        x_offdiagonal = x_prefactor * np.array(
+            [1 if (x_index + 1) % mesh.spec.x_points != 0 else 0
+             for x_index in range(mesh.mesh_points - 1)],
+            dtype = np.complex128,
+        )
+
+        x_kinetic = sparse.diags((x_offdiagonal, x_diagonal, x_offdiagonal), offsets = (-1, 0, 1))
+
+        return DotOperator(x_kinetic, wrapping_direction = meshes.WrappingDirection.X)
+
+    def interaction_hamiltonian(self, mesh: 'meshes.RectangleMesh') -> SumOfOperators:
+        electric_potential_energy_mesh = mesh.spec.electric_potential(
+            t = mesh.sim.time,
+            z = mesh.z_mesh,
+            test_charge = mesh.spec.test_charge,
+        )
+
+        interaction_hamiltonian_z = sparse.diags(
+            mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.Z)
+        )
+        interaction_hamiltonian_x = sparse.diags(
+            mesh.flatten_mesh(electric_potential_energy_mesh, meshes.WrappingDirection.X)
+        )
+
+        return SumOfOperators(
+            DotOperator(interaction_hamiltonian_x, wrapping_direction = meshes.WrappingDirection.X),
+            DotOperator(interaction_hamiltonian_z, wrapping_direction = meshes.WrappingDirection.Z),
+        )
+
+    @si.utils.memoize
+    def r(self, mesh: 'meshes.RectangleMesh') -> SumOfOperators:
+        return SumOfOperators(ElementWiseMultiplyOperator(mesh.r_mesh))
+
+    @si.utils.memoize
+    def z(self, mesh: 'meshes.RectangleMesh') -> SumOfOperators:
+        return SumOfOperators(ElementWiseMultiplyOperator(mesh.z_mesh))
+
+    # @si.utils.memoize
+    # def probability_current(self, mesh: 'meshes.RectangleMesh') -> Tuple[MeshOperator, ...]:
+    #     return self.z_probability_current(mesh), self.rho_probability_current(mesh)
+    #
+    # def z_probability_current(self, mesh: 'meshes.RectangleMesh') -> MeshOperator:
+    #     z_prefactor = u.hbar / (4 * u.pi * mesh.spec.test_mass * mesh.delta_rho * mesh.delta_z)
+    #
+    #     # construct the diagonals of the z probability current matrix operator
+    #     z_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
+    #     for z_index in range(0, mesh.mesh_points - 1):
+    #         if (z_index + 1) % mesh.spec.z_points == 0:  # detect edge of mesh
+    #             z_offdiagonal[z_index] = 0
+    #         else:
+    #             j = z_index // mesh.spec.z_points
+    #             z_offdiagonal[z_index] = 1 / (j + 0.5)
+    #     z_offdiagonal *= z_prefactor
+    #
+    #     z_current = sparse.diags([-z_offdiagonal, z_offdiagonal], offsets = [-1, 1])
+    #
+    #     return DotOperator(z_current, wrapping_direction = meshes.WrappingDirection.Z)
+    #
+    # def rho_probability_current(self, mesh: 'meshes.RectangleMesh') -> MeshOperator:
+    #     rho_prefactor = u.hbar / (4 * u.pi * mesh.spec.test_mass * (mesh.delta_rho ** 2))
+    #
+    #     def d(j):
+    #         return 1 / np.sqrt((j ** 2) - 0.25)
+    #
+    #     # construct the diagonals of the rho probability current matrix operator
+    #     rho_offdiagonal = np.zeros(mesh.mesh_points - 1, dtype = np.complex128)
+    #     for rho_index in range(0, mesh.mesh_points - 1):
+    #         if (rho_index + 1) % mesh.spec.rho_points == 0:  # detect edge of mesh
+    #             rho_offdiagonal[rho_index] = 0
+    #         else:
+    #             j = (rho_index % mesh.spec.rho_points) + 1
+    #             rho_offdiagonal[rho_index] = d(j)
+    #     rho_offdiagonal *= rho_prefactor
+    #
+    #     rho_current = sparse.diags([-rho_offdiagonal, rho_offdiagonal], offsets = [-1, 1])
+    #
+    #     return DotOperator(rho_current, wrapping_direction = meshes.WrappingDirection.RHO)
+
+
 class CylindricalSliceLengthGaugeOperators(MeshOperators):
     """Operators for :class:`CylindricalSliceMesh`. Interaction operators are evaluated in the length gauge."""
 
