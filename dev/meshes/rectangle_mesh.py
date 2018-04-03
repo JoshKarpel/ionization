@@ -29,32 +29,37 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         spec = ion.mesh.RectangleSpecification(
             'test',
-            z_bound = 10 * u.nm,
-            x_bound = 10 * u.nm,
+            z_bound = 10 * u.bohr_radius,
+            x_bound = 10 * u.bohr_radius,
+            z_points = 1000,
+            x_points = 1000,
             initial_state = ion.states.TwoDPlaneWave(
-                wavenumber_x = u.twopi / u.nm,
-                wavenumber_z = 0,
+                wavenumber_x = np.sqrt(u.twopi) / u.nm,
+                wavenumber_z = np.sqrt(u.twopi) / u.nm,
             ),
             time_initial = 0 * u.asec,
-            time_final = 200 * u.asec,
+            time_final = 100 * u.asec,
             animators = [
-                ion.mesh.anim.RectangleAnimator(
-                    postfix = '_g',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g',
-                        colormap = si.vis.RichardsonColormap(),
-                    ),
-                    length = 10,
-                    **ANIM_KWARGS,
-                ),
-                ion.mesh.anim.RectangleAnimator(
-                    postfix = '_g2',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g2',
-                    ),
-                    length = 10,
-                    **ANIM_KWARGS,
-                ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = '_g',
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = 'g',
+                #         colormap = si.vis.RichardsonColormap(),
+                #         norm = si.vis.RichardsonNormalization(),
+                #         distance_unit = 'bohr_radius',
+                #     ),
+                #     length = 10,
+                #     **ANIM_KWARGS,
+                # ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = '_g2',
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = 'g2',
+                #         distance_unit = 'bohr_radius',
+                #     ),
+                #     length = 10,
+                #     **ANIM_KWARGS,
+                # ),
             ],
         )
         print(spec.info())
@@ -64,7 +69,15 @@ if __name__ == '__main__':
         sim = spec.to_sim()
         print(sim.info())
 
+        gaussian = np.exp(-.5 * ((sim.mesh.r_mesh / u.bohr_radius) ** 2) + 0j)
+        # gaussian *= np.exp(-1j * .1 * sim.mesh.r_mesh / u.bohr_radius)
+        sim.mesh.g = gaussian / np.sqrt(sim.mesh.norm(gaussian))
+
+        sim.mesh.plot.plot_mesh(sim.mesh.theta_mesh, name = 'theta_mesh', norm = None, **PLOT_KWARGS)
+
         sim.run(progress_bar = True)
 
         sim.mesh.plot.g(**PLOT_KWARGS)
         sim.mesh.plot.g2(**PLOT_KWARGS)
+
+        print(sim.data.norm)

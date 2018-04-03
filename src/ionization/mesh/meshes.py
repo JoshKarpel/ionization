@@ -395,7 +395,7 @@ class RectangleMesh(QuantumMesh):
 
         self.mesh_points = len(self.z) * len(self.x)
         self.matrix_operator_shape = (self.mesh_points, self.mesh_points)
-        self.mesh_shape = np.shape(self.z_mesh)
+        self.mesh_shape = np.shape(self.g)
 
     @property
     @si.utils.memoize
@@ -414,7 +414,7 @@ class RectangleMesh(QuantumMesh):
 
     @property
     def theta_mesh(self) -> CoordinateMesh:
-        return np.arccos(self.z_mesh / self.r_mesh)
+        return np.arctan2(self.x_mesh, self.z_mesh)
 
     def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
         if wrapping_direction is None:
@@ -424,7 +424,7 @@ class RectangleMesh(QuantumMesh):
         elif wrapping_direction == WrappingDirection.X:
             return 'C'
         else:
-            raise ValueError(f"{wrapping_direction} is not a valid specifier for flatten_mesh (valid specifiers: 'z', 'rho')")
+            raise ValueError(f"{wrapping_direction} is not a valid specifier for flatten_mesh (valid specifiers: 'z', 'x')")
 
     @si.utils.memoize
     def get_g_for_state(self, state: StateOrGMesh) -> GMesh:

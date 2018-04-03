@@ -89,6 +89,25 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         super()._initialize_figure()
 
 
+class SquareAnimator(WavefunctionSimulationAnimator):
+    def __init__(
+        self,
+        fig_dpi_scale = 1,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.fig_dpi_scale = fig_dpi_scale
+
+    def _initialize_figure(self):
+        self.fig = si.vis.get_figure(fig_width = 12, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
+
+        self.ax_mesh = self.fig.add_axes([.1, .1, .8, .8])
+        self.axman_wavefunction.assign_axis(self.ax_mesh)
+
+        super()._initialize_figure()
+
+
 class PolarAnimator(WavefunctionSimulationAnimator):
     def __init__(
         self,

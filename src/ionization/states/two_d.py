@@ -58,14 +58,14 @@ class TwoDPlaneWave(state.QuantumState):
     def tuple(self):
         return self.wavenumber_x, self.wavenumber_z
 
-    def eval_x_y(self, x, z):
+    def eval_z_x(self, z, x):
         return np.exp(1j * self.wavenumber_x * x) * np.exp(1j * self.wavenumber_z * z) / u.pi
 
     def eval_r_theta(self, r, theta):
+        z = r * np.cos(theta)
         x = r * np.sin(theta)
-        y = r * np.sin(theta)
 
-        return self.eval_x_y(x, y)
+        return self.eval_z_x(z, x)
 
     def __call__(self, r, theta):
         return self.eval_r_theta(r, theta)

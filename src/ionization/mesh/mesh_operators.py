@@ -345,8 +345,8 @@ class RectangleLengthGaugeOperators(MeshOperators):
     @si.utils.memoize
     def kinetic_energy(self, mesh: 'meshes.RectangleMesh') -> SumOfOperators:
         return SumOfOperators(
-            self.x_kinetic_energy(mesh),
             self.z_kinetic_energy(mesh),
+            self.x_kinetic_energy(mesh),
         )
 
     def z_kinetic_energy(self, mesh: 'meshes.RectangleMesh') -> MeshOperator:
@@ -392,8 +392,8 @@ class RectangleLengthGaugeOperators(MeshOperators):
         )
 
         return SumOfOperators(
-            DotOperator(interaction_hamiltonian_x, wrapping_direction = meshes.WrappingDirection.X),
             DotOperator(interaction_hamiltonian_z, wrapping_direction = meshes.WrappingDirection.Z),
+            DotOperator(interaction_hamiltonian_x, wrapping_direction = meshes.WrappingDirection.X),
         )
 
     @si.utils.memoize
