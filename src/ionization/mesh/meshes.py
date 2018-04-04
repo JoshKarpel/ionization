@@ -315,7 +315,7 @@ class LineMesh(QuantumMesh):
     def _get_numeric_eigenstate_basis(self, number_of_eigenstates: int):
         analytic_to_numeric = {}
 
-        h = self.operators.internal_hamiltonian(self)
+        h = self.operators.internal_hamiltonian(self)[0].matrix
 
         eigenvalues, eigenvectors = sparsealg.eigsh(h, k = number_of_eigenstates, which = 'SA')
 
@@ -323,19 +323,22 @@ class LineMesh(QuantumMesh):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
 
             try:
-                bound = True
+                bound = states.Binding.BOUND
                 analytic_state = self.spec.analytic_eigenstate_type.from_potential(
                     self.spec.internal_potential,
                     self.spec.test_mass,
                     n = nn + self.spec.analytic_eigenstate_type.smallest_n
                 )
             except exceptions.IllegalQuantumState:
-                bound = False
+                bound = states.Binding.FREE
                 analytic_state = states.OneDPlaneWave.from_energy(eigenvalue, mass = self.spec.test_mass)
 
-            numeric_state = states.NumericOneDState(eigenvector, eigenvalue, bound = bound, corresponding_analytic_state = analytic_state)
-            if analytic_state is None:
-                analytic_state = numeric_state
+            numeric_state = states.NumericOneDState(
+                wavefunction = eigenvector,
+                energy = eigenvalue,
+                binding = bound,
+                corresponding_analytic_state = analytic_state,
+            )
 
             analytic_to_numeric[analytic_state] = numeric_state
 

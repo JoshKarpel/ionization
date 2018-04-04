@@ -674,7 +674,8 @@ class OneDSoftCoulombState(state.QuantumState):
         return self.n,
 
     def __call__(self, z):
-        raise NotImplementedError("haven't implemented analytic eigenstates for this potential yet")
+        return np.zeros_like(z)
+        # raise NotImplementedError("haven't implemented analytic eigenstates for this potential yet")
 
     def __repr__(self):
         return utils.fmt_fields(self, 'n', 'amplitude')

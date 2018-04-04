@@ -273,7 +273,7 @@ class MeshSimulationPlotter:
         show_vector_potential: bool = True,
         **kwargs,
     ):
-        with si.vis.FigureManager(name = getattr(self, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
+        with si.vis.FigureManager(name = getattr(self.sim, plot_name_from) + '__wavefunction_vs_time', **kwargs) as figman:
             time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(2, 1, height_ratios = [4, 1], hspace = 0.07)

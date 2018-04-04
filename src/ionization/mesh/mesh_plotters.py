@@ -103,7 +103,7 @@ class MeshPlotter:
             if shading == si.vis.ColormapShader.FLAT:
                 updated_mesh = updated_mesh[:-1, :-1]
             colormesh.set_array(updated_mesh.ravel())
-        except AttributeError:  # if the mesh is 1D we can't .ravel() it and instead should just set the y data with the mesh
+        except (AttributeError, IndexError):  # if the mesh is 1D we can't .ravel() it and instead should just set the y data with the mesh
             colormesh.set_ydata(updated_mesh)
 
     def update_g2_mesh(self, colormesh, **kwargs):
