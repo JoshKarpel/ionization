@@ -277,7 +277,7 @@ class PulseParameterScanMixin:
 
     def make_modulation_depth_heatmaps(self):
         phase_set = self.parameter_set('phase')
-        if 0 not in phase_set in u.pi / 2 not in phase_set:
+        if 0 not in phase_set and u.pi / 2 not in phase_set:
             return
 
         scan_parameters = [s for s in self.scan_parameters if s != 'phase']  # no scans over phase
