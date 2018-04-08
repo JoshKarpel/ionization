@@ -18,13 +18,13 @@ LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.D
 
 PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
-    img_format = 'png',
+    img_format = 'pdf',
     fig_dpi_scale = 6,
 )
 
 
 def bandwidth_plot():
-    pulse_widths = np.linspace(50, 1100, 1001)[1:] * u.asec
+    pulse_widths = np.linspace(0, 1100, 1001)[1:] * u.asec
     pulses = [ion.potentials.SincPulse(pulse_width = pw) for pw in pulse_widths]
 
     f_min = np.array([p.frequency_min for p in pulses])
@@ -58,9 +58,11 @@ def bandwidth_plot():
         linewidth = 2,
     )
 
-    energies = [0] + [ion.states.HydrogenBoundState(n).energy for n in range(1, 5)]
-    transition_energies = set(abs(a - b)
-                              for a, b in itertools.product(energies, repeat = 2))
+    energies = [0] + [ion.states.HydrogenBoundState(n).energy for n in range(1, 4)]
+    transition_energies = set(
+        abs(a - b)
+        for a, b in itertools.product(energies, repeat = 2)
+    )
 
     print([e / u.eV for e in transition_energies])
 
@@ -70,10 +72,10 @@ def bandwidth_plot():
             linewidth = 1,
             linestyle = '-',
             color = 'blue',
-            alpha = 0.8,
+            alpha = 0.5,
         )
 
-    y_lim_freq = 1.1 * np.max(f_max)
+    y_lim_freq = 20000 * u.THz
     y_lim_energy = u.h * y_lim_freq
 
     ax_freq.set_xlim(0, 1000)
