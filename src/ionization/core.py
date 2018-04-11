@@ -166,6 +166,18 @@ class ElectricFieldSimulation(si.Simulation):
         if self.spec.electric_potential_dc_correction:
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
+            print('dc')
+
+            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+
+        if self.spec.electric_potential_fluence_correction:
+            old_pot = self.spec.electric_potential
+            self.spec.electric_potential = potentials.FluenceCorrector(
+                electric_potential = self.spec.electric_potential,
+                times = self.times,
+                target_fluence = list(self.spec.electric_potential)[0].fluence,  # the analytic fluence of the embedded pulse, whether it's been dc-corrected or not
+            )
+            print('flu')
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
@@ -237,13 +249,13 @@ class ElectricFieldSimulation(si.Simulation):
         ))
 
         for attr in (
-                'radial_position_expectation_value_vs_time',
-                'internal_energy_expectation_value_vs_time',
-                'total_energy_expectation_value_vs_time',
-                'electric_dipole_moment_expectation_value_vs_time'
-                'norm_diff_mask_vs_time',
-                'radial_probability_current_vs_time__pos_z',
-                'radial_probability_current_vs_time__neg_z',
+            'radial_position_expectation_value_vs_time',
+            'internal_energy_expectation_value_vs_time',
+            'total_energy_expectation_value_vs_time',
+            'electric_dipole_moment_expectation_value_vs_time'
+            'norm_diff_mask_vs_time',
+            'radial_probability_current_vs_time__pos_z',
+            'radial_probability_current_vs_time__neg_z',
         ):
             try:
                 mem_other_time_data += getattr(self, attr).nbytes
@@ -1055,6 +1067,7 @@ class ElectricFieldSpecification(si.Specification):
                  internal_potential = potentials.Coulomb(charge = u.proton_charge),
                  electric_potential = potentials.NoElectricPotential(),
                  electric_potential_dc_correction = False,
+                 electric_potential_fluence_correction = False,
                  mask = potentials.NoMask(),
                  evolution_method = 'SO', evolution_equations = 'HAM', evolution_gauge = 'LEN',
                  time_initial = 0 * u.asec, time_final = 200 * u.asec, time_step = 1 * u.asec,
@@ -1120,6 +1133,7 @@ class ElectricFieldSpecification(si.Specification):
         self.internal_potential = internal_potential
         self.electric_potential = electric_potential
         self.electric_potential_dc_correction = electric_potential_dc_correction
+        self.electric_potential_fluence_correction = electric_potential_fluence_correction
         self.mask = mask
 
         self.evolution_method = evolution_method
@@ -3127,18 +3141,18 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
         return self.radial_probability_current_vs_time__pos_z + self.radial_probability_current_vs_time__neg_z
 
     def plot_radial_probability_current_vs_time(
-            self,
-            time_unit = 'asec',
-            time_lower_limit = None,
-            time_upper_limit = None,
-            r_lower_limit = None,
-            r_upper_limit = None,
-            distance_unit = 'bohr_radius',
-            z_unit = 'per_asec',
-            z_limit = None,
-            use_name = False,
-            which = 'sum',
-            **kwargs):
+        self,
+        time_unit = 'asec',
+        time_lower_limit = None,
+        time_upper_limit = None,
+        r_lower_limit = None,
+        r_upper_limit = None,
+        distance_unit = 'bohr_radius',
+        z_unit = 'per_asec',
+        z_limit = None,
+        use_name = False,
+        which = 'sum',
+        **kwargs):
         if which == 'sum':
             z = self.radial_probability_current_vs_time
         elif which == 'pos':
@@ -3192,27 +3206,27 @@ class SphericalHarmonicSimulation(ElectricFieldSimulation):
         )
 
     def plot_radial_probability_current_vs_time__combined(
-            self,
-            r_upper_limit = None,
-            t_lower_limit = None,
-            t_upper_limit = None,
-            distance_unit = 'bohr_radius',
-            time_unit = 'asec',
-            current_unit = 'per_asec',
-            z_cut = .7,
-            colormap = plt.get_cmap('coolwarm'),
-            overlay_electric_field = True,
-            efield_unit = 'atomic_electric_field',
-            efield_color = 'black',
-            efield_label_fontsize = 12,
-            title_fontsize = 12,
-            y_axis_label_fontsize = 14,
-            x_axis_label_fontsize = 12,
-            cbar_label_fontsize = 12,
-            aspect_ratio = 1.2,
-            shading = 'flat',
-            use_name = False,
-            **kwargs):
+        self,
+        r_upper_limit = None,
+        t_lower_limit = None,
+        t_upper_limit = None,
+        distance_unit = 'bohr_radius',
+        time_unit = 'asec',
+        current_unit = 'per_asec',
+        z_cut = .7,
+        colormap = plt.get_cmap('coolwarm'),
+        overlay_electric_field = True,
+        efield_unit = 'atomic_electric_field',
+        efield_color = 'black',
+        efield_label_fontsize = 12,
+        title_fontsize = 12,
+        y_axis_label_fontsize = 14,
+        x_axis_label_fontsize = 12,
+        cbar_label_fontsize = 12,
+        aspect_ratio = 1.2,
+        shading = 'flat',
+        use_name = False,
+        **kwargs):
         prefix = self.file_name
         if use_name:
             prefix = self.name

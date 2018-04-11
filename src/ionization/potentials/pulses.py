@@ -155,12 +155,12 @@ def keldysh_parameter(omega,
 
 
 def electric_field_amplitude_from_keldysh_parameter(
-        keldysh_parameter,
-        omega,
-        *,
-        ionization_potential = u.rydberg,
-        test_charge = u.electron_charge,
-        test_mass = u.electron_mass_reduced):
+    keldysh_parameter,
+    omega,
+    *,
+    ionization_potential = u.rydberg,
+    test_charge = u.electron_charge,
+    test_mass = u.electron_mass_reduced):
     return omega * np.sqrt(2 * test_mass * np.abs(ionization_potential)) / (-test_charge * keldysh_parameter)
 
 
@@ -185,11 +185,11 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
 
     def __str__(self):
         out = '{}(omega = 2pi * {} THz, wavelength = {} u.nm, photon energy = {} u.eV, amplitude = {} AEF, phase = 2pi * {})'.format(self.__class__.__name__,
-                                                                                                                                       u.uround(self.frequency, u.THz),
-                                                                                                                                       u.uround(self.wavelength, u.nm, 3),
-                                                                                                                                       u.uround(self.photon_energy, u.eV),
-                                                                                                                                       u.uround(self.amplitude, u.atomic_electric_field, 3),
-                                                                                                                                       u.uround(self.phase, u.twopi, 3))
+                                                                                                                                     u.uround(self.frequency, u.THz),
+                                                                                                                                     u.uround(self.wavelength, u.nm, 3),
+                                                                                                                                     u.uround(self.photon_energy, u.eV),
+                                                                                                                                     u.uround(self.amplitude, u.atomic_electric_field, 3),
+                                                                                                                                     u.uround(self.phase, u.twopi, 3))
 
         return out + super().__str__()
 
@@ -515,13 +515,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     """
 
     def __init__(
-            self,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        self,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
 
         Parameters
@@ -562,13 +562,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_omega_carrier(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_carrier = DEFAULT_OMEGA_CARRIER,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_carrier = DEFAULT_OMEGA_CARRIER,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
 
         Parameters
@@ -597,17 +597,17 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_keldysh_parameter(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = u.rydberg,
-            test_charge = u.electron_charge,
-            test_mass = u.electron_mass_reduced,
-            keldysh_omega_selector = 'carrier',
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
+        ionization_potential = u.rydberg,
+        test_charge = u.electron_charge,
+        test_mass = u.electron_mass_reduced,
+        keldysh_omega_selector = 'carrier',
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         delta_omega = u.twopi / pulse_width
 
         keldysh_omega = {'carrier': omega_min + (delta_omega / 2), 'bandwidth': delta_omega}[keldysh_omega_selector]
@@ -633,13 +633,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_amplitude(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            amplitude = 1 * u.atomic_electric_field,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        amplitude = 1 * u.atomic_electric_field,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         delta_omega = u.twopi / pulse_width
         fluence = u.pi * u.epsilon_0 * u.c * (amplitude ** 2) / delta_omega
 
@@ -769,13 +769,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
 class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
     def __init__(
-            self,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_carrier = DEFAULT_OMEGA_CARRIER,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        self,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_carrier = DEFAULT_OMEGA_CARRIER,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
 
         Parameters
@@ -809,13 +809,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_omega_min(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
         Construct a new GaussianPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
 
@@ -854,17 +854,17 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_keldysh_parameter(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = u.rydberg,
-            test_charge = u.electron_charge,
-            test_mass = u.electron_mass,
-            keldysh_omega_selector = 'carrier',
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
+        ionization_potential = u.rydberg,
+        test_charge = u.electron_charge,
+        test_mass = u.electron_mass,
+        keldysh_omega_selector = 'carrier',
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
         omega_fwhm = 2 * np.sqrt(2 * np.log(2)) / pulse_width
 
@@ -893,13 +893,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_amplitude(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            amplitude = 1 * u.atomic_electric_field,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        amplitude = 1 * u.atomic_electric_field,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         fluence = np.sqrt(u.pi) * u.epsilon_0 * u.c * pulse_width * (amplitude ** 2) / 2
 
         pot = cls.from_omega_min(
@@ -1093,13 +1093,13 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
 
 class SechPulse(UniformLinearlyPolarizedElectricPotential):
     def __init__(
-            self,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_carrier = DEFAULT_OMEGA_CARRIER,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        self,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_carrier = DEFAULT_OMEGA_CARRIER,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
         Parameters
         ----------
@@ -1132,13 +1132,13 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_omega_min(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            fluence = DEFAULT_FLUENCE,
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         """
         Construct a new SechPulse, using omega_min to set the carrier frequency to the same carrier frequency as a sinc pulse with that omega_min and the same pulse width.
 
@@ -1177,17 +1177,17 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
 
     @classmethod
     def from_keldysh_parameter(
-            cls,
-            pulse_width = DEFAULT_PULSE_WIDTH,
-            omega_min = DEFAULT_OMEGA_MIN,
-            keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
-            ionization_potential = u.rydberg,
-            test_charge = u.electron_charge,
-            test_mass = u.electron_mass,
-            keldysh_omega_selector = 'carrier',
-            phase = DEFAULT_PHASE,
-            pulse_center = DEFAULT_PULSE_CENTER,
-            **kwargs):
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        omega_min = DEFAULT_OMEGA_MIN,
+        keldysh_parameter = DEFAULT_KELDYSH_PARAMETER,
+        ionization_potential = u.rydberg,
+        test_charge = u.electron_charge,
+        test_mass = u.electron_mass,
+        keldysh_omega_selector = 'carrier',
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs):
         dummy = SincPulse(pulse_width = pulse_width, omega_min = omega_min)
         omega_fwhm = 2 * np.log(2 + np.sqrt(3)) / (2 * pulse_width / u.pi)
 
@@ -1548,3 +1548,21 @@ def DC_correct_electric_potential(electric_potential, times):
     correction_field = Rectangle(start_time = times[0], end_time = times[-1], amplitude = correction_amp, window = electric_potential.window)
 
     return electric_potential + correction_field
+
+
+class FluenceCorrector(UniformLinearlyPolarizedElectricPotential):
+    def __init__(self, electric_potential, times, target_fluence):
+        self.electric_potential = electric_potential
+
+        fluence = electric_potential.get_fluence_numeric(times)
+
+        print(target_fluence / u.Jcm2, fluence / u.Jcm2)
+        self.amplitude_correction_ratio = np.sqrt(target_fluence / fluence)
+
+        super().__init__()
+
+    def get_electric_field_amplitude(self, t):
+        return self.electric_potential.get_electric_field_amplitude(t) * self.amplitude_correction_ratio
+
+    def __repr__(self):
+        return self.__class__.__name__
