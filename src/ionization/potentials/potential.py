@@ -1,6 +1,10 @@
 import logging
 
+import numpy as np
+import scipy.integrate as integ
+
 import simulacra as si
+import simulacra.units as u
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -39,7 +43,12 @@ class PotentialEnergySum(si.Sum, PotentialEnergy):
         return sum(x.get_vector_potential_amplitude_numeric_cumulative(times) for x in self._container)
 
     def get_fluence_numeric(self, times, rule = 'simps'):
-        return sum(x.get_fluence_numeric(times, rule = rule) for x in self._container)
+        # raise NotImplementedError
+        return u.epsilon_0 * u.c * getattr(integ, rule)(
+            y = np.abs(self.get_electric_field_amplitude(times)) ** 2,
+            x = times,
+        )
+        # return sum(x.get_fluence_numeric(times, rule = rule) for x in self._container)
 
 
 class NoPotentialEnergy(PotentialEnergy):

@@ -45,7 +45,7 @@ def fft_field(field, times):
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        pw = 100 * u.asec
+        pw = 50 * u.asec
         tw = 30 * pw
         tb = 35 * pw
 
@@ -289,6 +289,13 @@ if __name__ == '__main__':
                 **spec_kwargs,
             )
         ]
+
+        df = 1 / (2 * tb)
+        print(df / u.THz)
+        print(df / uncorrected_cos_pulse.frequency_delta)
+        print()
+        print((corrected_cos_fluence - corrected_sin_fluence) / corrected_cos_fluence)
+        print(df / uncorrected_cos_pulse.frequency_delta / 2)
 
         # for spec in specs:
         #     print()
