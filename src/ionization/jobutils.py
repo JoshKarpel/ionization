@@ -420,6 +420,12 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
             value = clu.ask_for_bool('Perform Electric Field DC Correction?', default = True)
         ))
 
+    parameters.append(
+        clu.Parameter(
+            name = 'electric_potential_fluence_correction',
+            value = clu.ask_for_bool('Perform Electric Field Fluence Correction?', default = False)
+        ))
+
     return pulse_parameters
 
 
