@@ -131,17 +131,34 @@ def test_pulse_construction_fluences_can_be_non_negative(pulse_type):
         pulse_type(fluence = -1 * u.Jcm2)
 
 
-@pytest.mark.parametrize('omega_min', [
-    1 * u.atomic_angular_frequency,
-    0,
-])
-def test_can_construct_sinc_pulse_with_non_negative_omega_min(omega_min):
+def test_can_construct_sinc_pulse_with_positive_omega_min():
     ion.potentials.SincPulse(omega_min = 1 * u.atomic_angular_frequency)
 
 
-def test_cannot_construct_sinc_pulse_with_negative_omega_min():
+@pytest.mark.parametrize('omega_min', [
+    -1 * u.atomic_angular_frequency,
+    0,
+])
+def test_cannot_construct_sinc_pulse_with_non_positive_omega_min(omega_min):
     with pytest.raises(ion.exceptions.InvalidPotentialParameter):
-        ion.potentials.SincPulse(omega_min = -1 * u.atomic_angular_frequency)
+        ion.potentials.SincPulse(omega_min = omega_min)
+
+
+def test_can_construct_sinc_pulse_with_good_number_of_cycles():
+    pulse = ion.potentials.SincPulse.from_number_of_cycles(number_of_cycles = 1)
+
+    assert np.allclose(pulse.number_of_cycles, 1)
+
+
+@pytest.mark.parametrize('number_of_cycles', [
+    .5,
+    .25,
+    0,
+    -1,
+])
+def test_cannot_construct_sinc_pulse_with_bad_number_of_cycles(number_of_cycles):
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+        ion.potentials.SincPulse.from_number_of_cycles(number_of_cycles = number_of_cycles)
 
 
 @pytest.mark.parametrize('pulse_type', [

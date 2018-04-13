@@ -559,7 +559,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     Attributes
     ----------
     pulse_width
-        The time from the pulse center to the first envlope zero; the inverse of the pulse bandwidth.
+        The time from the pulse center to the first envelope zero; the inverse of the pulse bandwidth.
     fluence
         The fluence (total energy flux) of the pulse.
     phase
@@ -614,7 +614,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         Parameters
         ----------
         pulse_width
-            The time from the pulse center to the first envlope zero; the inverse of the pulse bandwidth.
+            The time from the pulse center to the first envelope zero; the inverse of the pulse bandwidth.
         fluence
             The fluence of the pulse.
         phase
@@ -630,8 +630,8 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             raise exceptions.InvalidPotentialParameter('pulse width must be positive')
         if fluence < 0:
             raise exceptions.InvalidPotentialParameter('fluence must be non-negative')
-        if omega_min < 0:
-            raise exceptions.InvalidPotentialParameter('omega_min must be non-negative')
+        if omega_min <= 0:
+            raise exceptions.InvalidPotentialParameter('omega_min must be positive')
 
         super().__init__(**kwargs)
 
@@ -667,7 +667,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         Parameters
         ----------
         pulse_width
-            The time from the pulse center to the first envlope zero; the inverse of the pulse bandwidth.
+            The time from the pulse center to the first envelope zero; the inverse of the pulse bandwidth.
         fluence
             The fluence of the pulse.
         phase
@@ -709,7 +709,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         Parameters
         ----------
         pulse_width
-            The time from the pulse center to the first envlope zero; the inverse of the pulse bandwidth.
+            The time from the pulse center to the first envelope zero; the inverse of the pulse bandwidth.
         amplitude
             The peak of a cosine-like sinc pulse (i.e., this ignores the ``phase``).
         phase
@@ -737,6 +737,47 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
             pot.amplitude = amplitude
         else:
             raise ValueError('Given amplitude not close enough to calculated amplitude')
+
+        return pot
+
+    @classmethod
+    def from_number_of_cycles(
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        fluence = DEFAULT_FLUENCE,
+        phase = DEFAULT_PHASE,
+        number_of_cycles = 1,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs,
+    ) -> 'SincPulse':
+        """
+        Parameters
+        ----------
+        pulse_width
+            The time from the pulse center to the first envelope zero; the inverse of the pulse's cyclic frequency bandwidth.
+        fluence
+            The fluence of the pulse.
+        phase
+            The carrier-envelope phase of the pulse.
+        pulse_center
+            The time of the center of the pulse.
+        number_of_cycles
+            The number of carrier cycles per pulse width.
+        kwargs
+            Any additional keyword arguments are passed to the :class:`UniformLinearlyPolarizedElectricPotential` constructor.
+        """
+        if number_of_cycles <= .5:
+            raise exceptions.InvalidPotentialParameter('number_of_cycles must be > 0.5')
+        omega_carrier = u.twopi * number_of_cycles / pulse_width
+
+        pot = cls.from_omega_carrier(
+            pulse_width = pulse_width,
+            omega_carrier = omega_carrier,
+            fluence = fluence,
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
 
         return pot
 
@@ -813,6 +854,10 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     def amplitude_per_omega(self):
         return np.sqrt(u.twopi) * self.amplitude_omega
 
+    @property
+    def number_of_cycles(self):
+        return self.omega_carrier / self.delta_omega
+
     def keldysh_parameter(
         self,
         ionization_potential = u.rydberg,
@@ -870,6 +915,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         info.add_field('Pulse Center', utils.fmt_quantity(self.pulse_center, utils.TIME_UNITS))
         info.add_field('Electric Field Amplitude Prefactor', utils.fmt_quantity(self.amplitude, utils.ELECTRIC_FIELD_UNITS))
         info.add_field('Fluence', utils.fmt_quantity(self.fluence, utils.FLUENCE_UNITS))
+        info.add_field('Number of Cycles', self.number_of_cycles)
         info.add_field('Carrier-Envelope Phase', utils.fmt_quantity(self.phase, utils.ANGLE_UNITS))
         info.add_field('Carrier Photon Energy', utils.fmt_quantity(self.photon_energy_carrier, utils.ENERGY_UNITS))
         info.add_field('Photon Energy Range', f'{u.uround(self.photon_energy_min, u.eV)} eV to {u.uround(self.photon_energy_max, u.eV)} eV')
