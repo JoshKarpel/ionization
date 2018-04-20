@@ -10,11 +10,11 @@ import simulacra as si
 
 
 def ensure_compatibility_spec(spec):
-    spec.electric_potential_fluence_correction = False
+    pass
 
 
 def ensure_compatibility_sim(sim):
-    sim.spec.electric_potential_fluence_correction = False
+    pass
 
 
 if __name__ == '__main__':
