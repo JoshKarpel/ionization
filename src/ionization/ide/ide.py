@@ -337,6 +337,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
                  integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
                  electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
                  electric_potential_dc_correction: bool = False,
+                 electric_potential_fluence_correction = False,
                  kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
                  integration_method: str = 'simpson',
                  evolution_method: evolution_methods.EvolutionMethod = evolution_methods.RungeKuttaFourMethod(),
@@ -404,6 +405,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
 
         self.electric_potential = electric_potential
         self.electric_potential_dc_correction = electric_potential_dc_correction
+        self.electric_potential_fluence_correction = electric_potential_fluence_correction
 
         self.kernel = kernel
 
