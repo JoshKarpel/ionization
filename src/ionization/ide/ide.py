@@ -52,7 +52,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, int(time_range / self.time_step))
         if self.spec.electric_potential_dc_correction:
             old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
+
+            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+
+        if self.spec.electric_potential_fluence_correction:
+            old_pot = self.spec.electric_potential
+            self.spec.electric_potential = potentials.FluenceCorrector(
+                electric_potential = self.spec.electric_potential,
+                times = self.times,
+                target_fluence = list(self.spec.electric_potential)[0].fluence,  # the analytic fluence of the embedded pulse, whether it's been dc-corrected or not
+            )
 
             logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
 
