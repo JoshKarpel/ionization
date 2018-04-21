@@ -136,7 +136,7 @@ class MeshSimulation(si.Simulation):
         info_mem.add_field('Matrix Operators', si.utils.bytes_to_str(mem_matrix_operators))
         if hasattr(self.spec, 'use_numeric_eigenstates') and self.spec.use_numeric_eigenstates:
             info_mem.add_field('Numeric Eigenstates', si.utils.bytes_to_str(mem_numeric_eigenstates))
-        info_mem.add_fields((name, si.utils.bytes_to_str(sys.getsizeof(ds))) for name, ds in self.datastores_by_type.items())
+        info_mem.add_fields((ds_type.__name__, si.utils.bytes_to_str(sys.getsizeof(ds))) for ds_type, ds in self.datastores_by_type.items())
         info_mem.add_field('Miscellaneous', si.utils.bytes_to_str(mem_misc))
 
         info.add_info(info_mem)

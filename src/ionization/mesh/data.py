@@ -77,6 +77,9 @@ class Data:
     def __repr__(self):
         return f'{self.__class__.__name__}(sim = {repr(self.sim)}'
 
+    def __str__(self):
+        return f'{self.__class__.__name__}'
+
     def __getattr__(self, item):
         try:
             return super().__getattribute__(item)

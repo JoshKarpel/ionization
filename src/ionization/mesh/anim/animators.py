@@ -102,7 +102,7 @@ class SquareAnimator(WavefunctionSimulationAnimator):
     def _initialize_figure(self):
         self.fig = si.vis.get_figure(fig_width = 12, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
 
-        self.ax_mesh = self.fig.add_axes([.1, .1, .8, .8])
+        self.ax_mesh = self.fig.add_axes([.15, .1, .8, .8])
         self.axman_wavefunction.assign_axis(self.ax_mesh)
 
         super()._initialize_figure()

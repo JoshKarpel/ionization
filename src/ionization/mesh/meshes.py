@@ -96,6 +96,7 @@ class QuantumMesh(abc.ABC):
 
         self.g = None
         self.inner_product_multiplier = None
+        self.g_factor = None
 
         self.plot = self.mesh_plotter_type(self)
 
@@ -385,11 +386,10 @@ class RectangleMesh(QuantumMesh):
         self.delta_z = np.abs(self.z[1] - self.z[0])
         self.delta_x = np.abs(self.x[1] - self.x[0])
         self.inner_product_multiplier = self.delta_z * self.delta_x
+        self.g_factor = 1
 
         self.z_center_index = int(self.spec.z_points // 2)
         self.x_center_index = int(self.spec.x_points // 2)
-        self.z_max = np.max(self.z)
-        self.x_max = np.max(self.x)
 
         self.g = self.get_g_for_state(self.spec.initial_state)
 
