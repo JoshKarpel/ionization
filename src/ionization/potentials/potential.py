@@ -1,5 +1,7 @@
 import logging
 
+import numpy as np
+
 import simulacra as si
 
 logger = logging.getLogger(__name__)
@@ -45,6 +47,6 @@ class PotentialEnergySum(si.summables.Sum, PotentialEnergy):
 class NoPotentialEnergy(PotentialEnergy):
     """A class representing no potential energy from any source."""
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, r, *args, **kwargs):
         """Return 0 for any arguments."""
-        return 0
+        return np.zeros_like(r)

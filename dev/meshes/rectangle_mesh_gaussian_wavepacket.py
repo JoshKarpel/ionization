@@ -31,18 +31,10 @@ ANIM_KWARGS = dict(
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(1 * u.eV)
-        qho_period = u.twopi / qho.omega(u.electron_mass)
-
-        sine = ion.potentials.SineWave.from_photon_energy(
-            1 * u.eV,
-            amplitude = .001 * u.atomic_electric_field,
-        )
-
         spec = ion.mesh.RectangleSpecification(
             'test',
-            z_bound = 5 * u.nm,
-            x_bound = 5 * u.nm,
+            z_bound = 10 * u.nm,
+            x_bound = 10 * u.nm,
             z_points = 500,
             x_points = 500,
             initial_state = ion.states.TwoDPlaneWave(
@@ -50,10 +42,9 @@ if __name__ == '__main__':
                 wavenumber_z = np.sqrt(u.twopi) / u.nm,
             ),
             time_initial = 0,
-            time_final = 5 * sine.period,
-            time_step = qho_period / 200,
-            internal_potential = qho,
-            electric_potential = sine,
+            time_final = 10 * u.fsec,
+            time_step = u.fsec / 20,
+            internal_potential = ion.potentials.NoPotentialEnergy(),
             animators = [
                 ion.mesh.anim.SquareAnimator(
                     postfix = '_g',
@@ -82,20 +73,17 @@ if __name__ == '__main__':
         sim = spec.to_sim()
         print(sim.info())
 
-        n = 3
-        m = 3
+        sigma = 1 * u.nm
+        center_x = 0
+        center_z = 0
 
-        energy = (m + n + 1) * u.hbar * qho.omega(u.electron_mass)
+        x = sim.mesh.x_mesh - center_x
+        z = sim.mesh.z_mesh - center_z
+        gaussian = np.exp(-.25 * (((x ** 2) + (z ** 2)) / sigma ** 2))
+        norm = 1 / (np.sqrt(u.twopi) * sigma)
 
-        ksi = np.sqrt(u.electron_mass * qho.omega(u.electron_mass) / u.hbar)
-
-        norm = ksi / np.sqrt((2 ** (n + m)) * sp.misc.factorial(n) * sp.misc.factorial(m) * u.pi)
-        gaussian = np.exp(-(((ksi * sim.mesh.x_mesh) ** 2) + ((ksi * sim.mesh.z_mesh) ** 2)) / 2)
-        hermite = special.hermite(n)(ksi * sim.mesh.x_mesh) * special.hermite(m)(ksi * sim.mesh.z_mesh)
-
-        sim.mesh.g = norm * gaussian * hermite
+        sim.mesh.g = norm * gaussian
         print('norm', sim.mesh.norm())
-        print('energy', energy / u.eV)
 
         sim.mesh.plot.g(**PLOT_KWARGS)
         sim.mesh.plot.g2(**PLOT_KWARGS)
