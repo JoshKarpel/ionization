@@ -150,7 +150,7 @@ Windows
 
     .. automethod:: __call__
 
-.. autoclass:: SymmetricExponentialWindow
+.. autoclass:: LogisticWindow
 
     .. automethod:: __call__
 

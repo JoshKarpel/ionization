@@ -452,7 +452,7 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulses = tuple(
         constructor(
             **d,
-            window = potentials.SymmetricExponentialWindow(
+            window = potentials.LogisticWindow(
                 window_time = d['pulse_width'] * window_time_in_pw,
                 window_width = d['pulse_width'] * window_width_in_pw,
             ),
