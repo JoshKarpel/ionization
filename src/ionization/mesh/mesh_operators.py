@@ -199,7 +199,13 @@ class MeshOperators(abc.ABC):
     @si.utils.memoize
     def internal_hamiltonian(self, mesh: 'meshes.QuantumMesh') -> SumOfOperators:
         kinetic_operators = self.kinetic_energy(mesh).operators
-        potential_mesh = mesh.spec.internal_potential(r = mesh.r_mesh, test_charge = mesh.spec.test_charge)
+        potential_mesh = mesh.spec.internal_potential(
+            r = mesh.r_mesh,
+            z = getattr(mesh, 'z_mesh', None),
+            x = getattr(mesh, 'x_mesh', None),
+            y = getattr(mesh, 'y_mesh', None),
+            test_charge = mesh.spec.test_charge,
+        )
 
         pre = 1 / len(kinetic_operators)
 
@@ -225,7 +231,10 @@ class MeshOperators(abc.ABC):
         for direction, internal_operator in direction_to_internal_operators.items():
             total_operators.append(
                 DotOperator(
-                    add_to_diagonal_sparse_matrix_diagonal(internal_operator.matrix, value = pre * direction_to_interaction_operators[direction].matrix.diagonal()),
+                    add_to_diagonal_sparse_matrix_diagonal(
+                        internal_operator.matrix,
+                        value = pre * direction_to_interaction_operators[direction].matrix.diagonal()
+                    ),
                     wrapping_direction = direction,
                 )
             )

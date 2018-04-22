@@ -46,24 +46,24 @@ if __name__ == '__main__':
             time_step = u.fsec / 20,
             internal_potential = ion.potentials.NoPotentialEnergy(),
             animators = [
-                ion.mesh.anim.SquareAnimator(
-                    postfix = '_g',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g',
-                        colormap = si.vis.RichardsonColormap(),
-                        norm = si.vis.RichardsonNormalization(),
-                        distance_unit = 'nm',
-                    ),
-                    **ANIM_KWARGS,
-                ),
-                ion.mesh.anim.SquareAnimator(
-                    postfix = '_g2',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g2',
-                        distance_unit = 'nm',
-                    ),
-                    **ANIM_KWARGS,
-                ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = '_g',
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = 'g',
+                #         colormap = si.vis.RichardsonColormap(),
+                #         norm = si.vis.RichardsonNormalization(),
+                #         distance_unit = 'nm',
+                #     ),
+                #     **ANIM_KWARGS,
+                # ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = '_g2',
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = 'g2',
+                #         distance_unit = 'nm',
+                #     ),
+                #     **ANIM_KWARGS,
+                # ),
             ],
         )
         # print(spec.info())
@@ -74,15 +74,17 @@ if __name__ == '__main__':
         print(sim.info())
 
         sigma = 1 * u.nm
-        center_x = 0
+        center_x = -3 * u.nm
         center_z = 0
+        k = u.twopi / u.nm
 
         x = sim.mesh.x_mesh - center_x
         z = sim.mesh.z_mesh - center_z
         gaussian = np.exp(-.25 * (((x ** 2) + (z ** 2)) / sigma ** 2))
         norm = 1 / (np.sqrt(u.twopi) * sigma)
+        motion = np.exp(1j * k * x)
 
-        sim.mesh.g = norm * gaussian
+        sim.mesh.g = norm * gaussian * motion
         print('norm', sim.mesh.norm())
 
         sim.mesh.plot.g(**PLOT_KWARGS)
