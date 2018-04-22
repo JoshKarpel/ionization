@@ -96,7 +96,6 @@ class QuantumMesh(abc.ABC):
 
         self.g = None
         self.inner_product_multiplier = None
-        self.g_factor = None
 
         self.plot = self.mesh_plotter_type(self)
 

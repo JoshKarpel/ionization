@@ -45,9 +45,11 @@ if __name__ == '__main__':
             x_bound = 5 * u.nm,
             z_points = 500,
             x_points = 500,
-            initial_state = ion.states.TwoDPlaneWave(
-                wavenumber_x = np.sqrt(u.twopi) / u.nm,
-                wavenumber_z = np.sqrt(u.twopi) / u.nm,
+            initial_state = ion.states.TwoDQuantumHarmonicOscillator.from_potential(
+                potential = qho,
+                n_z = 2,
+                n_x = 3,
+                mass = u.electron_mass,
             ),
             time_initial = 0,
             time_final = 5 * sine.period,
@@ -82,20 +84,20 @@ if __name__ == '__main__':
         sim = spec.to_sim()
         print(sim.info())
 
-        n = 3
-        m = 3
-
-        energy = (m + n + 1) * u.hbar * qho.omega(u.electron_mass)
-
-        ksi = np.sqrt(u.electron_mass * qho.omega(u.electron_mass) / u.hbar)
-
-        norm = ksi / np.sqrt((2 ** (n + m)) * sp.misc.factorial(n) * sp.misc.factorial(m) * u.pi)
-        gaussian = np.exp(-(((ksi * sim.mesh.x_mesh) ** 2) + ((ksi * sim.mesh.z_mesh) ** 2)) / 2)
-        hermite = special.hermite(n)(ksi * sim.mesh.x_mesh) * special.hermite(m)(ksi * sim.mesh.z_mesh)
-
-        sim.mesh.g = norm * gaussian * hermite
+        # n = 3
+        # m = 3
+        #
+        # energy = (m + n + 1) * u.hbar * qho.omega(u.electron_mass)
+        #
+        # ksi = np.sqrt(u.electron_mass * qho.omega(u.electron_mass) / u.hbar)
+        #
+        # norm = ksi / np.sqrt((2 ** (n + m)) * sp.misc.factorial(n) * sp.misc.factorial(m) * u.pi)
+        # gaussian = np.exp(-(((ksi * sim.mesh.x_mesh) ** 2) + ((ksi * sim.mesh.z_mesh) ** 2)) / 2)
+        # hermite = special.hermite(n)(ksi * sim.mesh.x_mesh) * special.hermite(m)(ksi * sim.mesh.z_mesh)
+        #
+        # sim.mesh.g = norm * gaussian * hermite
         print('norm', sim.mesh.norm())
-        print('energy', energy / u.eV)
+        print('energy', sim.mesh.internal_energy_expectation_value() / u.eV)
 
         sim.mesh.plot.g(**PLOT_KWARGS)
         sim.mesh.plot.g2(**PLOT_KWARGS)

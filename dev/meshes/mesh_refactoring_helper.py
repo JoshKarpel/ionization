@@ -53,16 +53,16 @@ if __name__ == '__main__':
             mass = test_mass,
         )
         line_states = [ion.states.QHOState.from_potential(line_qho, n = n, mass = test_mass) for n in range(5)]
-        line_sine_wave = ion.potentials.SineWave.from_photon_energy(
+        sine_wave = ion.potentials.SineWave.from_photon_energy(
             photon_energy = energy_spacing,
             amplitude = .0001 * u.atomic_electric_field,
         )
         line_kwargs = dict(
             time_initial = 0,
-            time_final = 1 * line_sine_wave.period,
-            time_step = .001 * line_sine_wave.period,
+            time_final = 1 * sine_wave.period,
+            time_step = .001 * sine_wave.period,
             internal_potential = line_qho,
-            electric_potential = line_sine_wave,
+            electric_potential = sine_wave,
             initial_state = line_states[0],
             test_states = line_states,
             z_bound = 100 * u.nm,
@@ -94,6 +94,30 @@ if __name__ == '__main__':
         )
 
         specs = []
+
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(energy_spacing, mass = test_mass)
+        specs.append(
+            ion.mesh.RectangleSpecification(
+                f'Rectangle_CN_LEN',
+                operators = ion.mesh.RectangleLengthGaugeOperators(),
+                evolution_method = ion.mesh.AlternatingDirectionImplicit(),
+                z_bound = 5 * u.nm,
+                x_bound = 5 * u.nm,
+                z_points = 500,
+                x_points = 500,
+                initial_state = ion.states.TwoDQuantumHarmonicOscillator.from_potential(
+                    potential = qho,
+                    n_z = 2,
+                    n_x = 3,
+                    mass = u.electron_mass,
+                ),
+                time_initial = 0,
+                time_final = 2 * sine_wave.period,
+                time_step = sine_wave.period / 200,
+                internal_potential = qho,
+                electric_potential = sine_wave,
+            )
+        )
 
         specs.append(
             ion.mesh.LineSpecification(
@@ -180,6 +204,7 @@ if __name__ == '__main__':
         #     print(wavenumber, v)
 
         expected = {
+            (ion.mesh.RectangleMesh, ion.mesh.RectangleLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.016739782924469107,
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.AlternatingDirectionImplicit): 0.370010185740,
             (ion.mesh.LineMesh, ion.mesh.LineLengthGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370008474418,
             (ion.mesh.LineMesh, ion.mesh.LineVelocityGaugeOperators, ion.mesh.SplitInteractionOperator): 0.370924310122,

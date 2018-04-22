@@ -94,9 +94,11 @@ if __name__ == '__main__':
             x_bound = 20 * u.nm,
             z_points = 1000,
             x_points = 1000,
-            initial_state = ion.states.TwoDPlaneWave(
-                wavenumber_x = np.sqrt(u.twopi) / u.nm,
-                wavenumber_z = np.sqrt(u.twopi) / u.nm,
+            initial_state = ion.states.TwoDGaussianWavepacket(
+                width_x = 1 * u.nm,
+                width_z = 5 * u.nm,
+                center_x = -15 * u.nm,
+                k_x = u.twopi / u.nm,
             ),
             time_initial = 0,
             time_final = 30 * u.fsec,
@@ -130,19 +132,19 @@ if __name__ == '__main__':
         sim = spec.to_sim()
         print(sim.info())
 
-        sigma_x = 1 * u.nm
-        sigma_z = 5 * u.nm
-        center_x = -15 * u.nm
-        center_z = 0
-        k = u.twopi / u.nm
-
-        x = sim.mesh.x_mesh - center_x
-        z = sim.mesh.z_mesh - center_z
-        gaussian = np.exp(-.25 * (((x / sigma_x) ** 2) + ((z / sigma_z) ** 2)))
-        norm = 1 / (np.sqrt(u.twopi) * np.sqrt(sigma_x * sigma_z))
-        motion = np.exp(1j * k * x)
-
-        sim.mesh.g = norm * gaussian * motion
+        # sigma_x = 1 * u.nm
+        # sigma_z = 5 * u.nm
+        # center_x = -15 * u.nm
+        # center_z = 0
+        # k = u.twopi / u.nm
+        #
+        # x = sim.mesh.x_mesh - center_x
+        # z = sim.mesh.z_mesh - center_z
+        # gaussian = np.exp(-.25 * (((x / sigma_x) ** 2) + ((z / sigma_z) ** 2)))
+        # norm = 1 / (np.sqrt(u.twopi) * np.sqrt(sigma_x * sigma_z))
+        # motion = np.exp(1j * k * x)
+        #
+        # sim.mesh.g = norm * gaussian * motion
         print('norm', sim.mesh.norm())
 
         sim.mesh.plot.g(**PLOT_KWARGS)
