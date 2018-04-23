@@ -30,58 +30,26 @@ ANIM_KWARGS = dict(
 )
 
 
-class LogisticScatterer(ion.potentials.PotentialEnergy):
-    """A logistic potential barrier."""
-
-    def __init__(
-        self,
-        potential_extrema: float = 100 * u.eV,
-        z_width: float = .2 * u.nm,
-        x_width: float = .2 * u.nm,
-        z_extent = 1 * u.nm,
-        x_extent = 1 * u.nm,
-        z_center: float = 0,
-        x_center: float = 0,
-    ):
-        super().__init__()
-
-        self.potential_extrema = potential_extrema
-        self.z_width = z_width
-        self.x_width = x_width
-        self.z_extent = z_extent
-        self.x_extent = x_extent
-        self.z_center = z_center
-        self.x_center = x_center
-
-    def __call__(self, *, z, x, **kwargs):
-        centered_z = z - self.z_center
-        centered_x = x - self.x_center
-
-        pot = self.potential_extrema
-        pot *= 1 / (1 + np.exp(-(centered_x + self.x_extent) / self.x_width)) - 1 / (1 + np.exp(-(centered_x - self.x_extent) / self.x_width))
-        pot *= 1 / (1 + np.exp(-(centered_z + self.z_extent) / self.z_width)) - 1 / (1 + np.exp(-(centered_z - self.z_extent) / self.z_width))
-
-        return pot
 
 
 if __name__ == '__main__':
     with LOGMAN as logger:
         # top
-        scatterer = LogisticScatterer(
+        scatterer = ion.potentials.LogisticScatterer(
             x_center = -5 * u.nm,
             z_center = 20 * u.nm,
             x_extent = .1 * u.nm,
             z_extent = 16 * u.nm,
         )
         # bottom
-        scatterer += LogisticScatterer(
+        scatterer += ion.potentials.LogisticScatterer(
             x_center = -5 * u.nm,
             z_center = -20 * u.nm,
             x_extent = .1 * u.nm,
             z_extent = 16 * u.nm
         )
         # center
-        scatterer += LogisticScatterer(
+        scatterer += ion.potentials.LogisticScatterer(
             x_center = -5 * u.nm,
             z_center = 0 * u.nm,
             x_extent = .1 * u.nm,

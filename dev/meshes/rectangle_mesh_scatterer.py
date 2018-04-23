@@ -29,43 +29,12 @@ ANIM_KWARGS = dict(
     fps = 30,
 )
 
-
-class GaussianScatterer(ion.potentials.PotentialEnergy):
-    """A Gaussian potential well."""
-
-    def __init__(
-        self,
-        potential_extrema: float = 100 * u.eV,
-        z_width: float = 1 * u.nm,
-        x_width: float = 1 * u.nm,
-        z_center: float = 0,
-        x_center: float = 0,
-    ):
-        super().__init__()
-
-        self.potential_extrema = potential_extrema
-        self.z_width = z_width
-        self.x_width = x_width
-        self.z_center = z_center
-        self.x_center = x_center
-
-    def __call__(self, *, z, x, **kwargs):
-        centered_z = z - self.z_center
-        centered_x = x - self.x_center
-
-        gaussian = self.potential_extrema
-        gaussian *= np.exp(-.5 * ((centered_z / self.z_width) ** 2))
-        gaussian *= np.exp(-.5 * ((centered_x / self.x_width) ** 2))
-
-        return gaussian
-
-
 if __name__ == '__main__':
     with LOGMAN as logger:
-        scatterer = GaussianScatterer(
+        scatterer = ion.potentials.GaussianScatterer(
             x_center = -5 * u.nm,
-            x_width = 1 * u.nm,
-            z_width = .1 * u.nm,
+            x_width = .2 * u.nm,
+            z_width = .2 * u.nm,
         )
 
         spec = ion.mesh.RectangleSpecification(
