@@ -568,6 +568,7 @@ class LineSpecification(MeshSpecification):
     def __init__(
         self,
         name,
+        internal_potential = potentials.HarmonicOscillator(1 * u.N / u.m),
         initial_state = states.QHOState(1 * u.N / u.m),
         z_bound: float = 10 * u.nm,
         z_points: int = 2 ** 9,
@@ -598,6 +599,7 @@ class LineSpecification(MeshSpecification):
         """
         super().__init__(
             name,
+            internal_potential = internal_potential,
             initial_state = initial_state,
             operators = operators,
             evolution_method = evolution_method,
@@ -638,7 +640,8 @@ class RectangleSpecification(MeshSpecification):
     def __init__(
         self,
         name,
-        initial_state = states.OneDPlaneWave(),
+        internal_potential = potentials.NoPotentialEnergy(),
+        initial_state = states.TwoDGaussianWavepacket(),
         z_bound: float = 10 * u.nm,
         z_points: int = 2 ** 9,
         x_bound: float = 10 * u.nm,
@@ -667,6 +670,7 @@ class RectangleSpecification(MeshSpecification):
         """
         super().__init__(
             name,
+            internal_potential = internal_potential,
             initial_state = initial_state,
             operators = operators,
             evolution_method = evolution_method,
