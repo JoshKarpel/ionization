@@ -1553,10 +1553,9 @@ def DC_correct_electric_potential(electric_potential, times):
 class FluenceCorrector(UniformLinearlyPolarizedElectricPotential):
     def __init__(self, electric_potential, times, target_fluence):
         self.electric_potential = electric_potential
+        self.target_fluence = target_fluence
 
         fluence = electric_potential.get_fluence_numeric(times)
-
-        print(target_fluence / u.Jcm2, fluence / u.Jcm2)
         self.amplitude_correction_ratio = np.sqrt(target_fluence / fluence)
 
         super().__init__()
@@ -1565,4 +1564,14 @@ class FluenceCorrector(UniformLinearlyPolarizedElectricPotential):
         return self.electric_potential.get_electric_field_amplitude(t) * self.amplitude_correction_ratio
 
     def __repr__(self):
-        return self.__class__.__name__
+        return f'{self.__class__.__name__}(electric_potential = {self.electric_potential}, target_fluence = {self.target_fluence}, amplitude_correction_ratio = {self.amplitude_correction_ratio})'
+
+    def info(self):
+        info = super().info()
+
+        info.add_info(self.electric_potential.info())
+
+        info.add_field('Target Fluence', f'{u.uround(self.target_fluence, u.Jcm2)} Jcm2')
+        info.add_field('Amplitude Correction Ratio', self.amplitude_correction_ratio)
+
+        return info
