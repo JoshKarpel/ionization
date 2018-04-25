@@ -1,8 +1,8 @@
 #!/usr/bin/env python
-
+import itertools
+import functools
 import logging
 import os
-import functools
 
 import numpy as np
 
@@ -39,79 +39,78 @@ if __name__ == '__main__':
         for jp in jp_to_label:
             print(jp)
 
-        fluences = set.intersection(*[jp.parameter_set('fluence') for jp in jp_to_label])
-        pulse_widths = set.intersection(*[jp.parameter_set('pulse_width') for jp in jp_to_label])
-        phases = set.intersection(*[jp.parameter_set('phase') for jp in jp_to_label])
+        fluences = np.array(sorted(set.intersection(*[jp.parameter_set('fluence') for jp in jp_to_label])))
+        pulse_widths = np.array(sorted(set.intersection(*[jp.parameter_set('pulse_width') for jp in jp_to_label])))
+        phases = np.array(sorted(set.intersection(*[jp.parameter_set('phase') for jp in jp_to_label])))
 
-        print(fluences)
-        print(pulse_widths)
-        print(phases)
+        print(fluences / u.Jcm2)
+        print(pulse_widths / u.asec)
+        print(phases / u.pi)
 
-        # for fluence in fluences:
-        #     for phase in (0, u.pi / 2):
-        #         jp_to_results = {
-        #             jp: sorted(
-        #                 # jp.select_by_kwargs(fluence = fluence, phase = phase),
-        #                 [r for r in jp.select_by_kwargs(fluence = fluence, phase = phase) if r.pulse_width in pulse_widths],
-        #                 key = lambda x: x.pulse_width
-        #             )
-        #             for jp in jp_to_label
-        #         }
-        #
-        #         si.vis.xxyy_plot(
-        #             f'compare__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
-        #             x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
-        #             y_data = [[r.final_initial_state_overlap for r in results] for jp, results in jp_to_results.items()],
-        #             line_labels = [label for jp, label in jp_to_label.items()],
-        #             line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
-        #             x_unit = 'asec',
-        #             **PLOT_KWARGS
-        #         )
-        #
-        #         si.vis.xxyy_plot(
-        #             f'diffs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
-        #             x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
-        #             y_data = [
-        #                 [
-        #                     r.final_initial_state_overlap - br.final_initial_state_overlap
-        #                     for r, br in zip(results, jp_to_results[original_jp])
-        #                 ]
-        #                 for jp, results in jp_to_results.items()
-        #             ],
-        #             line_labels = [label for jp, label in jp_to_label.items()],
-        #             line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
-        #             x_unit = 'asec',
-        #             **PLOT_KWARGS
-        #         )
-        #
-        #         si.vis.xxyy_plot(
-        #             f'fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
-        #             x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
-        #             y_data = [
-        #                 [
-        #                     r.final_initial_state_overlap / br.final_initial_state_overlap
-        #                     for r, br in zip(results, jp_to_results[original_jp])
-        #                 ]
-        #                 for jp, results in jp_to_results.items()
-        #             ],
-        #             line_labels = [label for jp, label in jp_to_label.items()],
-        #             line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
-        #             x_unit = 'asec',
-        #             **PLOT_KWARGS
-        #         )
-        #
-        #         si.vis.xxyy_plot(
-        #             f'sym_diff_fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
-        #             x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
-        #             y_data = [
-        #                 [
-        #                     (r.final_initial_state_overlap - br.final_initial_state_overlap) / ((r.final_initial_state_overlap + br.final_initial_state_overlap) / 2)
-        #                     for r, br in zip(results, jp_to_results[original_jp])
-        #                 ]
-        #                 for jp, results in jp_to_results.items()
-        #             ],
-        #             line_labels = [label for jp, label in jp_to_label.items()],
-        #             line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
-        #             x_unit = 'asec',
-        #             **PLOT_KWARGS
-        #         )
+        for fluence, pulse_width in itertools.product(fluences, pulse_widths):
+            jp_to_results = {
+                jp: sorted(
+                    [r for r in jp.select_by_kwargs(fluence = fluence, pulse_width = pulse_width) if r.pulse_width in pulse_widths],
+                    key = lambda x: x.pulse_width
+                )
+                for jp in jp_to_label
+            }
+
+            si.vis.xxyy_plot(
+                f'compare__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as',
+                x_data = [[r.phase for r in results] for jp, results in jp_to_results.items()],
+                y_data = [[r.final_initial_state_overlap for r in results] for jp, results in jp_to_results.items()],
+                line_labels = [label for jp, label in jp_to_label.items()],
+                line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+                x_unit = 'rad',
+                title = fr'$ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
+                **PLOT_KWARGS
+            )
+
+            # si.vis.xxyy_plot(
+            #     f'diffs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
+            #     y_data = [
+            #         [
+            #             r.final_initial_state_overlap - br.final_initial_state_overlap
+            #             for r, br in zip(results, jp_to_results[original_jp])
+            #         ]
+            #         for jp, results in jp_to_results.items()
+            #     ],
+            #     line_labels = [label for jp, label in jp_to_label.items()],
+            #     line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+            #     x_unit = 'asec',
+            #     **PLOT_KWARGS
+            # )
+            #
+            # si.vis.xxyy_plot(
+            #     f'fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
+            #     y_data = [
+            #         [
+            #             r.final_initial_state_overlap / br.final_initial_state_overlap
+            #             for r, br in zip(results, jp_to_results[original_jp])
+            #         ]
+            #         for jp, results in jp_to_results.items()
+            #     ],
+            #     line_labels = [label for jp, label in jp_to_label.items()],
+            #     line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+            #     x_unit = 'asec',
+            #     **PLOT_KWARGS
+            # )
+            #
+            # si.vis.xxyy_plot(
+            #     f'sym_diff_fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
+            #     y_data = [
+            #         [
+            #             (r.final_initial_state_overlap - br.final_initial_state_overlap) / ((r.final_initial_state_overlap + br.final_initial_state_overlap) / 2)
+            #             for r, br in zip(results, jp_to_results[original_jp])
+            #         ]
+            #         for jp, results in jp_to_results.items()
+            #     ],
+            #     line_labels = [label for jp, label in jp_to_label.items()],
+            #     line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+            #     x_unit = 'asec',
+            #     **PLOT_KWARGS
+            # )

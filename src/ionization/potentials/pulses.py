@@ -1571,7 +1571,7 @@ class FluenceCorrector(UniformLinearlyPolarizedElectricPotential):
 
         info.add_info(self.electric_potential.info())
 
-        info.add_field('Target Fluence', f'{u.uround(self.target_fluence, u.Jcm2)} Jcm2')
+        info.add_field('Target Fluence', f'{u.uround(self.target_fluence, u.Jcm2)} J/cm2')
         info.add_field('Amplitude Correction Ratio', self.amplitude_correction_ratio)
 
         return info
