@@ -31,8 +31,8 @@ if __name__ == '__main__':
         jp_dc_and_flu = clu.JobProcessor.load('job_processors/PAPER_OL_cep_scan_dc_and_flu_correction.job')
 
         jp_to_label = {
-            jp_plain: 'plain',
             jp_dc: 'dc',
+            jp_plain: 'plain',
             jp_dc_and_flu: 'dc and flu',
         }
 
@@ -40,7 +40,9 @@ if __name__ == '__main__':
             print(jp)
 
         fluences = np.array(sorted(set.intersection(*[jp.parameter_set('fluence') for jp in jp_to_label])))
-        pulse_widths = np.array(sorted(set.intersection(*[jp.parameter_set('pulse_width') for jp in jp_to_label])))
+        pulse_widths = set.intersection(*[jp.parameter_set('pulse_width') for jp in jp_to_label])
+        pulse_widths.remove(400 * u.asec)
+        pulse_widths = np.array(sorted(pulse_widths))
         phases = np.array(sorted(set.intersection(*[jp.parameter_set('phase') for jp in jp_to_label])))
 
         print(fluences / u.Jcm2)
@@ -63,7 +65,46 @@ if __name__ == '__main__':
                 line_labels = [label for jp, label in jp_to_label.items()],
                 line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
                 x_unit = 'rad',
-                title = fr'$ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
+                title = fr'Comparison $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
+                **PLOT_KWARGS
+            )
+
+            si.vis.xxyy_plot(
+                f'difference__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as',
+                x_data = [[r.phase for r in results] for jp, results in jp_to_results.items()][1:],
+                y_data = [[r.final_initial_state_overlap - plain_r.final_initial_state_overlap
+                           for r, plain_r in zip(results, jp_to_results[jp_dc])]
+                          for jp, results in jp_to_results.items()][1:],
+                line_labels = [label for jp, label in jp_to_label.items()][1:],
+                line_kwargs = [{'linestyle': '--'}, {'linestyle': ':'}],
+                x_unit = 'rad',
+                title = fr'Difference $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
+                **PLOT_KWARGS
+            )
+
+            si.vis.xxyy_plot(
+                f'ratio__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as',
+                x_data = [[r.phase for r in results] for jp, results in jp_to_results.items()][1:],
+                y_data = [[r.final_initial_state_overlap / plain_r.final_initial_state_overlap
+                           for r, plain_r in zip(results, jp_to_results[jp_dc])]
+                          for jp, results in jp_to_results.items()][1:],
+                line_labels = [label for jp, label in jp_to_label.items()][1:],
+                line_kwargs = [{'linestyle': '--'}, {'linestyle': ':'}],
+                x_unit = 'rad',
+                title = fr'Ratio $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
+                **PLOT_KWARGS
+            )
+
+            si.vis.xxyy_plot(
+                f'sym_diff__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as',
+                x_data = [[r.phase for r in results] for jp, results in jp_to_results.items()][1:],
+                y_data = [[(r.final_initial_state_overlap - plain_r.final_initial_state_overlap) / ((r.final_initial_state_overlap + plain_r.final_initial_state_overlap) / 2)
+                           for r, plain_r in zip(results, jp_to_results[jp_dc])]
+                          for jp, results in jp_to_results.items()][1:],
+                line_labels = [label for jp, label in jp_to_label.items()][1:],
+                line_kwargs = [{'linestyle': '--'}, {'linestyle': ':'}],
+                x_unit = 'rad',
+                title = fr'Sym. Diff. $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $',
                 **PLOT_KWARGS
             )
 
@@ -82,7 +123,7 @@ if __name__ == '__main__':
             #     x_unit = 'asec',
             #     **PLOT_KWARGS
             # )
-            #
+
             # si.vis.xxyy_plot(
             #     f'fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
             #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
