@@ -1580,12 +1580,16 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         return self.number_of_cycles * self.period_carrier
 
     @property
-    def sideband_offset(self):
-        return self.omega_carrier / self.number_of_cycles
+    def total_time(self):
+        return self.period_carrier * self.number_of_cycles
 
     def get_electric_field_envelope(self, t):
         tau = t - self.pulse_center
-        return np.cos(self.omega_carrier * tau / (2 * self.number_of_cycles)) ** 2
+        return np.where(
+            np.less_equal(-self.total_time / 2, tau) * np.less_equal(tau, self.total_time / 2),
+            np.cos(self.omega_carrier * tau / (2 * self.number_of_cycles)) ** 2,
+            0
+        )
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""
