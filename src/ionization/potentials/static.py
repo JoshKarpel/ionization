@@ -399,3 +399,123 @@ class GaussianPotential(potential.PotentialEnergy):
         info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
 
         return info
+
+
+class GaussianScatterer(potential.PotentialEnergy):
+    """A Gaussian potential well."""
+
+    def __init__(
+        self,
+        potential_extrema: float = 100 * u.eV,
+        z_width: float = 1 * u.nm,
+        x_width: float = 1 * u.nm,
+        z_center: float = 0,
+        x_center: float = 0,
+    ):
+        super().__init__()
+
+        self.potential_extrema = potential_extrema
+        self.z_width = z_width
+        self.x_width = x_width
+        self.z_center = z_center
+        self.x_center = x_center
+
+    def __call__(self, *, z, x, **kwargs):
+        centered_z = z - self.z_center
+        centered_x = x - self.x_center
+
+        gaussian = self.potential_extrema
+        gaussian *= np.exp(-.5 * ((centered_z / self.z_width) ** 2))
+        gaussian *= np.exp(-.5 * ((centered_x / self.x_width) ** 2))
+
+        return gaussian
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Potential Extrema', utils.fmt_quantity(self.potential_extrema, utils.ENERGY_UNITS))
+
+        info.add_field('Z Center', utils.fmt_quantity(self.z_center, utils.LENGTH_UNITS))
+        info.add_field('X Center', utils.fmt_quantity(self.x_center, utils.LENGTH_UNITS))
+
+        info.add_field('Z Width', utils.fmt_quantity(self.z_width, utils.LENGTH_UNITS))
+        info.add_field('X Width', utils.fmt_quantity(self.x_width, utils.LENGTH_UNITS))
+
+        return info
+
+
+class LogisticScatterer(potential.PotentialEnergy):
+    """A logistic potential barrier."""
+
+    def __init__(
+        self,
+        potential_extrema: float = 100 * u.eV,
+        z_width: float = .2 * u.nm,
+        x_width: float = .2 * u.nm,
+        z_extent = 1 * u.nm,
+        x_extent = 1 * u.nm,
+        z_center: float = 0,
+        x_center: float = 0,
+    ):
+        super().__init__()
+
+        self.potential_extrema = potential_extrema
+        self.z_width = z_width
+        self.x_width = x_width
+        self.z_extent = z_extent
+        self.x_extent = x_extent
+        self.z_center = z_center
+        self.x_center = x_center
+
+    @classmethod
+    def from_bounds(
+        cls,
+        potential_extrema: float = 100 * u.eV,
+        z_min = -.5 * u.nm,
+        z_max = .5 * u.nm,
+        x_min = -.5 * u.nm,
+        x_max = .5 * u.nm,
+        z_width: float = .2 * u.nm,
+        x_width: float = .2 * u.nm,
+    ):
+        z_extent = np.abs(z_max - z_min)
+        x_extent = np.abs(x_max - x_min)
+
+        z_center = (z_max + z_min) / 2
+        x_center = (x_max - x_min) / 2
+
+        return cls(
+            potential_extrema = potential_extrema,
+            x_width = x_width,
+            z_width = z_width,
+            z_extent = z_extent,
+            x_extent = x_extent,
+            z_center = z_center,
+            x_center = x_center,
+        )
+
+    def __call__(self, *, z, x, **kwargs):
+        centered_z = z - self.z_center
+        centered_x = x - self.x_center
+
+        pot = self.potential_extrema
+        pot *= 1 / (1 + np.exp(-(centered_x + self.x_extent) / self.x_width)) - 1 / (1 + np.exp(-(centered_x - self.x_extent) / self.x_width))
+        pot *= 1 / (1 + np.exp(-(centered_z + self.z_extent) / self.z_width)) - 1 / (1 + np.exp(-(centered_z - self.z_extent) / self.z_width))
+
+        return pot
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Potential Extrema', utils.fmt_quantity(self.potential_extrema, utils.ENERGY_UNITS))
+
+        info.add_field('Z Center', utils.fmt_quantity(self.z_center, utils.LENGTH_UNITS))
+        info.add_field('X Center', utils.fmt_quantity(self.x_center, utils.LENGTH_UNITS))
+
+        info.add_field('Z Extent', utils.fmt_quantity(self.z_extent, utils.LENGTH_UNITS))
+        info.add_field('X Extent', utils.fmt_quantity(self.x_extent, utils.LENGTH_UNITS))
+
+        info.add_field('Z Width', utils.fmt_quantity(self.z_width, utils.LENGTH_UNITS))
+        info.add_field('X Width', utils.fmt_quantity(self.x_width, utils.LENGTH_UNITS))
+
+        return info

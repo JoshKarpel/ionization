@@ -138,7 +138,7 @@ class LinearRampWindow(TimeWindow):
         return info
 
 
-class SymmetricExponentialWindow(TimeWindow):
+class LogisticWindow(TimeWindow):
     def __init__(
         self,
         *,

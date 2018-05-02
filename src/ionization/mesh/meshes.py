@@ -372,6 +372,77 @@ class LineMesh(QuantumMesh):
         return mesh_slicer
 
 
+class RectangleMesh(QuantumMesh):
+    mesh_storage_method = ('z', 'x')
+    mesh_plotter_type = mesh_plotters.RectangleMeshPlotter
+
+    def __init__(self, sim: 'sims.MeshSimulation'):
+        super().__init__(sim)
+
+        self.z = np.linspace(-self.spec.z_bound, self.spec.z_bound, self.spec.z_points)
+        self.x = np.linspace(-self.spec.x_bound, self.spec.x_bound, self.spec.x_points)
+
+        self.delta_z = np.abs(self.z[1] - self.z[0])
+        self.delta_x = np.abs(self.x[1] - self.x[0])
+        self.inner_product_multiplier = self.delta_z * self.delta_x
+        self.g_factor = 1
+
+        self.z_center_index = int(self.spec.z_points // 2)
+        self.x_center_index = int(self.spec.x_points // 2)
+
+        self.g = self.get_g_for_state(self.spec.initial_state)
+
+        self.mesh_points = len(self.z) * len(self.x)
+        self.matrix_operator_shape = (self.mesh_points, self.mesh_points)
+        self.mesh_shape = np.shape(self.g)
+
+    @property
+    @si.utils.memoize
+    def z_mesh(self) -> CoordinateMesh:
+        return np.meshgrid(self.z, self.x, indexing = 'ij')[0]
+
+    @property
+    @si.utils.memoize
+    def x_mesh(self) -> CoordinateMesh:
+        return np.meshgrid(self.z, self.x, indexing = 'ij')[1]
+
+    @property
+    @si.utils.memoize
+    def r_mesh(self) -> CoordinateMesh:
+        return np.sqrt((self.z_mesh ** 2) + (self.x_mesh ** 2))
+
+    @property
+    def theta_mesh(self) -> CoordinateMesh:
+        return np.arctan2(self.x_mesh, self.z_mesh)
+
+    def wrapping_direction_to_order(self, wrapping_direction: Optional[WrappingDirection]) -> Optional[str]:
+        if wrapping_direction is None:
+            return None
+        elif wrapping_direction == WrappingDirection.Z:
+            return 'F'
+        elif wrapping_direction == WrappingDirection.X:
+            return 'C'
+        else:
+            raise ValueError(f"{wrapping_direction} is not a valid specifier for flatten_mesh (valid specifiers: 'z', 'x')")
+
+    @si.utils.memoize
+    def get_g_for_state(self, state: StateOrGMesh) -> GMesh:
+        g = state(self.r_mesh, self.theta_mesh)
+        g /= np.sqrt(self.norm(g))
+        g *= state.amplitude
+
+        return g
+
+    def get_mesh_slicer(self, plot_limit: Optional[float]) -> slice:
+        if plot_limit is None:
+            mesh_slicer = slice(None, None, 1)
+        else:
+            z_lim_points = round(plot_limit / self.delta_z)
+            mesh_slicer = slice(int(self.z_center_index - z_lim_points), int(self.z_center_index + z_lim_points + 1), 1)
+
+        return mesh_slicer
+
+
 class CylindricalSliceMesh(QuantumMesh):
     """
     A concrete :class:`QuantumMesh` that represents the wavefunction on a two-dimensional rectangular-section slice of an azimuthally-symmetric cylinder.
@@ -432,6 +503,7 @@ class CylindricalSliceMesh(QuantumMesh):
         return np.sqrt(u.twopi * self.rho_mesh)
 
     @property
+    @si.utils.memoize
     def r_mesh(self) -> CoordinateMesh:
         return np.sqrt((self.z_mesh ** 2) + (self.rho_mesh ** 2))
 

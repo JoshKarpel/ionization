@@ -30,7 +30,7 @@ if __name__ == '__main__':
             pulse_width = pw,
             fluence = 1 * u.Jcm2,
             phase = 0,
-            window = ion.potentials.SymmetricExponentialWindow(
+            window = ion.potentials.LogisticWindow(
                 window_time = 5 * pw,
                 window_width = pw / 10,
             ),

@@ -13,9 +13,12 @@ logger.setLevel(logging.DEBUG)
 
 
 class WavefunctionSimulationAnimator(si.vis.Animator):
-    def __init__(self, *,
-                 axman_wavefunction,
-                 **kwargs):
+    def __init__(
+        self,
+        *,
+        axman_wavefunction,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self.axman_wavefunction = axman_wavefunction
@@ -29,10 +32,12 @@ class WavefunctionSimulationAnimator(si.vis.Animator):
 
 
 class RectangleAnimator(WavefunctionSimulationAnimator):
-    def __init__(self,
-                 axman_lower = axes.ElectricPotentialPlotAxis(),
-                 fig_dpi_scale = 1,
-                 **kwargs):
+    def __init__(
+        self,
+        axman_lower = axes.ElectricPotentialPlotAxis(),
+        fig_dpi_scale = 1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self.axman_lower = axman_lower
@@ -53,11 +58,13 @@ class RectangleAnimator(WavefunctionSimulationAnimator):
 
 
 class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
-    def __init__(self,
-                 axman_lower_left = axes.ElectricPotentialPlotAxis(),
-                 axman_lower_right = axes.WavefunctionStackplotAxis(),
-                 fig_dpi_scale = 1,
-                 **kwargs):
+    def __init__(
+        self,
+        axman_lower_left = axes.ElectricPotentialPlotAxis(),
+        axman_lower_right = axes.WavefunctionStackplotAxis(),
+        fig_dpi_scale = 1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self.axman_lower_left = axman_lower_left
@@ -82,15 +89,36 @@ class RectangleSplitLowerAnimator(WavefunctionSimulationAnimator):
         super()._initialize_figure()
 
 
+class SquareAnimator(WavefunctionSimulationAnimator):
+    def __init__(
+        self,
+        fig_dpi_scale = 1,
+        **kwargs,
+    ):
+        super().__init__(**kwargs)
+
+        self.fig_dpi_scale = fig_dpi_scale
+
+    def _initialize_figure(self):
+        self.fig = si.vis.get_figure(fig_width = 12, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
+
+        self.ax_mesh = self.fig.add_axes([.15, .1, .8, .8])
+        self.axman_wavefunction.assign_axis(self.ax_mesh)
+
+        super()._initialize_figure()
+
+
 class PolarAnimator(WavefunctionSimulationAnimator):
-    def __init__(self,
-                 axman_lower_right = axes.ElectricPotentialPlotAxis(),
-                 axman_upper_right = axes.WavefunctionStackplotAxis(),
-                 axman_colorbar = axes.ColorBarAxis(),
-                 fig_dpi_scale = 1,
-                 time_text_unit: u.Unit = 'asec',
-                 time_text_digits = 1,
-                 **kwargs):
+    def __init__(
+        self,
+        axman_lower_right = axes.ElectricPotentialPlotAxis(),
+        axman_upper_right = axes.WavefunctionStackplotAxis(),
+        axman_colorbar = axes.ColorBarAxis(),
+        fig_dpi_scale = 1,
+        time_text_unit: u.Unit = 'asec',
+        time_text_digits = 1,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
 
         self.axman_lower_right = axman_lower_right

@@ -25,13 +25,13 @@ if __name__ == '__main__':
             operators = ion.mesh.SphericalHarmonicLengthGaugeOperators(),
             evolution_method = ion.mesh.SplitInteractionOperator(),
             datastore_types = (
-                ion.mesh.Fields,
-                ion.mesh.Norm,
-                ion.mesh.InnerProducts,
-                ion.mesh.RExpectationValue,
-                ion.mesh.ZExpectationValue,
-                ion.mesh.InternalEnergyExpectationValue,
-                ion.mesh.TotalEnergyExpectationValue,
+                # ion.mesh.Fields,
+                # ion.mesh.Norm,
+                # ion.mesh.InnerProducts,
+                # ion.mesh.RExpectationValue,
+                # ion.mesh.ZExpectationValue,
+                # ion.mesh.InternalEnergyExpectationValue,
+                # ion.mesh.TotalEnergyExpectationValue,
             ),
         ).to_sim()
 
@@ -51,7 +51,7 @@ if __name__ == '__main__':
         logger.info(f'BlockTimer: {timer}')
 
         logger.info(f'Space-Time Points / Runtime (according to Sim): {round(space_time_points / sim.running_time.total_seconds())}')
-        logger.info(f'Space-Time Points / Runtime (according to BlockTimer): {round(space_time_points / timer.proc_time_elapsed)}')
+        logger.info(f'Space-Time Points / Runtime (according to BlockTimer): {round(space_time_points / timer.proc_time_elapsed.total_seconds())}')
 
         logger.info(f'Final Norm: {sim.data.norm[-1]}')
         logger.info(f'Initial State Overlap: {sim.data.initial_state_overlap[-1]}')
