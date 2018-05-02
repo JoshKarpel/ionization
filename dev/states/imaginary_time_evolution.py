@@ -35,7 +35,7 @@ if __name__ == '__main__':
         im_time_steps = [1, 10, 50, 100, 250, 500, 1000, 1500, 2000]
 
         for im_time_step in im_time_steps:
-            sim = ion.SphericalHarmonicSpecification('imag_{}'.format(im_time_step), **spec_kwargs, find_numerical_ground_state = True, imaginary_time_evolution_steps = im_time_step).to_simulation()
+            sim = ion.SphericalHarmonicSpecification('imag_{}'.format(im_time_step), **spec_kwargs, find_numerical_ground_state = True, imaginary_time_evolution_steps = im_time_step).to_sim()
 
             g_discrete = sim.mesh.g_mesh[0, :] / sim.mesh.norm
             g_analytic = sim.spec.initial_state.radial_function(sim.mesh.r) * sim.mesh.r / sim.mesh.norm
@@ -49,7 +49,7 @@ if __name__ == '__main__':
             g_pre = g_discrete
 
             sim.mesh.g_mesh[0, :] = g_discrete
-            sim.run_simulation()
+            sim.run()
 
             g_post = sim.mesh.g_mesh[0, :]
 

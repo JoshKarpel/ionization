@@ -60,12 +60,12 @@ if __name__ == '__main__':
                 ),
         )
 
-        sim = ion.SphericalHarmonicSpecification(f'R={r_bound}_amp={amp}_phase={uround(phase, pi, 3)}pi_tB={t_bound}_tE={t_extra}', **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(f'R={r_bound}_amp={amp}_phase={uround(phase, pi, 3)}pi_tB={t_bound}_tE={t_extra}', **spec_kwargs).to_sim()
 
         OUT_DIR = os.path.join(OUT_DIR, sim.name)
 
         print(sim.info())
-        sim.run_simulation()
+        sim.run()
         sim.save(target_dir = OUT_DIR)
         print(sim.info())
 
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
                 si.vis.xy_plot(f'snapshot_t={uround(snapshot.time, asec, 3)}__free_only__theta=0__log={log}',
                                  wavenumber[0, :], np.abs(ip[0, :]) ** 2,
-                                 x_unit = 'per_nm', x_label = r'Wavenumber $k$',
+                                 x_unit = 'per_nm', x_label = r'Wavenumber $wavenumber$',
                                  y_log_axis = log,
                                  **snapshot_spectrum_kwargs
                                  )

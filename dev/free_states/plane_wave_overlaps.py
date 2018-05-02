@@ -52,9 +52,9 @@ if __name__ == '__main__':
                 store_data_every = -1,
         )
 
-        sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_simulation()
+        sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_sim()
 
-        sim.run_simulation()
+        sim.run()
         print(sim.info())
 
         # sim.mesh.plot_g(target_dir = OUT_DIR)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
             # si.utils.xy_plot('along_theta=0__log={}__wavenumber'.format(log),
             #                  wavenumbers[0],
             #                  np.abs(along_z[0]) ** 2,
-            #                  x_unit = 'per_nm', x_label = 'Wavenumber $k$',
+            #                  x_unit = 'per_nm', x_label = 'Wavenumber $wavenumber$',
             #                  y_log_axis = log,
             #                  target_dir = OUT_DIR)
             #
@@ -134,7 +134,7 @@ if __name__ == '__main__':
             # si.utils.xy_plot('along_theta=0__log={}__wavenumber__at_inf'.format(log),
             #                  wavenumbers[0],
             #                  np.abs(along_z[0]) ** 2,
-            #                  x_unit = 'per_nm', x_label = 'Wavenumber $k$',
+            #                  x_unit = 'per_nm', x_label = 'Wavenumber $wavenumber$',
             #                  y_log_axis = log,
             #                  target_dir = OUT_DIR)
             #

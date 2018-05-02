@@ -37,7 +37,7 @@ if __name__ == '__main__':
         #                                          l_bound = 100,
         #                                          electric_potential = electric,
         #                                          test_states = [ion.HydrogenBoundState(n, l) for n in range(6) for l in range(n)],
-        #                                          mask = mask).to_simulation()
+        #                                          mask = mask).to_sim()
         #
         # sim.run_simulation()
         # sim.info().log()

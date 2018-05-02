@@ -10,10 +10,10 @@ import ionization as ion
 @pytest.mark.parametrize(
     'spec_type',
     [
-        ion.LineSpecification,
-        ion.CylindricalSliceSpecification,
-        ion.SphericalSliceSpecification,
-        ion.SphericalHarmonicSpecification,
+        ion.mesh.LineSpecification,
+        ion.mesh.CylindricalSliceSpecification,
+        ion.mesh.SphericalSliceSpecification,
+        ion.mesh.SphericalHarmonicSpecification,
         ion.ide.IntegroDifferentialEquationSpecification,
     ]
 )
@@ -28,7 +28,7 @@ def test_dc_correct_electric_potential_replaces_given_potential_after_simulation
 
     assert spec.electric_potential is pot
 
-    sim = spec.to_simulation()
+    sim = spec.to_sim()
 
     assert sim.spec.electric_potential is not pot
     assert sim.spec.electric_potential[0] is pot

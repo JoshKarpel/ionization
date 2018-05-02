@@ -34,7 +34,7 @@ if __name__ == '__main__':
                                                             kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha)
                                                             )
 
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.run_simulation()
 

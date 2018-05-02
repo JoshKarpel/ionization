@@ -17,8 +17,8 @@ log = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_
 
 def run(spec):
     with log as logger:
-        sim = spec.to_simulation()
-        sim.run_simulation()
+        sim = spec.to_sim()
+        sim.run()
         sim.info().log()
 
         sim.plot_b2_vs_time(target_dir = OUT_DIR)

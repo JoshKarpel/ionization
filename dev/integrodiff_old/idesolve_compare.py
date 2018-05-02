@@ -63,10 +63,10 @@ def run(solver):
             solver.elapsed_time = timer.wall_time_elapsed
             return solver
         else:
-            sim = solver.to_simulation()
+            sim = solver.to_sim()
 
             logger.debug(sim.info())
-            sim.run_simulation()
+            sim.run()
             logger.debug(sim.info())
 
             # sim.plot_a2_vs_time(**PLOT_KWARGS)

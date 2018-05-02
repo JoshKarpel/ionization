@@ -71,13 +71,13 @@ if __name__ == '__main__':
         # si.vis.xy_plot(
         #     'theta_k_integral',
         #     ks,
-        #     [theta_k_integral(k, 0) for k in ks],
-        #     [theta_k_integral(k, .1 * u.bohr_radius) for k in ks],
-        #     [theta_k_integral(k, .2 * u.bohr_radius) for k in ks],
-        #     [theta_k_integral(k, 1 * u.bohr_radius) for k in ks],
+        #     [theta_k_integral(wavenumber, 0) for wavenumber in ks],
+        #     [theta_k_integral(wavenumber, .1 * u.bohr_radius) for wavenumber in ks],
+        #     [theta_k_integral(wavenumber, .2 * u.bohr_radius) for wavenumber in ks],
+        #     [theta_k_integral(wavenumber, 1 * u.bohr_radius) for wavenumber in ks],
         #     line_labels = ['0', '.1', '.2', '1'],
         #     x_unit = 'per_bohr_radius',
-        #     x_label = 'k',
+        #     x_label = 'wavenumber',
         #     **PLOT_KWARGS,
         # )
         #

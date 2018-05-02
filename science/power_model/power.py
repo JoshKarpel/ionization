@@ -332,7 +332,7 @@ if __name__ == '__main__':
             ion.potentials.SincPulse(pulse_width = 20 * u.asec, fluence = 2 * u.Jcm2, phase = u.pi / 2),
             # ion.potentials.SincPulse(phase = u.pi / 3),
         ]
-        window = ion.potentials.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time = 30 * pulses[0].pulse_width,
             window_width = .2 * pulses[0].pulse_width,
         )

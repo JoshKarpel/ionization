@@ -5,7 +5,7 @@ import hypothesis.strategies as st
 import numpy as np
 from scipy import sparse
 
-import ionization as ion
+import ionization.cy as cy
 
 from . import testutils
 
@@ -24,7 +24,7 @@ def test_tdma_agrees_with_solution_via_inverse(n):
     dia = sparse.diags([a, b, c], offsets = [-1, 0, 1])
 
     inv_x = np.linalg.inv(dia.toarray()).dot(d)
-    tdma_x = ion.tdma(dia, d)
+    tdma_x = cy.tdma(dia, d)
 
     np.testing.assert_allclose(dia.dot(inv_x), d)  # naive result is actually a solution
     np.testing.assert_allclose(tdma_x, inv_x)  # get same result as naive method

@@ -10,22 +10,26 @@ import sympy as sym
 import simulacra as si
 import simulacra.units as u
 
-from .. import states
+from .. import states, utils
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
 class Kernel(ABC):
+    """
+    An abstract class that represents an IDE model kernel.
+    """
+
     @abstractmethod
     def __call__(self, current_time, previous_time, electric_potential, vector_potential):
         """
         Parameters
         ----------
         current_time
-            The current time (i.e., t).
+            The current time (i.e., :math:`t`).
         previous_time
-            The previous time (i.e., t').
+            The previous time (i.e., :math:`t'`).
         electric_potential
             The electric potential used in the simulation.
         vector_potential
@@ -33,18 +37,23 @@ class Kernel(ABC):
 
         Returns
         -------
-            The value of the kernel K(t, t'; E, A)
+            The value of the kernel :math:`K(t, t'; E, A)`.
         """
         raise NotImplementedError
 
-    def info(self):
-        info = si.Info(header = f'Kernel: {self.__class__.__name__}')
+    def __repr__(self):
+        return utils.fmt_fields(self)
+
+    def info(self) -> si.Info:
+        info = si.Info(header = self.__class__.__name__)
 
         return info
 
 
 class LengthGaugeHydrogenKernel(Kernel):
-    """The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge."""
+    """
+    The kernel for the hydrogen ground state with spherical Bessel functions, with no continuum-continuum coupling, in the length gauge.
+    """
 
     def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):
         self.bound_state_energy = bound_state_energy
@@ -56,9 +65,22 @@ class LengthGaugeHydrogenKernel(Kernel):
     def __call__(self, time_current, time_previous, electric_potential, vector_potential):
         time_difference = time_current - time_previous
 
-        return self._evaluate_kernel_function(time_difference)
+        return self.evaluate_kernel_function(time_difference)
 
-    def _evaluate_kernel_function(self, time_difference):
+    def evaluate_kernel_function(self, time_difference: float) -> float:
+        """
+        Evaluate the approximate kernel function at a time different or over some array of time differences.
+
+        Parameters
+        ----------
+        time_difference
+            The time difference :math:`t-t'`.
+
+        Returns
+        -------
+        kernel
+            The value of the approximate kernel function at the given time difference.
+        """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             kernel = self.kernel_prefactor * np.exp(1j * self.omega_bound * time_difference) * self.kernel_function(time_difference)
@@ -75,7 +97,8 @@ class LengthGaugeHydrogenKernel(Kernel):
     @property
     @si.utils.memoize
     def kernel_function(self):
-        k = sym.Symbol('k', real = True)
+        """The approximate kernel function :math:`K(t - t')`."""
+        k = sym.Symbol('wavenumber', real = True)
         td = sym.Symbol('td', real = True, positive = True)
         a = sym.Symbol('a', real = True, positive = True)
         m = sym.Symbol('m', real = True, positive = True)
@@ -99,7 +122,10 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         return kernel_func
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(self, 'bound_state_energy')
+
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Bound State Energy', f'{u.uround(self.bound_state_energy, u.eV)} eV | {u.uround(self.bound_state_energy, u.hartree)} hartree')
@@ -107,10 +133,10 @@ class LengthGaugeHydrogenKernel(Kernel):
         return info
 
 
-class ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
+class LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(LengthGaugeHydrogenKernel):
     """
     The kernel for the hydrogen ground state with plane wave continuum states.
-    This version adds an approximation of the continuum-continuum interaction, including only the A^2 phase factor.
+    This version adds an approximation of the continuum-continuum interaction, including only the :math:`\\mathcal{A}^2` phase factor.
     """
 
     def __init__(self, bound_state_energy = states.HydrogenBoundState(1).energy):

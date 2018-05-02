@@ -14,7 +14,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 
 def run(spec):
-    sim = spec.to_simulation()
+    sim = spec.to_sim()
 
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_dir = OUT_DIR, file_name = sim.name, file_level = logging.INFO, file_mode = 'w') as logger:
@@ -23,27 +23,27 @@ def run(spec):
 
         si.vis.xy_plot(sim.name + '__fft_pre_k',
                          sim.mesh.wavenumbers / twopi, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
-                         x_unit = 'per_nm', x_label = r'Wavenumber $k = \frac{1}{\lambda}$',
+                         x_unit = 'per_nm', x_label = r'Wavenumber $wavenumber = \frac{1}{\lambda}$',
                          target_dir = OUT_DIR)
 
         si.vis.xy_plot(sim.name + '__fft_pre_E',
                          sim.mesh.energies, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
-                         x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
+                         x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 wavenumber^2}{2\mu}$',
                          target_dir = OUT_DIR)
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         # sim.save(target_dir = OUT_DIR)
         sim.info().log()
 
         si.vis.xy_plot(sim.name + '__fft_post_k',
                          sim.mesh.wavenumbers / twopi, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
-                         x_unit = 'per_nm', x_label = r'Wavenumber $k = \frac{1}{\lambda}$',
+                         x_unit = 'per_nm', x_label = r'Wavenumber $wavenumber = \frac{1}{\lambda}$',
                          target_dir = OUT_DIR)
 
         si.vis.xy_plot(sim.name + '__fft_post_E',
                          sim.mesh.energies, np.abs(sim.mesh.fft(sim.mesh.g_mesh)) ** 2,
-                         x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 k^2}{2\mu}$',
+                         x_unit = 'eV', x_label = r'Energy $E = \frac{\hbar^2 wavenumber^2}{2\mu}$',
                          target_dir = OUT_DIR)
 
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, time_unit = 'asec')

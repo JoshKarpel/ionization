@@ -69,11 +69,11 @@ if __name__ == '__main__':
             # logger.info('Generating Simulations...')
             sims = []
             for spec in specs:
-                sims.append(spec.to_simulation())
+                sims.append(spec.to_sim())
 
             # logger.info('Running Simulations...')
             for sim in sims:
-                sim.run_simulation()
+                sim.run()
 
             for log in [True, False]:
                 if log:

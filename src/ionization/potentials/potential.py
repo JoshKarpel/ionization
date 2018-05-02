@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class PotentialEnergy(si.Summand):
+class PotentialEnergy(si.summables.Summand):
     """A class representing some kind of potential energy. Can be summed to form a PotentialEnergySum."""
 
     def __init__(self, *args, **kwargs):
@@ -18,7 +18,7 @@ class PotentialEnergy(si.Summand):
         self.summation_class = PotentialEnergySum
 
 
-class PotentialEnergySum(si.Sum, PotentialEnergy):
+class PotentialEnergySum(si.summables.Sum, PotentialEnergy):
     """A class representing a combination of potential energies."""
 
     container_name = 'potentials'
@@ -52,6 +52,6 @@ class PotentialEnergySum(si.Sum, PotentialEnergy):
 class NoPotentialEnergy(PotentialEnergy):
     """A class representing no potential energy from any source."""
 
-    def __call__(self, *args, **kwargs):
+    def __call__(self, r, *args, **kwargs):
         """Return 0 for any arguments."""
-        return 0
+        return np.zeros_like(r)

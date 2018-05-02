@@ -26,10 +26,10 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO)
 
-pgf_with_latex = {  # setup matplotlib to use latex for output
+pgf_with_latex = {  # setup matplotlib to use tex for output
     "pgf.texsystem": "pdflatex",  # change this if using xetex or lautex
     "text.usetex": True,  # use LaTeX to write all text
-    "text.latex.unicode": True,
+    "text.tex.unicode": True,
     "font.family": "serif",
     "font.serif": [],  # blank entries should cause plots to inherit fonts from the document
     "font.sans-serif": [],
@@ -108,8 +108,8 @@ FAST_SIM_OPTIONS = dict(
 
 
 def run(spec):
-    sim = spec.to_simulation()
-    sim.run_simulation()
+    sim = spec.to_sim()
+    sim.run()
     return sim
 
 
@@ -127,8 +127,8 @@ def title_bg():
         z_points = 40 * 10 * 2,
         rho_points = 40 * 10,
         **FAST_SIM_OPTIONS,
-    ).to_simulation()
-    sim.run_simulation(progress_bar = True)
+    ).to_sim()
+    sim.run(progress_bar = True)
 
     sim.mesh.plot_g(
         plot_limit = 25 * bohr_radius,
@@ -172,8 +172,8 @@ def spherical_harmonic_mesh():
         r_bound = 60 * bohr_radius,
         l_bound = 40,
         **FAST_SIM_OPTIONS,
-    ).to_simulation()
-    sim.run_simulation(progress_bar = True)
+    ).to_sim()
+    sim.run(progress_bar = True)
 
     sim.mesh.plot_g_repr(
         plot_limit = 25 * bohr_radius,

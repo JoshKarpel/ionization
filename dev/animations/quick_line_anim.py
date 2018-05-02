@@ -12,7 +12,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 # def make_movie(spec):
 #     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
 #                              file_logs = True, file_name = spec.name, file_dir = OUT_DIR, file_mode = 'w', file_level = logging.DEBUG) as logger:
-#         sim = spec.to_simulation()
+#         sim = spec.to_sim()
 #
 #         sim.info().log()
 #         sim.run_simulation()
@@ -59,8 +59,8 @@ if __name__ == '__main__':
                                     initial_state = ion.QHOState.from_potential(pot, mass = electron_mass),
                                     test_states = (ion.QHOState.from_potential(pot, mass = electron_mass, n = n) for n in range(50)),
                                     electric_potential = ion.Rectangle(start_time = 100 * asec, end_time = 150 * asec, amplitude = .1 * atomic_electric_field),
-                                    animators = animators).to_simulation()
+                                    animators = animators).to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()

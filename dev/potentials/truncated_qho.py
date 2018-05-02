@@ -57,7 +57,7 @@ if __name__ == '__main__':
                                     initial_state = init,
                                     time_initial = 0, time_final = efield.period_carrier * 10, time_step = 10 * asec,
                                     animators = animators,
-                                    ).to_simulation()
+                                    ).to_sim()
 
         sim.info().log()
 
@@ -82,7 +82,7 @@ if __name__ == '__main__':
         #         **PLOT_KWARGS,
         #     )
 
-        sim.run_simulation(progress_bar = True)
+        sim.run(progress_bar = True)
 
         sim.plot_state_overlaps_vs_time(time_unit = 'fsec', show_vector_potential = False, **PLOT_KWARGS)
 

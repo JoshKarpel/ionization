@@ -16,7 +16,7 @@ if __name__ == '__main__':
         # free_state = ion.Superposition(*(ion.FreeSphericalWave(energy = e * eV, l = 1) for e in np.linspace(1, 20, 100)))
         # free_state = ion.HydrogenCoulombState(energy = 1 * eV, l = 0)
         free_state = ion.HydrogenCoulombState(energy = .000 * rydberg, l = 0)
-        # free_state = ion.HydrogenCoulombState.from_wavenumber(k = 10 / nm)
+        # free_state = ion.HydrogenCoulombState.from_wavenumber(wavenumber = 10 / nm)
 
         # r = np.linspace(.01 * bohr_radius, 200 * bohr_radius, 1e4)
         # r = np.linspace(.01 * bohr_radius, 50 * bohr_radius, 1e4) + 5000 * bohr_radius
@@ -76,6 +76,6 @@ if __name__ == '__main__':
         #                                              r_bound = 100 * bohr_radius, r_points = 100 * 4, l_bound = 50,
         #                                              internal_potential = ion.NoPotentialEnergy(),
         #                                              initial_state = ion.HydrogenCoulombState(energy = 50 * eV, l = l),
-        #                                              ).to_simulation()
+        #                                              ).to_sim()
         #     print(repr(sim.spec.initial_state))
         #     sim.mesh.plot_g(target_dir = OUT_DIR)

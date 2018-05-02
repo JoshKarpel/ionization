@@ -88,10 +88,10 @@ if __name__ == '__main__':
                                                  initial_state = initial_state,
                                                  test_states = test_states,
                                                  mask = mask,
-                                                 ).to_simulation()
+                                                 ).to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)

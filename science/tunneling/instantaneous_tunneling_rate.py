@@ -109,10 +109,10 @@ if __name__ == '__main__':
             numeric_eigenstate_max_angular_momentum = 10,
             mask = ion.RadialCosineMask(inner_radius = .8 * r_bound * bohr_radius, outer_radius = r_bound * bohr_radius),
             store_data_every = 50,
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
-        sim.run_simulation(progress_bar = True)
+        sim.run(progress_bar = True)
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(

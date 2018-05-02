@@ -21,10 +21,10 @@ PLOT_KWARGS = dict(
 
 def run_spec(spec):
     with LOGMAN as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(show_vector_potential = False, **PLOT_KWARGS)
@@ -83,7 +83,7 @@ if __name__ == '__main__':
                 electric_potential = cosine_pulse,
                 **shared_kwargs,
             )
-        # cosine_sim = specs[0].clone().to_simulation()
+        # cosine_sim = specs[0].clone().to_sim()
         times = cosine_sim.times
 
         print(specs)

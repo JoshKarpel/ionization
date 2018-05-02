@@ -21,7 +21,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 
 log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO)
 
-pgf_with_latex = {  # setup matplotlib to use latex for output
+pgf_with_latex = {  # setup matplotlib to use tex for output
     "pgf.texsystem": "pdflatex",  # change this if using xetex or lautex
     "text.usetex": True,  # use LaTeX to write all text
     "font.family": "serif",
@@ -45,8 +45,8 @@ import matplotlib.pyplot as plt
 
 
 def run(spec):
-    sim = spec.to_simulation()
-    sim.run_simulation()
+    sim = spec.to_sim()
+    sim.run()
     return sim
 
 

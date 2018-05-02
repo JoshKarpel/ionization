@@ -1,14 +1,16 @@
 import logging
 import collections
+from typing import Union
 
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy.interpolate as interp
 
 import simulacra as si
 import simulacra.units as u
 
-from .. import core, potentials, states
+from .. import core, potentials, states, vis
 
 from . import kernels
 
@@ -36,7 +38,7 @@ class DeltaKicks(potentials.PotentialEnergy):
     def __call__(self, *args, **kwargs):
         raise ValueError('DeltaKicks potential cannot be evaluated')
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info.add_field('Number of Kicks', len(self))
@@ -45,7 +47,25 @@ class DeltaKicks(potentials.PotentialEnergy):
         return info
 
 
-def decompose_potential_into_kicks(electric_potential, times):
+def decompose_potential_into_kicks(
+    electric_potential: potentials.ElectricPotential,
+    times: np.array,
+) -> DeltaKicks:
+    """
+    Decomposes an electric potential into a series of delta-function kicks.
+
+    Parameters
+    ----------
+    electric_potential
+        The electric potentials to decompose.
+    times
+        The times to consider when performing the decomposition.
+
+    Returns
+    -------
+    delta_kicks
+        The decomposed electric potential.
+    """
     efield_vs_time = electric_potential.get_electric_field_amplitude(times)
     signs = np.sign(efield_vs_time)
 
@@ -75,6 +95,19 @@ def decompose_potential_into_kicks(electric_potential, times):
 
 
 class DeltaKickSimulation(si.Simulation):
+    """
+    A :class:`simulacra.Simulation` that implements the delta-kick model.
+
+    Attributes
+    ----------
+    data_times
+        The times that the simulation calculated data for.
+    b
+        The probability amplitude of the bound state at the ``data_times``.
+    b2
+        The absolute value squared of the probability amplitude of the bound state.
+    """
+
     def __init__(self, spec):
         super().__init__(spec)
 
@@ -84,11 +117,10 @@ class DeltaKickSimulation(si.Simulation):
         self.time_step = self.spec.time_step
 
         if self.spec.electric_potential_dc_correction and not isinstance(self.spec.electric_potential, DeltaKicks):
-            dummy_times = np.linspace(self.spec.time_initial, self.spec.time_final, self.times)
             old_pot = self.spec.electric_potential
-            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
+            self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, self.times)
 
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+            logger.warning(f'Replaced electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
         if not isinstance(self.spec.electric_potential, DeltaKicks):
             self.spec.kicks = decompose_potential_into_kicks(self.spec.electric_potential, self.times)
@@ -98,7 +130,7 @@ class DeltaKickSimulation(si.Simulation):
         self.data_times = np.array([self.spec.time_initial] + [k.time for k in self.spec.kicks] + [self.spec.time_final])  # for consistency with other simulations
 
         self.b = np.empty(len(self.spec.kicks) + 2, dtype = np.complex128) * np.NaN
-        self.b[0] = 1
+        self.b[0] = self.spec.b_initial
 
     @property
     def time_steps(self):
@@ -112,44 +144,40 @@ class DeltaKickSimulation(si.Simulation):
     def b2(self):
         return np.abs(self.b) ** 2
 
-    def eval_kernel(self, time_difference):
+    def evaluate_kernel(self, time_current, time_previous):
         """
         Calculate the values of the IDE kernel as a function of the time difference.
 
         Parameters
         ----------
-        time_difference
-            The time differences to evaluate the kernel at.
-        quiver_difference
-            The quiver motion differences to evaluate the kernel at. Only used for velocity-gauge kernels.
+        time_current
+        time_previous
 
         Returns
         -------
         kernel :
             The value of the kernel at the time differences.
         """
-        return self.spec.kernel(time_difference, **self.spec.kernel_kwargs)
+        return self.spec.kernel(
+            time_current,
+            time_previous,
+            self.spec.electric_potential,
+            None,  # no vector potential, will make some kernels explode
+        )
 
     def _solve(self):
         amplitudes = np.array([kick.amplitude for kick in self.spec.kicks])
-        k0 = self.eval_kernel(0)
+        k0 = self.evaluate_kernel(0, 0)
 
-        t_idx = 1
-        for kick in self.spec.kicks:
-            eta = kick.amplitude
-            print(eta, amplitudes[:t_idx])
-            print((self.data_times[t_idx] - self.data_times[1:t_idx + 1]) / u.asec)
-            print(self.b[:t_idx])
-            history_sum = (self.spec.integral_prefactor * eta) * np.sum(amplitudes[:t_idx - 1] * self.eval_kernel(self.data_times[t_idx] - self.data_times[1:t_idx]) * self.b[1:t_idx])
-            self.b[t_idx] = (self.b[t_idx - 1] + history_sum) / (1 - (self.spec.integral_prefactor * k0 * (eta ** 2)))
-            t_idx += 1
+        for t_idx, kick in enumerate(self.spec.kicks, start = 1):
+            history_sum = (self.spec.integral_prefactor * kick.amplitude) * np.sum(amplitudes[:t_idx - 1] * self.evaluate_kernel(self.data_times[t_idx], self.data_times[1:t_idx]) * self.b[1:t_idx])
+            self.b[t_idx] = (self.b[t_idx - 1] + history_sum) / (1 - (self.spec.integral_prefactor * k0 * (kick.amplitude ** 2)))
 
         self.b[-1] = self.b[-2]
 
-    def run_simulation(self, callback = None):
+    def run(self, callback = None):
         """
         Run the simulation by repeatedly evolving it forward in time.
-
 
         Parameters
         ----------
@@ -167,53 +195,42 @@ class DeltaKickSimulation(si.Simulation):
         self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
 
-    def attach_electric_potential_plot_to_axis(self,
-                                               axis,
-                                               time_unit = 'asec',
-                                               legend_kwargs = None,
-                                               show_y_label = False,
-                                               show_electric_field = True,
-                                               show_vector_potential = True,
-                                               overlay_kicks = True):
+    def attach_electric_potential_plot_to_axis(
+        self,
+        axis,
+        time_unit = 'asec',
+        show_electric_field = True,
+        overlay_kicks = True):
         time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(time_unit)
 
-        if legend_kwargs is None:
-            legend_kwargs = dict()
-        legend_defaults = dict(
-            loc = 'lower left',
-            fontsize = 10,
-            fancybox = True,
-            framealpha = .3,
-        )
-        legend_kwargs = {**legend_defaults, **legend_kwargs}
+        if show_electric_field and not isinstance(self.spec.electric_potential, DeltaKicks):
+            axis.plot(
+                self.times / time_unit_value,
+                self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
+                color = vis.COLOR_EFIELD,
+                linewidth = 1.5,
+            )
 
-        y_labels = []
-        if show_electric_field:
-            e_label = fr'$ {core.LATEX_EFIELD}(t) $'
-            axis.plot(self.times / time_unit_value, self.spec.electric_potential.get_electric_field_amplitude(self.times) / u.atomic_electric_field,
-                      color = core.COLOR_ELECTRIC_FIELD,
-                      linewidth = 1.5,
-                      label = e_label)
-            y_labels.append(e_label)
-        if show_vector_potential:
-            a_label = fr'$ e \, {core.LATEX_AFIELD}(t) $'
-            axis.plot(self.times / time_unit_value, u.proton_charge * self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(self.times) / u.atomic_momentum,
-                      color = core.COLOR_VECTOR_POTENTIAL,
-                      linewidth = 1.5,
-                      label = a_label)
-            y_labels.append(a_label)
+            if overlay_kicks:
+                for kick in self.spec.kicks:
+                    axis.plot(
+                        [kick.time / time_unit_value, kick.time / time_unit_value],
+                        [0, self.spec.electric_potential.get_electric_field_amplitude(kick.time) / u.atomic_electric_field],
+                        linewidth = 1.5,
+                        color = si.vis.PINK,
+                    )
 
-        if show_y_label:
-            axis.set_ylabel(', '.join(y_labels), fontsize = 13)
-
-        if overlay_kicks:
+            axis.set_ylabel(rf'$ {vis.LATEX_EFIELD}(t) $')
+        else:
             for kick in self.spec.kicks:
                 axis.plot(
                     [kick.time / time_unit_value, kick.time / time_unit_value],
-                    [0, self.spec.electric_potential.get_electric_field_amplitude(kick.time) / u.atomic_electric_field],
-                    color = 'C2',
+                    [0, kick.amplitude / (u.atomic_electric_field * u.atomic_time)],
                     linewidth = 1.5,
+                    color = si.vis.PINK,
                 )
+
+            axis.set_ylabel(r'$ \eta $')
 
         axis.set_xlabel('Time $t$ (${}$)'.format(time_unit_latex), fontsize = 13)
 
@@ -221,22 +238,22 @@ class DeltaKickSimulation(si.Simulation):
 
         axis.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
 
-        axis.legend(**legend_kwargs)
-
         axis.grid(True, **si.vis.GRID_KWARGS)
 
     def plot_wavefunction_vs_time(self, *args, **kwargs):
         """Alias for plot_a2_vs_time."""
         self.plot_b2_vs_time(*args, **kwargs)
 
-    def plot_b2_vs_time(self,
-                        log = False,
-                        time_unit = 'asec',
-                        show_vector_potential = False,
-                        show_title = False,
-                        y_lower_limit = 0,
-                        y_upper_limit = 1,
-                        **kwargs):
+    def plot_b2_vs_time(
+        self,
+        log = False,
+        show_electric_field = True,
+        overlay_kicks = True,
+        time_unit = 'asec',
+        show_title = False,
+        y_lower_limit = 0,
+        y_upper_limit = 1,
+        **kwargs):
         with si.vis.FigureManager(self.file_name + '__b2_vs_time', **kwargs) as figman:
             fig = figman.fig
 
@@ -248,17 +265,22 @@ class DeltaKickSimulation(si.Simulation):
 
             self.attach_electric_potential_plot_to_axis(
                 ax_pot,
-                show_vector_potential = show_vector_potential,
-                time_unit = time_unit
+                show_electric_field = show_electric_field,
+                overlay_kicks = overlay_kicks,
+                time_unit = time_unit,
             )
 
-            ax_b.plot(self.data_times / t_scale_unit,
-                      self.b2,
-                      marker = 'o',
-                      markersize = 2,
-                      linestyle = ':',
-                      color = 'black',
-                      linewidth = 1)
+            # the repeats produce the stair-step pattern
+            ax_b.plot(
+                np.repeat(self.data_times, 2)[1:-1] / t_scale_unit,
+                np.repeat(self.b2, 2)[:-2],
+                marker = 'o',
+                markersize = 2,
+                markevery = 2,
+                linestyle = ':',
+                color = 'black',
+                linewidth = 1,
+            )
 
             if log:
                 ax_b.set_yscale('log')
@@ -288,22 +310,26 @@ class DeltaKickSimulation(si.Simulation):
             ax_pot.tick_params(axis = 'y', which = 'major', labelsize = 10)
             ax_b.tick_params(axis = 'both', which = 'major', labelsize = 10)
 
-            ax_b.tick_params(labelleft = True,
-                             labelright = True,
-                             labeltop = True,
-                             labelbottom = False,
-                             bottom = True,
-                             top = True,
-                             left = True,
-                             right = True)
-            ax_pot.tick_params(labelleft = True,
-                               labelright = True,
-                               labeltop = False,
-                               labelbottom = True,
-                               bottom = True,
-                               top = True,
-                               left = True,
-                               right = True)
+            ax_b.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = True,
+                labelbottom = False,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True,
+            )
+            ax_pot.tick_params(
+                labelleft = True,
+                labelright = True,
+                labeltop = False,
+                labelbottom = True,
+                bottom = True,
+                top = True,
+                left = True,
+                right = True,
+            )
 
             if show_title:
                 title = ax_b.set_title(self.name)
@@ -315,10 +341,10 @@ class DeltaKickSimulation(si.Simulation):
 
             figman.name += postfix
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_infos(self.spec)
+        info.add_info(self.spec.info())
 
         return info
 
@@ -329,70 +355,52 @@ class DeltaKickSpecification(si.Specification):
     """
     simulation_type = DeltaKickSimulation
 
-    integration_method = si.utils.RestrictedValues(['simpson', 'trapezoid'])
-    pulse_decomposition_strategy = si.utils.RestrictedValues(['amplitude', 'fluence'])
-
-    def __init__(self, name,
-                 time_initial = 0 * u.asec, time_final = 200 * u.asec, time_step = 1 * u.asec,
-                 test_mass = u.electron_mass,
-                 test_charge = u.electron_charge,
-                 test_energy = states.HydrogenBoundState(1, 0).energy,
-                 b_initial = 1,
-                 integral_prefactor = -(u.electron_charge / u.hbar) ** 2,
-                 electric_potential = potentials.NoElectricPotential(),
-                 electric_potential_dc_correction = False,
-                 kernel = kernels.LengthGaugeHydrogenKernel(),
-                 evolution_gauge = 'LEN',
-                 **kwargs):
+    def __init__(
+        self,
+        name,
+        time_initial = 0 * u.asec,
+        time_final = 200 * u.asec,
+        time_step = 1 * u.asec,
+        test_mass: float = u.electron_mass,
+        test_charge: float = u.electron_charge,
+        b_initial: Union[float, complex] = 1,
+        integral_prefactor: float = -(u.electron_charge / u.hbar) ** 2,
+        electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
+        electric_potential_dc_correction: bool = True,
+        kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),
+        evolution_gauge: core.Gauge = core.Gauge.LENGTH,
+        **kwargs,
+    ):
         """
-        The differential equation should be of the form
-        da/dt = prefactor * f(t) * integral[ f(t') * a(t') * kernel(t - t', ...)
 
         Parameters
         ----------
-        name : :class:`str`
-            The name for the simulation.
-        time_initial : :class:`float`
-            The initial time.
-        time_final : :class:`float`
-            The final time.
-        time_step : :class:`float`
-            The time step to use in the evolution algorithm. For adaptive algorithms, this sets the initial time step.
-        test_mass : :class:`float`
+        name
+            The name of the specification/simulation.
+        time_initial
+            The time to begin the simulation at.
+        time_final
+            The time to end the simulation at.
+        time_step
+            The amount of time to evolve by on each evolution step.
+        test_mass
             The mass of the test particle.
-        test_charge : :class:`float`
+        test_charge
             The charge of the test particle.
         b_initial
-            The initial value of a, the bound state probability amplitude.
+            The initial bound state amplitude.
         integral_prefactor
-            The overall prefactor of the IDE.
+            The prefactor of the integral term of the IDE.
         electric_potential
-            The electric potential that provides ``f`` (either as the electric field or the vector potential).
+            The possibly-time varying external electric field.
         electric_potential_dc_correction
-            If True, DC correction is performed on the electric field.
+            If ``True``, perform DC correction on the ``electric_potential``.
         kernel
-            The kernel function of the IDE.
-        integration_method : {``'trapz'``, ``'simps'``}
-            Which integration method to use, when applicable.
-        evolution_method
-            Which evolution algorithm/method to use.
-        evolution_gauge : {``'LEN'``, ``'VEL'``}
-            Which gauge to perform time evolution in.
-        checkpoints
-        checkpoint_every
-        checkpoint_dir
-        store_data_every
-        time_step_minimum : :class:`float`
-            The minimum time step that can be used by an adaptive algorithm.
-        time_step_maximum : :class:`float`
-            the maximum time step that can be used by an adaptive algorithm.
-        epsilon : :class:`float`
-            The acceptable fractional error in the quantity specified by `error_on`.
-        error_on : {``'a'``, ``'da/dt'``}
-            Which quantity to control the fractional error in.
-        safety_factor : :class:`float`
-            The safety factor that new time steps are multiplicatively fudged by.
+            The :class:`Kernel` to use for the simulation.
+        evolution_gauge
+            The :class:`Gauge` to work in.
         kwargs
+            Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
         """
         super().__init__(name, **kwargs)
 
@@ -402,7 +410,6 @@ class DeltaKickSpecification(si.Specification):
 
         self.test_mass = test_mass
         self.test_charge = test_charge
-        self.test_energy = test_energy
 
         self.b_initial = b_initial
 
@@ -423,7 +430,7 @@ class DeltaKickSpecification(si.Specification):
     def test_frequency(self):
         return self.test_omega / u.twopi
 
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
         info_evolution = si.Info(header = 'Time Evolution')

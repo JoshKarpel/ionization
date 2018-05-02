@@ -52,7 +52,7 @@ if __name__ == '__main__':
                     target_dir = OUT_DIR
                 )
             ],
-        ).to_simulation()
+        ).to_sim()
 
         sim.info().log()
 
@@ -89,6 +89,6 @@ if __name__ == '__main__':
         # for state in sim.spec.test_states:
         #     print(f'n={state}: {uround(state.energy, eV)}')
 
-        sim.run_simulation()
+        sim.run()
 
         sim.info().log()

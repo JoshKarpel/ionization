@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import core, ide, jobutils
+from . import core, mesh, ide, jobutils
 
 import matplotlib.pyplot as plt
 
@@ -441,7 +441,7 @@ class PulseJobProcessor(PulseParameterScanMixin, clu.JobProcessor):
 
 
 class MeshJobProcessor(PulseJobProcessor):
-    simulation_type = core.ElectricFieldSimulation
+    simulation_type = mesh.MeshSimulation
     simulation_result_type = MeshSimulationResult
 
     ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']

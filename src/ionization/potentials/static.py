@@ -1,55 +1,70 @@
+from typing import Optional
+
 import numpy as np
 
 import simulacra as si
 import simulacra.units as u
 
+from .. import utils
 from . import potential
 
 
-class Coulomb(potential.PotentialEnergy):
-    """A class representing the electric potential energy caused by the Coulomb potential."""
+class CoulombPotential(potential.PotentialEnergy):
+    """The electric potential energy caused by the Coulomb potential."""
 
-    def __init__(self, charge = 1 * u.proton_charge):
+    def __init__(self, charge: float = 1 * u.proton_charge):
         """
-        Construct a Coulomb from a charge.
-
-        :param charge: the charge of the particle providing the potential
+        Parameters
+        ----------
+        charge
+            The charge creating the Coulomb potential.
         """
         super().__init__()
 
         self.charge = charge
 
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge')
-
     def __call__(self, *, r, test_charge, **kwargs):
         """
-        Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
 
-        Accepts only keyword arguments.
-
-        :param r: the radial distance coordinate
-        :param test_charge: the test charge
-        :param kwargs: absorbs any other keyword arguments
-        :return:
+        Parameters
+        ----------
+        r
+            Distance to the charge from the test particle.
+        test_charge
+            The charge of the test particle.
+        kwargs
+            Ignores additional keyword arguments.
         """
         return u.coulomb_constant * self.charge * test_charge / r
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'charge',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('charge', 'proton_charge'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Charge', f'{u.uround(self.charge, u.proton_charge, 3)} e')
+        info.add_field('Charge', utils.fmt_quantity(self.charge, utils.CHARGE_UNITS))
 
         return info
 
 
-class SoftCoulomb(potential.PotentialEnergy):
+class SoftCoulombPotential(potential.PotentialEnergy):
     """A class representing the electric potential energy caused by the softened Coulomb potential."""
 
-    def __init__(self, charge = 1 * u.proton_charge, softening_distance = .05 * u.bohr_radius):
+    def __init__(
+        self,
+        charge: float = 1 * u.proton_charge,
+        softening_distance: float = .05 * u.bohr_radius,
+    ):
         """
         Parameters
         ----------
@@ -63,36 +78,38 @@ class SoftCoulomb(potential.PotentialEnergy):
         self.charge = charge
         self.softening_distance = softening_distance
 
-    def __str__(self):
-        return si.utils.field_str(self, ('charge', 'proton_charge'), ('softening_distance', 'bohr_radius'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'charge', 'softening_distance')
-
     def __call__(self, *, r, test_charge, **kwargs):
         """
-        Return the Coulomb potential energy evaluated at radial distance r for charge test_charge.
-
-        Accepts only keyword arguments.
-
         Parameters
         ----------
         r
-            The position of the test particle.
+            Distance to the charge from the test particle.
         test_charge
             The charge of the test particle.
         kwargs
-
-        Returns
-        -------
+            Ignores additional keyword arguments.
         """
         return u.coulomb_constant * self.charge * test_charge / np.sqrt((r ** 2) + (self.softening_distance ** 2))
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'charge',
+            'softening_distance',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('charge', 'proton_charge'),
+            ('softening_distance', 'bohr_radius'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Charge', f'{u.uround(self.charge, u.proton_charge)} e')
-        info.add_field('Softening Distance', f'{u.uround(self.softening_distance, u.bohr_radius)} a_0')
+        info.add_field('Charge', utils.fmt_quantity(self.charge, utils.LENGTH_UNITS))
+        info.add_field('Softening Distance', utils.fmt_quantity(self.softening_distance, utils.LENGTH_UNITS))
 
         return info
 
@@ -100,8 +117,22 @@ class SoftCoulomb(potential.PotentialEnergy):
 class HarmonicOscillator(potential.PotentialEnergy):
     """A PotentialEnergy representing the potential energy of a harmonic oscillator."""
 
-    def __init__(self, spring_constant = 4.20521 * u.N / u.m, center = 0 * u.nm, cutoff_distance = None):
-        """Construct a HarmonicOscillator object with the given spring constant and center position."""
+    def __init__(
+        self,
+        spring_constant: float = 4.20521 * u.N / u.m,
+        center: float = 0 * u.nm,
+        cutoff_distance: Optional[float] = None,
+    ):
+        """
+        Parameters
+        ----------
+        spring_constant
+            The spring constant of the harmonic oscillator.
+        center
+            The position of the center of the potential (the equilibrium position).
+        cutoff_distance
+            The distance at which the potential stops acting.
+        """
         self.spring_constant = spring_constant
         self.center = center
 
@@ -110,77 +141,165 @@ class HarmonicOscillator(potential.PotentialEnergy):
         super().__init__()
 
     @classmethod
-    def from_frequency_and_mass(cls, omega = 1.5192675e15 * u.Hz, mass = u.electron_mass, **kwargs):
-        """Return a HarmonicOscillator constructed from the given angular frequency and mass."""
+    def from_frequency_and_mass(
+        cls,
+        omega: float = 1.5192675e15 * u.Hz,
+        mass: float = u.electron_mass,
+        **kwargs,
+    ) -> 'HarmonicOscillator':
+        """
+        Parameters
+        ----------
+        omega
+        mass
+        kwargs
+        """
         return cls(spring_constant = mass * (omega ** 2), **kwargs)
 
     @classmethod
-    def from_ground_state_energy_and_mass(cls, ground_state_energy = 0.5 * u.eV, mass = u.electron_mass, **kwargs):
+    def from_ground_state_energy_and_mass(
+        cls,
+        ground_state_energy: float = 0.5 * u.eV,
+        mass: float = u.electron_mass,
+        **kwargs,
+    ) -> 'HarmonicOscillator':
         """
-        Return a HarmonicOscillator constructed from the given ground state energy and mass.
+        Return a :class:`HarmonicOscillator` constructed from the given ground state energy and mass.
 
-        Note: the ground state energy is half of the energy spacing of the oscillator.
+        NB: the ground state energy is half of the energy spacing of the oscillator.
+
+        Parameters
+        ----------
+        ground_state_energy
+            The ground state energy of the quantum harmonic oscillator.
+        mass
+            The mass of the test particle that would have that ``ground_state_energy``.
+        kwargs
+
         """
-        return cls.from_frequency_and_mass(omega = 2 * ground_state_energy / u.hbar, mass = mass, **kwargs)
+        return cls.from_frequency_and_mass(
+            omega = 2 * ground_state_energy / u.hbar,
+            mass = mass,
+            **kwargs,
+        )
 
     @classmethod
-    def from_energy_spacing_and_mass(cls, energy_spacing = 1 * u.eV, mass = u.electron_mass, **kwargs):
+    def from_energy_spacing_and_mass(
+        cls,
+        energy_spacing: float = 1 * u.eV,
+        mass: float = u.electron_mass,
+        **kwargs,
+    ) -> 'HarmonicOscillator':
         """
-        Return a HarmonicOscillator constructed from the given state energy spacing and mass.
+        Return a :class:`HarmonicOscillator` constructed from the given energy spacing and mass.
 
-        Note: the ground state energy is half of the energy spacing of the oscillator.
+        NB: the ground state energy is half of the energy spacing of the oscillator.
+
+        Parameters
+        ----------
+        energy_spacing
+            The energy spacing of the quantum harmonic oscillator.
+        mass
+            The mass of the test particle that would have that ``energy_spacing``.
+        kwargs
+
         """
-        return cls.from_frequency_and_mass(omega = energy_spacing / u.hbar, mass = mass, **kwargs)
+        return cls.from_frequency_and_mass(
+            omega = energy_spacing / u.hbar,
+            mass = mass,
+            **kwargs,
+        )
 
-    def __call__(self, *, distance, **kwargs):
-        """Return the HarmonicOscillator potential energy evaluated at position distance."""
-        d = (distance - self.center)
+    def __call__(self, *, r, **kwargs):
+        """
+        Parameters
+        ----------
+        r
+            The distance to the center of the harmonic oscillator potential.
+        kwargs
+            Ignores additional keyword arguments.
+        """
+        centered_r = r - self.center
 
-        inside = 0.5 * self.spring_constant * (d ** 2)
+        inside = 0.5 * self.spring_constant * (centered_r ** 2)
         if self.cutoff_distance is not None:
             outside = 0.5 * self.spring_constant * (self.cutoff_distance ** 2)
-            return np.where(np.less_equal(np.abs(d), self.cutoff_distance), inside, outside)
+            return np.where(np.less_equal(np.abs(centered_r), self.cutoff_distance), inside, outside)
         else:
             return inside
 
-    def omega(self, mass):
+    def omega(self, mass: float) -> float:
         """Return the angular frequency for this potential for the given mass."""
         return np.sqrt(self.spring_constant / mass)
 
-    def frequency(self, mass):
+    def frequency(self, mass: float) -> float:
         """Return the cyclic frequency for this potential for the given mass."""
         return self.omega(mass) / u.twopi
 
-    def __str__(self):
-        return '{}(spring_constant = {} u.N/u.m, center = {} u.nm)'.format(self.__class__.__name__, np.around(self.spring_constant, 3), u.uround(self.center, u.nm, 3))
-
     def __repr__(self):
-        return '{}(spring_constant = {}, center = {})'.format(self.__class__.__name__, self.spring_constant, self.center)
+        return utils.fmt_fields(
+            self,
+            'spring_constant',
+            'center',
+            'cutoff_distance',
+        )
 
-    def info(self):
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('spring_constant', 'N/m'),
+            ('center', 'bohr_radius'),
+            ('cutoff_distance', 'bohr_radius')
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Spring Constant', f'{u.uround(self.spring_constant, 1, 3)} u.N/u.m | {u.uround(self.spring_constant, u.atomic_force, 3)} a.u./Bohr Radius')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
-        if self.cutoff_distance is not None:
-            info.add_field('Cutoff Distance', f'{u.uround(self.cutoff_distance, u.bohr_radius, 3)} a_0 | {u.uround(self.cutoff_distance, u.nm, 3)} u.nm')
+        info.add_field('Spring Constant', utils.fmt_quantity(self.spring_constant, utils.FORCE_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
+        if self.cutoff_distance is None:
+            cutoff_val = 'None'
+        else:
+            cutoff_val = utils.fmt_quantity(self.cutoff_distance, utils.LENGTH_UNITS)
+        info.add_field('Cutoff Distance', cutoff_val)
 
         return info
 
 
 class FiniteSquareWell(potential.PotentialEnergy):
-    def __init__(self, potential_depth = 1 * u.eV, width = 10 * u.nm, center = 0 * u.nm):
+    """
+    A finite square well potential.
+
+    Attributes
+    ----------
+    left_edge
+        The position of the left edge of the well.
+    right_edge
+        The position of the right edge of the well.
+    """
+
+    def __init__(
+        self,
+        potential_depth: float = 1 * u.eV,
+        width: float = 10 * u.nm,
+        center: float = 0 * u.nm,
+    ):
+        """
+
+        Parameters
+        ----------
+        potential_depth
+            The depth of the potential well.
+        width
+            The width the potential well.
+        center
+            The center position of the potential well.
+        """
         self.potential_depth = np.abs(potential_depth)
         self.width = width
         self.center = center
 
         super().__init__()
-
-    def __str__(self):
-        return si.utils.field_str(self, ('potential_depth', 'u.eV'), ('width', 'u.nm'), ('center', 'u.nm'))
-
-    def __repr__(self):
-        return si.utils.field_str(self, 'potential_depth', 'width', 'center')
 
     @property
     def left_edge(self):
@@ -190,43 +309,213 @@ class FiniteSquareWell(potential.PotentialEnergy):
     def right_edge(self):
         return self.center + (self.width / 2)
 
-    def __call__(self, *, distance, **kwargs):
-        cond = np.greater_equal(distance, self.left_edge) * np.less_equal(distance, self.right_edge)
+    def __call__(self, *, r, **kwargs):
+        cond = np.greater_equal(r, self.left_edge) * np.less_equal(r, self.right_edge)
 
         return -self.potential_depth * np.where(cond, 1, 0)
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'potential_depth',
+            'width',
+            'center',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('potential_depth', 'u.eV'),
+            ('width', 'u.nm'),
+            ('center', 'u.nm'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Potential Depth', f'{u.uround(self.potential_depth, u.eV)} u.eV')
-        info.add_field('Width', f'{u.uround(self.width, u.bohr_radius, 3)} a_0 | {u.uround(self.width, u.nm, 3)} u.nm')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
+        info.add_field('Potential Depth', utils.fmt_quantity(self.potential_depth, utils.ENERGY_UNITS))
+        info.add_field('Width', utils.fmt_quantity(self.width, utils.LENGTH_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
 
         return info
 
 
 class GaussianPotential(potential.PotentialEnergy):
-    def __init__(self, potential_extrema = -1 * u.eV, width = 1 * u.bohr_radius, center = 0):
+    """A Gaussian potential well."""
+
+    def __init__(
+        self,
+        potential_extrema: float = -1 * u.eV,
+        width: float = 1 * u.bohr_radius,
+        center: float = 0,
+    ):
+        """
+
+        Parameters
+        ----------
+        potential_extrema
+            The value of the potential at ``r = 0``.
+            Can be positive or negative!
+        width
+            The width of the potential.
+        center
+            The center position of the potential.
+        """
         super().__init__()
 
         self.potential_extrema = potential_extrema
         self.width = width
         self.center = center
 
-    def fwhm(self):
+    def fwhm(self) -> float:
+        """Return the full-width at half-max of the potential."""
         return 2 * np.sqrt(2 * np.log(2)) * self.width
 
-    def __call__(self, *, distance, **kwargs):
-        x = distance - self.center
-        return self.potential_extrema * np.exp(-.5 * ((x / self.width) ** 2))
+    def __call__(self, *, r, **kwargs):
+        centered_r = r - self.center
+        return self.potential_extrema * np.exp(-.5 * ((centered_r / self.width) ** 2))
 
-    def info(self):
+    def __repr__(self):
+        return utils.fmt_fields(
+            self,
+            'potential_depth',
+            'width',
+            'center',
+        )
+
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('potential_depth', 'u.eV'),
+            ('width', 'u.nm'),
+            ('center', 'u.nm'),
+        )
+
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Potential Depth', f'{u.uround(self.potential_extrema, u.eV)} u.eV')
-        info.add_field('Width', f'{u.uround(self.width, u.bohr_radius, 3)} a_0 | {u.uround(self.width, u.nm, 3)} u.nm')
-        info.add_field('Center', f'{u.uround(self.center, u.bohr_radius, 3)} a_0 | {u.uround(self.center, u.nm, 3)} u.nm')
+        info.add_field('Potential Depth', utils.fmt_quantity(self.potential_extrema, utils.ENERGY_UNITS))
+        info.add_field('Width', utils.fmt_quantity(self.width, utils.LENGTH_UNITS))
+        info.add_field('Center', utils.fmt_quantity(self.center, utils.LENGTH_UNITS))
 
         return info
 
 
+class GaussianScatterer(potential.PotentialEnergy):
+    """A Gaussian potential well."""
+
+    def __init__(
+        self,
+        potential_extrema: float = 100 * u.eV,
+        z_width: float = 1 * u.nm,
+        x_width: float = 1 * u.nm,
+        z_center: float = 0,
+        x_center: float = 0,
+    ):
+        super().__init__()
+
+        self.potential_extrema = potential_extrema
+        self.z_width = z_width
+        self.x_width = x_width
+        self.z_center = z_center
+        self.x_center = x_center
+
+    def __call__(self, *, z, x, **kwargs):
+        centered_z = z - self.z_center
+        centered_x = x - self.x_center
+
+        gaussian = self.potential_extrema
+        gaussian *= np.exp(-.5 * ((centered_z / self.z_width) ** 2))
+        gaussian *= np.exp(-.5 * ((centered_x / self.x_width) ** 2))
+
+        return gaussian
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Potential Extrema', utils.fmt_quantity(self.potential_extrema, utils.ENERGY_UNITS))
+
+        info.add_field('Z Center', utils.fmt_quantity(self.z_center, utils.LENGTH_UNITS))
+        info.add_field('X Center', utils.fmt_quantity(self.x_center, utils.LENGTH_UNITS))
+
+        info.add_field('Z Width', utils.fmt_quantity(self.z_width, utils.LENGTH_UNITS))
+        info.add_field('X Width', utils.fmt_quantity(self.x_width, utils.LENGTH_UNITS))
+
+        return info
+
+
+class LogisticScatterer(potential.PotentialEnergy):
+    """A logistic potential barrier."""
+
+    def __init__(
+        self,
+        potential_extrema: float = 100 * u.eV,
+        z_width: float = .2 * u.nm,
+        x_width: float = .2 * u.nm,
+        z_extent = 1 * u.nm,
+        x_extent = 1 * u.nm,
+        z_center: float = 0,
+        x_center: float = 0,
+    ):
+        super().__init__()
+
+        self.potential_extrema = potential_extrema
+        self.z_width = z_width
+        self.x_width = x_width
+        self.z_extent = z_extent
+        self.x_extent = x_extent
+        self.z_center = z_center
+        self.x_center = x_center
+
+    @classmethod
+    def from_bounds(
+        cls,
+        potential_extrema: float = 100 * u.eV,
+        z_min = -.5 * u.nm,
+        z_max = .5 * u.nm,
+        x_min = -.5 * u.nm,
+        x_max = .5 * u.nm,
+        z_width: float = .2 * u.nm,
+        x_width: float = .2 * u.nm,
+    ):
+        z_extent = np.abs(z_max - z_min)
+        x_extent = np.abs(x_max - x_min)
+
+        z_center = (z_max + z_min) / 2
+        x_center = (x_max - x_min) / 2
+
+        return cls(
+            potential_extrema = potential_extrema,
+            x_width = x_width,
+            z_width = z_width,
+            z_extent = z_extent,
+            x_extent = x_extent,
+            z_center = z_center,
+            x_center = x_center,
+        )
+
+    def __call__(self, *, z, x, **kwargs):
+        centered_z = z - self.z_center
+        centered_x = x - self.x_center
+
+        pot = self.potential_extrema
+        pot *= 1 / (1 + np.exp(-(centered_x + self.x_extent) / self.x_width)) - 1 / (1 + np.exp(-(centered_x - self.x_extent) / self.x_width))
+        pot *= 1 / (1 + np.exp(-(centered_z + self.z_extent) / self.z_width)) - 1 / (1 + np.exp(-(centered_z - self.z_extent) / self.z_width))
+
+        return pot
+
+    def info(self):
+        info = super().info()
+
+        info.add_field('Potential Extrema', utils.fmt_quantity(self.potential_extrema, utils.ENERGY_UNITS))
+
+        info.add_field('Z Center', utils.fmt_quantity(self.z_center, utils.LENGTH_UNITS))
+        info.add_field('X Center', utils.fmt_quantity(self.x_center, utils.LENGTH_UNITS))
+
+        info.add_field('Z Extent', utils.fmt_quantity(self.z_extent, utils.LENGTH_UNITS))
+        info.add_field('X Extent', utils.fmt_quantity(self.x_extent, utils.LENGTH_UNITS))
+
+        info.add_field('Z Width', utils.fmt_quantity(self.z_width, utils.LENGTH_UNITS))
+        info.add_field('X Width', utils.fmt_quantity(self.x_width, utils.LENGTH_UNITS))
+
+        return info

@@ -36,7 +36,7 @@ if __name__ == '__main__':
                                                                electric_potential = electric_field,
                                                                kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                store_data_every = sde,
-                                                               ).to_simulation()
+                                                               ).to_sim()
 
             sim.info().log()
             sim.run_simulation(progress_bar = True)
@@ -53,10 +53,10 @@ if __name__ == '__main__':
                                                                        electric_potential = electric_field,
                                                                        kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
                                                                        store_data_every = sde,
-                                                                       ).to_simulation()
+                                                                       ).to_sim()
 
             sim.info().log()
-            sim.run_simulation(progress_bar = True)
+            sim.run(progress_bar = True)
             sim.info().log()
 
             sim.save(target_dir = OUT_DIR)

@@ -208,8 +208,8 @@ def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
     elif selector == 'power':
         kicks = decompose_pulse_into_kicks__fluence(pulse, times)
 
-    # for k in kicks:
-    #     print(uround(k.time, asec), uround(k.time_field_product, time_field_unit))
+    # for wavenumber in kicks:
+    #     print(uround(wavenumber.time, asec), uround(wavenumber.time_field_product, time_field_unit))
 
     try:
         name = f'pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi'
@@ -327,7 +327,7 @@ if __name__ == '__main__':
         #     # error_on = 'da/dt',
         #     # epsilon = 1e-6,
         #     store_data_every = 1,
-        # ).to_simulation()
+        # ).to_sim()
         #
         # sim.run_simulation()
         # sim.plot_wavefunction_vs_time(
@@ -361,8 +361,8 @@ if __name__ == '__main__':
         #     'comparison_to_full_simulation',
         #     [
         #         sim.times,
-        #         [k.time for k in kicks_amp],
-        #         [k.time for k in kicks_flu],
+        #         [wavenumber.time for wavenumber in kicks_amp],
+        #         [wavenumber.time for wavenumber in kicks_flu],
         #     ],
         #     [
         #         sim.a2,
@@ -414,8 +414,8 @@ if __name__ == '__main__':
         # # consistency
         #
         # # decomposition = decompose_pulse_into_kicks__amplitude(pulse, sim.times)
-        # # for k in decomposition:
-        # #     print(k.time / asec, k.time_field_product / time_field_unit)
+        # # for wavenumber in decomposition:
+        # #     print(wavenumber.time / asec, wavenumber.time_field_product / time_field_unit)
         # #
         # # test_kicks_cosine = [kick(0, .496 * time_field_unit)]
         # # test_kicks_sine = [kick(-83.408 * asec, .372 * time_field_unit), kick(83.408 * asec, .372 * time_field_unit)]

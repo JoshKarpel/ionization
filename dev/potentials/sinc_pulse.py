@@ -16,10 +16,10 @@ log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBU
 def run(spec):
     with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG,
                              file_logs = True, file_dir = spec.out_dir_mod, file_name = spec.name, file_level = logging.DEBUG, file_mode = 'w') as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(target_dir = spec.out_dir_mod)

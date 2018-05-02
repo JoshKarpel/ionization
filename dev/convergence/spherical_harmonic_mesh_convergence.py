@@ -22,10 +22,10 @@ def run_spec(spec):
         try:
             sim = ion.ElectricFieldSimulation.load(os.path.join(LIB_DIR, spec.name + '.sim'))
         except FileNotFoundError:
-            sim = spec.to_simulation()
+            sim = spec.to_sim()
 
             sim.info().log()
-            sim.run_simulation()
+            sim.run()
             sim.save(target_dir = LIB_DIR)
             sim.info().log()
 

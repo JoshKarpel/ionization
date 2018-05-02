@@ -29,10 +29,10 @@ PLOT_KWARGS = (
 
 def run(spec):
     with logman as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         logger.debug(sim.info())
-        sim.run_simulation()
+        sim.run()
         logger.debug(sim.info())
 
         for kwargs in PLOT_KWARGS:

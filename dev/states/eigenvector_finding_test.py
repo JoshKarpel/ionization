@@ -28,7 +28,7 @@ if __name__ == '__main__':
                    }
 
     OUT_DIR = os.path.join(OUT_DIR, 'bound={}_ppbr={}'.format(bound, points_per_bohr_radius))
-    sim = ion.SphericalHarmonicSpecification('eig', **spec_kwargs).to_simulation()
+    sim = ion.SphericalHarmonicSpecification('eig', **spec_kwargs).to_sim()
 
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO, file_logs = True, file_mode = 'w', file_dir = OUT_DIR, file_name = 'log') as logger:
         for l in range(l_bound):

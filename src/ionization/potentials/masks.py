@@ -5,10 +5,10 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import exceptions
+from .. import utils, exceptions
 
 
-class Mask(si.Summand):
+class Mask(si.summables.Summand):
     """A class representing a spatial 'mask' that can be applied to the wavefunction to reduce it in certain regions."""
 
     def __init__(self):
@@ -16,7 +16,7 @@ class Mask(si.Summand):
         self.summation_class = MaskSum
 
 
-class MaskSum(si.Sum, Mask):
+class MaskSum(si.summables.Sum, Mask):
     """A class representing a combination of masks."""
 
     container_name = 'masks'
@@ -33,10 +33,26 @@ class NoMask(Mask):
 
 
 class RadialCosineMask(Mask):
-    """A class representing a masks which begins at some radius and smoothly decreases to 0 as the nth-root of cosine."""
+    """A mask which begins at some radius and smoothly decreases to 0 as the :math:`n` th-root of cosine."""
 
-    def __init__(self, inner_radius = 50 * u.bohr_radius, outer_radius = 100 * u.bohr_radius, smoothness = 8):
-        """Construct a RadialCosineMask from an inner radius, outer radius, and cosine 'smoothness' (the cosine will be raised to the 1/smoothness power)."""
+    def __init__(
+        self,
+        inner_radius: float = 50 * u.bohr_radius,
+        outer_radius: float = 100 * u.bohr_radius,
+        smoothness: float = 8,
+    ):
+        """
+        Parameters
+        ----------
+        inner_radius
+            The inner radius of the mask.
+            The mask evaluates to ``1`` for the last time here.
+        outer_radius
+            The outer radius of the mask.
+            The mask evaluates to ``0`` for the first time here.
+        smoothness
+            The inverse of the power to which the cosine will be taken.
+        """
         if inner_radius < 0 or outer_radius < 0:
             raise exceptions.InvalidMaskParameter('inner and outer radius must be non-negative')
         if inner_radius >= outer_radius:
@@ -50,37 +66,34 @@ class RadialCosineMask(Mask):
         self.outer_radius = outer_radius
         self.smoothness = smoothness
 
-    def __str__(self):
-        return '{}(inner radius = {} a_0, outer radius = {} a_0, smoothness = {})'.format(self.__class__.__name__,
-                                                                                          u.uround(self.inner_radius, u.bohr_radius, 3),
-                                                                                          u.uround(self.outer_radius, u.bohr_radius, 3),
-                                                                                          self.smoothness)
+    def __call__(self, *, r, **kwargs):
+        return np.where(
+            np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
+            np.abs(np.cos(0.5 * u.pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
+            np.where(np.greater_equal(r, self.outer_radius), 0, 1),
+        )
 
     def __repr__(self):
-        return '{}(inner_radius = {}, outer_radius = {}, smoothness = {})'.format(self.__class__.__name__,
-                                                                                  self.inner_radius,
-                                                                                  self.outer_radius,
-                                                                                  self.smoothness)
+        return utils.fmt_fields(
+            self,
+            'inner_radius',
+            'outer_radius',
+            'smoothness',
+        )
 
-    def __call__(self, *, r, **kwargs):
-        """
-        Return the value(s) of the mask at radial position(s) r.
+    def __str__(self):
+        return utils.fmt_fields(
+            self,
+            ('inner_radius', 'bohr_radius'),
+            ('outer_radius', 'bohr_radius'),
+            'smoothness',
+        )
 
-        Accepts only keyword arguments.
-
-        :param r: the radial position coordinate
-        :param kwargs: absorbs keyword arguments.
-        :return: the value(s) of the mask at r
-        """
-        return np.where(np.greater_equal(r, self.inner_radius) * np.less(r, self.outer_radius),
-                        np.abs(np.cos(0.5 * u.pi * (r - self.inner_radius) / np.abs(self.outer_radius - self.inner_radius))) ** (1 / self.smoothness),
-                        np.where(np.greater_equal(r, self.outer_radius), 0, 1))
-
-    def info(self):
+    def info(self) -> si.Info:
         info = super().info()
 
-        info.add_field('Inner Radius', f'{u.uround(self.inner_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.inner_radius, u.nm, 3)} nm')
-        info.add_field('Outer Radius', f'{u.uround(self.outer_radius, u.bohr_radius, 3)} a_0 | {u.uround(self.outer_radius, u.nm, 3)} nm')
+        info.add_field('Inner Radius', utils.fmt_quantity(self.inner_radius, utils.LENGTH_UNITS))
+        info.add_field('Outer Radius', utils.fmt_quantity(self.outer_radius, utils.LENGTH_UNITS))
         info.add_field('Smoothness', self.smoothness)
 
         return info

@@ -54,9 +54,9 @@ class BauerGaussianPulse(ion.potentials.UniformLinearlyPolarizedElectricPotentia
 
 def run(spec):
     with LOGMAN as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.plot_wavefunction_vs_time(**PLOT_KWARGS)
 
@@ -67,7 +67,7 @@ if __name__ == '__main__':
     with LOGMAN as logger:
         KERNELS = [
             ide.LengthGaugeHydrogenKernel(),
-            ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction(
+            ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(
                 # integration_method = integ.quadrature,
             ),
         ]

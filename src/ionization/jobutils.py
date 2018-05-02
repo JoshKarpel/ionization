@@ -4,6 +4,7 @@ import shutil
 import datetime
 import logging
 import inspect
+import itertools
 
 from tqdm import tqdm
 
@@ -13,7 +14,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import core, states, potentials, ide, exceptions
+from . import core, mesh, states, potentials, ide, tunneling, exceptions
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -59,55 +60,53 @@ def check_job_dir(args):
 def ask_mesh_type():
     mesh_kwargs = {}
 
-    mesh_type = clu.ask_for_input('Mesh Type (cyl | sph | harm)', default = 'harm', cast_to = str)
+    mesh_type = clu.ask_for_input('Mesh Type [cyl | sph | harm]', default = 'harm', cast_to = str)
 
-    try:
-        if mesh_type == 'cyl':
-            spec_type = core.CylindricalSliceSpecification
+    if mesh_type == 'cyl':
+        spec_type = mesh.CylindricalSliceSpecification
 
-            mesh_kwargs['z_bound'] = u.bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['rho_bound'] = u.bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / u.bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
-            mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / u.bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
+        mesh_kwargs['z_bound'] = u.bohr_radius * clu.ask_for_input('Z Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['rho_bound'] = u.bohr_radius * clu.ask_for_input('Rho Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['z_points'] = 2 * (mesh_kwargs['z_bound'] / u.bohr_radius) * clu.ask_for_input('Z Points per Bohr Radii', default = 20, cast_to = int)
+        mesh_kwargs['rho_points'] = (mesh_kwargs['rho_bound'] / u.bohr_radius) * clu.ask_for_input('Rho Points per Bohr Radii', default = 20, cast_to = int)
 
-            mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
+        mesh_kwargs['outer_radius'] = max(mesh_kwargs['z_bound'], mesh_kwargs['rho_bound'])
 
-            memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
+        memory_estimate = (128 / 8) * mesh_kwargs['z_points'] * mesh_kwargs['rho_points']
 
-        elif mesh_type == 'sph':
-            spec_type = core.SphericalSliceSpecification
+    elif mesh_type == 'sph':
+        spec_type = mesh.SphericalSliceSpecification
 
-            mesh_kwargs['r_bound'] = u.bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
-            mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / u.bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
-            mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
+        mesh_kwargs['r_bound'] = u.bohr_radius * clu.ask_for_input('R Bound (Bohr radii)', default = 30, cast_to = float)
+        mesh_kwargs['r_points'] = (mesh_kwargs['r_bound'] / u.bohr_radius) * clu.ask_for_input('R Points per Bohr Radii', default = 40, cast_to = int)
+        mesh_kwargs['theta_points'] = clu.ask_for_input('Theta Points', default = 100, cast_to = int)
 
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
+        mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
+        memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['theta_points']
 
-        elif mesh_type == 'harm':
-            spec_type = core.SphericalHarmonicSpecification
+    elif mesh_type == 'harm':
+        spec_type = mesh.SphericalHarmonicSpecification
 
-            r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
-            mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
-            mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
+        r_bound = clu.ask_for_input('R Bound (Bohr radii)', default = 200, cast_to = float)
+        mesh_kwargs['r_points'] = r_bound * clu.ask_for_input('R Points per Bohr Radii', default = 10, cast_to = int)
+        mesh_kwargs['l_bound'] = clu.ask_for_input('l points', default = 500, cast_to = int)
 
-            mesh_kwargs['r_bound'] = u.bohr_radius * r_bound
+        mesh_kwargs['r_bound'] = u.bohr_radius * r_bound
 
-            mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
+        mesh_kwargs['outer_radius'] = mesh_kwargs['r_bound']
 
-            mesh_kwargs['snapshot_type'] = core.SphericalHarmonicSnapshot
+        mesh_kwargs['snapshot_type'] = mesh.SphericalHarmonicSnapshot
 
-            memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
+        memory_estimate = (128 / 8) * mesh_kwargs['r_points'] * mesh_kwargs['l_bound']
 
-        else:
-            raise ValueError('Mesh type {} not found!'.format(mesh_type))
+    else:
+        print(f'Mesh type {mesh_type} not found!')
+        return ask_mesh_type()
 
-        logger.warning('Predicted memory usage per Simulation is >{}'.format(si.utils.bytes_to_str(memory_estimate)))
+    logger.warning('Predicted memory usage per Simulation is >{}'.format(si.utils.bytes_to_str(memory_estimate)))
 
-        return spec_type, mesh_kwargs
-    except ValueError:
-        ask_mesh_type()
+    return spec_type, mesh_kwargs
 
 
 def ask_mask__radial_cosine(parameters, mesh_kwargs):
@@ -163,7 +162,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
                 value = max_energy,
             ))
 
-        if spec_type == core.SphericalHarmonicSpecification:
+        if spec_type == mesh.SphericalHarmonicSpecification:
             max_angular_momentum = clu.ask_for_input('Numeric Eigenstate Maximum l?', default = 20, cast_to = int)
             parameters.append(
                 clu.Parameter(
@@ -192,30 +191,27 @@ def ask_time_evolution_by_pulse_widths():
     return time_initial_in_pw, time_final_in_pw, extra_time
 
 
-def ask_evolution_gauge(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_gauge.choices))
-    gauge = clu.ask_for_input(f'Evolution Gauge? [{"/".join(choices)}]', default = choices[0])
-    if gauge not in choices:
-        raise exceptions.InvalidChoice(f'{gauge} is not one of {choices}')
-    parameters.append(
-        clu.Parameter(
-            name = 'evolution_gauge',
-            value = gauge,
-        ))
-
-    return gauge
-
-
-def ask_evolution_method_ide(parameters, *, spec_type):
-    choices = {
-        'FE': ide.ForwardEulerMethod,
-        'BE': ide.BackwardEulerMethod,
-        'TRAP': ide.TrapezoidMethod,
-        'RK4': ide.RungeKuttaFourMethod,
+def ask_mesh_operators(parameters, *, spec_type):
+    choices_by_spec_type = {
+        mesh.LineSpecification: {
+            core.Gauge.LENGTH.value: mesh.LineLengthGaugeOperators,
+            core.Gauge.VELOCITY.value: mesh.LineVelocityGaugeOperators,
+        },
+        mesh.CylindricalSliceSpecification: {
+            core.Gauge.LENGTH.value: mesh.CylindricalSliceLengthGaugeOperators,
+        },
+        mesh.SphericalSliceSpecification: {
+            core.Gauge.LENGTH.value: mesh.SphericalSliceLengthGaugeOperators,
+        },
+        mesh.SphericalHarmonicSpecification: {
+            core.Gauge.LENGTH.value: mesh.SphericalHarmonicLengthGaugeOperators,
+            core.Gauge.VELOCITY.value: mesh.SphericalHarmonicVelocityGaugeOperators,
+        }
     }
-    method_key = clu.ask_for_input(f'Evolution Method? [{"/".join(choices.keys())}]', default = 'RK4')
+    choices = choices_by_spec_type[spec_type]
+    key = clu.ask_for_input(f'Mesh Operators? [{" | ".join(choices.keys())}]', default = core.Gauge.LENGTH.value)
     try:
-        method = choices[method_key]()
+        method = choices[key]()
     except KeyError:
         raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
@@ -228,10 +224,37 @@ def ask_evolution_method_ide(parameters, *, spec_type):
     return method
 
 
-def ask_evolution_method_tdse(parameters, *, spec_type):
-    choices = sorted(list(spec_type.evolution_method.choices))
-    method = clu.ask_for_input(f'Evolution Method? [{"/".join(choices)}]', default = 'SO' if 'SO' in choices else choices[0])
-    if method not in choices:
+def ask_evolution_method_ide(parameters):
+    choices = {
+        'FE': ide.ForwardEulerMethod,
+        'BE': ide.BackwardEulerMethod,
+        'TRAP': ide.TrapezoidMethod,
+        'RK4': ide.RungeKuttaFourMethod,
+    }
+    key = clu.ask_for_input(f'Evolution Method? [{" | ".join(choices.keys())}]', default = 'RK4')
+    try:
+        method = choices[key]()
+    except KeyError:
+        raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
+
+    parameters.append(
+        clu.Parameter(
+            name = 'evolution_method',
+            value = method,
+        ))
+
+    return method
+
+
+def ask_evolution_method_tdse(parameters):
+    choices = {
+        'ADI': mesh.AlternatingDirectionImplicit,
+        'SO': mesh.SplitInteractionOperator,
+    }
+    key = clu.ask_for_input(f'Evolution Method? [{" | ".join(choices)}]', default = 'SO')
+    try:
+        method = choices[key]()
+    except KeyError:
         raise exceptions.InvalidChoice(f'{method} is not one of {choices}')
 
     parameters.append(
@@ -246,9 +269,9 @@ def ask_evolution_method_tdse(parameters, *, spec_type):
 def ask_ide_kernel(parameters):
     choices = {
         'hydrogen': ide.LengthGaugeHydrogenKernel,
-        'hydrogen_with_cc': ide.ApproximateLengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
+        'hydrogen_with_cc': ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
     }
-    kernel_key = clu.ask_for_input(f'IDE Kernel? [{"/".join(choices)}]', default = 'hydrogen')
+    kernel_key = clu.ask_for_input(f'IDE Kernel? [{" | ".join(choices)}]', default = 'hydrogen')
     try:
         kernel = choices[kernel_key]()
     except KeyError:
@@ -261,6 +284,36 @@ def ask_ide_kernel(parameters):
         ))
 
     return kernel
+
+
+def ask_ide_tunneling(parameters):
+    choices = {
+        cls.__name__.replace('Rate', ''): cls
+        for cls in tunneling.TUNNELING_MODEL_TYPES
+    }
+    model_key = clu.ask_for_input(f'Tunneling Model? [{" | ".join(choices)}]', default = tuple(choices.keys())[0])
+
+    try:
+        cls = choices[model_key]
+    except KeyError:
+        raise exceptions.InvalidChoice(f'{model_key} is not one of {choices.keys()}')
+
+    argspec = inspect.getfullargspec(cls.__init__)
+    arg_names = argspec.args[1:]
+    arg_defaults = argspec.defaults
+    if len(arg_names) > 0:
+        args = {name: clu.ask_for_eval(f'Value for {name}?', default = default) for name, default in reversed(tuple(itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))))}
+        model = cls(**args)
+    else:
+        model = cls()
+
+    parameters.append(
+        clu.Parameter(
+            name = 'tunneling_model',
+            value = model,
+        ))
+
+    return model
 
 
 PULSE_NAMES_TO_TYPES = {
@@ -299,7 +352,7 @@ def ask_pulse_fluences(pulse_parameters):
 def ask_pulse_phases(pulse_parameters):
     phases = clu.Parameter(
         name = 'phase',
-        value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = '[0, pi / 4, pi / 2]')),
+        value = np.array(clu.ask_for_eval('Pulse CEP (in rad)?', default = '[0, u.pi / 4, u.pi / 2]')),
         expandable = True
     )
     pulse_parameters.append(phases)
@@ -374,9 +427,9 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
 def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
-    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? (sinc | gaussian | sech | cos2)', default = 'sinc')]
+    pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? [sinc | gaussian | sech | cos2]', default = 'sinc')]
     constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if 'from_' in name)
-    constructor_name = clu.ask_for_input(f'Pulse Constructor? ({" | ".join(constructor_names)})', default = 'omega_min')
+    constructor_name = clu.ask_for_input(f'Pulse Constructor? [{" | ".join(constructor_names)}]', default = 'omega_min')
     constructor = getattr(pulse_type, f'from_{constructor_name}')
 
     constructor_argspec = inspect.getfullargspec(constructor)
@@ -399,7 +452,7 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulses = tuple(
         constructor(
             **d,
-            window = potentials.SymmetricExponentialTimeWindow(
+            window = potentials.LogisticWindow(
                 window_time = d['pulse_width'] * window_time_in_pw,
                 window_width = d['pulse_width'] * window_width_in_pw,
             ),
@@ -455,24 +508,40 @@ def ask_data_storage_tdse(parameters, *, spec_type):
             value = clu.ask_for_input('Store Data Every n Time Steps', default = -1, cast_to = int),
         ))
 
-    names_questions_defaults = [
-        ('store_radial_position_expectation_value', 'Store Radial Position EV vs. Time?', True),
-        ('store_electric_dipole_moment_expectation_value', 'Store Electric Dipole Moment EV vs. Time?', True),
-        ('store_energy_expectation_value', 'Store Energy EV vs. Time?', True),
-        ('store_norm_diff_mask', 'Store Difference in Norm caused by Mask vs. Time?', False),
+    datastores_questions_defaults = [
+        (mesh.Fields, 'Store Electric Field and Vector Potential vs. Time?', True),
+        (mesh.Norm, 'Store Wavefunction Norm vs. Time?', True),
+        (mesh.InnerProducts, 'Store Wavefunction Inner Products vs. Time?', True),
+        (mesh.InternalEnergyExpectationValue, 'Store Internal Energy Expectation Value vs. Time?', False),
+        (mesh.TotalEnergyExpectationValue, 'Store Total Energy Expectation Value vs. Time?', False),
+        (mesh.ZExpectationValue, 'Store Z Expectation Value vs. Time?', False),
+        (mesh.RExpectationValue, 'Store R Expectation Value vs. Time?', False),
+        (mesh.NormWithinRadius, 'Store Norm Within Radius vs. Time?', False),
     ]
-    if spec_type == core.SphericalHarmonicSpecification:
-        names_questions_defaults += [
-            ('store_radial_probability_current', 'Store Radial Probability Current vs. Time?', False),
-            ('store_norm_by_l', 'Store Norm-by-L?', False),
+    if spec_type == mesh.SphericalHarmonicSpecification:
+        datastores_questions_defaults += [
+            (mesh.DirectionalRadialProbabilityCurrent, 'Store Radial Probability Current vs. Time?', False),
+            (mesh.NormBySphericalHarmonic, 'Store Norm-by-L?', False),
         ]
 
-    for name, question, default in names_questions_defaults:
-        parameters.append(
-            clu.Parameter(
-                name = name,
-                value = clu.ask_for_bool(question, default = default)
-            ))
+    datastores = []
+    for cls, question, default in datastores_questions_defaults:
+        if clu.ask_for_bool(question, default = default):
+            argspec = inspect.getfullargspec(cls.__init__)
+            arg_names = argspec.args[1:]
+            arg_defaults = argspec.defaults
+            if len(arg_names) > 0:
+                args = {name: clu.ask_for_eval(f'Value for {name}?', default = default) for name, default in reversed(tuple(itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))))}
+                datastore = cls(**args)
+            else:
+                datastore = cls()
+            datastores.append(datastore)
+
+    parameters.append(
+        clu.Parameter(
+            name = 'datastores',
+            value = datastores,
+        ))
 
 
 def ask_data_storage_ide(parameters, *, spec_type):
@@ -507,13 +576,6 @@ def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameter
 
     clu.specification_check(specs)
 
-    submit_string = clu.generate_chtc_submit_string(
-        args.job_name,
-        len(specs),
-        do_checkpoints = do_checkpoints
-    )
-    clu.submit_check(submit_string)
-
     # point of no return
     shutil.rmtree(job_dir, ignore_errors = True)
 
@@ -531,4 +593,4 @@ def create_job_files(*, args, specs, do_checkpoints, parameters, pulse_parameter
     }
     clu.write_job_info_to_file(job_info, job_dir)
 
-    clu.write_submit_file(submit_string, job_dir)
+    return job_dir

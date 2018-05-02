@@ -24,9 +24,9 @@ PLOT_KWARGS = dict(
 
 def run(spec):
     with LOGMAN as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
-        sim.run_simulation()
+        sim.run()
 
         sim.plot_b2_vs_time(**PLOT_KWARGS)
 

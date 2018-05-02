@@ -93,7 +93,7 @@ if __name__ == '__main__':
         )
 
         # sim = si.utils.find_or_init_sim(spec, search_dir = SIM_LIB)
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
 
@@ -116,6 +116,6 @@ if __name__ == '__main__':
         #     sim.run_simulation()
         #     sim.animators = None
         #     sim.save(save_mesh = True, target_dir = SIM_LIB)
-        sim.run_simulation(callback = fft_plot)
+        sim.run(callback = fft_plot)
 
         sim.info().log()

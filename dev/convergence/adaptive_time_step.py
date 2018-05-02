@@ -15,10 +15,10 @@ logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.D
 
 def run_spec(spec):
     with logman as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(target_dir = OUT_DIR)

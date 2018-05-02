@@ -116,8 +116,8 @@ if __name__ == '__main__':
                                                  use_numeric_eigenstates = True,
                                                  numeric_eigenstate_max_energy = 10 * eV,
                                                  numeric_eigenstate_max_angular_momentum = 5,
-                                                 animators = animators).to_simulation()
+                                                 animators = animators).to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()

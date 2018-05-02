@@ -41,7 +41,7 @@ if __name__ == '__main__':
             print(f'{state} with energy {uround(state.energy, eV, 10)} eV, ratio {-state.energy / rydberg}')
 
         # wavenumbers = (twopi / nm) * np.linspace(-10, 10, 1000)
-        # plane_waves = [ion.OneDFreeParticle(k, mass = mass) for k in wavenumbers]
+        # plane_waves = [ion.OneDFreeParticle(wavenumber, mass = mass) for wavenumber in wavenumbers]
         # dk = np.abs(plane_waves[1].wavenumber - plane_waves[0].wavenumber)
 
         # electric = ion.SineWave.from_photon_energy(1 * eV, amplitude = .01 * atomic_electric_field,
@@ -78,7 +78,7 @@ if __name__ == '__main__':
                                     mask = ion.RadialCosineMask(inner_radius = space_bound * .8, outer_radius = space_bound),
                                     animators = ani,
                                     evolution_method = 'SO',
-                                    ).to_simulation()
+                                    ).to_sim()
 
         print(sim.info())
 
@@ -86,7 +86,7 @@ if __name__ == '__main__':
                          x_unit = 'bohr_radius', y_unit = 'eV', x_lower_limit = -3 * width, x_upper_limit = 3 * width,
                          target_dir = OUT_DIR)
 
-        sim.run_simulation()
+        sim.run()
 
         print(sim.info())
 
@@ -110,9 +110,9 @@ if __name__ == '__main__':
 
         # overlap_vs_k = np.zeros(len(plane_waves)) * np.NaN
         #
-        # for ii, k in enumerate(sorted(s for s in sim.spec.test_states if s in plane_waves)):
-        #     overlap = sim.state_overlaps_vs_time[k][-1] * dk
-        #     # print('{}: {}'.format(k, overlap))
+        # for ii, wavenumber in enumerate(sorted(s for s in sim.spec.test_states if s in plane_waves)):
+        #     overlap = sim.state_overlaps_vs_time[wavenumber][-1] * dk
+        #     # print('{}: {}'.format(wavenumber, overlap))
         #
         #     overlap_vs_k[ii] = overlap
         #
@@ -123,6 +123,6 @@ if __name__ == '__main__':
         #
         # si.utils.xy_plot('overlap_vs_k',
         #                  wavenumbers, overlap_vs_k,
-        #                  x_unit = twopi / nm, x_label = r'Wavenumber $k$ ($2\pi/\mathrm{nm}$)',
+        #                  x_unit = twopi / nm, x_label = r'Wavenumber $wavenumber$ ($2\pi/\mathrm{nm}$)',
         #                  y_lower_limit = 0, y_upper_limit = 1,
         #                  target_dir = OUT_DIR)

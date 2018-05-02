@@ -25,10 +25,10 @@ PLOT_KWARGS = dict(
 
 def run(spec):
     with LOGMAN as logger:
-        sim = spec.to_simulation()
+        sim = spec.to_sim()
 
         sim.info().log()
-        sim.run_simulation()
+        sim.run()
         sim.info().log()
 
         sim.plot_wavefunction_vs_time(show_vector_potential = False, **PLOT_KWARGS)
