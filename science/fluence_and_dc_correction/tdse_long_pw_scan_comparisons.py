@@ -29,11 +29,13 @@ if __name__ == '__main__':
         original_jp = clu.JobProcessor.load('job_processors/PAPER_tdse_pw_scans.job')
         longer_jp = clu.JobProcessor.load('job_processors/PAPER__tdse_pw_scan_longer.job')
         longer_no_dc_jp = clu.JobProcessor.load('job_processors/PAPER__tdse_pw_scan_longer_no_DC_correct.job')
+        longer_jp_with_fluence_and_dc = clu.JobProcessor.load('job_processors/PAPER_OL_pw_scan_dc_and_flu_correction_tb=55.job')
 
         jp_to_label = {
             original_jp: 'original',
             longer_jp: 'longer',
             longer_no_dc_jp: 'longer_no_dc',
+            longer_jp_with_fluence_and_dc: 'longer_flu',
         }
 
         for jp in jp_to_label:
@@ -59,7 +61,7 @@ if __name__ == '__main__':
                     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
                     y_data = [[r.final_initial_state_overlap for r in results] for jp, results in jp_to_results.items()],
                     line_labels = [label for jp, label in jp_to_label.items()],
-                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}, {'linestyle': ':'}],
                     x_unit = 'asec',
                     **PLOT_KWARGS
                 )
@@ -75,7 +77,7 @@ if __name__ == '__main__':
                         for jp, results in jp_to_results.items()
                     ],
                     line_labels = [label for jp, label in jp_to_label.items()],
-                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}, {'linestyle': ':'}],
                     x_unit = 'asec',
                     **PLOT_KWARGS
                 )
@@ -91,7 +93,7 @@ if __name__ == '__main__':
                         for jp, results in jp_to_results.items()
                     ],
                     line_labels = [label for jp, label in jp_to_label.items()],
-                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}, {'linestyle': ':'}],
                     x_unit = 'asec',
                     **PLOT_KWARGS
                 )
@@ -107,7 +109,7 @@ if __name__ == '__main__':
                         for jp, results in jp_to_results.items()
                     ],
                     line_labels = [label for jp, label in jp_to_label.items()],
-                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}],
+                    line_kwargs = [None, {'linestyle': '--'}, {'linestyle': ':'}, {'linestyle': ':'}],
                     x_unit = 'asec',
                     **PLOT_KWARGS
                 )
