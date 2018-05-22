@@ -457,7 +457,7 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
                 window_width = d['pulse_width'] * window_width_in_pw,
             ),
         )
-        for d in tqdm(clu.expand_parameters_to_dicts(pulse_parameters), ascii = True)
+        for d in tqdm(clu.expand_parameters(pulse_parameters), ascii = True)
     )
     parameters.append(
         clu.Parameter(
