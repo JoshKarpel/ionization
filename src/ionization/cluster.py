@@ -446,6 +446,23 @@ class MeshJobProcessor(PulseJobProcessor):
 
     ionization_metrics = ['final_norm', 'final_initial_state_overlap', 'final_bound_state_overlap']
 
+    def make_velocity_plot(self):
+        sim_numbers = [result.file_name for result in self.data.values() if result is not None]
+        velocity = np.array([result.spacetime_points / result.running_time for result in self.data.values() if result is not None])
+
+        si.vis.xy_plot(
+            f'{self.name}__velocity',
+            sim_numbers,
+            velocity,
+            line_kwargs = [dict(linestyle = '', marker = '.')],
+            y_unit = 1,
+            x_label = 'Simulation Number', y_label = 'Space-Time Points / Second',
+            title = f'{self.name} Velocity',
+            target_dir = self.summaries_dir
+        )
+
+        logger.debug(f'Generated velocity plot for job {self.name}')
+
 
 class IDESimulationResult(PulseSimulationResult):
     def __init__(self, sim, job_processor):

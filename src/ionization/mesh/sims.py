@@ -83,6 +83,10 @@ class MeshSimulation(si.Simulation):
 
         self.plot = self.spec.simulation_plotter_type(self)
 
+    @property
+    def spacetime_points(self):
+        return np.prod(self.mesh.shape) * self.time_steps
+
     def get_blank_data(self, dtype = np.float64) -> np.array:
         """
         Return an array of NaNs appropriate for storing time-indexed data in a Datastore.
