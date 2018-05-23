@@ -375,6 +375,7 @@ class MeshSimulationResult(PulseSimulationResult):
         super().__init__(sim, job_processor)
 
         self.time_steps = copy(sim.time_steps)
+        self.spacetime_points = copy(sim.spacetime_points)
 
         state_overlaps = sim.data.state_overlaps
 

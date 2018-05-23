@@ -93,10 +93,7 @@ def process_job(job_name, jobs_dir = None):
         try:
             if len(jp.unprocessed_sim_names) < jp.sim_count:
                 jp.summarize()
-                try:
-                    jp.make_velocity_plot()
-                except AttributeError:
-                    pass
+                jp.make_velocity_plot()
         except Exception as e:
             logger.exception(e)
 
