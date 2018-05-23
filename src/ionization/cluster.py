@@ -376,9 +376,9 @@ class MeshSimulationResult(PulseSimulationResult):
 
         self.time_steps = copy(sim.time_steps)
 
-        state_overlaps = sim.state_overlaps_vs_time
+        state_overlaps = sim.data.state_overlaps_vs_time
 
-        self.final_norm = copy(sim.norm_vs_time[-1])
+        self.final_norm = copy(sim.data.norm_vs_time[-1])
         self.final_initial_state_overlap = copy(state_overlaps[sim.spec.initial_state][-1])
         self.final_bound_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.bound_states))
         self.final_free_state_overlap = copy(sum(state_overlaps[s][-1] for s in sim.free_states))
