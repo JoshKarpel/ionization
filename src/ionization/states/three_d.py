@@ -499,7 +499,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
     def __init__(
         self,
         *,
-        radial_wavefunction: 'mesh.PsiVector',
+        g: 'mesh.PsiVector',
         l: state.QuantumNumber = 0,
         m: state.QuantumNumber = 0,
         energy: float,
@@ -510,7 +510,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         """
         Parameters
         ----------
-        radial_wavefunction
+        g
             The numerically-determined wavefunction as a function of the radial coordinate.
         energy
             The numerically-determined energy of the state.
@@ -519,7 +519,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         binding
             Whether the state is bound or free.
         """
-        self.radial_wavefunction = radial_wavefunction
+        self.g = g
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state
         self.binding = binding
@@ -539,7 +539,7 @@ class NumericSphericalHarmonicState(SphericalHarmonicState):
         return self.corresponding_analytic_state.tuple
 
     def radial_function(self, r):
-        return self.radial_wavefunction
+        return self.g
 
     def __repr__(self):
         return repr(self.corresponding_analytic_state) + '_n'

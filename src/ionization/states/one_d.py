@@ -720,7 +720,7 @@ class NumericOneDState(state.QuantumState):
     def __init__(
         self,
         *,
-        wavefunction: 'mesh.PsiVector',
+        g: 'mesh.PsiVector',
         energy: float,
         corresponding_analytic_state: state.QuantumState,
         binding: state.Binding,
@@ -729,7 +729,7 @@ class NumericOneDState(state.QuantumState):
         """
         Parameters
         ----------
-        wavefunction
+        g
             The numerically-determined wavefunction as a function of space.
         energy
             The numerically-determined energy of the state.
@@ -738,7 +738,7 @@ class NumericOneDState(state.QuantumState):
         binding
             Whether the state is bound or free.
         """
-        self.wavefunction = wavefunction
+        self.g = g
         self.energy = energy
         self.corresponding_analytic_state = corresponding_analytic_state
         self.binding = binding
@@ -758,7 +758,7 @@ class NumericOneDState(state.QuantumState):
         return self.corresponding_analytic_state.tuple
 
     def __call__(self, z):
-        return self.wavefunction
+        return self.g
 
     @property
     def ket(self):

@@ -323,17 +323,22 @@ class LineMesh(QuantumMesh):
             eigenvector /= np.sqrt(self.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2))  # normalize
 
             try:
-                bound = True
+                bound = states.Binding.BOUND
                 analytic_state = self.spec.analytic_eigenstate_type.from_potential(
                     self.spec.internal_potential,
                     self.spec.test_mass,
                     n = nn + self.spec.analytic_eigenstate_type.smallest_n
                 )
             except exceptions.IllegalQuantumState:
-                bound = False
+                bound = states.Binding.FREE
                 analytic_state = states.OneDPlaneWave.from_energy(eigenvalue, mass = self.spec.test_mass)
 
-            numeric_state = states.NumericOneDState(eigenvector, eigenvalue, bound = bound, corresponding_analytic_state = analytic_state)
+            numeric_state = states.NumericOneDState(
+                g = eigenvector,
+                energy = eigenvalue,
+                binding = bound,
+                corresponding_analytic_state = analytic_state,
+            )
             if analytic_state is None:
                 analytic_state = numeric_state
 
@@ -1192,7 +1197,7 @@ class SphericalHarmonicMesh(QuantumMesh):
                     binding = states.Binding.BOUND
 
                 numeric_state = states.NumericSphericalHarmonicState(
-                    radial_wavefunction = eigenvector,
+                    g = eigenvector,
                     l = l,
                     m = 0,
                     energy = eigenvalue,

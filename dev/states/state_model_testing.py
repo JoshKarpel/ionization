@@ -89,7 +89,7 @@ if __name__ == '__main__':
             ion.states.HydrogenBoundState(),
             ion.states.HydrogenCoulombState(),
             ion.states.NumericSphericalHarmonicState(
-                radial_wavefunction = 0,
+                g = 0,
                 l = 1,
                 m = 0,
                 energy = 1 * u.eV,
@@ -102,7 +102,7 @@ if __name__ == '__main__':
             ion.states.GaussianWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
             ion.states.OneDSoftCoulombState(),
             ion.states.NumericOneDState(
-                wavefunction = 0,
+                g = 0,
                 energy = 1 * u.eV,
                 corresponding_analytic_state = ion.states.OneDPlaneWave(),
                 binding = ion.states.Binding.FREE,
