@@ -61,6 +61,7 @@ class MeshSimulation(si.Simulation):
         self.data_times = self.times[self.data_mask]
         self.data_indices = time_indices[self.data_mask]
         self.data_time_steps = len(self.data_times)
+        self.spacetime_points = np.prod(self.mesh.g.shape) * self.time_steps
 
         self.data = data.Data(self)
         self.datastores_by_type = {ds.__class__: deepcopy(ds) for ds in self.spec.datastores}
@@ -82,10 +83,6 @@ class MeshSimulation(si.Simulation):
         self.warnings = collections.defaultdict(list)
 
         self.plot = self.spec.simulation_plotter_type(self)
-
-    @property
-    def spacetime_points(self):
-        return np.prod(self.mesh.shape) * self.time_steps
 
     def get_blank_data(self, dtype = np.float64) -> np.array:
         """
