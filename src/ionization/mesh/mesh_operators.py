@@ -803,10 +803,25 @@ class SphericalHarmonicLengthGaugeOperators(MeshOperators):
 
         len_a = len(a)
 
-        even_diag = np.zeros(len_a + 1, dtype = np.complex128)
-        even_offdiag = np.zeros(len_a, dtype = np.complex128)
-        odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
-        odd_offdiag = np.zeros(len_a, dtype = np.complex128)
+        z, d = np.zeros, np.complex128
+        # z = functools.partial(np.zeros, dtype = np.complex128)
+        # even_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        # even_offdiag = np.zeros(len_a, dtype = np.complex128)
+        # odd_diag = np.zeros(len_a + 1, dtype = np.complex128)
+        # odd_offdiag = np.zeros(len_a, dtype = np.complex128)
+        # 807          92 LOAD_GLOBAL              4 (np)
+        #              94 LOAD_ATTR                5 (zeros)
+        #              96 LOAD_FAST                8 (len_a)
+        #              98 LOAD_GLOBAL              4 (np)
+        #             100 LOAD_ATTR                6 (complex128)
+        #             102 LOAD_CONST               4 (('dtype',))
+        #             104 CALL_FUNCTION_KW         2
+        #             106 STORE_FAST              10 (even_offdiag)
+        even_offdiag = z(len_a, dtype = d)
+        odd_offdiag = z(len_a, dtype = d)
+        len_a += 1
+        odd_diag = z(len_a, dtype = d)
+        even_diag = z(len_a, dtype = d)
 
         if len(mesh.r) % 2 != 0 and len(mesh.l) % 2 != 0:
             even_diag[:-1] = np.cos(a_even).repeat(2)
