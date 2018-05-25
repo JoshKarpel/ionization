@@ -93,16 +93,30 @@ class SquareAnimator(WavefunctionSimulationAnimator):
     def __init__(
         self,
         fig_dpi_scale = 1,
+        fullscreen = False,
+        fig_width = 12,
+        fig_height = 12,
         **kwargs,
     ):
         super().__init__(**kwargs)
 
         self.fig_dpi_scale = fig_dpi_scale
+        self.fig_width = fig_width
+        self.fig_height = fig_height
+        self.fullscreen = fullscreen
 
     def _initialize_figure(self):
-        self.fig = si.vis.get_figure(fig_width = 12, fig_height = 12, fig_dpi_scale = self.fig_dpi_scale)
+        self.fig = si.vis.get_figure(
+            fig_width = self.fig_width,
+            fig_height = self.fig_height,
+            fig_dpi_scale = self.fig_dpi_scale,
+        )
 
-        self.ax_mesh = self.fig.add_axes([.15, .1, .8, .8])
+        if self.fullscreen:
+            dimensions = [0, 0, 1, 1]
+        else:
+            dimensions = [.15, .1, .8, .8]
+        self.ax_mesh = self.fig.add_axes(dimensions)
         self.axman_wavefunction.assign_axis(self.ax_mesh)
 
         super()._initialize_figure()

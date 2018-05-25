@@ -272,7 +272,7 @@ class RectangleMeshPlotter(MeshPlotter):
             shading = shading,
             cmap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
         return color_mesh
@@ -401,7 +401,7 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
             shading = shading,
             cmap = colormap,
             norm = norm,
-            **kwargs
+            **kwargs,
         )
 
         return color_mesh

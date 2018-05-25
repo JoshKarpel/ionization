@@ -33,7 +33,9 @@ class QuantumMeshAxis(si.vis.AxisManager):
         distance_unit = 'bohr_radius',
         shading = 'flat',
         slicer = 'get_mesh_slicer',
+        show_grid = True,
         grid_kwargs = None,
+        axis_off = False,
     ):
         self.which = which
         self.colormap = colormap
@@ -43,9 +45,11 @@ class QuantumMeshAxis(si.vis.AxisManager):
         self.shading = shading
         self.slicer = slicer
 
+        self.show_grid = show_grid
         if grid_kwargs is None:
             grid_kwargs = {}
         self.grid_kwargs = {**COLORMESH_GRID_KWARGS, 'color': si.vis.CMAP_TO_OPPOSITE[self.colormap.name], **grid_kwargs}
+        self.axis_off = axis_off
 
         super().__init__()
 
@@ -72,7 +76,7 @@ class QuantumMeshAxis(si.vis.AxisManager):
         info.add_field('Plotting', self.which)
         info.add_field('Colormap', self.colormap.name)
         info.add_field('Normalization', self.norm.__class__.__name__)
-        info.add_field('Plot Limit', f'{uround(self.plot_limit, bohr_radius)} Bohr radii | {uround(self.plot_limit, nm)} nm' if self.plot_limit is not None else 'none')
+        info.add_field('Plot Limit', f'{u.uround(self.plot_limit, u.bohr_radius)} Bohr radii | {u.uround(self.plot_limit, u.nm)} nm' if self.plot_limit is not None else 'none')
         info.add_field('Distance Unit', self.distance_unit)
         info.add_field('Shading', self.shading)
 
@@ -160,9 +164,28 @@ class RectangleMeshAxis(QuantumMeshAxis):
             slicer = self.slicer,
             animated = True,
         )
-        self.redraw.append(self.mesh)
 
-        self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
+        pot = self.spec.internal_potential(x = self.sim.mesh.x_mesh, z = self.sim.mesh.z_mesh)
+        pot[np.abs(pot) < .1 * np.nanmax(np.abs(pot))] = np.NaN
+        self.potential_mesh = self.sim.mesh.plot.attach_mesh_to_axis(
+            self.axis,
+            np.ma.masked_invalid(pot),
+            colormap = plt.get_cmap('coolwarm_r'),
+            norm = plt.Normalize(vmin = -np.max(np.abs(pot)), vmax = np.max(np.abs(pot))),
+            shading = self.shading,
+            plot_limit = self.plot_limit,
+            distance_unit = self.distance_unit,
+            slicer = self.slicer,
+            animated = True,
+        )
+        self.redraw.append(self.mesh)
+        self.redraw.append(self.potential_mesh)
+
+        if self.axis_off:
+            self.axis.axis('off')
+
+        if self.show_grid:
+            self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
 
         self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
         self.axis.set_ylabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
