@@ -181,12 +181,6 @@ class RectangleMeshAxis(QuantumMeshAxis):
         self.redraw.append(self.mesh)
         self.redraw.append(self.potential_mesh)
 
-        if self.axis_off:
-            self.axis.axis('off')
-
-        if self.show_grid:
-            self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
-
         self.axis.set_xlabel(r'$x$ (${}$)'.format(unit_name), fontsize = 24)
         self.axis.set_ylabel(r'$z$ (${}$)'.format(unit_name), fontsize = 24)
 
@@ -196,19 +190,25 @@ class RectangleMeshAxis(QuantumMeshAxis):
 
         super().initialize_axis()
 
-        self.redraw += [
-            *self.axis.xaxis.get_gridlines(),
-            *self.axis.yaxis.get_gridlines(),
-            *self.axis.yaxis.get_ticklabels(),
-        ]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
-
         if self.which not in ('g', 'psi'):
             divider = make_axes_locatable(self.axis)
             cax = divider.append_axes("right", size = "2%", pad = 0.05)
             self.cbar = plt.colorbar(cax = cax, mappable = self.mesh)
             self.cbar.ax.tick_params(labelsize = 20)
+
+        if self.axis_off:
+            # self.axis.set_axis_off()
+            # self.axis.set_visible(False)
+            # self.axis.get_yaxis().set_visible(False)
+            self.axis.axis('off')
         else:
-            logger.warning('show_colorbar cannot be used with nonlinear colormaps')
+            self.redraw += [
+                *self.axis.xaxis.get_gridlines(),
+                *self.axis.yaxis.get_gridlines(),
+            ]  # gridlines must be redrawn over the mesh (it's important that they're AFTER the mesh itself in self.redraw)
+
+        if self.show_grid:
+            self.axis.grid(True, **self.grid_kwargs)  # change grid color to make it show up against the colormesh
 
 
 class CylindricalSliceMeshAxis(QuantumMeshAxis):

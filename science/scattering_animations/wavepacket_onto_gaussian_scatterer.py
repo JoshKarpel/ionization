@@ -38,18 +38,18 @@ if __name__ == '__main__':
         scatterer = ion.potentials.GaussianScatterer(
             x_center = -5 * u.nm,
             z_center = 0 * u.nm,
-            x_width = .3 * u.nm,
+            x_width = .5 * u.nm,
             z_width = .1 * u.nm,
         )
         scatterer += ion.potentials.GaussianScatterer(
             x_center = 0 * u.nm,
-            z_center = 3 * u.nm,
+            z_center = 5 * u.nm,
             x_width = .1 * u.nm,
             z_width = .1 * u.nm,
         )
         scatterer += ion.potentials.GaussianScatterer(
             x_center = 0 * u.nm,
-            z_center = -3 * u.nm,
+            z_center = -5 * u.nm,
             x_width = .1 * u.nm,
             z_width = .1 * u.nm,
         )
@@ -62,28 +62,29 @@ if __name__ == '__main__':
 
         sim = ion.mesh.RectangleSpecification(
             'test',
-            z_bound = 9 * u.nm,
-            x_bound = 16 * u.nm,
-            z_points = 9 * 2 * 40,
-            x_points = 16 * 2 * 40,
+            z_bound = 2 * 9 * u.nm,
+            x_bound = 2 * 16 * u.nm,
+            z_points = 9 * 2 * 30,
+            x_points = 16 * 2 * 30,
             initial_state = ion.states.TwoDGaussianWavepacket(
-                width_x = 1 * u.nm,
-                width_z = 1 * u.nm,
-                center_x = -10 * u.nm,
-                k_x = u.twopi / u.nm,
+                width_x = 2 * u.nm,
+                width_z = 3 * u.nm,
+                center_x = -15 * u.nm,
+                k_x = 1.5 * u.twopi / u.nm,
             ),
             time_initial = 0,
-            time_final = 30 * u.fsec,
-            time_step = u.fsec / 40,
+            time_final = 50 * u.fsec,
+            time_step = u.fsec / (600 / 50),
             internal_potential = scatterer,
             animators = [
                 ion.mesh.anim.SquareAnimator(
-                    postfix = '_g',
+                    postfix = '_g_flat',
                     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
                         which = 'g',
                         colormap = si.vis.RichardsonColormap(),
                         norm = si.vis.RichardsonNormalization(),
                         distance_unit = 'nm',
+                        shading = si.vis.ColormapShader.FLAT,
                         show_grid = False,
                         axis_off = True,
                     ),
@@ -92,6 +93,22 @@ if __name__ == '__main__':
                     fullscreen = True,
                     **ANIM_KWARGS,
                 ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = '_g_gouraud',
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = 'g',
+                #         colormap = si.vis.RichardsonColormap(),
+                #         norm = si.vis.RichardsonNormalization(),
+                #         distance_unit = 'nm',
+                #         shading = si.vis.ColormapShader.GOURAUD,
+                #         show_grid = False,
+                #         axis_off = True,
+                #     ),
+                #     fig_width = 16,
+                #     fig_height = 9,
+                #     fullscreen = True,
+                #     **ANIM_KWARGS,
+                # ),
                 # ion.mesh.anim.SquareAnimator(
                 #     postfix = '_g2',
                 #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
