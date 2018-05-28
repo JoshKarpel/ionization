@@ -64,8 +64,8 @@ if __name__ == '__main__':
             'test',
             z_bound = 2 * 9 * u.nm,
             x_bound = 2 * 16 * u.nm,
-            z_points = 9 * 2 * 30,
-            x_points = 16 * 2 * 30,
+            z_points = 9 * 2 * 50,
+            x_points = 16 * 2 * 50,
             initial_state = ion.states.TwoDGaussianWavepacket(
                 width_x = 2 * u.nm,
                 width_z = 3 * u.nm,
@@ -74,7 +74,7 @@ if __name__ == '__main__':
             ),
             time_initial = 0,
             time_final = 50 * u.fsec,
-            time_step = u.fsec / (600 / 50),
+            time_step = u.fsec / (1200 / 50),
             internal_potential = scatterer,
             animators = [
                 ion.mesh.anim.SquareAnimator(
@@ -93,35 +93,22 @@ if __name__ == '__main__':
                     fullscreen = True,
                     **ANIM_KWARGS,
                 ),
-                # ion.mesh.anim.SquareAnimator(
-                #     postfix = '_g_gouraud',
-                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                #         which = 'g',
-                #         colormap = si.vis.RichardsonColormap(),
-                #         norm = si.vis.RichardsonNormalization(),
-                #         distance_unit = 'nm',
-                #         shading = si.vis.ColormapShader.GOURAUD,
-                #         show_grid = False,
-                #         axis_off = True,
-                #     ),
-                #     fig_width = 16,
-                #     fig_height = 9,
-                #     fullscreen = True,
-                #     **ANIM_KWARGS,
-                # ),
-                # ion.mesh.anim.SquareAnimator(
-                #     postfix = '_g2',
-                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                #         which = 'g2',
-                #         distance_unit = 'nm',
-                #         show_grid = False,
-                #         axis_off = True,
-                #     ),
-                #     fig_width = 16,
-                #     fig_height = 9,
-                #     fullscreen = True,
-                #     **ANIM_KWARGS,
-                # ),
+                ion.mesh.anim.SquareAnimator(
+                    postfix = '_g_gouraud',
+                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                        which = 'g',
+                        colormap = si.vis.RichardsonColormap(),
+                        norm = si.vis.RichardsonNormalization(),
+                        distance_unit = 'nm',
+                        shading = si.vis.ColormapShader.GOURAUD,
+                        show_grid = False,
+                        axis_off = True,
+                    ),
+                    fig_width = 16,
+                    fig_height = 9,
+                    fullscreen = True,
+                    **ANIM_KWARGS,
+                ),
             ],
         ).to_sim()
 
