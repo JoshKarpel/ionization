@@ -26,4 +26,6 @@ request_cpus = 1
 request_memory = {memory}GB
 request_disk = {disk}GB
 #
+materialize_max_idle = {max_idle}
+#
 queue {num_jobs}
