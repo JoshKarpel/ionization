@@ -31,7 +31,7 @@ def generate_chtc_submit_string(job_name: str, specification_count: int, do_chec
         flockglide = str(clu.ask_for_bool('Flock and Glide?', default = 'y')).lower(),
         memory = clu.ask_for_input('Memory (in GB)?', default = 1, cast_to = float),
         disk = clu.ask_for_input('Disk (in GB)?', default = 5, cast_to = float),
-        max_idle = clu.ask_for_input('Max Idle Jobs?', default = specification_count / 5, cast_to = int),
+        max_idle = clu.ask_for_input('Max Idle Jobs?', default = 1000, cast_to = int),
         num_jobs = specification_count,
     )
 
