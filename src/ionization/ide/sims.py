@@ -57,7 +57,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(self.spec.electric_potential, dummy_times)
 
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+            logger.warning(f'DC-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
         if self.spec.electric_potential_fluence_correction:
             old_pot = self.spec.electric_potential
@@ -67,7 +67,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 target_fluence = list(self.spec.electric_potential)[0].fluence,  # the analytic fluence of the embedded pulse, whether it's been dc-corrected or not
             )
 
-            logger.warning('Replaced electric potential {} --> {} for {} {}'.format(old_pot, self.spec.electric_potential, self.__class__.__name__, self.name))
+            logger.warning(f'Fluence-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
         self.interpolated_vector_potential = interp.CubicSpline(
             x = dummy_times,

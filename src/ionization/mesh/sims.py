@@ -45,7 +45,17 @@ class MeshSimulation(si.Simulation):
                 self.times,
             )
 
-            logger.warning(f'Replaced electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
+            logger.warning(f'DC-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
+
+        if self.spec.electric_potential_fluence_correction:
+            old_pot = self.spec.electric_potential
+            self.spec.electric_potential = potentials.FluenceCorrector(
+                electric_potential = self.spec.electric_potential,
+                times = self.times,
+                target_fluence = list(self.spec.electric_potential)[0].fluence,  # the analytic fluence of the embedded pulse, whether it's been dc-corrected or not
+            )
+
+            logger.warning(f'Fluence-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}')
 
         self.time_index = 0
         self.data_time_index = 0
