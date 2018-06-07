@@ -202,6 +202,7 @@ class PulseParameterScanMixin:
                             title = title,
                             legend_on_right = True if len(line_labels) > 5 else False,
                             target_dir = self.summaries_dir,
+                            img_format = 'png',
                         )
 
     def make_heatmaps(self):
@@ -273,6 +274,7 @@ class PulseParameterScanMixin:
                             z_upper_limit = 1,
                             title = title,
                             target_dir = self.summaries_dir,
+                            img_format = 'png',
                         )
 
     def make_modulation_depth_heatmaps(self):
@@ -353,6 +355,7 @@ class PulseParameterScanMixin:
                             title = title,
                             colormap = plt.get_cmap('RdBu_r'),
                             target_dir = self.summaries_dir,
+                            img_format = 'png',
                         )
 
 
@@ -459,7 +462,8 @@ class MeshJobProcessor(PulseJobProcessor):
             y_unit = 1,
             x_label = 'Simulation Number', y_label = 'Space-Time Points / Second',
             title = f'{self.name} Velocity',
-            target_dir = self.summaries_dir
+            target_dir = self.summaries_dir,
+            img_format = 'png',
         )
 
         logger.debug(f'Generated velocity plot for job {self.name}')
@@ -480,6 +484,7 @@ class IDESimulationResult(PulseSimulationResult):
             plot_name = 'name',
             show_title = True,
             name_postfix = f'__{sim.file_name}',
+            img_format = 'png',
         )
 
         sim.plot_b2_vs_time(**plot_kwargs)
@@ -575,6 +580,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
                             y_log_axis = log_y,
                             legend_on_right = True,
                             target_dir = self.summaries_dir,
+                            img_format = 'png',
                         )
 
     def make_pulse_parameter_scans_1d_relative(self):
@@ -620,6 +626,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
                             y_log_axis = log_y,
                             legend_on_right = True,
                             target_dir = self.summaries_dir,
+                            img_format = 'png',
                         )
 
     def make_heatmaps(self):
@@ -677,6 +684,7 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
                         z_lower_limit = z_lower_limit,
                         z_upper_limit = z_upper_limit,
                         target_dir = self.summaries_dir,
+                        img_format = 'png',
                     )
 
     def make_pulse_parameter_scans_2d_relative(self):
@@ -736,4 +744,5 @@ class MeshConvergenceJobProcessor(MeshJobProcessor):
                         z_lower_limit = None,
                         z_upper_limit = None,
                         target_dir = self.summaries_dir,
+                        img_format = 'png',
                     )
