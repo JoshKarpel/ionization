@@ -69,6 +69,13 @@ if __name__ == '__main__':
 
             specs.append(spec)
 
+        submit_string = chtc.generate_chtc_submit_string(
+            args.job_name,
+            len(specs),
+            do_checkpoints = do_checkpoints,
+        )
+        chtc.submit_check(submit_string)
+
         total_spacetime_pts = 0
         for spec in specs:
             time_points = (spec.time_final - spec.time_initial) / spec.time_step
@@ -87,13 +94,6 @@ if __name__ == '__main__':
             pulse_parameters = pulse_parameters,
             job_processor_type = JOB_PROCESSOR_TYPE,
         )
-
-        submit_string = chtc.generate_chtc_submit_string(
-            args.job_name,
-            len(specs),
-            do_checkpoints = do_checkpoints
-        )
-        chtc.submit_check(submit_string)
         chtc.write_submit_file(submit_string, job_dir)
         if not args.dry:
             chtc.submit_job(ju.get_job_dir(args))
