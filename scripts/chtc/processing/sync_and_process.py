@@ -12,7 +12,7 @@ import simulacra.cluster as clu
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-LOG_FILE = f"{__file__.strip('.py')}__{dt.datetime.now().strftime('%Y-%m-%d')}"
+LOG_FILE = f"{__file__.strip('.py')}__{datetime.datetime.now().strftime('%Y-%m-%d')}"
 LOGMAN = si.utils.LogManager(
     '__main__', 'simulacra', 'ionization',
     stdout_logs = True,
