@@ -277,10 +277,7 @@ class MeshSimulation(si.Simulation):
                 if self.spec.checkpoints:
                     now = datetime.datetime.utcnow()
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                        self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
-                        self.latest_checkpoint_time = now
-                        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)')
-                        self.status = si.Status.RUNNING
+                        self.do_checkpoint(now)
 
                 try:
                     pbar.update(1)
@@ -302,6 +299,13 @@ class MeshSimulation(si.Simulation):
                 animator.cleanup()
 
             self.spec.animators = ()
+
+    def do_checkpoint(self, now):
+        self.status = si.Status.PAUSED
+        self.save(target_dir = self.spec.checkpoint_dir, save_mesh = True)
+        self.latest_checkpoint_time = now
+        logger.info(f'{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)')
+        self.status = si.Status.RUNNING
 
     @property
     def percent_completed(self):

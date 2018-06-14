@@ -152,8 +152,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.times.append(new_t)
             self.time_index += 1
 
-            completion_percent = 100 * (self.time - self.spec.time_initial) / (self.spec.time_final - self.spec.time_initial)
-            logger.debug(f'{self} evolved to time index {self.time_index} ({round(completion_percent)}%)')
+            logger.debug(f'{self} evolved to time index {self.time_index} ({round(self.completion_percent)}%)')
 
             if callback is not None:
                 callback(self)
@@ -161,10 +160,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             if self.spec.checkpoints:
                 now = datetime.datetime.utcnow()
                 if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                    self.save(target_dir = self.spec.checkpoint_dir)
-                    self.latest_checkpoint_time = now
-                    logger.info(f'Checkpointed {self} at time index {self.time_index} ({round(completion_percent)}%)')
-                    self.status = si.Status.RUNNING
+                    self.do_checkpoint(now)
 
             try:
                 new_asecs_remaining = int((self.spec.time_final - self.times[-1]) / u.asec)
@@ -191,6 +187,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         self.status = si.Status.FINISHED
         logger.info(f'Finished performing time evolution on {self.name} ({self.file_name})')
+
+    def do_checkpoint(self, now):
+        self.status = si.Status.PAUSED
+        self.save(target_dir = self.spec.checkpoint_dir)
+        self.latest_checkpoint_time = now
+        logger.info(f'Checkpointed {self} at time index {self.time_index} ({round(self.completion_percent)}%)')
+        self.status = si.Status.RUNNING
+
+    @property
+    def completion_percent(self):
+        return 100 * (self.time - self.spec.time_initial) / (self.spec.time_final - self.spec.time_initial)
 
     def attach_electric_potential_plot_to_axis(
         self,
