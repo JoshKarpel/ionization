@@ -1,7 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-import datetime as dt
-import functools as ft
+import datetime
+import functools
 import logging
 import os
 import sys
@@ -56,11 +56,11 @@ def process_jobs(jobs_dir):
     job_processors = [si.utils.run_in_process(process_job, args = (job_name, jobs_dir)) for job_name in job_names]  # avoid memory leaks
 
     total_sim_count = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
-    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
+    total_runtime = sum((jp.running_time for jp in job_processors), datetime.timedelta())
 
     logger.info(f'Processed {len(job_processors)} jobs containing {total_sim_count} simulations, with total runtime {total_runtime}')
 
-    report = generate_processing_report(job_processors)
+    report = make_processing_report(job_processors)
     print(report)
     with open('report_processing.txt', mode = 'w', encoding = 'utf-8') as f:
         f.write(report)
@@ -100,48 +100,22 @@ def process_job(job_name, jobs_dir = None):
         return jp
 
 
-def generate_processing_report(job_processors):
-    len_of_longest_jp_name = max(len(jp.name) for jp in job_processors) if job_processors else 10
+def make_processing_report(job_processors):
     total_processed = sum(jp.sim_count - len(jp.unprocessed_sim_names) for jp in job_processors)
     total_jobs = sum(jp.sim_count for jp in job_processors)
-    total_runtime = sum((jp.running_time for jp in job_processors), dt.timedelta())
-    len_job_num = len(str(total_jobs)) + 1
+    total_runtime = sum((jp.running_time for jp in job_processors), datetime.timedelta())
 
-    processed = 'Processed'
-    total = 'Total'
-    len_job_num = max(len_job_num, len(processed), len(total))
-    job_name = 'Job Name'.center(len_of_longest_jp_name)
-    processed = processed.center(len_job_num)
-    total = total.center(len_job_num)
-    header = f' {job_name} │ {processed} │ {total} │ Runtime'
-
-    bar = ''.join('─' if char != '│' else '┼' for char in header)
-
-    lines_in_progress = []
-    lines_finished = []
-    for jp in job_processors:
-        s = f' {jp.name.ljust(len_of_longest_jp_name)} │ {str(jp.sim_count - len(jp.unprocessed_sim_names)).center(len_job_num)} │ {str(jp.sim_count).center(len_job_num)} │ {jp.running_time}'
-
-        if len(jp.unprocessed_sim_names) > 0:
-            lines_in_progress.append(s)
-        else:
-            lines_finished.append(s)
-
-    footer = f' {" " * len_of_longest_jp_name} │ {str(total_processed).center(len_job_num)} │ {str(total_jobs).center(len_job_num)} │ {total_runtime}'
-
-    report_components = [
-        '',
-        header,
-        bar,
-        *lines_in_progress,
-        bar,
-        *lines_finished,
-        bar,
-        footer,
-        bar.replace('┼', '┴'),
-        ''
-    ]
-    report = '\n'.join(report_components)
+    report = si.utils.table(
+        ['Job', 'Processed', 'Total', 'Runtime'],
+        [
+            *[
+                (jp.name, jp.sim_count - len(jp.unprocessed_sim_names), jp.sim_count, jp.running_time)
+                for jp in job_processors
+            ],
+            None,
+            ['', total_processed, total_jobs, total_runtime],
+        ]
+    )
 
     return report
 
@@ -153,10 +127,10 @@ if __name__ == '__main__':
             jobs_dir = "E:\Dropbox\Research\Cluster\mirror\home\karpel\jobs"
 
             si.utils.try_loop(
-                ft.partial(synchronize_with_cluster, ci),
-                ft.partial(process_jobs, jobs_dir),
-                wait_after_success = dt.timedelta(hours = 3),
-                wait_after_failure = dt.timedelta(minutes = 10),
+                functools.partial(synchronize_with_cluster, ci),
+                functools.partial(process_jobs, jobs_dir),
+                wait_after_success = datetime.timedelta(hours = 3),
+                wait_after_failure = datetime.timedelta(minutes = 10),
             )
         except KeyboardInterrupt:
             logger.critical('Detected keyboard interrupt. Exiting...')

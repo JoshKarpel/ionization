@@ -7,12 +7,10 @@ import time
 import numpy as np
 
 import simulacra as si
-from simulacra.units import *
-
+import simulacra.units as u
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
-
 
 PLOT_KWARGS = dict(
     target_dir = OUT_DIR,
@@ -21,22 +19,24 @@ PLOT_KWARGS = dict(
 )
 
 
-def run_sim_in_proc(R, ppR, L, T):
-    process = subprocess.Popen(['python', 'sim_ram_runner_tdse.py', str(R), str(ppR), str(L), str(T)])
+def run_sim_in_proc(R, ppR, L, T, maxE, maxL):
+    process = subprocess.Popen(['python', 'sim_ram_runner_tdse.py', str(R), str(ppR), str(L), str(T), str(maxE), str(maxL)])
     return process
 
 
 if __name__ == '__main__':
     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO) as logger:
-        R = 100
-        ppR = 10
-        L = 200
+        R = 200
+        ppR = 20
+        L = 1000
         T = 50
+        maxE = 20
+        maxL = 10
 
         times = []
         rss = []
         vms = []
-        proc = run_sim_in_proc(R, ppR, L, T)
+        proc = run_sim_in_proc(R, ppR, L, T, maxE, maxL)
         ps_proc = psutil.Process(proc.pid)
 
         while proc.poll() is None:
@@ -48,12 +48,12 @@ if __name__ == '__main__':
             except psutil.NoSuchProcess:
                 pass
 
-            time.sleep(1 * usec)
+            time.sleep(1 * u.usec)
 
         times = np.array(times) - times[0]
 
         si.vis.xy_plot(
-            f'rss_vs_time__R={R}_ppR={ppR}_L={L}_T={T}',
+            f'rss_vs_time__R={R}_ppR={ppR}_L={L}_T={T}_E={maxE}_L={maxL}',
             times,
             rss,
             vms,
@@ -61,7 +61,10 @@ if __name__ == '__main__':
             x_label = 'Time', x_unit = 's',
             y_label = 'Memory Usage (MB)',
             y_unit = (1024 ** 2),
-            x_lower_limit = 25,
-            x_upper_limit = 38,
+            # x_lower_limit = 25,
+            # x_upper_limit = 38,
             **PLOT_KWARGS,
         )
+
+        print('max rss', max(rss))
+        print('max vms', max(vms))

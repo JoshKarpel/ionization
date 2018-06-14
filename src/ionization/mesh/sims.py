@@ -386,6 +386,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         internal_potential: potentials.PotentialEnergy = potentials.CoulombPotential(charge = u.proton_charge),
         electric_potential: potentials.ElectricPotential = potentials.NoElectricPotential(),
         electric_potential_dc_correction: bool = False,
+        electric_potential_fluence_correction: bool = False,
         mask: potentials.Mask = potentials.NoMask(),
         operators: mesh_operators.MeshOperators = None,
         evolution_method: evolution_methods.EvolutionMethod = None,
@@ -468,6 +469,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         self.internal_potential = internal_potential
         self.electric_potential = electric_potential
         self.electric_potential_dc_correction = electric_potential_dc_correction
+        self.electric_potential_fluence_correction = electric_potential_fluence_correction
         self.mask = mask
 
         self.operators = operators
