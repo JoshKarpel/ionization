@@ -602,13 +602,13 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
     """
 
     def __init__(
-            self,
-            pulse_width: float = DEFAULT_PULSE_WIDTH,
+        self,
+        pulse_width: float = DEFAULT_PULSE_WIDTH,
 
-            fluence: float = DEFAULT_FLUENCE,
-            phase: float = DEFAULT_PHASE,
-            pulse_center: float = DEFAULT_PULSE_CENTER,
-            omega_min: float = DEFAULT_OMEGA_MIN,**kwargs,):
+        fluence: float = DEFAULT_FLUENCE,
+        phase: float = DEFAULT_PHASE,
+        pulse_center: float = DEFAULT_PULSE_CENTER,
+        omega_min: float = DEFAULT_OMEGA_MIN, **kwargs, ):
         """
         Parameters
         ----------
@@ -1046,7 +1046,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
             test_mass = test_mass
         )
 
-        fluence = np.sqrt(u.pi) * pulse_width * u.epsilon_0 * u.c * (amplitude ** 2) / 2
+        fluence = cls.fluence_from_pulse_width_and_amplitude(pulse_width, amplitude)
 
         return cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1067,7 +1067,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse_center = DEFAULT_PULSE_CENTER,
         **kwargs,
     ) -> 'GaussianPulse':
-        fluence = np.sqrt(u.pi) * u.epsilon_0 * u.c * pulse_width * (amplitude ** 2) / 2
+        fluence = cls.fluence_from_pulse_width_and_amplitude(pulse_width, amplitude)
 
         pot = cls.from_omega_min(
             pulse_width = pulse_width,
@@ -1151,6 +1151,61 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         pulse.number_of_pulse_widths = number_of_pulse_widths
 
         return pulse
+
+    @classmethod
+    def from_number_of_cycles_and_amplitude(
+        cls,
+        pulse_width = DEFAULT_PULSE_WIDTH,
+        number_of_cycles = 3,
+        number_of_pulse_widths = 3,
+        amplitude = .1 * u.atomic_electric_field,
+        phase = DEFAULT_PHASE,
+        pulse_center = DEFAULT_PULSE_CENTER,
+        **kwargs,
+    ) -> 'GaussianPulse':
+        """
+        Construct a GaussianPulse from the number of cycles over a certain range of pulse widths.
+
+        Parameters
+        ----------
+        pulse_width
+        number_of_cycles
+            The number of cycles under the envelope (the cutoff is given by number_of_pulse_widths).
+        number_of_pulse_widths
+            The number of pulse widths on either side of the center of the pulse to consider when determining the carrier frequency from the number of cycles.
+        amplitude
+        phase
+        pulse_center
+        kwargs
+
+        Returns
+        -------
+
+        """
+        omega_carrier = u.pi * number_of_cycles / (number_of_pulse_widths * pulse_width)
+
+        pulse = cls(
+            pulse_width = pulse_width,
+            omega_carrier = omega_carrier,
+            fluence = cls.fluence_from_pulse_width_and_amplitude(pulse_width, amplitude),
+            phase = phase,
+            pulse_center = pulse_center,
+            **kwargs
+        )
+
+        pulse.number_of_cycles = number_of_cycles
+        pulse.number_of_pulse_widths = number_of_pulse_widths
+
+        if np.isclose(amplitude / pulse.amplitude, 1):
+            pulse.amplitude = amplitude
+        else:
+            raise ValueError('Given amplitude not close enough to calculated amplitude')
+
+        return pulse
+
+    @classmethod
+    def fluence_from_pulse_width_and_amplitude(cls, pulse_width, amplitude):
+        return np.sqrt(u.pi) * pulse_width * u.epsilon_0 * u.c * (amplitude ** 2) / 2
 
     @property
     def photon_energy_carrier(self):
