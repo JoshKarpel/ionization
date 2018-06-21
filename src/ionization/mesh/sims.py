@@ -343,7 +343,7 @@ class MeshSimulation(si.Simulation):
     def save(
         self,
         target_dir: Optional[str] = None,
-        file_extension: str = '.sim',
+        file_extension: str = 'sim',
         save_mesh: bool = False,
         **kwargs,
     ):

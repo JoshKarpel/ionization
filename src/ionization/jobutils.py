@@ -428,7 +428,7 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
     pulse_type = PULSE_NAMES_TO_TYPES[clu.ask_for_input('Pulse Type? [sinc | gaussian | sech | cos2]', default = 'sinc')]
-    constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if 'from_' in name)
+    constructor_names = (name.replace('from_', '') for name in pulse_type.__dict__ if name.startswith('from_'))
     constructor_name = clu.ask_for_input(f'Pulse Constructor? [{" | ".join(constructor_names)}]', default = 'omega_min')
     constructor = getattr(pulse_type, f'from_{constructor_name}')
 
