@@ -7,6 +7,9 @@ import argparse
 import logging
 from pathlib import Path
 
+import matplotlib
+matplotlib.use('agg')  # make sure it doesn't try to load libraries that may not exist
+
 import simulacra as si
 
 
