@@ -25,13 +25,13 @@ PLOT_KWARGS = dict(
 )
 
 
-def ionization_from_fluence(fluence, gamma = 1.16):
+def ionization_from_fluence(fluence, gamma):
     return np.exp(-2 * gamma * fluence / (u.epsilon_0 * u.c * (u.atomic_electric_field ** 2) * u.atomic_time))
 
 
-def make_scans_with_overlay(job_processor):
+def make_scans_with_overlay(job_processor, gamma = 1):
     for line_parameter, scan_parameter, plot_parameters in job_processor._select_two_parameters():
-        if scan_parameter != 'fluence':
+        if scan_parameter != 'fluence' or line_parameter == 'phase':
             continue
 
         try:
@@ -69,13 +69,14 @@ def make_scans_with_overlay(job_processor):
 
             length = len(x_data)
 
-            y_data += [ionization_from_fluence(fluence) for fluence in x_data]
-            x_data *= 2
-            line_labels += [l + ' (exp)' for l in line_labels]
+            x_data.append(x_data[-1])
+            y_data.append(ionization_from_fluence(x_data[-1], gamma))
+            line_labels.append(f'$\gamma = {gamma}$')
 
             colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02']
             line_kwargs = [{'color': colors[i]} for i in range(length)]
-            line_kwargs += [{'color': colors[i], 'linestyle': '--'} for i in range(length)]
+            line_kwargs.append({'color': 'black', 'linestyle': '--'})
+            # line_kwargs += [{'color': colors[i], 'linestyle': '--'} for i in range(length)]
 
             for log_x, log_y in itertools.product((True, False), repeat = 2):
                 if any((log_x and scan_parameter == 'phase',
@@ -84,9 +85,12 @@ def make_scans_with_overlay(job_processor):
                     continue
 
                 if log_y:
-                    y_lower_limit = None
+                    y_lower_limit = 1e-15
                 else:
                     y_lower_limit = 0
+
+                if log_x or not log_y:
+                    continue
 
                 log_str = iclu.format_log_str(
                     (log_x, log_y),
@@ -108,15 +112,19 @@ def make_scans_with_overlay(job_processor):
                     y_log_axis = log_y,
                     title = title,
                     legend_on_right = True if len(line_labels) > 5 else False,
-                    target_dir = OUT_DIR,
+                    target_dir = os.path.join(OUT_DIR, job_processor.name, f'gamma={gamma}'),
                     img_format = 'png',
                 )
 
 
 if __name__ == '__main__':
     with LOGMAN as logger:
-        jp = clu.JobProcessor.load('gaussian_amplitude_scan.job')
+        jp_names = (
+            'gaussian_fluence_scan_2.job',
+            'gaussian_amplitude_scan.job',
+        )
 
-        print(jp)
-
-        make_scans_with_overlay(jp)
+        for jp_name in jp_names:
+            jp = clu.JobProcessor.load(jp_name)
+            for gamma in (1, 1.16, 1.2):
+                make_scans_with_overlay(jp, gamma)
