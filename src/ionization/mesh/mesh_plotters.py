@@ -211,9 +211,7 @@ class LineMeshPlotter(MeshPlotter):
         axis: plt.Axes,
         mesh: 'meshes.ScalarMesh',
         distance_unit: u.Unit = 'bohr_radius',
-        colormap = plt.get_cmap('inferno'),
         norm = si.vis.AbsoluteRenormalize(),
-        shading: si.vis.ColormapShader = si.vis.ColormapShader.FLAT,
         plot_limit = None,
         slicer = 'get_mesh_slicer',
         **kwargs,
@@ -237,8 +235,8 @@ class LineMeshPlotter(MeshPlotter):
             self.mesh.z_mesh,
             mesh,
             x_label = 'Distance $x$',
-            x_unit_value = distance_unit,
-            **kwargs
+            x_unit = distance_unit,
+            **kwargs,
         )
 
     def update_mesh(self, colormesh, updated_mesh, norm = None, **kwargs):

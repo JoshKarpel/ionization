@@ -165,7 +165,11 @@ class RectangleMeshAxis(QuantumMeshAxis):
             animated = True,
         )
 
-        pot = self.spec.internal_potential(x = self.sim.mesh.x_mesh, z = self.sim.mesh.z_mesh)
+        pot = self.spec.internal_potential(
+            x = self.sim.mesh.x_mesh,
+            z = self.sim.mesh.z_mesh,
+            r = self.sim.mesh.r_mesh,
+        )
         pot[np.abs(pot) < .1 * np.nanmax(np.abs(pot))] = np.NaN
         self.potential_mesh = self.sim.mesh.plot.attach_mesh_to_axis(
             self.axis,

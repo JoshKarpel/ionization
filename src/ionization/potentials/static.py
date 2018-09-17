@@ -236,6 +236,9 @@ class HarmonicOscillator(potential.PotentialEnergy):
         """Return the cyclic frequency for this potential for the given mass."""
         return self.omega(mass) / u.twopi
 
+    def period(self, mass: float) -> float:
+        return 1 / self.frequency(mass)
+
     def __repr__(self):
         return utils.fmt_fields(
             self,
@@ -519,3 +522,28 @@ class LogisticScatterer(potential.PotentialEnergy):
         info.add_field('X Width', utils.fmt_quantity(self.x_width, utils.LENGTH_UNITS))
 
         return info
+
+
+class InfiniteEllipticalWell(potential.PotentialEnergy):
+    def __init__(
+        self,
+        potential: float = 100 * u.eV,
+        z_axis: float = 10 * u.nm,
+        x_axis: float = 10 * u.nm,
+        z_center: float = 0,
+        x_center: float = 0,
+    ):
+        super().__init__()
+
+        self.potential = potential
+        self.z_axis = z_axis
+        self.x_axis = x_axis
+        self.z_center = z_center
+        self.x_center = x_center
+
+    def __call__(self, *, z, x, **kwargs):
+        return np.where(
+            np.less_equal((z / self.z_axis) ** 2 + (x / self.x_axis) ** 2, 1),
+            0,
+            self.potential,
+        )
