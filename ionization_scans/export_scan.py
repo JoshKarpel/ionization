@@ -11,14 +11,14 @@ import click
 
 import htmap
 
-from . import shared
+from . import mesh_scan_utils
 
 
-@click.command(context_settings=shared.CLI_CONTEXT_SETTINGS)
+@click.command(context_settings=mesh_scan_utils.CLI_CONTEXT_SETTINGS)
 @click.argument("tag")
 @click.option("--outdir", default=None)
 def main(tag, outdir):
-    with shared.make_spinner(f"loading map {tag}...") as spinner:
+    with mesh_scan_utils.make_spinner(f"loading map {tag}...") as spinner:
         map = htmap.load(tag)
         spinner.succeed(f"loaded map {tag}")
 

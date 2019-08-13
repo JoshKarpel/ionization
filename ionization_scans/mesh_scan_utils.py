@@ -650,3 +650,58 @@ def transfer_potential_attrs_to_spec(electric_potential, spec):
             setattr(spec, attr, getattr(electric_potential, attr))
         except AttributeError:
             pass
+
+
+@htmap.mapped(map_options=htmap.MapOptions(custom_options={"is_resumable": "true"}))
+def run(spec):
+    sim_path = Path.cwd() / f"{spec.file_name}.sim"
+
+    try:
+        sim = si.Simulation.load(str(sim_path))
+        print(f"Recovered checkpoint from {sim_path}")
+        print(f"Checkpoint size is {si.utils.get_file_size_as_string(sim_path)}")
+    except (FileNotFoundError, EOFError):
+        sim = spec.to_sim()
+        print("No checkpoint found")
+
+    print(sim.info())
+
+    sim.run(checkpoint_callback=htmap.checkpoint)
+
+    print(sim.info())
+
+    return sim
+
+
+def ask_htmap_settings():
+    docker_image = si.cluster.ask_for_input("Docker image (repository:tag)?")
+    htmap.settings["DOCKER.IMAGE"] = docker_image
+    htmap.settings["SINGULARITY.IMAGE"] = f"docker://{docker_image}"
+
+    delivery_method = si.cluster.ask_for_choices(
+        "Use Docker or Singularity?",
+        choices={"docker": "docker", "singularity": "singularity"},
+        default="docker",
+    )
+
+    htmap.settings["DELIVERY_METHOD"] = delivery_method
+    if delivery_method == "singularity":
+        htmap.settings["MAP_OPTIONS.requirements"] = "OpSysMajorVer =?= 7"
+
+
+def ask_map_options() -> (dict, dict):
+    opts = {
+        "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
+        "request_disk": si.cluster.ask_for_input("Disk?", default="1GB"),
+        "max_idle": "100",
+    }
+    custom_opts = {
+        "wantflocking": str(
+            si.cluster.ask_for_bool("Want flocking?", default=False)
+        ).lower(),
+        "wantglidein": str(
+            si.cluster.ask_for_bool("Want gliding?", default=False)
+        ).lower(),
+    }
+
+    return opts, custom_opts

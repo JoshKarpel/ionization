@@ -1,10 +1,12 @@
+import logging
+from typing import Optional, Iterable, Callable
+
 import collections
 import itertools
 import datetime
-import logging
 import sys
+from pathlib import Path
 from copy import deepcopy
-from typing import Optional, Iterable, Callable
 import abc
 
 import numpy as np
@@ -250,6 +252,7 @@ class MeshSimulation(si.Simulation):
         self,
         progress_bar: bool = False,
         callback: Callable[["MeshSimulation"], None] = None,
+        checkpoint_callback: Callable[[Path], None] = None,
     ):
         """
         Run the simulation by repeatedly evolving the mesh by the time step.
@@ -318,7 +321,7 @@ class MeshSimulation(si.Simulation):
                 if self.spec.checkpoints:
                     now = datetime.datetime.utcnow()
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                        self.do_checkpoint(now)
+                        self.do_checkpoint(now, checkpoint_callback)
 
                 try:
                     pbar.update(1)
@@ -341,9 +344,10 @@ class MeshSimulation(si.Simulation):
 
             self.spec.animators = ()
 
-    def do_checkpoint(self, now):
+    def do_checkpoint(self, now, callback: Callable[[Path], None]):
         self.status = si.Status.PAUSED
-        self.save(target_dir=self.spec.checkpoint_dir, save_mesh=True)
+        path = self.save(target_dir=self.spec.checkpoint_dir, save_mesh=True)
+        callback(path)
         self.latest_checkpoint_time = now
         logger.info(
             f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)"
@@ -356,11 +360,11 @@ class MeshSimulation(si.Simulation):
 
     @property
     def bound_states(self) -> Iterable[states.QuantumState]:
-        yield from [s for s in self.spec.test_states if s.bound]
+        yield from (s for s in self.spec.test_states if s.bound)
 
     @property
     def free_states(self) -> Iterable[states.QuantumState]:
-        yield from [s for s in self.spec.test_states if not s.bound]
+        yield from (s for s in self.spec.test_states if not s.bound)
 
     def dipole_moment_vs_frequency(
         self, first_time: Optional[float] = None, last_time: Optional[float] = None
