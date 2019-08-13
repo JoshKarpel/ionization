@@ -159,7 +159,7 @@ def ask_initial_state_for_hydrogen_sim(parameters):
 def ask_numeric_eigenstate_basis(parameters, *, spec_type):
     numeric_basis_q = clu.ask_for_bool("Use numeric eigenstate basis?", default=True)
     if numeric_basis_q:
-        parameters.append(clu.Parameter(name="use_numeric_eigenion.states", value=True))
+        parameters.append(clu.Parameter(name="use_numeric_eigenstates", value=True))
 
         max_energy = u.eV * clu.ask_for_input(
             "Numeric Eigenstate Max Energy (in eV)?", default=20, cast_to=float
