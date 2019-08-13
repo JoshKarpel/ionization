@@ -3,6 +3,16 @@ Quantum States
 
 .. currentmodule:: ionization.states
 
+Quantum states are represented by objects.
+A single eigenstate is a :class:`QuantumState`, and a superposition of those
+states is a :class:`Superposition`.
+
+:class:`QuantumState` can be added together, and they can be multiplied by real
+and complex numbers.
+However, we do not support product states or continuous superpositions, so all
+of our states represent discrete superpositions of the state of a single particle.
+
+
 .. autoclass:: QuantumState
 
     .. automethod:: normalized

@@ -3,6 +3,14 @@ IDE Model Simulations
 
 .. currentmodule:: ionization.ide
 
+Simulations that use our IDE model and implemented in the ``ide`` submodule.
+
+An :class:`IDESimulation` delegates the decision of how to evolve the wavefunction to an :class:`EvolutionMethod`.
+It is also provided with a :class:`Kernel`, which implements some version of the analytic kernel function.
+
+This sub-package also includes tools for working with delta-kicks.
+
+
 Specifications
 --------------
 
@@ -57,17 +65,19 @@ Kernels
 Delta-Kicks
 -----------
 
-.. autoclass:: ionization.ide.delta_kicks.DeltaKicks
+.. currentmodule:: ionization.ide.delta_kicks
+
+.. autoclass:: DeltaKicks
 
     .. automethod:: info
 
-.. autofunction:: ionization.ide.delta_kicks.decompose_potential_into_kicks
+.. autofunction:: decompose_potential_into_kicks
 
-.. autoclass:: ionization.ide.delta_kicks.DeltaKickSpecification
+.. autoclass:: DeltaKickSpecification
 
     .. automethod:: info
 
-.. autoclass:: ionization.ide.delta_kicks.DeltaKickSimulation
+.. autoclass:: DeltaKickSimulation
 
     .. automethod:: run
 

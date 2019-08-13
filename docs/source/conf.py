@@ -190,6 +190,7 @@ intersphinx_mapping = {
     "https://docs.python.org/": None,
     "http://docs.scipy.org/doc/numpy/": None,
     "http://matplotlib.org": None,
+    "https://htmap.readthedocs.io/en/latest/": None,
 }
 
 autodoc_member_order = "bysource"

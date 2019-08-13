@@ -2,6 +2,6 @@
 
 .. currentmodule:: ionization
 
-Tutorial
-========
+Tutorials
+=========
 

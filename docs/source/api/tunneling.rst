@@ -3,6 +3,12 @@ Tunneling Model Simulations
 
 .. currentmodule:: ionization.tunneling
 
+Tunneling models are implemented in the ``tunneling`` submodule.
+The name is a slight misnomer: this is really a collection of models that
+predict the remaining wavefunction based on instantaneous electric field
+amplitudes, regardless of whether any given model is truly based on tunneling.
+
+
 Specifications
 --------------
 

@@ -1,0 +1,14 @@
+v0.3.0
+======
+
+New Features
+------------
+
+* Parameter scans now use `HTMap <https://htmap.readthedocs.io/en/latest/>`_.
+
+Bug Fixes
+---------
+
+
+Known Issues
+------------

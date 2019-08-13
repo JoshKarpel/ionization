@@ -12,6 +12,10 @@ install:
   - pip install --upgrade -r requirements-dev.txt
   - pip install -e .
   - python -c "import ionization"
+  - pip install codecov
 
 script:
   - pytest -n 2 tests/
+
+after_success:
+  - codecov

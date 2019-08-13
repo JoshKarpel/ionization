@@ -1,8 +1,12 @@
 Potentials
 ==========
 
-All potentials have the feature that their ``__call__`` methods, used to evaluate the potential energy as function of various arguments, absorb extraneous keyword arguments.
-This lets you construct a sum of potentials which share or don't share certain arguments, as long as each argument has a consistent meaning between the potentials.
+All potentials have the feature that their ``__call__`` methods,
+used to evaluate the potential energy as function of various arguments,
+absorb extraneous keyword arguments.
+This lets you construct a sum of potentials which share or don't share certain
+arguments, as long as each argument has a consistent meaning between the
+potentials.
 
 .. currentmodule:: ionization.potentials
 

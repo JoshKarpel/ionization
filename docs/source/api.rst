@@ -13,10 +13,19 @@ API Reference
    api/states
    api/potentials
 
-On Type Annotations
--------------------
+The different approaches to thinking about the interaction are grouped into submodules:
 
-``ionization`` has type annotations, but (as yet) we don't use static type checking.
-Many types are used throughout the program, but I have no doubt that it wouldn't actually pass something like ``mypy``.
-For the moment, the type annotations are meant to help humans, not machines.
+:doc:`api/mesh`
+    Mesh-based time-dependent Schrödinger equation (TDSE) simulations.
+:doc:`api/ide`
+    An ionization model based on the TDSE.
+:doc:`api/tunneling`
+    Various tunneling ionization models.
 
+These approaches are supported by the other submodules, which provide
+abstractions for quantum states, electrical potentials, etc.
+
+:doc:`api/states`
+    Object-based representations of quantum states.
+:doc:`api/potentials`
+    Electrical potentials, imaginary potentials, wavefunction masks, etc.
