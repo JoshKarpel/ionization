@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import logging
-import os
 from pathlib import Path
 
 import simulacra as si
@@ -9,14 +8,7 @@ import simulacra.units as u
 
 import ionization as ion
 
-# FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-FILE_NAME = Path(__file__).name
-# OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
-OUT_DIR = Path(__file__).parent / "out" / FILE_NAME
-
 LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INFO)
-
-PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def run_with_timing(spec):
