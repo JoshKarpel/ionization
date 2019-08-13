@@ -378,8 +378,8 @@ class HydrogenBoundState(SphericalHarmonicState):
         normalization = np.sqrt(
             ((2 / (self.n * u.bohr_radius)) ** 3)
             * (
-                sp.math.factorial(self.n - self.l - 1)
-                / (2 * self.n * sp.math.factorial(self.n + self.l))
+                special.factorial(self.n - self.l - 1)
+                / (2 * self.n * special.factorial(self.n + self.l))
             )
         )  # Griffith's normalization
         r_dep = np.exp(-r / (self.n * u.bohr_radius)) * (
