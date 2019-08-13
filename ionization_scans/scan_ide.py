@@ -3,8 +3,6 @@ import datetime
 
 from tqdm import tqdm
 
-import scipy.optimize as opt
-
 import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
@@ -18,16 +16,27 @@ import htmap
 def create_scan(tag):
     parameters = []
 
-    spec_type, mesh_kwargs = utils.ask_mesh_type()
-    utils.ask_mask__radial_cosine(parameters, mesh_kwargs)
-    utils.ask_numeric_eigenstate_basis(parameters, spec_type=spec_type)
+    spec_type = ion.ide.IntegroDifferentialEquationSpecification
+    evolution_method = utils.ask_evolution_method_ide(parameters)
 
-    utils.ask_initial_state_for_hydrogen_sim(parameters)
+    test_charge = u.electron_charge
+    test_mass = u.electron_mass
+    test_energy = ion.states.HydrogenBoundState(1, 0).energy
 
-    utils.ask_mesh_operators(parameters, spec_type=spec_type)
-    utils.ask_evolution_method_tdse(parameters)
+    parameters.append(clu.Parameter(name="test_charge", value=test_charge))
+    parameters.append(clu.Parameter(name="test_mass", value=test_mass))
+    parameters.append(clu.Parameter(name="test_energy", value=test_energy))
+    parameters.append(
+        clu.Parameter(
+            name="integral_prefactor", value=-(u.electron_charge / u.hbar) ** 2
+        )
+    )
+
+    kernel = utils.ask_ide_kernel(parameters)
+    tunneling_model = utils.ask_ide_tunneling(parameters)
 
     utils.ask_time_step(parameters)
+
     time_initial_in_pw, time_final_in_pw, extra_time = (
         utils.ask_time_evolution_by_pulse_widths()
     )
@@ -40,7 +49,7 @@ def create_scan(tag):
     )
 
     # MISCELLANEOUS
-    utils.ask_data_storage_tdse(parameters, spec_type=spec_type)
+    utils.ask_data_storage_ide(parameters, spec_type=spec_type)
 
     # CREATE SPECS
     expanded_parameters = si.cluster.expand_parameters(parameters)
@@ -61,7 +70,6 @@ def create_scan(tag):
             component=component,
             time_initial=time_initial,
             time_final=time_final,
-            **mesh_kwargs,
             **spec_kwargs,
             **extra_parameters,
         )

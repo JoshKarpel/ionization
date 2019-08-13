@@ -17,18 +17,6 @@ import ionization as ion
 
 import htmap
 
-from halo import Halo
-from spinners import Spinners
-
-CLI_CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
-
-SPINNERS = list(name for name in Spinners.__members__ if "dots" in name)
-
-
-def make_spinner(*args, **kwargs):
-    return Halo(*args, spinner=random.choice(SPINNERS), stream=sys.stderr, **kwargs)
-
-
 # SHARED QUESTIONS
 
 

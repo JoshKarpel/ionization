@@ -2,23 +2,36 @@ import simulacra as si  # somewhere there's ordering in these imports
 import ionization  # will get nasty import error if not this first
 
 from pathlib import Path
+import random
 
 import gzip
 import pickle
 
-from tqdm import tqdm
-import click
 
 import htmap
 
-from . import mesh_scan_utils
+
+import click
+from tqdm import tqdm
+from halo import Halo
+from spinners import Spinners
 
 
-@click.command(context_settings=mesh_scan_utils.CLI_CONTEXT_SETTINGS)
+SPINNERS = list(name for name in Spinners.__members__ if "dots" in name)
+
+
+def make_spinner(*args, **kwargs):
+    return Halo(*args, spinner=random.choice(SPINNERS), stream=sys.stderr, **kwargs)
+
+
+CLI_CONTEXT_SETTINGS = dict(help_option_names=["-h", "--help"])
+
+
+@click.command(context_settings=CLI_CONTEXT_SETTINGS)
 @click.argument("tag")
 @click.option("--outdir", default=None)
 def main(tag, outdir):
-    with mesh_scan_utils.make_spinner(f"loading map {tag}...") as spinner:
+    with make_spinner(f"loading map {tag}...") as spinner:
         map = htmap.load(tag)
         spinner.succeed(f"loaded map {tag}")
 
