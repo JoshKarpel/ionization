@@ -7,7 +7,7 @@ RUN apt-get -y update && \
     rm -rf /var/lib/apt/lists/*
 
 # install python dependencies
-RUN conda install -y python=3.7 \
+RUN conda install -y python=3.7.3 numpy scipy matplotlib cython \
  && conda clean -y --all
 
 ARG CACHEBUST=1
