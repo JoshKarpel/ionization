@@ -5,7 +5,6 @@ import warnings
 
 import mpmath
 import numpy as np
-import scipy as sp
 import scipy.special as special
 
 import simulacra as si

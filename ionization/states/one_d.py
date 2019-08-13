@@ -5,7 +5,6 @@ from typing import List
 import numpy as np
 import scipy.optimize as optimize
 import scipy.special as special
-import scipy.misc as spmisc
 
 import simulacra as si
 import simulacra.units as u
@@ -263,7 +262,7 @@ class QHOState(state.QuantumState):
         """
         norm = ((self.mass * self.omega / (u.pi * u.hbar)) ** (1 / 4)) / (
             np.float64(2 ** (self.n / 2))
-            * np.sqrt(np.float64(spmisc.factorial(self.n)))
+            * np.sqrt(np.float64(special.factorial(self.n)))
         )
         exp = np.exp(-self.mass * self.omega * (x ** 2) / (2 * u.hbar))
         herm = special.hermite(self.n)(np.sqrt(self.mass * self.omega / u.hbar) * x)

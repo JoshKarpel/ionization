@@ -2,12 +2,17 @@
 
 import logging
 import os
+from pathlib import Path
 
 import simulacra as si
 import simulacra.units as u
 
-FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
+import ionization as ion
+
+# FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
+FILE_NAME = Path(__file__).name
+# OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
+OUT_DIR = Path(__file__).parent / "out" / FILE_NAME
 
 LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INFO)
 
@@ -36,7 +41,7 @@ def report(results):
     ]
     methods = [sim.spec.evolution_method.__class__.__name__ for sim in results]
     pts_per_sec = [
-        str(round(spacetime_points(sim) / timer.proc_time_elapsed))
+        str(round(spacetime_points(sim) / timer.proc_time_elapsed.total_seconds()))
         for sim, timer in results.items()
     ]
     rows = zip(meshes, operators, methods, pts_per_sec)
@@ -48,14 +53,14 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         energy_spacing = 0.1 * u.eV
         test_mass = u.electron_mass
-        line_qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass(
+        line_qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(
             energy_spacing=energy_spacing, mass=test_mass
         )
         line_states = [
-            states.QHOState.from_potential(line_qho, n=n, mass=test_mass)
+            ion.states.QHOState.from_potential(line_qho, n=n, mass=test_mass)
             for n in range(5)
         ]
-        line_sine_wave = potentials.SineWave.from_photon_energy(
+        line_sine_wave = ion.potentials.SineWave.from_photon_energy(
             photon_energy=energy_spacing, amplitude=0.0001 * u.atomic_electric_field
         )
         line_kwargs = dict(
@@ -93,76 +98,76 @@ if __name__ == "__main__":
         specs = []
 
         specs.append(
-            mesh.LineSpecification(
+            ion.mesh.LineSpecification(
                 f"Line_CN_LEN",
-                operators=mesh.LineLengthGaugeOperators(),
-                evolution_method=mesh.AlternatingDirectionImplicit(),
+                operators=ion.mesh.LineLengthGaugeOperators(),
+                evolution_method=ion.mesh.AlternatingDirectionImplicit(),
                 **line_kwargs,
             )
         )
 
         specs.append(
-            mesh.LineSpecification(
+            ion.mesh.LineSpecification(
                 f"Line_SO_LEN",
-                operators=mesh.LineLengthGaugeOperators(),
-                evolution_method=mesh.SplitInteractionOperator(),
+                operators=ion.mesh.LineLengthGaugeOperators(),
+                evolution_method=ion.mesh.SplitInteractionOperator(),
                 **line_kwargs,
             )
         )
 
         specs.append(
-            mesh.LineSpecification(
+            ion.mesh.LineSpecification(
                 f"Line_SO_VEL",
-                operators=mesh.LineVelocityGaugeOperators(),
-                evolution_method=mesh.SplitInteractionOperator(),
+                operators=ion.mesh.LineVelocityGaugeOperators(),
+                evolution_method=ion.mesh.SplitInteractionOperator(),
                 **line_kwargs,
             )
         )
 
         specs.append(
-            mesh.CylindricalSliceSpecification(
+            ion.mesh.CylindricalSliceSpecification(
                 f"CylindricalSlice_CN_LEN",
                 evolution_equations="HAM",
-                operators=mesh.CylindricalSliceLengthGaugeOperators(),
-                evolution_method=mesh.AlternatingDirectionImplicit(),
+                operators=ion.mesh.CylindricalSliceLengthGaugeOperators(),
+                evolution_method=ion.mesh.AlternatingDirectionImplicit(),
                 **three_d_spec_kwargs,
             )
         )
 
         specs.append(
-            mesh.SphericalSliceSpecification(
+            ion.mesh.SphericalSliceSpecification(
                 f"SphericalSlice_CN_LEN",
-                operators=mesh.SphericalSliceLengthGaugeOperators(),
-                evolution_method=mesh.AlternatingDirectionImplicit(),
+                operators=ion.mesh.SphericalSliceLengthGaugeOperators(),
+                evolution_method=ion.mesh.AlternatingDirectionImplicit(),
                 **three_d_spec_kwargs,
             )
         )
 
         specs.append(
-            mesh.SphericalHarmonicSpecification(
+            ion.mesh.SphericalHarmonicSpecification(
                 f"SphericalHarmonic_LAG_CN_LEN",
-                operators=mesh.SphericalHarmonicLengthGaugeOperators(),
-                evolution_method=mesh.AlternatingDirectionImplicit(),
+                operators=ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+                evolution_method=ion.mesh.AlternatingDirectionImplicit(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs,
             )
         )
 
         specs.append(
-            mesh.SphericalHarmonicSpecification(
+            ion.mesh.SphericalHarmonicSpecification(
                 f"SphericalHarmonic_LAG_SO_LEN",
-                operators=mesh.SphericalHarmonicLengthGaugeOperators(),
-                evolution_method=mesh.SplitInteractionOperator(),
+                operators=ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+                evolution_method=ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs,
             )
         )
 
         specs.append(
-            mesh.SphericalHarmonicSpecification(
+            ion.mesh.SphericalHarmonicSpecification(
                 f"SphericalHarmonic_LAG_SO_VEL",
-                operators=mesh.SphericalHarmonicVelocityGaugeOperators(),
-                evolution_method=mesh.SplitInteractionOperator(),
+                operators=ion.mesh.SphericalHarmonicVelocityGaugeOperators(),
+                evolution_method=ion.mesh.SplitInteractionOperator(),
                 **spherical_harmonic_numeric_eigenstate_kwargs,
                 **three_d_spec_kwargs,
             )
