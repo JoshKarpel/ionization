@@ -2,7 +2,6 @@ import logging
 
 import numpy as np
 import scipy.special as special
-import scipy.misc as spmisc
 
 import simulacra as si
 import simulacra.units as u
@@ -213,8 +212,8 @@ class TwoDQuantumHarmonicOscillator(state.QuantumState):
         kx = self.ksi_x * x
         norm = np.sqrt(self.ksi_z * self.ksi_x) / np.sqrt(
             (2 ** (self.n_z + self.n_x))
-            * spmisc.factorial(self.n_z)
-            * spmisc.factorial(self.n_x)
+            * special.factorial(self.n_z)
+            * special.factorial(self.n_x)
             * u.pi
         )
         gaussian = np.exp(-((kz ** 2) + (kx ** 2)) / 2)
