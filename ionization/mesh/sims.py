@@ -323,15 +323,11 @@ class MeshSimulation(si.Simulation):
                     if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
                         self.do_checkpoint(now, checkpoint_callback)
 
-                try:
+                if progress_bar:
                     pbar.update(1)
-                except NameError:
-                    pass
 
-            try:
+            if progress_bar:
                 pbar.close()
-            except NameError:
-                pass
 
             self.status = si.Status.FINISHED
             logger.info(f"Finished performing time evolution on {self}")

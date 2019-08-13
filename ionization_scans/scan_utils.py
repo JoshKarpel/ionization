@@ -305,7 +305,7 @@ def ask_ide_tunneling(parameters):
     arg_defaults = argspec.defaults
     if len(arg_names) > 0:
         args = {
-            name: clu.ask_for_eval(f"Value for {name}?", default=default)
+            name: clu.ask_for_eval(f"Value for {name}?", default=repr(default))
             for name, default in reversed(
                 tuple(
                     itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))

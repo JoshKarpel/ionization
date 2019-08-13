@@ -1,7 +1,9 @@
 import logging
+from typing import Union, Callable
+
 import datetime
 import itertools
-from typing import Union, Callable
+from pathlib import Path
 
 from tqdm import tqdm
 
@@ -142,6 +144,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self,
         progress_bar: bool = False,
         callback: Callable[["IntegroDifferentialEquationSimulation"], None] = None,
+        checkpoint_callback: Callable[[Path], None] = None,
     ):
         """
         Run the IDE simulation by repeatedly evolving it forward in time.
@@ -181,7 +184,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.time_index += 1
 
             logger.debug(
-                f"{self} evolved to time index {self.time_index} ({round(self.completion_percent)}%)"
+                f"{self} evolved to time index {self.time_index} ({round(self.percent_completed)}%)"
             )
 
             if callback is not None:
@@ -190,21 +193,17 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             if self.spec.checkpoints:
                 now = datetime.datetime.utcnow()
                 if (now - self.latest_checkpoint_time) > self.spec.checkpoint_every:
-                    self.do_checkpoint(now)
+                    self.do_checkpoint(now, checkpoint_callback)
 
-            try:
+            if progress_bar:
                 new_asecs_remaining = int(
                     (self.spec.time_final - self.times[-1]) / u.asec
                 )
                 pbar.update(current_asecs_remaining - new_asecs_remaining)
                 current_asecs_remaining = new_asecs_remaining
-            except NameError:
-                pass
 
-        try:
+        if progress_bar:
             pbar.close()
-        except NameError:
-            pass
 
         self.b = np.array(self.b)
         self.times = np.array(self.times)
@@ -224,17 +223,18 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             f"Finished performing time evolution on {self.name} ({self.file_name})"
         )
 
-    def do_checkpoint(self, now):
+    def do_checkpoint(self, now, callback: Callable[[Path], None]):
         self.status = si.Status.PAUSED
-        self.save(target_dir=self.spec.checkpoint_dir)
+        path = self.save(target_dir=self.spec.checkpoint_dir, save_mesh=True)
+        callback(path)
         self.latest_checkpoint_time = now
         logger.info(
-            f"Checkpointed {self} at time index {self.time_index} ({round(self.completion_percent)}%)"
+            f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)"
         )
         self.status = si.Status.RUNNING
 
     @property
-    def completion_percent(self):
+    def percent_completed(self):
         return (
             100
             * (self.time - self.spec.time_initial)
