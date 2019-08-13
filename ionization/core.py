@@ -1,10 +1,11 @@
-import collections
 import logging
-import enum
 from typing import NewType
 
+import collections
+from dataclasses import dataclass
+
 import numpy as np
-from scipy.misc import factorial
+from scipy.special import factorial
 
 import simulacra as si
 import simulacra.units as u
@@ -124,6 +125,12 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
 warning_record = collections.namedtuple(
     "warning_record", ["data_time_index", "message"]
 )
+
+
+@dataclass
+class WarningRecord:
+    data_time_index: int
+    message: str
 
 
 class Gauge(si.utils.StrEnum):

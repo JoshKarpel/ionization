@@ -6,53 +6,61 @@ import numpy as np
 
 import simulacra.units as u
 
-PULSES_TYPES = [potentials.SincPulse, potentials.GaussianPulse, potentials.SechPulse]
+import ionization as ion
+
+PULSES_TYPES = [
+    ion.potentials.SincPulse,
+    ion.potentials.GaussianPulse,
+    ion.potentials.SechPulse,
+]
 
 
 class TestNoElectricPotential:
     @hyp.given(t=st.floats(allow_nan=False, allow_infinity=False))
     def test_electric_field_amplitude_is_always_zero(self, t):
-        assert potentials.NoElectricPotential().get_electric_field_amplitude(t) == 0
+        assert ion.potentials.NoElectricPotential().get_electric_field_amplitude(t) == 0
 
     @hyp.given(t=st.floats(allow_nan=False, allow_infinity=False))
     def test_vector_potential_amplitude_is_always_zero(self, t):
-        assert potentials.NoElectricPotential().get_vector_potential_amplitude(t) == 0
+        assert (
+            ion.potentials.NoElectricPotential().get_vector_potential_amplitude(t) == 0
+        )
 
 
 class TestSineWave:
     def test_can_construct_with_positive_omega(self):
-        potentials.SineWave(omega=1 * u.atomic_angular_frequency)
+        ion.potentials.SineWave(omega=1 * u.atomic_angular_frequency)
 
     @pytest.mark.parametrize("omega", [0, -1 * u.atomic_angular_frequency])
     def test_cannot_construct_with_non_positive_omega(self, omega):
-        with pytest.raises(exceptions.InvalidPotentialParameter):
-            potentials.SineWave(omega=omega)
+        with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+            ion.potentials.SineWave(omega=omega)
 
     def test_from_frequency(self):
         frequency = 5 * u.atomic_frequency
 
-        pot = potentials.SineWave.from_frequency(frequency=frequency)
+        pot = ion.potentials.SineWave.from_frequency(frequency=frequency)
 
         assert np.allclose(pot.frequency, frequency)
 
     def test_from_period(self):
         period = 1 * u.atomic_time
 
-        pot = potentials.SineWave.from_period(period=period)
+        pot = ion.potentials.SineWave.from_period(period=period)
 
         assert np.allclose(pot.period, period)
 
     def test_from_wavelength(self):
         wavelength = 1 * u.bohr_radius
 
-        pot = potentials.SineWave.from_wavelength(wavelength=wavelength)
+        pot = ion.potentials.SineWave.from_wavelength(wavelength=wavelength)
 
         assert np.allclose(pot.wavelength, wavelength)
 
     def test_from_photon_energy(self):
         photon_energy = 1 * u.eV
 
-        pot = potentials.SineWave.from_photon_energy(photon_energy=photon_energy)
+        pot = ion.potentials.SineWave.from_photon_energy(photon_energy=photon_energy)
 
         assert np.allclose(pot.photon_energy, photon_energy)
 
@@ -60,7 +68,7 @@ class TestSineWave:
         photon_energy = 1 * u.eV
         intensity = 1 * u.atomic_intensity
 
-        pot = potentials.SineWave.from_photon_energy_and_intensity(
+        pot = ion.potentials.SineWave.from_photon_energy_and_intensity(
             photon_energy=photon_energy, intensity=intensity
         )
 
@@ -69,24 +77,24 @@ class TestSineWave:
 
     @pytest.mark.parametrize("intensity", [1 * u.atomic_intensity, 0])
     def test_can_construct_with_non_negative_intensity(self, intensity):
-        potentials.SineWave.from_photon_energy_and_intensity(
+        ion.potentials.SineWave.from_photon_energy_and_intensity(
             photon_energy=1 * u.eV, intensity=intensity
         )
 
     def test_cannot_construct_with_negative_intensity(self):
-        with pytest.raises(exceptions.InvalidPotentialParameter):
-            potentials.SineWave.from_photon_energy_and_intensity(
+        with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+            ion.potentials.SineWave.from_photon_energy_and_intensity(
                 photon_energy=1 * u.eV, intensity=-1 * u.atomic_intensity
             )
 
 
 class TestRectangle:
     def test_can_construct_with_start_time_earlier_than_end_time(self):
-        potentials.Rectangle(start_time=0 * u.asec, end_time=1 * u.asec)
+        ion.potentials.Rectangle(start_time=0 * u.asec, end_time=1 * u.asec)
 
     def test_cannot_construct_with_start_time_later_than_end_time(self):
-        with pytest.raises(exceptions.InvalidPotentialParameter):
-            potentials.Rectangle(start_time=1 * u.asec, end_time=0 * u.asec)
+        with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+            ion.potentials.Rectangle(start_time=1 * u.asec, end_time=0 * u.asec)
 
 
 @pytest.mark.filterwarnings("ignore: overflow")
@@ -98,7 +106,7 @@ def test_can_construct_pulse_with_positive_pulse_width(pulse_type):
 @pytest.mark.parametrize("pulse_type", PULSES_TYPES)
 @pytest.mark.parametrize("pulse_width", [0, -100 * u.asec])
 def test_cannot_construct_pulse_with_negative_pulse_width(pulse_type, pulse_width):
-    with pytest.raises(exceptions.InvalidPotentialParameter):
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
         pulse_type(pulse_width=pulse_width)
 
 
@@ -110,33 +118,37 @@ def test_can_construct_pulses_with_non_negative_fluence(pulse_type, fluence):
 
 @pytest.mark.parametrize("pulse_type", PULSES_TYPES)
 def test_pulse_construction_fluences_can_be_non_negative(pulse_type):
-    with pytest.raises(exceptions.InvalidPotentialParameter):
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
         pulse_type(fluence=-1 * u.Jcm2)
 
 
 def test_can_construct_sinc_pulse_with_positive_omega_min():
-    potentials.SincPulse(omega_min=1 * u.atomic_angular_frequency)
+    ion.potentials.SincPulse(omega_min=1 * u.atomic_angular_frequency)
 
 
 @pytest.mark.parametrize("omega_min", [-1 * u.atomic_angular_frequency, 0])
 def test_cannot_construct_sinc_pulse_with_non_positive_omega_min(omega_min):
-    with pytest.raises(exceptions.InvalidPotentialParameter):
-        potentials.SincPulse(omega_min=omega_min)
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+        ion.potentials.SincPulse(omega_min=omega_min)
 
 
 def test_can_construct_sinc_pulse_with_good_number_of_cycles():
-    pulse = potentials.SincPulse.from_number_of_cycles(number_of_cycles=1)
+    pulse = ion.potentials.SincPulse.from_number_of_cycles(number_of_cycles=1)
 
     assert np.allclose(pulse.number_of_cycles, 1)
 
 
 @pytest.mark.parametrize("number_of_cycles", [0.5, 0.25, 0, -1])
 def test_cannot_construct_sinc_pulse_with_bad_number_of_cycles(number_of_cycles):
-    with pytest.raises(exceptions.InvalidPotentialParameter):
-        potentials.SincPulse.from_number_of_cycles(number_of_cycles=number_of_cycles)
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
+        ion.potentials.SincPulse.from_number_of_cycles(
+            number_of_cycles=number_of_cycles
+        )
 
 
-@pytest.mark.parametrize("pulse_type", [potentials.GaussianPulse, potentials.SechPulse])
+@pytest.mark.parametrize(
+    "pulse_type", [ion.potentials.GaussianPulse, ion.potentials.SechPulse]
+)
 @pytest.mark.parametrize("omega_carrier", [1 * u.atomic_angular_frequency, 0])
 def test_can_construct_gaussian_and_sech_pulses_with_non_negative_omega_carrier(
     pulse_type, omega_carrier
@@ -144,11 +156,13 @@ def test_can_construct_gaussian_and_sech_pulses_with_non_negative_omega_carrier(
     pulse_type(omega_carrier=omega_carrier)
 
 
-@pytest.mark.parametrize("pulse_type", [potentials.GaussianPulse, potentials.SechPulse])
+@pytest.mark.parametrize(
+    "pulse_type", [ion.potentials.GaussianPulse, ion.potentials.SechPulse]
+)
 def test_cannot_construct_gaussian_and_sech_pulses_with_negative_omega_carrier(
     pulse_type
 ):
-    with pytest.raises(exceptions.InvalidPotentialParameter):
+    with pytest.raises(ion.exceptions.InvalidPotentialParameter):
         pulse_type(omega_carrier=-1 * u.atomic_angular_frequency)
 
 

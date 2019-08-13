@@ -18,7 +18,6 @@ setup(
         "Intended Audience :: Science/Research",
         "Natural Language :: English",
         "Programming Language :: Python :: 3 :: Only",
-        "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX",

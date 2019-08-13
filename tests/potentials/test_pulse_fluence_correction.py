@@ -5,11 +5,13 @@ import numpy as np
 
 import simulacra.units as u
 
+import ionization as ion
+
 
 def test_rectangle_fluence_is_exactly_target_fluence_after_correction():
     target_fluence = 1 * u.Jcm2
 
-    pulse = potentials.Rectangle(
+    pulse = ion.potentials.Rectangle(
         start_time=0, end_time=100 * u.asec, amplitude=1 * u.atomic_electric_field
     )
 
@@ -17,7 +19,7 @@ def test_rectangle_fluence_is_exactly_target_fluence_after_correction():
 
     assert not np.allclose(pulse.get_fluence_numeric(times), target_fluence)
 
-    corrected_pulse = potentials.FluenceCorrector(
+    corrected_pulse = ion.potentials.FluenceCorrector(
         electric_potential=pulse, times=times, target_fluence=target_fluence
     )
 
@@ -33,17 +35,17 @@ def test_rectangle_fluence_is_exactly_target_fluence_after_correction():
 def test_sinc_pulse_fluence_is_exactly_target_fluence_after_correction(
     fluence, pulse_width, phase
 ):
-    pulse = potentials.SincPulse(
+    pulse = ion.potentials.SincPulse(
         pulse_width=pulse_width,
         fluence=fluence,
         phase=phase,
-        window=potentials.SymmetricExponentialTimeWindow(
+        window=ion.potentials.LogisticWindow(
             window_time=30 * pulse_width, window_width=0.2 * pulse_width
         ),
     )
     times = np.linspace(-35 * pulse_width, 35 * pulse_width, 10000)
 
-    corrected_pulse = potentials.FluenceCorrector(
+    corrected_pulse = ion.potentials.FluenceCorrector(
         electric_potential=pulse, times=times, target_fluence=fluence
     )
 
@@ -59,19 +61,19 @@ def test_sinc_pulse_fluence_is_exactly_target_fluence_after_correction(
 def test_sinc_pulse_fluence_is_exactly_target_fluence_after_correction_and_dc_correction(
     fluence, pulse_width, phase
 ):
-    pulse = potentials.SincPulse(
+    pulse = ion.potentials.SincPulse(
         pulse_width=pulse_width,
         fluence=fluence,
         phase=phase,
-        window=potentials.SymmetricExponentialTimeWindow(
+        window=ion.potentials.LogisticWindow(
             window_time=30 * pulse_width, window_width=0.2 * pulse_width
         ),
     )
     times = np.linspace(-35 * pulse_width, 35 * pulse_width, 10000)
 
-    pulse = potentials.DC_correct_electric_potential(pulse, times)
+    pulse = ion.potentials.DC_correct_electric_potential(pulse, times)
 
-    corrected_pulse = potentials.FluenceCorrector(
+    corrected_pulse = ion.potentials.FluenceCorrector(
         electric_potential=pulse, times=times, target_fluence=fluence
     )
 

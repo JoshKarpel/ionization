@@ -1,8 +1,10 @@
+import ionization as ion
+
 TUNNELING_MODEL_TYPES = [
-    tunneling.LandauRate,
-    tunneling.KeldyshRate,
-    tunneling.MulserRate,
-    tunneling.PosthumusRate,
-    tunneling.ADKRate,
+    ion.tunneling.LandauRate,
+    ion.tunneling.KeldyshRate,
+    ion.tunneling.MulserRate,
+    ion.tunneling.PosthumusRate,
+    ion.tunneling.ADKRate,
     # ion.tunneling.ADKExtendedToBSIRate,
 ]

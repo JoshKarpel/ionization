@@ -2,7 +2,7 @@ import pytest
 
 import numpy as np
 
-from tests import testutils
+from tests import conftest
 
 from .conftest import SPEC_TYPES
 
@@ -12,7 +12,7 @@ def test_loaded_sim_mesh_is_same_as_original(spec_type, tmpdir):
     sim_type = spec_type.simulation_type
     sim = spec_type("test").to_sim()
 
-    special_g = testutils.complex_random_sample(sim.mesh.g.shape)
+    special_g = conftest.complex_random_sample(sim.mesh.g.shape)
     sim.mesh.g = special_g
 
     path = sim.save(tmpdir, save_mesh=True)

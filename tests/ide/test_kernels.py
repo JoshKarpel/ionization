@@ -5,13 +5,14 @@ import hypothesis.strategies as st
 import numpy as np
 import scipy.interpolate as interp
 
-import ide as ide
 import simulacra.units as u
+
+import ionization as ion
 
 
 @pytest.fixture(scope="module")
 def electric_field():
-    return potentials.GaussianPulse.from_number_of_cycles(
+    return ion.potentials.GaussianPulse.from_number_of_cycles(
         pulse_width=100 * u.asec, fluence=2 * u.Jcm2, phase=0, number_of_cycles=3
     )
 
@@ -40,8 +41,8 @@ def vector_potential(electric_field, times):
 @pytest.mark.parametrize(
     "kernel",
     [
-        ide.LengthGaugeHydrogenKernel(),
-        ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
+        ion.ide.LengthGaugeHydrogenKernel(),
+        ion.ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction(),
     ],
 )
 def test_hydrogen_kernel_at_time_difference_zero_is_correct(
@@ -60,7 +61,7 @@ def test_hydrogen_kernel_at_time_difference_zero_is_correct(
 def test_approximate_continuum_continuum_interaction_phase_is_zero_at_time_difference_zero(
     vector_potential, times, current_time_index
 ):
-    kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+    kernel = ion.ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
 
     current_time = times[current_time_index]
     previous_times = times[: current_time_index + 1]
@@ -78,7 +79,7 @@ def test_approximate_continuum_continuum_interaction_phase_is_zero_at_time_diffe
 def test_integral_of_vector_potential_squared_in_phase_factor_is_never_negative(
     vector_potential, times, current_time_index
 ):
-    kernel = ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
+    kernel = ion.ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction()
 
     previous_times = times[: current_time_index + 1]
 

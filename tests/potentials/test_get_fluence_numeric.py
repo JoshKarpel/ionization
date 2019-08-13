@@ -3,6 +3,8 @@ import hypothesis.strategies as st
 
 import numpy as np
 
+import ionization as ion
+
 import simulacra.units as u
 
 
@@ -13,7 +15,9 @@ import simulacra.units as u
     duration=st.floats(min_value=10 * u.asec, max_value=1000 * u.asec),
 )
 def test_fluence_for_rectangle(amplitude, duration):
-    rect = potentials.Rectangle(start_time=0, end_time=duration, amplitude=amplitude)
+    rect = ion.potentials.Rectangle(
+        start_time=0, end_time=duration, amplitude=amplitude
+    )
     times = np.linspace(-0.1 * duration, duration * 1.1, 100000)
 
     analytic_fluence = u.epsilon_0 * u.c * (amplitude ** 2) * duration
@@ -36,8 +40,10 @@ def test_fluence_for_rectangle(amplitude, duration):
 def test_fluence_for_disjoint_rectangles(
     amplitude_1, amplitude_2, duration_1, delay, duration_2
 ):
-    pot = potentials.Rectangle(start_time=0, end_time=duration_1, amplitude=amplitude_1)
-    pot += potentials.Rectangle(
+    pot = ion.potentials.Rectangle(
+        start_time=0, end_time=duration_1, amplitude=amplitude_1
+    )
+    pot += ion.potentials.Rectangle(
         start_time=duration_1 + delay,
         end_time=duration_1 + delay + duration_2,
         amplitude=amplitude_2,
@@ -67,8 +73,10 @@ def test_fluence_for_disjoint_rectangles(
 def test_fluence_for_overlapping_rectangles(
     amplitude_1, amplitude_2, duration_1, delay, duration_2
 ):
-    pot = potentials.Rectangle(start_time=0, end_time=duration_1, amplitude=amplitude_1)
-    pot += potentials.Rectangle(
+    pot = ion.potentials.Rectangle(
+        start_time=0, end_time=duration_1, amplitude=amplitude_1
+    )
+    pot += ion.potentials.Rectangle(
         start_time=delay, end_time=delay + duration_2, amplitude=amplitude_2
     )
 

@@ -6,16 +6,18 @@ import simulacra.units as u
 
 from .conftest import TUNNELING_MODEL_TYPES
 
+import ionization as ion
+
 
 @pytest.mark.parametrize("model_type", TUNNELING_MODEL_TYPES)
 def test_no_tunneling_if_no_electric_field(model_type):
-    sim = tunneling.TunnelingSpecification(
+    sim = ion.tunneling.TunnelingSpecification(
         "test",
         time_initial=0,
         time_step=0.1 * u.fsec,
         time_final=10 * u.fsec,
         tunneling_model=model_type(),
-        electric_potential=potentials.NoElectricPotential(),
+        electric_potential=ion.potentials.NoElectricPotential(),
     ).to_sim()
 
     sim.run()

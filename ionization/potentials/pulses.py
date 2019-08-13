@@ -591,6 +591,11 @@ DEFAULT_PULSE_CENTER = 0 * u.asec
 DEFAULT_KELDYSH_PARAMETER = 1
 
 
+def sinc(x):
+    """A wrapper over np.sinc, which is really sinc(pi * x). This version is sinc(x)."""
+    return np.sinc(x / u.pi)
+
+
 class SincPulse(UniformLinearlyPolarizedElectricPotential):
     """
     Attributes
@@ -923,7 +928,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
 
     def get_electric_field_envelope(self, t):
         tau = np.array(t) - self.pulse_center
-        return si.math.sinc(self.delta_omega * tau / 2)
+        return sinc(self.delta_omega * tau / 2)
 
     def get_electric_field_amplitude(self, t):
         """Return the electric field amplitude at time t."""

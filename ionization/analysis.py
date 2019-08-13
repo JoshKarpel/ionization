@@ -9,7 +9,7 @@ import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-from . import mesh, ide, jobutils
+from . import mesh, ide
 
 import matplotlib.pyplot as plt
 
@@ -469,6 +469,16 @@ class PulseParameterScanMixin:
                         )
 
 
+POTENTIAL_ATTRS = [
+    "pulse_width",
+    "phase",
+    "fluence",
+    "amplitude",
+    "number_of_cycles",
+    "omega_carrier",
+]
+
+
 class PulseSimulationResult(clu.SimulationResult):
     def __init__(self, sim, job_processor):
         super().__init__(sim, job_processor)
@@ -476,7 +486,7 @@ class PulseSimulationResult(clu.SimulationResult):
         self.electric_potential = copy(sim.spec.electric_potential)
         self.pulse_type = copy(sim.spec.pulse_type)
 
-        for attr in jobutils.POTENTIAL_ATTRS:
+        for attr in POTENTIAL_ATTRS:
             try:
                 setattr(self, attr, copy((getattr(sim.spec, attr))))
             except AttributeError as e:

@@ -4,22 +4,22 @@ import hypothesis.strategies as st
 import numpy as np
 from scipy import sparse
 
-import cy as cy
+from ionization.cy import tdma
 
-from . import testutils
+from .conftest import complex_random_sample
 
 
 @hyp.settings(deadline=None)
 @hyp.given(n=st.integers(min_value=2, max_value=1000))
 def test_tdma_agrees_with_solution_via_inverse(n):
-    a = testutils.complex_random_sample(n - 1)
-    b = testutils.complex_random_sample(n)
-    c = testutils.complex_random_sample(n - 1)
-    d = testutils.complex_random_sample(n)
+    a = complex_random_sample(n - 1)
+    b = complex_random_sample(n)
+    c = complex_random_sample(n - 1)
+    d = complex_random_sample(n)
     dia = sparse.diags([a, b, c], offsets=[-1, 0, 1])
 
     inv_x = np.linalg.inv(dia.toarray()).dot(d)
-    tdma_x = cy.tdma(dia, d)
+    tdma_x = tdma(dia, d)
 
     np.testing.assert_allclose(dia.dot(inv_x), d)  # naive result is actually a solution
     np.testing.assert_allclose(tdma_x, inv_x)  # get same result as naive method

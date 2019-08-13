@@ -1023,7 +1023,7 @@ class SphericalHarmonicSimulation(MeshSimulation):
             msg = f"Wavefunction norm in largest angular momentum state is large at time index {self.time_index} (norm at bound = {norm_in_largest_l}, fraction of norm = {norm_in_largest_l / self.data.norm[self.data_time_index]}), consider increasing l bound"
             logger.warning(msg)
             self.warnings["norm_in_largest_l"].append(
-                core.warning_record(self.time_index, msg)
+                core.WarningRecord(self.time_index, msg)
             )
 
 

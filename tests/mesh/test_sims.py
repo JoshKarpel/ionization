@@ -4,6 +4,8 @@ import numpy as np
 
 import simulacra.units as u
 
+import ionization as ion
+
 from .conftest import LOW_N_HYDROGEN_BOUND_STATES
 
 
@@ -12,7 +14,7 @@ class TestSphericalHarmonicSimulation:
     def test_initial_wavefunction_is_normalized_with_numeric_eigenstates(
         self, initial_state
     ):
-        sim = mesh.SphericalHarmonicSpecification(
+        sim = ion.mesh.SphericalHarmonicSpecification(
             "test",
             initial_state=initial_state,
             r_bound=50 * u.bohr_radius,
@@ -30,23 +32,23 @@ class TestSphericalHarmonicSimulation:
         "operators, evolution_method",
         [
             (
-                mesh.SphericalHarmonicLengthGaugeOperators(),
-                mesh.AlternatingDirectionImplicit(),
+                ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+                ion.mesh.AlternatingDirectionImplicit(),
             ),
             (
-                mesh.SphericalHarmonicLengthGaugeOperators(),
-                mesh.SplitInteractionOperator(),
+                ion.mesh.SphericalHarmonicLengthGaugeOperators(),
+                ion.mesh.SplitInteractionOperator(),
             ),
             (
-                mesh.SphericalHarmonicVelocityGaugeOperators(),
-                mesh.SplitInteractionOperator(),
+                ion.mesh.SphericalHarmonicVelocityGaugeOperators(),
+                ion.mesh.SplitInteractionOperator(),
             ),
         ],
     )
     def test_with_no_potential_final_state_is_initial_state_with_numeric_eigenstates(
         self, initial_state, operators, evolution_method
     ):
-        sim = mesh.SphericalHarmonicSpecification(
+        sim = ion.mesh.SphericalHarmonicSpecification(
             "test",
             initial_state=initial_state,
             operators=operators,
