@@ -2,7 +2,7 @@
 branch = True
 
 include =
-    src/ionization/*
+    ionization/*
 
 omit =
     tests/*

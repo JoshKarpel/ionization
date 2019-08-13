@@ -1,25 +1,24 @@
-import simulacra as si
-import ionization as ion
-
 SPEC_TYPES = [
-    ion.mesh.LineSpecification,
-    ion.mesh.CylindricalSliceSpecification,
-    ion.mesh.SphericalSliceSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
+    mesh.LineSpecification,
+    mesh.CylindricalSliceSpecification,
+    mesh.SphericalSliceSpecification,
+    mesh.SphericalHarmonicSpecification,
 ]
 SPEC_TO_LENGTH_GAUGE_OPERATOR_TYPE = {
-    ion.mesh.LineSpecification: ion.mesh.LineLengthGaugeOperators,
-    ion.mesh.CylindricalSliceSpecification: ion.mesh.CylindricalSliceLengthGaugeOperators,
-    ion.mesh.SphericalSliceSpecification: ion.mesh.SphericalSliceLengthGaugeOperators,
-    ion.mesh.SphericalHarmonicSpecification: ion.mesh.SphericalHarmonicLengthGaugeOperators,
+    mesh.LineSpecification: mesh.LineLengthGaugeOperators,
+    mesh.CylindricalSliceSpecification: mesh.CylindricalSliceLengthGaugeOperators,
+    mesh.SphericalSliceSpecification: mesh.SphericalSliceLengthGaugeOperators,
+    mesh.SphericalHarmonicSpecification: mesh.SphericalHarmonicLengthGaugeOperators,
 }
 THREE_DIMENSIONAL_SPEC_TYPES = [
-    ion.mesh.CylindricalSliceSpecification,
-    ion.mesh.SphericalSliceSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
+    mesh.CylindricalSliceSpecification,
+    mesh.SphericalSliceSpecification,
+    mesh.SphericalHarmonicSpecification,
 ]
 SPEC_TYPES_WITH_NUMERIC_EIGENSTATES = [
-    ion.mesh.LineSpecification,
-    ion.mesh.SphericalHarmonicSpecification,
+    mesh.LineSpecification,
+    mesh.SphericalHarmonicSpecification,
 ]
-LOW_N_HYDROGEN_BOUND_STATES = [ion.mesh.states.HydrogenBoundState(n, l) for n in range(3) for l in range(n)]
+LOW_N_HYDROGEN_BOUND_STATES = [
+    states.HydrogenBoundState(n, l) for n in range(3) for l in range(n)
+]

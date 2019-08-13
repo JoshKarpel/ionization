@@ -6,16 +6,16 @@ import numpy as np
 import simulacra as si
 from simulacra.units import *
 import ionization as ion
-import ionization.ide as ide
+import ide as ide
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
 PLOT_KWARGS = dict(
-        target_dir = OUT_DIR,
-        # img_format = 'png',
-        # fig_dpi_scale = 3,
+    target_dir=OUT_DIR,
+    # img_format = 'png',
+    # fig_dpi_scale = 3,
 )
 
 # def comparison_plot(dt_list, t_by_dt, y_by_dt, title):
@@ -158,7 +158,9 @@ PLOT_KWARGS = dict(
 #
 #     plt.close()
 
-logman = si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO)
+logman = si.utils.LogManager(
+    "simulacra", "ionization", stdout_logs=True, stdout_level=logging.INFO
+)
 
 
 def run(spec):
@@ -169,26 +171,33 @@ def run(spec):
 
         sim.run()
 
-        sim.plot_b2_vs_time(y_axis_label = r'$   \left| a_{\alpha}(t) \right|^2  $',
-                            field_axis_label = r'${}(t)$'.format(ion.LATEX_EFIELD),
-                            field_scale = 'AEF',
-                            **PLOT_KWARGS)
+        sim.plot_b2_vs_time(
+            y_axis_label=r"$   \left| a_{\alpha}(t) \right|^2  $",
+            field_axis_label=r"${}(t)$".format(ion.LATEX_EFIELD),
+            field_scale="AEF",
+            **PLOT_KWARGS,
+        )
 
         sim.info().log()
 
         return sim
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with logman as logger:
         # electric_field = ion.Rectangle(start_time = -500 * asec, end_time = 500 * asec, amplitude = 1 * atomic_electric_field)
 
         t_bound_per_pw = 5
         pw = 50
 
-        electric_field = ion.SincPulse(pulse_width = pw * asec, fluence = 1 * Jcm2,
-                                       window = ion.RectangularTimeWindow(on_time = -(t_bound_per_pw - 1) * pw * asec,
-                                                                          off_time = (t_bound_per_pw - 1) * pw * asec))
+        electric_field = ion.SincPulse(
+            pulse_width=pw * asec,
+            fluence=1 * Jcm2,
+            window=ion.RectangularTimeWindow(
+                on_time=-(t_bound_per_pw - 1) * pw * asec,
+                off_time=(t_bound_per_pw - 1) * pw * asec,
+            ),
+        )
 
         t_bound = pw * t_bound_per_pw
 
@@ -207,32 +216,39 @@ if __name__ == '__main__':
         a_by_dt = []
 
         # method = 'trapezoid'
-        method = 'simpson'
+        method = "simpson"
 
         specs = []
         for dt in dt_list:
-            spec = ide.IntegroDifferentialEquationSpecification('{}__{}__dt={}as'.format(method, electric_field.__class__.__name__, round(dt, 3)),
-                                                                time_initial = -t_bound * asec, time_final = t_bound * asec, time_step = dt * asec,
-                                                                integral_prefactor = prefactor,
-                                                                electric_potential = electric_field,
-                                                                kernel = ide.gaussian_kernel_LEN, kernel_kwargs = dict(tau_alpha = tau_alpha),
-                                                                integration_method = method,
-                                                                )
+            spec = ide.IntegroDifferentialEquationSpecification(
+                "{}__{}__dt={}as".format(
+                    method, electric_field.__class__.__name__, round(dt, 3)
+                ),
+                time_initial=-t_bound * asec,
+                time_final=t_bound * asec,
+                time_step=dt * asec,
+                integral_prefactor=prefactor,
+                electric_potential=electric_field,
+                kernel=ide.gaussian_kernel_LEN,
+                kernel_kwargs=dict(tau_alpha=tau_alpha),
+                integration_method=method,
+            )
 
             specs.append(spec)
 
         results = si.utils.multi_map(run, specs)
 
-        title = '{}__{}'.format(method, electric_field.__class__.__name__)
+        title = "{}__{}".format(method, electric_field.__class__.__name__)
 
         si.vis.xxyy_plot(
-                title + '__comparison',
-                (r.times for r in results),
-                (r.b2 for r in results),
-                line_labels = (f'${uround(r.spec.time_step, asec, 3)}$ as' for r in results),
-                x_label = r'Time $t$', x_unit = 'asec',
-                y_label = r'$\left| a(t) \right|^2$',
-                **PLOT_KWARGS
+            title + "__comparison",
+            (r.times for r in results),
+            (r.b2 for r in results),
+            line_labels=(f"${uround(r.spec.time_step, asec, 3)}$ as" for r in results),
+            x_label=r"Time $t$",
+            x_unit="asec",
+            y_label=r"$\left| a(t) \right|^2$",
+            **PLOT_KWARGS,
         )
 
         # comparison_plot(dt_list, t_by_dt, a_by_dt, title)

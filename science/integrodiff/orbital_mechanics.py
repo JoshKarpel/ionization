@@ -1,29 +1,15 @@
 import logging
 import os
-import functools
-import collections
-
-from tqdm import tqdm
 
 import numpy as np
-import scipy.integrate as integrate
 
 import simulacra as si
 from simulacra.units import *
 
-import ionization as ion
-import ionization.ide as ide
-
-import delta_pulse_model as dpm
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 5,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
 time_field_unit = atomic_electric_field * atomic_time
 
@@ -38,10 +24,15 @@ time_field_unit = atomic_electric_field * atomic_time
 #     print(f1, f2)
 #     return (pi / np.sqrt(2)) * np.sqrt(f1 * f2)
 
+
 def new_energy(eta):
     # print('second_term (hartrees):', (.5 * ((hbar + (bohr_radius * proton_charge * eta)) ** 2) / (electron_mass_reduced * (bohr_radius ** 2))) / hartree)
     # print('total (hartrees):', (-hartree + (.5 * ((hbar + (bohr_radius * proton_charge * eta)) ** 2) / (electron_mass_reduced * (bohr_radius ** 2)))) / hartree)
-    return -hartree + (.5 * ((hbar + (bohr_radius * proton_charge * eta)) ** 2) / (electron_mass_reduced * (bohr_radius ** 2)))
+    return -hartree + (
+        0.5
+        * ((hbar + (bohr_radius * proton_charge * eta)) ** 2)
+        / (electron_mass_reduced * (bohr_radius ** 2))
+    )
 
 
 def new_semimajor(eta):
@@ -50,13 +41,18 @@ def new_semimajor(eta):
 
 
 def new_orbit_period(eta):
-    pre = 4 * (pi ** 2) * electron_mass_reduced / (coulomb_constant * (proton_charge ** 2))
+    pre = (
+        4
+        * (pi ** 2)
+        * electron_mass_reduced
+        / (coulomb_constant * (proton_charge ** 2))
+    )
 
     return np.sqrt(pre * (new_semimajor(eta) ** 3))
 
 
 def delta(eta):
-    return (.5 * (proton_charge ** 2) / electron_mass) * (eta ** 2)
+    return (0.5 * (proton_charge ** 2) / electron_mass) * (eta ** 2)
 
 
 def B(eta):
@@ -71,7 +67,7 @@ def orbit_ratio(eta, theta, alpha):
 
 
 def orbit_ratio_avg(eta, thetas, alphas):
-    theta_mesh, alpha_mesh = np.meshgrid(thetas, alphas, indexing = 'ij')
+    theta_mesh, alpha_mesh = np.meshgrid(thetas, alphas, indexing="ij")
 
     num = -rydberg
     den = -rydberg + delta(eta) - B(eta) * np.sin(theta_mesh) * np.cos(alpha_mesh)
@@ -79,8 +75,11 @@ def orbit_ratio_avg(eta, thetas, alphas):
 
     return np.mean(orbit_ratios)
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
+
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra", "ionization", stdout_level=logging.DEBUG
+    ) as logger:
         # initial_orbit_period = h / hartree
         # # initial_orbit_period = twopi * (hbar ** 3) / ((coulomb_constant ** 2) * electron_mass * (electron_charge ** 4))
         # print(initial_orbit_period / asec)
@@ -93,7 +92,7 @@ if __name__ == '__main__':
         # # print('new', new_orbit_period(.5 * time_field_unit) / asec)
         # # print('new', new_orbit_period(1 * time_field_unit) / asec)
 
-        eta = .01 * time_field_unit
+        eta = 0.01 * time_field_unit
         d = delta(eta)
         b = B(eta)
         print(d / eV, d / rydberg)
@@ -103,18 +102,20 @@ if __name__ == '__main__':
         thetas = np.linspace(0, pi, 200)
         alphas = np.linspace(0, twopi, 400)
 
-        theta_mesh, alpha_mesh = np.meshgrid(thetas, alphas, indexing = 'ij')
+        theta_mesh, alpha_mesh = np.meshgrid(thetas, alphas, indexing="ij")
 
-        etas = np.array([.01, .05, .1, .2, .3, .4]) * time_field_unit
+        etas = np.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4]) * time_field_unit
         for eta in etas:
             si.vis.xyz_plot(
-                f'eta={uround(eta, time_field_unit)}au',
+                f"eta={uround(eta, time_field_unit)}au",
                 theta_mesh,
                 alpha_mesh,
                 orbit_ratio(eta, theta_mesh, alpha_mesh),
-                x_label = r'$\theta$', x_unit = 'rad',
-                y_label = r'$\alpha$', y_unit = 'rad',
-                z_label = fr"$T' / T$ at $\eta = {uround(eta, time_field_unit)}$ a.u.",
+                x_label=r"$\theta$",
+                x_unit="rad",
+                y_label=r"$\alpha$",
+                y_unit="rad",
+                z_label=fr"$T' / T$ at $\eta = {uround(eta, time_field_unit)}$ a.u.",
                 **PLOT_KWARGS,
             )
 
@@ -123,15 +124,16 @@ if __name__ == '__main__':
         thetas = np.linspace(0, pi, n_points)  # denser meshes
         alphas = np.linspace(0, twopi, n_points)
 
-        etas = np.linspace(0, .4, 100) * time_field_unit
+        etas = np.linspace(0, 0.4, 100) * time_field_unit
 
         avgs = list(orbit_ratio_avg(eta, thetas, alphas) for eta in etas)
 
         si.vis.xy_plot(
-            'avg_ratio_vs_eta',
+            "avg_ratio_vs_eta",
             etas,
             avgs,
-            x_label = r'$\eta$ (a.u.)', x_unit = time_field_unit,
-            y_label = r"avg. $T'/T$",
+            x_label=r"$\eta$ (a.u.)",
+            x_unit=time_field_unit,
+            y_label=r"avg. $T'/T$",
             **PLOT_KWARGS,
         )

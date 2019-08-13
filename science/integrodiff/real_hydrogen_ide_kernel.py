@@ -1,6 +1,5 @@
 import logging
 import os
-import functools
 
 import numpy as np
 import scipy.integrate as integ
@@ -9,18 +8,13 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.ide as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def gamma(k):
@@ -45,12 +39,14 @@ def abs_matrix_element_squared_from_hecht(k):
     return prefactor * first * second
 
 
-def integrand_from_hecht(k, td = 0):
+def integrand_from_hecht(k, td=0):
     return (k ** 2) * abs_matrix_element_squared_from_hecht(k) * imag_exp(k, td)
 
 
-def integrand_from_bessels(k, td = 0):
-    return (24 * (bohr_radius ** 7) * (k ** 4) / ((1 + ((k * bohr_radius) ** 2)) ** 6)) * imag_exp(k, td)
+def integrand_from_bessels(k, td=0):
+    return (
+        24 * (bohr_radius ** 7) * (k ** 4) / ((1 + ((k * bohr_radius) ** 2)) ** 6)
+    ) * imag_exp(k, td)
 
 
 @np.vectorize
@@ -58,12 +54,12 @@ def integrate(integrand, td):
     # f = lambda wavenumber: integrand(wavenumber * twopi / bohr_radius, td)
     # return si.math.complex_quad(f, 0, np.inf)[0]
     k = (twopi / bohr_radius) * np.linspace(0, 1, 10000)[1:]
-    return integ.simps(y = integrand(k, td), x = k)
+    return integ.simps(y=integrand(k, td), x=k)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
-        k = (twopi / bohr_radius) * np.linspace(0, .5, 1000)[1:]
+        k = (twopi / bohr_radius) * np.linspace(0, 0.5, 1000)[1:]
         # tds = np.array([0, 50, 100, 200, 300, 400, 600, 800, 1000]) * asec
         #
         # for td in tds:
@@ -110,8 +106,12 @@ if __name__ == '__main__':
         print(integrate(integrand_from_hecht, 0 * asec) / (bohr_radius ** 2))
 
         omega_b = ion.HydrogenBoundState(1, 0).energy / hbar
-        kernel_from_bessels = integrate(integrand_from_bessels, tds) * np.exp(1j * omega_b * tds)
-        kernel_from_hecht = integrate(integrand_from_hecht, tds) * np.exp(1j * omega_b * tds)
+        kernel_from_bessels = integrate(integrand_from_bessels, tds) * np.exp(
+            1j * omega_b * tds
+        )
+        kernel_from_hecht = integrate(integrand_from_hecht, tds) * np.exp(
+            1j * omega_b * tds
+        )
 
         # si.vis.xy_plot(
         #     f'kernel',
@@ -149,5 +149,5 @@ if __name__ == '__main__':
         #     **PLOT_KWARGS
         # )
 
-        print(integ.simps(y = kernel_from_bessels, x = tds) / ((bohr_radius ** 2) * asec))
-        print(integ.simps(y = kernel_from_hecht, x = tds) / ((bohr_radius ** 2) * asec))
+        print(integ.simps(y=kernel_from_bessels, x=tds) / ((bohr_radius ** 2) * asec))
+        print(integ.simps(y=kernel_from_hecht, x=tds) / ((bohr_radius ** 2) * asec))

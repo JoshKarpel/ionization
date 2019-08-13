@@ -9,15 +9,11 @@ from simulacra.units import *
 import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-logman = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 5,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
 
 # class VolkovaWindow(ion.TimeWindow):
@@ -39,44 +35,56 @@ PLOT_KWARGS = dict(
 #         return out
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with logman as logger:
-        dummy = ion.SineWave.from_photon_energy_and_intensity(.5 * eV, intensity = 100 * TWcm2, phase = pi / 2)
-        efield = ion.SineWave.from_photon_energy_and_intensity(2 * eV, intensity = 100 * TWcm2, phase = pi / 2)
-        efield.window = ion.SmoothedTrapezoidalWindow(time_front = 1 * dummy.period_carrier, time_plateau = 5 * dummy.period_carrier)
+        dummy = ion.SineWave.from_photon_energy_and_intensity(
+            0.5 * eV, intensity=100 * TWcm2, phase=pi / 2
+        )
+        efield = ion.SineWave.from_photon_energy_and_intensity(
+            2 * eV, intensity=100 * TWcm2, phase=pi / 2
+        )
+        efield.window = ion.SmoothedTrapezoidalWindow(
+            time_front=1 * dummy.period_carrier, time_plateau=5 * dummy.period_carrier
+        )
 
         times = np.linspace(0, 8 * dummy.period_carrier, 1e5)
 
         si.vis.xy_plot(
-            'window',
+            "window",
             times,
             efield.window(times),
-            x_label = r'$ t $', x_unit = 'fsec',
-            y_label = 'Window Function',
+            x_label=r"$ t $",
+            x_unit="fsec",
+            y_label="Window Function",
             **PLOT_KWARGS,
         )
 
         si.vis.xy_plot(
-            'field',
+            "field",
             times,
             efield.get_electric_field_amplitude(times),
             # np.abs(efield.get_electric_field_amplitude(times)),
             # line_labels = (fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ \left| {ion.LATEX_EFIELD}(t) \right| $'),
             # line_kwargs = (None, {'linestyle': '--'}),
-            x_label = r'$ t $', x_unit = 'fsec',
-            y_label = fr'$ {ion.LATEX_EFIELD}(t) $', y_unit = 'atomic_electric_field',
+            x_label=r"$ t $",
+            x_unit="fsec",
+            y_label=fr"$ {ion.LATEX_EFIELD}(t) $",
+            y_unit="atomic_electric_field",
             **PLOT_KWARGS,
         )
 
         si.vis.xy_plot(
-            'field_and_vector',
+            "field_and_vector",
             times,
             efield.get_electric_field_amplitude(times) / atomic_electric_field,
-            efield.get_vector_potential_amplitude_numeric_cumulative(times) / (atomic_momentum / proton_charge),
-            line_labels = (fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ e \, {ion.LATEX_AFIELD}(t) $'),
-            x_label = r'$ t $', x_unit = 'fsec',
-            y_label = fr'$ {ion.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $',
+            efield.get_vector_potential_amplitude_numeric_cumulative(times)
+            / (atomic_momentum / proton_charge),
+            line_labels=(
+                fr"$ {ion.LATEX_EFIELD}(t) $",
+                fr"$ e \, {ion.LATEX_AFIELD}(t) $",
+            ),
+            x_label=r"$ t $",
+            x_unit="fsec",
+            y_label=fr"$ {ion.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $",
             **PLOT_KWARGS,
         )
-
-

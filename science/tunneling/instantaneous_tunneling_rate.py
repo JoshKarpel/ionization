@@ -1,11 +1,7 @@
 import logging
 import os
 
-from tqdm import tqdm
-from mpmath import mpf
-
 import numpy as np
-import scipy.integrate as integ
 
 import simulacra as si
 from simulacra.units import *
@@ -15,18 +11,23 @@ import ionization as ion
 # import matplotlib.pyplot as plt
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-log = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO, file_logs = False, file_dir = OUT_DIR, file_level = logging.DEBUG)
-
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 3,
+log = si.utils.LogManager(
+    "simulacra",
+    "ionization",
+    stdout_level=logging.INFO,
+    file_logs=False,
+    file_dir=OUT_DIR,
+    file_level=logging.DEBUG,
 )
 
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=3)
 
-def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential = -rydberg):
+
+def instantaneous_tunneling_rate(
+    electric_field_amplitude, ionization_potential=-rydberg
+):
     # f = np.abs(electric_field_amplitude / atomic_electric_field)
     #
     # return (4 / f) * (electron_mass_reduced * (proton_charge ** 4) / (hbar ** 3)) * np.exp(-(2 / 3) / f)
@@ -45,27 +46,34 @@ def instantaneous_tunneling_rate(electric_field_amplitude, ionization_potential 
     # return 4 * w_a * f * np.exp(-2 * f / 3)
 
 
-def tunneling_rate_plot(electric_field_amplitude_min, electric_field_amplitude_max, ionization_potential = -rydberg):
-    amplitudes = np.linspace(electric_field_amplitude_min, electric_field_amplitude_max, 1e4)
+def tunneling_rate_plot(
+    electric_field_amplitude_min,
+    electric_field_amplitude_max,
+    ionization_potential=-rydberg,
+):
+    amplitudes = np.linspace(
+        electric_field_amplitude_min, electric_field_amplitude_max, 1e4
+    )
     tunneling_rates = instantaneous_tunneling_rate(amplitudes, ionization_potential)
 
     si.vis.xy_plot(
-        f'tunneling_rate_vs_amplitude__amp={uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_amp={uround(electric_field_amplitude_max, atomic_electric_field)}aef',
+        f"tunneling_rate_vs_amplitude__amp={uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_amp={uround(electric_field_amplitude_max, atomic_electric_field)}aef",
         amplitudes,
         tunneling_rates * asec,
-        x_label = fr'Electric Field Amplitude ${ion.LATEX_EFIELD}$', x_unit = 'atomic_electric_field',
-        y_label = r'Tunneling Rate ($\mathrm{as}^{-1}$)',
-        title = 'Tunneling Rate in a Static Electric Field',
+        x_label=fr"Electric Field Amplitude ${ion.LATEX_EFIELD}$",
+        x_unit="atomic_electric_field",
+        y_label=r"Tunneling Rate ($\mathrm{as}^{-1}$)",
+        title="Tunneling Rate in a Static Electric Field",
         **PLOT_KWARGS,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with log as logger:
         tunneling_rate_plot(0 * atomic_electric_field, 10 * atomic_electric_field)
         tunneling_rate_plot(0 * atomic_electric_field, 5 * atomic_electric_field)
         tunneling_rate_plot(0 * atomic_electric_field, 1 * atomic_electric_field)
-        tunneling_rate_plot(0 * atomic_electric_field, .2 * atomic_electric_field)
+        tunneling_rate_plot(0 * atomic_electric_field, 0.2 * atomic_electric_field)
 
         #############################################
 
@@ -84,78 +92,89 @@ if __name__ == '__main__':
         #                        window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
 
         energy = 1.0 * eV
-        amp = .1 * atomic_electric_field
+        amp = 0.1 * atomic_electric_field
         frac = 0.7
         bound_mult = 3
-        efield = ion.SineWave.from_photon_energy(energy, amplitude = amp)
+        efield = ion.SineWave.from_photon_energy(energy, amplitude=amp)
         t_bound = bound_mult * efield.period_carrier
-        efield.window = window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound)
-        title = f'sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}'
+        efield.window = window = ion.SymmetricExponentialTimeWindow(
+            window_time=frac * t_bound, window_width=0.05 * t_bound
+        )
+        title = f"sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}"
 
         r_bound = 200
         dt = 2 * asec
 
         sim = ion.SphericalHarmonicSpecification(
-            title + f'__tdse__dt={uround(dt, asec)}as',
-            r_bound = r_bound * bohr_radius,
-            r_points = r_bound * 4,
+            title + f"__tdse__dt={uround(dt, asec)}as",
+            r_bound=r_bound * bohr_radius,
+            r_points=r_bound * 4,
             # evolution_gauge = 'VEL', l_bound = 200,
-            evolution_gauge = 'LEN', l_bound = 200,
-            time_initial = -t_bound, time_final = t_bound, time_step = dt,
-            electric_potential = efield,
+            evolution_gauge="LEN",
+            l_bound=200,
+            time_initial=-t_bound,
+            time_final=t_bound,
+            time_step=dt,
+            electric_potential=efield,
             # electric_potential_dc_correction = True,
-            use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 50 * eV,
-            numeric_eigenstate_max_angular_momentum = 10,
-            mask = ion.RadialCosineMask(inner_radius = .8 * r_bound * bohr_radius, outer_radius = r_bound * bohr_radius),
-            store_data_every = 50,
+            use_numeric_eigenstates=True,
+            numeric_eigenstate_max_energy=50 * eV,
+            numeric_eigenstate_max_angular_momentum=10,
+            mask=ion.RadialCosineMask(
+                inner_radius=0.8 * r_bound * bohr_radius,
+                outer_radius=r_bound * bohr_radius,
+            ),
+            store_data_every=50,
         ).to_sim()
 
         sim.info().log()
-        sim.run(progress_bar = True)
+        sim.run(progress_bar=True)
         sim.info().log()
 
-        sim.plot_wavefunction_vs_time(
-            show_vector_potential = False,
-            **PLOT_KWARGS
-        )
+        sim.plot_wavefunction_vs_time(show_vector_potential=False, **PLOT_KWARGS)
 
         pot = sim.spec.electric_potential
         times = np.linspace(-t_bound, t_bound, 1e3)
 
-        tunneling_rate_vs_time = instantaneous_tunneling_rate(pot.get_electric_field_amplitude(times), -rydberg)
+        tunneling_rate_vs_time = instantaneous_tunneling_rate(
+            pot.get_electric_field_amplitude(times), -rydberg
+        )
 
         wavefunction_remaining = np.empty_like(times)
         wavefunction_remaining[0] = 1
         for ii, tunneling_rate in enumerate(tunneling_rate_vs_time[:-1]):
-            wavefunction_remaining[ii + 1] = wavefunction_remaining[ii] * (1 - (tunneling_rate * np.abs(times[ii + 1] - times[ii])))
+            wavefunction_remaining[ii + 1] = wavefunction_remaining[ii] * (
+                1 - (tunneling_rate * np.abs(times[ii + 1] - times[ii]))
+            )
 
         si.vis.xy_plot(
-            title + '__tunneling_rate_vs_time',
+            title + "__tunneling_rate_vs_time",
             times,
             tunneling_rate_vs_time * asec,
-            x_label = r'Time $t$', x_unit = 'asec',
-            y_label = r'Tunneling Rate ($\mathrm{as}^{-1}$)',
+            x_label=r"Time $t$",
+            x_unit="asec",
+            y_label=r"Tunneling Rate ($\mathrm{as}^{-1}$)",
             **PLOT_KWARGS,
         )
 
         si.vis.xxyy_plot(
-            title + '__comparison',
-            (
-                sim.data_times,
-                sim.data_times,
-                sim.data_times,
-                times,
-            ),
+            title + "__comparison",
+            (sim.data_times, sim.data_times, sim.data_times, times),
             (
                 sim.norm_vs_time,
                 sim.total_bound_state_overlap_vs_time,
                 sim.state_overlaps_vs_time[sim.spec.initial_state],
                 wavefunction_remaining,
             ),
-            line_labels = ['TDSE Norm', 'TDSE All Bound States', 'TDSE Initial State', 'Tunneling Ionization'],
-            x_label = r'Time $t$', x_unit = 'asec',
-            y_label = 'Wavefunction Remaining',
+            line_labels=[
+                "TDSE Norm",
+                "TDSE All Bound States",
+                "TDSE Initial State",
+                "Tunneling Ionization",
+            ],
+            x_label=r"Time $t$",
+            x_unit="asec",
+            y_label="Wavefunction Remaining",
             # y_lower_limit = 0, y_upper_limit = 1, y_pad = 0,
             # y_log_axis = True, y_lower_limit = .98, y_upper_limit = 1, y_log_pad = 1,
             **PLOT_KWARGS,

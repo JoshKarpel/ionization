@@ -3,35 +3,26 @@
 import logging
 import os
 
-import numpy as np
-
 import simulacra as si
-import simulacra.units as u
-
-import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
-        spec = ion.mesh.SphericalHarmonicSpecification('test')
+        spec = mesh.SphericalHarmonicSpecification("test")
 
         sim_one = spec.to_sim()
 
-        print('made first sim')
+        print("made first sim")
 
         sim_two = spec.to_sim()
 
-        print('made second sim')
+        print("made second sim")
 
         print(sim_one is sim_two)
         print(sim_one == sim_two)

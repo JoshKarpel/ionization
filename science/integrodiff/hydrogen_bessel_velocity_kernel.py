@@ -1,6 +1,5 @@
 import logging
 import os
-import functools
 
 from tqdm import tqdm
 
@@ -10,20 +9,15 @@ import simulacra as si
 import simulacra.units as u
 
 import ionization as ion
-import ionization.ide as ide
 
 import matplotlib.pyplot as plt
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def theta_k_integral(k, alpha):
@@ -33,11 +27,7 @@ def theta_k_integral(k, alpha):
     cos = 2 * kalpha * np.cos(kalpha)
     sin = ((kalpha ** 2) - 2) * np.sin(kalpha)
 
-    return np.where(
-        (k != 0) * (alpha != 0),
-        pre * (cos + sin),
-        2 / 3
-    )
+    return np.where((k != 0) * (alpha != 0), pre * (cos + sin), 2 / 3)
 
 
 def kernel_integrand(k, time_difference, alpha):
@@ -48,20 +38,19 @@ def kernel_integrand(k, time_difference, alpha):
     return exp * frac * other
 
 
-def kernel(time_difference, alpha, omega_b = ion.HydrogenBoundState(1, 0).energy / u.hbar):
+def kernel(
+    time_difference, alpha, omega_b=ion.HydrogenBoundState(1, 0).energy / u.hbar
+):
     prefactor = 8 * u.pi * (u.bohr_radius ** 3) * np.exp(1j * omega_b * time_difference)
 
     result, *errs = si.math.complex_quad(
-        kernel_integrand,
-        0,
-        20 / u.bohr_radius,
-        args = (time_difference, alpha),
+        kernel_integrand, 0, 20 / u.bohr_radius, args=(time_difference, alpha)
     )
 
     return prefactor * result
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
         tds = np.linspace(0, 500, 200) * u.asec
         alphas = np.linspace(-20, 20, 200) * u.bohr_radius
@@ -93,8 +82,8 @@ if __name__ == '__main__':
         #     **PLOT_KWARGS,
         # )
 
-        td_mesh, alpha_mesh = np.meshgrid(tds, alphas, indexing = 'ij')
-        kernel_mesh = np.empty_like(td_mesh, dtype = np.complex128)
+        td_mesh, alpha_mesh = np.meshgrid(tds, alphas, indexing="ij")
+        kernel_mesh = np.empty_like(td_mesh, dtype=np.complex128)
         for i, td in enumerate(tqdm(tds)):
             for j, alpha in enumerate(alphas):
                 kernel_mesh[i, j] = kernel(td, alpha)
@@ -102,16 +91,16 @@ if __name__ == '__main__':
         kernel_norm = kernel(np.array([0]), np.array([0]))
 
         si.vis.xyz_plot(
-            'kernel_vs_td_and_alpha',
+            "kernel_vs_td_and_alpha",
             td_mesh,
             alpha_mesh,
             kernel_mesh / kernel_norm,
-            x_label = r"$t-t'$",
-            x_unit = 'asec',
-            y_label = r"$\alpha(t, t')$",
-            y_unit = 'bohr_radius',
-            title = "Velocity-Gauge Hydrogen-Bessel Kernel $K_b^V(t,t')$",
-            colormap = plt.get_cmap('richardson'),
-            richardson_equator_magnitude = .5,
+            x_label=r"$t-t'$",
+            x_unit="asec",
+            y_label=r"$\alpha(t, t')$",
+            y_unit="bohr_radius",
+            title="Velocity-Gauge Hydrogen-Bessel Kernel $K_b^V(t,t')$",
+            colormap=plt.get_cmap("richardson"),
+            richardson_equator_magnitude=0.5,
             **PLOT_KWARGS,
         )

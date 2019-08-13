@@ -4,8 +4,7 @@ import hypothesis.strategies as st
 
 import numpy as np
 
-import ionization as ion
-import ionization.ide as ide
+import ide as ide
 import simulacra.units as u
 
 FIXED_STEP_EVOLUTION_METHOD_TYPES = [
@@ -16,27 +15,23 @@ FIXED_STEP_EVOLUTION_METHOD_TYPES = [
 ]
 
 
-@pytest.mark.parametrize(
-    'evolution_method_type',
-    FIXED_STEP_EVOLUTION_METHOD_TYPES
-)
-@hyp.settings(
-    max_examples = 10,
-    deadline = None,
-)
+@pytest.mark.parametrize("evolution_method_type", FIXED_STEP_EVOLUTION_METHOD_TYPES)
+@hyp.settings(max_examples=10, deadline=None)
 @hyp.given(
-    b_initial_real = st.floats(allow_nan = False, allow_infinity = False),
-    b_initial_imag = st.floats(allow_nan = False, allow_infinity = False),
+    b_initial_real=st.floats(allow_nan=False, allow_infinity=False),
+    b_initial_imag=st.floats(allow_nan=False, allow_infinity=False),
 )
-def test_with_no_potential_final_state_is_initial_state_length_gauge(evolution_method_type, b_initial_real, b_initial_imag):
+def test_with_no_potential_final_state_is_initial_state_length_gauge(
+    evolution_method_type, b_initial_real, b_initial_imag
+):
     b_initial = b_initial_real + (1j * b_initial_imag)
 
     sim = ide.IntegroDifferentialEquationSpecification(
-        'test',
-        b_initial = b_initial,
-        time_initial = 0 * u.asec,
-        time_final = 100 * u.asec,
-        evolution_method = evolution_method_type(),
+        "test",
+        b_initial=b_initial,
+        time_initial=0 * u.asec,
+        time_final=100 * u.asec,
+        evolution_method=evolution_method_type(),
     ).to_sim()
 
     sim.run()
@@ -50,30 +45,26 @@ EXPECTED_TEST_RESULTS = {
     ide.ForwardEulerMethod: 0.11392725334866653,
     ide.BackwardEulerMethod: 0.10407548854993905,
     ide.TrapezoidMethod: 0.10891475259299933,
-    ide.RungeKuttaFourMethod: 0.10898054046019617
+    ide.RungeKuttaFourMethod: 0.10898054046019617,
 }
 
 
-@pytest.mark.parametrize(
-    'evolution_method_type',
-    FIXED_STEP_EVOLUTION_METHOD_TYPES
-)
-def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_and_gaussian_pulse(evolution_method_type):
-    pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
-        pulse_width = 100 * u.asec,
-        fluence = 2 * u.Jcm2,
-        phase = 0,
-        number_of_cycles = 3,
+@pytest.mark.parametrize("evolution_method_type", FIXED_STEP_EVOLUTION_METHOD_TYPES)
+def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_and_gaussian_pulse(
+    evolution_method_type
+):
+    pulse = potentials.GaussianPulse.from_number_of_cycles(
+        pulse_width=100 * u.asec, fluence=2 * u.Jcm2, phase=0, number_of_cycles=3
     )
 
     sim = ide.IntegroDifferentialEquationSpecification(
-        f'{evolution_method_type.__name__}',
-        evolution_method = evolution_method_type(),
-        time_initial = -4 * pulse.pulse_width,
-        time_final = 4 * pulse.pulse_width,
-        time_step = 1 * u.asec,
-        electric_potential = pulse,
-        kernel = ide.LengthGaugeHydrogenKernel(),
+        f"{evolution_method_type.__name__}",
+        evolution_method=evolution_method_type(),
+        time_initial=-4 * pulse.pulse_width,
+        time_final=4 * pulse.pulse_width,
+        time_step=1 * u.asec,
+        electric_potential=pulse,
+        kernel=ide.LengthGaugeHydrogenKernel(),
     ).to_sim()
 
     sim.run()

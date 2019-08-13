@@ -1,16 +1,13 @@
 import os
 
-import numpy as np
-
 import simulacra as si
 import simulacra.units as u
-import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization') as logger:
+if __name__ == "__main__":
+    with si.utils.LogManager("simulacra", "ionization") as logger:
         # for n in range(1, 4):
         #     for l in range(n):
         #         for m in range(-l, l + 1):
@@ -85,39 +82,39 @@ if __name__ == '__main__':
         # print(num.info())
 
         STATES = [
-            ion.states.FreeSphericalWave(),
-            ion.states.HydrogenBoundState(),
-            ion.states.HydrogenCoulombState(),
-            ion.states.NumericSphericalHarmonicState(
-                g = 0,
-                l = 1,
-                m = 0,
-                energy = 1 * u.eV,
-                corresponding_analytic_state = ion.states.HydrogenCoulombState(),
-                binding = ion.states.Binding.FREE,
+            states.FreeSphericalWave(),
+            states.HydrogenBoundState(),
+            states.HydrogenCoulombState(),
+            states.NumericSphericalHarmonicState(
+                g=0,
+                l=1,
+                m=0,
+                energy=1 * u.eV,
+                corresponding_analytic_state=states.HydrogenCoulombState(),
+                binding=states.Binding.FREE,
             ),
-            ion.states.OneDPlaneWave(),
-            ion.states.QHOState.from_omega_and_mass(omega = u.atomic_angular_frequency),
-            ion.states.FiniteSquareWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
-            ion.states.GaussianWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
-            ion.states.OneDSoftCoulombState(),
-            ion.states.NumericOneDState(
-                g = 0,
-                energy = 1 * u.eV,
-                corresponding_analytic_state = ion.states.OneDPlaneWave(),
-                binding = ion.states.Binding.FREE,
+            states.OneDPlaneWave(),
+            states.QHOState.from_omega_and_mass(omega=u.atomic_angular_frequency),
+            states.FiniteSquareWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
+            states.GaussianWellState(1 * u.eV, 1 * u.nm, u.electron_mass),
+            states.OneDSoftCoulombState(),
+            states.NumericOneDState(
+                g=0,
+                energy=1 * u.eV,
+                corresponding_analytic_state=states.OneDPlaneWave(),
+                binding=states.Binding.FREE,
             ),
-            ion.states.ThreeDPlaneWave(0, 0, u.twopi / u.nm),
+            states.ThreeDPlaneWave(0, 0, u.twopi / u.nm),
         ]
 
         for state in STATES:
             print(state.__class__.__name__)
-            print('str:', str(state))
-            print('repr:', repr(state))
-            print('ket:', state.ket)
-            print('bra:', state.bra)
-            print('tex:', state.tex)
-            print('tex_ket:', state.tex_ket)
-            print('tex_bra:', state.tex_bra)
+            print("str:", str(state))
+            print("repr:", repr(state))
+            print("ket:", state.ket)
+            print("bra:", state.bra)
+            print("tex:", state.tex)
+            print("tex_ket:", state.tex_ket)
+            print("tex_bra:", state.tex_bra)
             print(state.info())
             print()

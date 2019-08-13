@@ -8,30 +8,22 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-import ionization as ion
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
-        number_of_cycles = [.51, 1, 2, 3]
+        number_of_cycles = [0.51, 1, 2, 3]
         nc_pulses = [
             (
                 nc,
-                ion.potentials.SincPulse.from_number_of_cycles(
-                    pulse_width = 100 * u.asec,
-                    number_of_cycles = nc,
-                    phase = u.pi / 2,
-                )
+                potentials.SincPulse.from_number_of_cycles(
+                    pulse_width=100 * u.asec, number_of_cycles=nc, phase=u.pi / 2
+                ),
             )
             for nc in number_of_cycles
         ]
@@ -44,19 +36,13 @@ if __name__ == '__main__':
             print(pulse.info())
             times = np.linspace(-tb * pulse.pulse_width, tb * pulse.pulse_width, 10000)
             si.vis.xy_plot(
-                f'Nc={nc}',
+                f"Nc={nc}",
                 times,
                 pulse.amplitude * np.cos((pulse.omega_carrier * times) + pulse.phase),
                 pulse.get_electric_field_amplitude(times),
-                line_labels = [
-                    'carrier',
-                    'pulse',
-                ],
-                line_kwargs = [
-                    {'linestyle': '--', },
-                    None,
-                ],
-                x_unit = pulse.pulse_width,
-                y_unit = pulse.amplitude,
-                **PLOT_KWARGS
+                line_labels=["carrier", "pulse"],
+                line_kwargs=[{"linestyle": "--"}, None],
+                x_unit=pulse.pulse_width,
+                y_unit=pulse.amplitude,
+                **PLOT_KWARGS,
             )

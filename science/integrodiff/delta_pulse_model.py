@@ -3,25 +3,18 @@ import os
 import functools
 import collections
 
-from tqdm import tqdm
-
 import numpy as np
-import scipy.integrate as integrate
 
 import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.ide as ide
+import ide as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 5,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
 time_field_unit = atomic_electric_field * atomic_time
 
@@ -41,7 +34,11 @@ def t3(pulse_delay, b, kernel_func, tau_alpha):
     # prefactor = b * (1 - b) * (1 - (b ** 2))
     # return prefactor * 2 * np.real(np.exp(1j * pulse_delay / tau_alpha) * kernel_func(pulse_delay))
     prefactor = b * ((1 - b) ** 3)
-    return prefactor * 2 * np.real(np.exp(-1j * pulse_delay / tau_alpha) * kernel_func(2 * pulse_delay))
+    return (
+        prefactor
+        * 2
+        * np.real(np.exp(-1j * pulse_delay / tau_alpha) * kernel_func(2 * pulse_delay))
+    )
 
 
 def a_alpha(pulse_delay, *, b, tau_alpha, kernel_func):
@@ -51,7 +48,11 @@ def a_alpha(pulse_delay, *, b, tau_alpha, kernel_func):
 
     # return t1 + t2 + t3
 
-    return t1(b) + t2(pulse_delay, b, kernel_func) + t3(pulse_delay, b, kernel_func, tau_alpha)
+    return (
+        t1(b)
+        + t2(pulse_delay, b, kernel_func)
+        + t3(pulse_delay, b, kernel_func, tau_alpha)
+    )
 
 
 def compare_cosine_and_sine(cosine_product, sine_product):
@@ -69,7 +70,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
     # print('orbit time', uround(classical_orbit_time, asec))
 
     tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)
-    kernel = functools.partial(ide.gaussian_kernel_LEN, tau_alpha = tau_alpha)
+    kernel = functools.partial(ide.gaussian_kernel_LEN, tau_alpha=tau_alpha)
 
     b_sine = np.sqrt(pi) * ((test_width * test_charge * sine_product / hbar) ** 2)
     b_cosine = np.sqrt(pi) * ((test_width * test_charge * cosine_product / hbar) ** 2)
@@ -77,62 +78,67 @@ def compare_cosine_and_sine(cosine_product, sine_product):
     # print(b_sine, b_cosine)
 
     pulse_delays = np.linspace(0, 500 * asec, 1e3)
-    double_kick = functools.partial(a_alpha, b = b_sine, tau_alpha = tau_alpha, kernel_func = kernel)
+    double_kick = functools.partial(
+        a_alpha, b=b_sine, tau_alpha=tau_alpha, kernel_func=kernel
+    )
 
     ex = np.exp(-1j * pulse_delays / tau_alpha)
     kern = kernel(2 * pulse_delays)
     si.vis.xy_plot(
-        'inteference',
+        "inteference",
         pulse_delays,
         np.real(ex),
         np.imag(ex),
         np.real(kern),
         np.imag(kern),
         2 * np.real(ex + kern),
-        line_labels = [
-            r'exp real',
-            r'exp imag',
-            r'ker real',
-            r'ker imag',
-            r'2 * real(exp + ker)'
+        line_labels=[
+            r"exp real",
+            r"exp imag",
+            r"ker real",
+            r"ker imag",
+            r"2 * real(exp + ker)",
         ],
-        line_kwargs = [
-            {'color': 'C0', 'linestyle': '-'},
-            {'color': 'C0', 'linestyle': '--'},
-            {'color': 'C1', 'linestyle': '-'},
-            {'color': 'C1', 'linestyle': '--'},
-            {'color': 'C2', 'linestyle': '-'},
+        line_kwargs=[
+            {"color": "C0", "linestyle": "-"},
+            {"color": "C0", "linestyle": "--"},
+            {"color": "C1", "linestyle": "-"},
+            {"color": "C1", "linestyle": "--"},
+            {"color": "C2", "linestyle": "-"},
         ],
-        legend_on_right = True,
-        x_label = 'Half Pulse Delay', x_unit = 'asec',
+        legend_on_right=True,
+        x_label="Half Pulse Delay",
+        x_unit="asec",
         **PLOT_KWARGS,
     )
 
     si.vis.xy_plot(
-        f'double_kick__cos={uround(cosine_product, time_field_unit)}__sin={uround(sine_product, time_field_unit)}',
+        f"double_kick__cos={uround(cosine_product, time_field_unit)}__sin={uround(sine_product, time_field_unit)}",
         2 * pulse_delays,
         double_kick(pulse_delays),
         np.ones_like(pulse_delays) * t1(b_sine),
         t2(pulse_delays, b_sine, kernel),
         t3(pulse_delays, b_sine, kernel, tau_alpha),
         np.ones_like(pulse_delays) * ((1 - b_cosine) ** 2),
-        line_labels = [
-            r'Double Kick',
-            r'Isolated Pulses',
-            r'First pulse seen from second',
-            r'Interference',
-            r'Single Strong Kick',
+        line_labels=[
+            r"Double Kick",
+            r"Isolated Pulses",
+            r"First pulse seen from second",
+            r"Interference",
+            r"Single Strong Kick",
         ],
-        legend_on_right = True,
-        x_label = 'Pulse Delay', x_unit = 'asec',
-        vlines = [tau_alpha], vline_kwargs = [{'linestyle': ':'}],
+        legend_on_right=True,
+        x_label="Pulse Delay",
+        x_unit="asec",
+        vlines=[tau_alpha],
+        vline_kwargs=[{"linestyle": ":"}],
         # x_extra_ticks = [tau_alpha, classical_orbit_time],
         # x_extra_tick_labels = [r'$ \tau_{\alpha} $', r'$ \tau_{\mathrm{orb}} $'],
         **PLOT_KWARGS,
     )
 
 
-kick = collections.namedtuple('kick', ['time', 'time_field_product'])
+kick = collections.namedtuple("kick", ["time", "time_field_product"])
 
 
 def decompose_pulse_into_kicks__amplitude(electric_potential, times):
@@ -158,7 +164,9 @@ def decompose_pulse_into_kicks__amplitude(electric_potential, times):
             # time_diff = time - start_time
             # kick_time = (time + start_time) / 2
 
-            kicks.append(kick(time = max_field_time, time_field_product = efield_accumulator))
+            kicks.append(
+                kick(time=max_field_time, time_field_product=efield_accumulator)
+            )
             # kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(efield_accumulator)))
 
             # reset
@@ -190,7 +198,13 @@ def decompose_pulse_into_kicks__fluence(electric_potential, times):
             time_diff = time - start_time
             kick_time = (time + start_time) / 2
 
-            kicks.append(kick(time = kick_time, time_field_product = current_sign * np.sqrt(fluence_accumulator * time_diff)))
+            kicks.append(
+                kick(
+                    time=kick_time,
+                    time_field_product=current_sign
+                    * np.sqrt(fluence_accumulator * time_diff),
+                )
+            )
 
             # reset
             current_sign = sign
@@ -201,27 +215,29 @@ def decompose_pulse_into_kicks__fluence(electric_potential, times):
     return kicks
 
 
-def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
+def plot_pulse_decomposition(pulse, times, selector="amplitude"):
     # kicks = locals()[f'decompose_pulse_into_kicks__{selector}'](sinc, times)
-    if selector == 'amplitude':
+    if selector == "amplitude":
         kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
-    elif selector == 'power':
+    elif selector == "power":
         kicks = decompose_pulse_into_kicks__fluence(pulse, times)
 
     # for wavenumber in kicks:
     #     print(uround(wavenumber.time, asec), uround(wavenumber.time_field_product, time_field_unit))
 
     try:
-        name = f'pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi'
+        name = f"pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi"
     except AttributeError:
-        name = f'sinewave__{uround(pulse.period_carrier, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef'
+        name = f"sinewave__{uround(pulse.period_carrier, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef"
 
     si.vis.xy_plot(
         name,
         times,
         pulse.get_electric_field_amplitude(times),
-        x_label = '$t$', x_unit = 'asec',
-        y_label = r'$ \mathcal{E}(t) $', y_unit = 'atomic_electric_field',
+        x_label="$t$",
+        x_unit="asec",
+        y_label=r"$ \mathcal{E}(t) $",
+        y_unit="atomic_electric_field",
         **PLOT_KWARGS,
     )
 
@@ -229,13 +245,16 @@ def plot_pulse_decomposition(pulse, times, selector = 'amplitude'):
     kick_products = [k.time_field_product for k in kicks]
 
     si.vis.xy_plot(
-        f'{name}__decomposed__{selector}',
+        f"{name}__decomposed__{selector}",
         kick_times,
         kick_products,
-        line_kwargs = [{'linestyle': ':', 'marker': 'o'}],
-        x_label = 'Kick Times', x_unit = 'asec',
-        y_label = r'Amplitudes (au * au)', y_unit = time_field_unit,
-        y_lower_limit = -1 * time_field_unit, y_upper_limit = 1 * time_field_unit,
+        line_kwargs=[{"linestyle": ":", "marker": "o"}],
+        x_label="Kick Times",
+        x_unit="asec",
+        y_label=r"Amplitudes (au * au)",
+        y_unit=time_field_unit,
+        y_lower_limit=-1 * time_field_unit,
+        y_upper_limit=1 * time_field_unit,
         **PLOT_KWARGS,
     )
 
@@ -260,8 +279,14 @@ def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency)
         if n < 0:
             return 1
         else:
-            first_term = np.exp(-1j * np.abs(bound_state_frequency) * time_diff(n, n - 1)) * a(n - 1) * (1 - b(n, n))
-            second_term = sum(a(i) * b(n, i) * kernel_func(time_diff(n, i)) for i in range(n))  # all but current kick
+            first_term = (
+                np.exp(-1j * np.abs(bound_state_frequency) * time_diff(n, n - 1))
+                * a(n - 1)
+                * (1 - b(n, n))
+            )
+            second_term = sum(
+                a(i) * b(n, i) * kernel_func(time_diff(n, i)) for i in range(n)
+            )  # all but current kick
             # print(second_term)
 
             return first_term - second_term
@@ -269,16 +294,26 @@ def recursive_kicks(kicks, *, abs_prefactor, kernel_func, bound_state_frequency)
     return np.array(list(a(i) for i in range(len(kicks))))
 
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO) as logger:
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra", "ionization", stdout_level=logging.INFO
+    ) as logger:
         # for selector in ['amplitude', 'power']:
-        kicks_cos = decompose_pulse_into_kicks__amplitude(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = 0), np.linspace(-1000 * asec, 1000 * asec, 1e4))
-        kicks_sin = decompose_pulse_into_kicks__amplitude(ion.SincPulse(pulse_width = 200 * asec, fluence = .1 * Jcm2, phase = pi / 2), np.linspace(-1000 * asec, 1000 * asec, 1e4))
+        kicks_cos = decompose_pulse_into_kicks__amplitude(
+            ion.SincPulse(pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=0),
+            np.linspace(-1000 * asec, 1000 * asec, 1e4),
+        )
+        kicks_sin = decompose_pulse_into_kicks__amplitude(
+            ion.SincPulse(pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=pi / 2),
+            np.linspace(-1000 * asec, 1000 * asec, 1e4),
+        )
 
         for k in kicks_sin:
             print(k.time_field_product / time_field_unit)
 
-        compare_cosine_and_sine(cosine_product = .576 * time_field_unit, sine_product = .383 * time_field_unit)
+        compare_cosine_and_sine(
+            cosine_product=0.576 * time_field_unit, sine_product=0.383 * time_field_unit
+        )
         # compare_cosine_and_sine(cosine_product = .496 * time_field_unit, sine_product = .372 * time_field_unit)
         # compare_cosine_and_sine(cosine_product = .702 * time_field_unit, sine_product = .526 * time_field_unit)
 
