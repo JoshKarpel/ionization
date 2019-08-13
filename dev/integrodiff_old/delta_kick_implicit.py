@@ -8,29 +8,25 @@ import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
-import ionization.ide as ide
+import ide as ide
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def run_hyd_ide_sim(pulse, tb):
     sim = ide.IntegroDifferentialEquationSpecification(
-        'idesim',
-        electric_potential = pulse,
-        kernel = ide.hydrogen_kernel_LEN,
-        integral_prefactor = -(electron_charge / hbar) ** 2,
-        time_initial = -pulse.pulse_width * tb,
-        time_final = pulse.pulse_width * tb,
-        time_step = 1 * asec,
+        "idesim",
+        electric_potential=pulse,
+        kernel=ide.hydrogen_kernel_LEN,
+        integral_prefactor=-(electron_charge / hbar) ** 2,
+        time_initial=-pulse.pulse_width * tb,
+        time_final=pulse.pulse_width * tb,
+        time_step=1 * asec,
     ).to_sim()
 
     sim.run_simulation()
@@ -40,12 +36,12 @@ def run_hyd_ide_sim(pulse, tb):
 
 def run_dk_sim(pulse, tb):
     sim = ide.DeltaKickSpecification(
-        'dksim',
-        electric_potential = pulse,
-        kernel = ide.hydrogen_kernel_LEN,
-        integral_prefactor = -(electron_charge / hbar) ** 2,
-        time_initial = -pulse.pulse_width * tb,
-        time_final = pulse.pulse_width * tb,
+        "dksim",
+        electric_potential=pulse,
+        kernel=ide.hydrogen_kernel_LEN,
+        integral_prefactor=-(electron_charge / hbar) ** 2,
+        time_initial=-pulse.pulse_width * tb,
+        time_final=pulse.pulse_width * tb,
     ).to_sim()
 
     sim.run()
@@ -62,14 +58,21 @@ def solve_ide_implicit_from_pulse(pulse, tb):
 
 
 def solve_ide_implicit_from_kicks(kicks):
-    A = np.zeros((len(kicks), len(kicks)), dtype = np.complex128)
+    A = np.zeros((len(kicks), len(kicks)), dtype=np.complex128)
 
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
     prefactor = -(electron_charge / hbar) ** 2
-    kernel = lambda td: ide.hydrogen_kernel_LEN(td, omega_b = ion.HydrogenBoundState(1, 0).energy / hbar)
+    kernel = lambda td: ide.hydrogen_kernel_LEN(
+        td, omega_b=ion.HydrogenBoundState(1, 0).energy / hbar
+    )
 
     def element(n, m):
-        rv = prefactor * kicks[n].amplitude * kicks[m].amplitude * kernel(kicks[n].time - kicks[m].time)
+        rv = (
+            prefactor
+            * kicks[n].amplitude
+            * kicks[m].amplitude
+            * kernel(kicks[n].time - kicks[m].time)
+        )
         if m == n:
             rv -= 1
         elif m == n - 1:  # first subdiagonal
@@ -84,7 +87,7 @@ def solve_ide_implicit_from_kicks(kicks):
     b = np.zeros(len(kicks))
     b[0] = 1
 
-    a = linalg.solve_triangular(A, b, lower = True)
+    a = linalg.solve_triangular(A, b, lower=True)
 
     return a, kicks
 
@@ -97,21 +100,21 @@ def compare_ide_to_matrix(pulse, tb):
     sim_dk = run_dk_sim(pulse, tb)
 
     fm = si.vis.xy_plot(
-        'pulse_decomposition',
+        "pulse_decomposition",
         times,
         pulse.get_electric_field_amplitude(times),
-        line_kwargs = [{'color': ion.COLOR_ELECTRIC_FIELD}],
-        vlines = [
-            k.time for k in kicks
+        line_kwargs=[{"color": ion.COLOR_ELECTRIC_FIELD}],
+        vlines=[k.time for k in kicks],
+        vline_kwargs=[
+            {"linestyle": "--", "linewidth": 0.5, "alpha": 0.5} for _ in kicks
         ],
-        vline_kwargs = [{'linestyle': '--', 'linewidth': .5, 'alpha': 0.5} for _ in kicks],
-        x_unit = 'asec',
-        x_label = r'$ t $',
-        y_unit = 'atomic_electric_field',
-        y_label = r'$ \mathcal{E}(t) $',
-        title = 'Delta-Kick IDE Solution Comparison',
-        save_on_exit = False,
-        close_after_exit = False,
+        x_unit="asec",
+        x_label=r"$ t $",
+        y_unit="atomic_electric_field",
+        y_label=r"$ \mathcal{E}(t) $",
+        title="Delta-Kick IDE Solution Comparison",
+        save_on_exit=False,
+        close_after_exit=False,
         **PLOT_KWARGS,
     )
 
@@ -125,31 +128,20 @@ def compare_ide_to_matrix(pulse, tb):
 
     ax_a2 = ax_field.twinx()
     ax_a2.plot(
-        kt / asec,
-        np.repeat(np.abs(a) ** 2, 2)[:-1],
-        color = 'black',
-        linestyle = '--',
+        kt / asec, np.repeat(np.abs(a) ** 2, 2)[:-1], color="black", linestyle="--"
     )
+    ax_a2.plot(sim.times / asec, sim.b2, color="black")
     ax_a2.plot(
-        sim.times / asec,
-        sim.b2,
-        color = 'black',
+        sim_dk.data_times / asec, sim_dk.b2, color="purple", linestyle=":", marker="o"
     )
-    ax_a2.plot(
-        sim_dk.data_times / asec,
-        sim_dk.b2,
-        color = 'purple',
-        linestyle = ':',
-        marker = 'o',
-    )
-    ax_a2.set_ylabel(r'$ \left| a(t) \right|^2 $', fontsize = 16)
+    ax_a2.set_ylabel(r"$ \left| a(t) \right|^2 $", fontsize=16)
 
     ax_field.set_xlim(times[0] / asec, times[-1] / asec)
 
     fm.save()
     fm.cleanup()
 
-    sim_dk.plot_b2_vs_time(y_lower_limit = .95, **PLOT_KWARGS)
+    sim_dk.plot_b2_vs_time(y_lower_limit=0.95, **PLOT_KWARGS)
 
 
 def pw_scan(fluence):
@@ -157,27 +149,43 @@ def pw_scan(fluence):
     ceps = [0, pi / 4, pi / 2]
     tb = 32
 
-    cep_to_pulses = {cep: [ion.SincPulse(pulse_width = pw, fluence = fluence, phase = cep,
-                                         window = ion.SymmetricExponentialTimeWindow(window_time = pw * (tb - 2), window_width = .2 * pw))
-                           for pw in pulse_widths]
-                     for cep in ceps}
-    cep_to_solns = {cep: [solve_ide_implicit_from_pulse(pulse, tb) for pulse in pulses] for cep, pulses in cep_to_pulses.items()}
+    cep_to_pulses = {
+        cep: [
+            ion.SincPulse(
+                pulse_width=pw,
+                fluence=fluence,
+                phase=cep,
+                window=ion.SymmetricExponentialTimeWindow(
+                    window_time=pw * (tb - 2), window_width=0.2 * pw
+                ),
+            )
+            for pw in pulse_widths
+        ]
+        for cep in ceps
+    }
+    cep_to_solns = {
+        cep: [solve_ide_implicit_from_pulse(pulse, tb) for pulse in pulses]
+        for cep, pulses in cep_to_pulses.items()
+    }
 
     si.vis.xy_plot(
-        f'pulse_width_scan__flu={uround(fluence, Jcm2)}jcm2',
+        f"pulse_width_scan__flu={uround(fluence, Jcm2)}jcm2",
         pulse_widths,
-        *[[np.abs(soln[0][-1]) ** 2 for soln in solns] for cep, solns in cep_to_solns.items()],
-        line_labels = [rf'$\varphi = {uround(cep, pi)}\pi$' for cep in ceps],
-        x_label = r'$ \tau $',
-        x_unit = 'asec',
-        y_label = r'$ \left| a(t_f) \right|^2 $',
-        title = rf'Delta-Kick Model Pulse Width Scan, $H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}}$',
-        x_lower_limit = 0,
+        *[
+            [np.abs(soln[0][-1]) ** 2 for soln in solns]
+            for cep, solns in cep_to_solns.items()
+        ],
+        line_labels=[rf"$\varphi = {uround(cep, pi)}\pi$" for cep in ceps],
+        x_label=r"$ \tau $",
+        x_unit="asec",
+        y_label=r"$ \left| a(t_f) \right|^2 $",
+        title=rf"Delta-Kick Model Pulse Width Scan, $H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}}$",
+        x_lower_limit=0,
         **PLOT_KWARGS,
     )
 
 
-def kick_delay_scan(eta = .1 * atomic_time * atomic_electric_field):
+def kick_delay_scan(eta=0.1 * atomic_time * atomic_electric_field):
     delays = np.linspace(1, 1000, 100) * asec
 
     kickss = [(ide.delta_kick(0, eta), ide.delta_kick(delay, -eta)) for delay in delays]
@@ -197,34 +205,30 @@ def kick_delay_scan(eta = .1 * atomic_time * atomic_electric_field):
     print()
 
     si.vis.xy_plot(
-        f'kick_delay_scan__eta={uround(eta, atomic_time * atomic_electric_field)}au',
+        f"kick_delay_scan__eta={uround(eta, atomic_time * atomic_electric_field)}au",
         delays,
         [np.abs(soln[0][-1]) ** 2 for soln in solns],
         np.abs(analytic) ** 2,
-        line_labels = ['IME', 'Analytic'],
-        line_kwargs = [None, {'linestyle': '--'}],
-        x_label = r'Kick Delay $ \Delta $',
-        x_unit = 'asec',
-        y_label = r'$ \left| a(t_f) \right|^2 $',
-        title = f'Delta-Kick Model Kick Delay Scan, $\eta = {uround(eta, atomic_time * atomic_electric_field)} \, \mathrm{{a.u.}}$',
-        vlines = [
-            93 * asec,
-            150 * asec,
-        ],
-        hlines = [
-            ime_limit,
-            ana_limit,
-        ],
-        x_lower_limit = 0,
+        line_labels=["IME", "Analytic"],
+        line_kwargs=[None, {"linestyle": "--"}],
+        x_label=r"Kick Delay $ \Delta $",
+        x_unit="asec",
+        y_label=r"$ \left| a(t_f) \right|^2 $",
+        title=f"Delta-Kick Model Kick Delay Scan, $\eta = {uround(eta, atomic_time * atomic_electric_field)} \, \mathrm{{a.u.}}$",
+        vlines=[93 * asec, 150 * asec],
+        hlines=[ime_limit, ana_limit],
+        x_lower_limit=0,
         **PLOT_KWARGS,
     )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
-        pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = 0, number_of_cycles = 2)
+        pulse = ion.GaussianPulse.from_number_of_cycles(
+            pulse_width=50 * asec, fluence=0.1 * Jcm2, phase=0, number_of_cycles=2
+        )
         # pulse = ion.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
-        compare_ide_to_matrix(pulse, tb = 4)
+        compare_ide_to_matrix(pulse, tb=4)
 
         # etas = np.array([.01, .05, .1, .2, .3, .4, .5,]) * atomic_time * atomic_electric_field
         # etas = np.geomspace(.01, 2, 10) * atomic_time * atomic_electric_field

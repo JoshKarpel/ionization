@@ -5,7 +5,7 @@ import coverage
 import os
 import multiprocessing
 
-print('Beginning coverage testing')
+print("Beginning coverage testing")
 print()
 
 cov = coverage.coverage()
@@ -18,11 +18,11 @@ cov.save()
 
 print()
 
-print('Coverage Report:')
+print("Coverage Report:")
 cov.report()
 
-report_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'covreport')
-cov.html_report(directory = report_dir)
+report_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "covreport")
+cov.html_report(directory=report_dir)
 print(f'HTML Report at {os.path.join(report_dir, "index.html")}')
 
 cov.erase()

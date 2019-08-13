@@ -10,16 +10,7 @@ import simulacra as si
 
 
 class IDESolver:
-    def __init__(self,
-                 y0,
-                 x,
-                 c,
-                 d,
-                 k,
-                 alpha,
-                 beta,
-                 F,
-                 tol = 1e-8):
+    def __init__(self, y0, x, c, d, k, alpha, beta, F, tol=1e-8):
         self.x = x
         self.c = c
         self.d = d
@@ -31,11 +22,7 @@ class IDESolver:
         self.tol = tol
 
     def initial_guess(self):
-        return integ.odeint(
-            self.c,
-            self.y0,
-            self.x,
-        )[:, 0]
+        return integ.odeint(self.c, self.y0, self.x)[:, 0]
 
     def compare(self, y1, y2):
         diff = y1 - y2
@@ -43,12 +30,10 @@ class IDESolver:
 
     def solve_rhs_with_known_y(self, y):
         s = self.x
-        y = inter.interp1d(self.x, y, fill_value = 'extrapolate')
+        y = inter.interp1d(self.x, y, fill_value="extrapolate")
         return integ.odeint(
-            lambda _, x: self.c(y(x), x) + (self.d(x) * integ.simps(
-                y = self.k(x, s) * self.F(y(s)),
-                x = s,
-            )),
+            lambda _, x: self.c(y(x), x)
+            + (self.d(x) * integ.simps(y=self.k(x, s) * self.F(y(s)), x=s)),
             self.y0,
             self.x,
         )[:, 0]
@@ -75,16 +60,16 @@ class IDESolver:
         return guess
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     s = IDESolver(
-        y0 = 0,
-        x = np.linspace(0, 1, 100),
-        c = lambda y, x: y - (.5 * x) + (1 / (1 + x)) - np.log(1 + x),
-        d = lambda x: 1 / (np.log(2)) ** 2,
-        k = lambda x, s: x / (1 + s),
-        alpha = lambda x: 0,
-        beta = lambda x: 1,
-        F = lambda y: y,
+        y0=0,
+        x=np.linspace(0, 1, 100),
+        c=lambda y, x: y - (0.5 * x) + (1 / (1 + x)) - np.log(1 + x),
+        d=lambda x: 1 / (np.log(2)) ** 2,
+        k=lambda x, s: x / (1 + s),
+        alpha=lambda x: 0,
+        beta=lambda x: 1,
+        F=lambda y: y,
     )
 
     # print(s.initial_guess())
@@ -94,21 +79,16 @@ if __name__ == '__main__':
     exact = np.log(1 + s.x)
 
     si.vis.xy_plot(
-        'init',
+        "init",
         s.x,
         s.initial_guess(),
         soln,
         exact,
-        line_labels = ['init guess', 'solve', 'solution'],
-        save_on_exit = False,
-        show = True,
+        line_labels=["init guess", "solve", "solution"],
+        save_on_exit=False,
+        show=True,
     )
 
     si.vis.xy_plot(
-        'err',
-        s.x,
-        np.abs(exact - soln),
-        y_log_axis = True,
-        save_on_exit = False,
-        show = True,
+        "err", s.x, np.abs(exact - soln), y_log_axis=True, save_on_exit=False, show=True
     )

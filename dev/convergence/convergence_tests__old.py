@@ -9,7 +9,7 @@ import ionization as ion, ionization as test
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
 
 # def plot_2d(mesh, x_points, y_points, title = 'title'):
@@ -143,7 +143,7 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 #     plt.close()
 
 
-def cylindrical_slice_norm_energy(z_points, states, bound = 30 * bohr_radius):
+def cylindrical_slice_norm_energy(z_points, states, bound=30 * bohr_radius):
     z_points = np.rint(z_points)
     rho_points = np.rint(z_points / 2)
 
@@ -151,9 +151,9 @@ def cylindrical_slice_norm_energy(z_points, states, bound = 30 * bohr_radius):
     energies = {state: np.zeros(len(rho_points)) for state in states}
 
     for ii, (z, rho) in enumerate(zip(z_points, rho_points)):
-        spec = ion.CylindricalSliceSpecification('test',
-                                                 z_bound = bound, rho_bound = bound,
-                                                 z_points = z, rho_points = rho)
+        spec = ion.CylindricalSliceSpecification(
+            "test", z_bound=bound, rho_bound=bound, z_points=z, rho_points=rho
+        )
 
         sim = ion.ElectricFieldSimulation(spec)
 
@@ -163,73 +163,109 @@ def cylindrical_slice_norm_energy(z_points, states, bound = 30 * bohr_radius):
             norms[state][ii] = sim.mesh.norm
             energies[state][ii] = sim.mesh.energy_expectation_value
 
-            print(state, ii, z, rho, norms[state][ii], energies[state][ii] / (rydberg / (state.n ** 2)))
+            print(
+                state,
+                ii,
+                z,
+                rho,
+                norms[state][ii],
+                energies[state][ii] / (rydberg / (state.n ** 2)),
+            )
 
         del spec
         del sim.mesh
         del sim
 
-    fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+    fig = plt.figure(figsize=(7, 7 * 2 / 3), dpi=600)
     fig.set_tight_layout(True)
     axis = plt.subplot(111)
 
-    axis.set_xlabel(r'$N_z$, $N_{\rho} = N_z / 2$', fontsize = 15)
+    axis.set_xlabel(r"$N_z$, $N_{\rho} = N_z / 2$", fontsize=15)
 
-    axis.set_xscale('log')
-    axis.set_yscale('log')
+    axis.set_xscale("log")
+    axis.set_yscale("log")
 
     axis.set_xlim(z_points[0], z_points[-1])
 
-    axis.grid(True, color = 'black', linestyle = ':')  # change grid color to make it show up against the colormesh
+    axis.grid(
+        True, color="black", linestyle=":"
+    )  # change grid color to make it show up against the colormesh
 
     ################
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$', fontsize = 15)
-    title = axis.set_title('Norm Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$",
+        fontsize=15,
+    )
+    title = axis.set_title("Norm Error", fontsize=15)
     title.set_y(1.05)  # move title up a bit
 
     scaled_norm = {state: np.abs(1 - norm) for state, norm in norms.items()}
     # axis.set_ylim(np.min(scaled_norm), np.max(scaled_norm))
-    axis.set_ylim(.5 * min([np.min(norm) for norm in scaled_norm.values()]), 1.5 * max([np.max(norm) for norm in scaled_norm.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(norm) for norm in scaled_norm.values()]),
+        1.5 * max([np.max(norm) for norm in scaled_norm.values()]),
+    )
 
     lines = []
 
     for state in states:
-        lines.append(axis.plot(z_points, scaled_norm[state], label = r'${}$'.format(state.tex))[0])
+        lines.append(
+            axis.plot(z_points, scaled_norm[state], label=r"${}$".format(state.tex))[0]
+        )
 
-    axis.legend(loc = 'best', fontsize = 12)
+    axis.legend(loc="best", fontsize=12)
 
-    si.vis.save_current_figure(name = 'cyl_norm_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="cyl_norm_{}br".format(uround(bound, bohr_radius, 0)),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ', fontsize = 15)
-    title = axis.set_title('Energy Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Energy Error", fontsize=15)
 
-    scaled_energy = {state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2))))) for state, energy in energies.items()}
+    scaled_energy = {
+        state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2)))))
+        for state, energy in energies.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(energy) for energy in scaled_energy.values()]), 1.5 * max([np.max(energy) for energy in scaled_energy.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(energy) for energy in scaled_energy.values()]),
+        1.5 * max([np.max(energy) for energy in scaled_energy.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.vis.save_current_figure(name = 'cyl_energy_{}br'.format(uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="cyl_energy_{}br".format(uround(bound, bohr_radius, 0)),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
     plt.close()
 
 
-def spherical_slice_norm_energy(r_points, states, theta_points = 128, bound = 30 * bohr_radius):
+def spherical_slice_norm_energy(
+    r_points, states, theta_points=128, bound=30 * bohr_radius
+):
     r_points = np.rint(r_points)
 
     norms = {state: np.zeros(len(r_points)) for state in states}
     energies = {state: np.zeros(len(r_points)) for state in states}
 
     for ii, r in enumerate(r_points):
-        spec = ion.SphericalSliceSpecification('test',
-                                               r_bound = bound,
-                                               r_points = r, theta_points = theta_points)
+        spec = ion.SphericalSliceSpecification(
+            "test", r_bound=bound, r_points=r, theta_points=theta_points
+        )
 
         sim = ion.ElectricFieldSimulation(spec)
 
@@ -239,73 +275,112 @@ def spherical_slice_norm_energy(r_points, states, theta_points = 128, bound = 30
             norms[state][ii] = sim.mesh.norm
             energies[state][ii] = sim.mesh.energy_expectation_value
 
-            print(state, ii, r, theta_points, norms[state][ii], energies[state][ii] / (rydberg / (state.n ** 2)))
+            print(
+                state,
+                ii,
+                r,
+                theta_points,
+                norms[state][ii],
+                energies[state][ii] / (rydberg / (state.n ** 2)),
+            )
 
         del spec
         del sim.mesh
         del sim
 
-    fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+    fig = plt.figure(figsize=(7, 7 * 2 / 3), dpi=600)
     fig.set_tight_layout(True)
     axis = plt.subplot(111)
 
-    axis.set_xlabel(r'$N_r$, $N_{{\theta}} = {}$'.format(theta_points), fontsize = 15)
+    axis.set_xlabel(r"$N_r$, $N_{{\theta}} = {}$".format(theta_points), fontsize=15)
 
-    axis.set_xscale('log')
-    axis.set_yscale('log')
+    axis.set_xscale("log")
+    axis.set_yscale("log")
 
     axis.set_xlim(r_points[0], r_points[-1])
 
-    axis.grid(True, color = 'black', linestyle = ':')  # change grid color to make it show up against the colormesh
+    axis.grid(
+        True, color="black", linestyle=":"
+    )  # change grid color to make it show up against the colormesh
 
     ################
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$', fontsize = 15)
-    title = axis.set_title('Norm Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$",
+        fontsize=15,
+    )
+    title = axis.set_title("Norm Error", fontsize=15)
     title.set_y(1.05)  # move title up a bit
 
     scaled_norm = {state: np.abs(1 - norm) for state, norm in norms.items()}
     # axis.set_ylim(np.min(scaled_norm), np.max(scaled_norm))
-    axis.set_ylim(.5 * min([np.min(norm) for norm in scaled_norm.values()]), 1.5 * max([np.max(norm) for norm in scaled_norm.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(norm) for norm in scaled_norm.values()]),
+        1.5 * max([np.max(norm) for norm in scaled_norm.values()]),
+    )
 
     lines = []
 
     for state in states:
-        lines.append(axis.plot(r_points, scaled_norm[state], label = r'${}$'.format(state.tex))[0])
+        lines.append(
+            axis.plot(r_points, scaled_norm[state], label=r"${}$".format(state.tex))[0]
+        )
 
-    axis.legend(loc = 'best', fontsize = 12)
+    axis.legend(loc="best", fontsize=12)
 
-    si.vis.save_current_figure(name = 'sph_norm_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sph_norm_{}_{}br".format(theta_points, uround(bound, bohr_radius, 0)),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ', fontsize = 15)
-    title = axis.set_title('Energy Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Energy Error", fontsize=15)
 
-    scaled_energy = {state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2))))) for state, energy in energies.items()}
+    scaled_energy = {
+        state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2)))))
+        for state, energy in energies.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(energy) for energy in scaled_energy.values()]), 1.5 * max([np.max(energy) for energy in scaled_energy.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(energy) for energy in scaled_energy.values()]),
+        1.5 * max([np.max(energy) for energy in scaled_energy.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.vis.save_current_figure(name = 'sph_energy_{}_{}br'.format(theta_points, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sph_energy_{}_{}br".format(theta_points, uround(bound, bohr_radius, 0)),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
     plt.close()
 
 
-def spherical_harmonic_norm_energy(r_points, states, spherical_harmonics = 128, bound = 30 * bohr_radius):
+def spherical_harmonic_norm_energy(
+    r_points, states, spherical_harmonics=128, bound=30 * bohr_radius
+):
     r_points = np.rint(r_points)
 
     norms = {state: np.zeros(len(r_points)) for state in states}
     energies = {state: np.zeros(len(r_points)) for state in states}
 
     for ii, r in enumerate(r_points):
-        spec = ion.SphericalHarmonicSpecification('test',
-                                                  r_bound = bound,
-                                                  r_points = r, spherical_harmonics_max_l = spherical_harmonics - 1)
+        spec = ion.SphericalHarmonicSpecification(
+            "test",
+            r_bound=bound,
+            r_points=r,
+            spherical_harmonics_max_l=spherical_harmonics - 1,
+        )
 
         sim = ion.ElectricFieldSimulation(spec)
 
@@ -315,64 +390,109 @@ def spherical_harmonic_norm_energy(r_points, states, spherical_harmonics = 128, 
             norms[state][ii] = sim.mesh.norm
             energies[state][ii] = sim.mesh.energy_expectation_value
 
-            print(state, ii, r, spherical_harmonics, norms[state][ii], energies[state][ii] / (rydberg / (state.n ** 2)))
+            print(
+                state,
+                ii,
+                r,
+                spherical_harmonics,
+                norms[state][ii],
+                energies[state][ii] / (rydberg / (state.n ** 2)),
+            )
 
         del spec
         del sim.mesh
         del sim
 
-    fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+    fig = plt.figure(figsize=(7, 7 * 2 / 3), dpi=600)
     fig.set_tight_layout(True)
     axis = plt.subplot(111)
 
-    axis.set_xlabel(r'$N_r$, $N_l = {}$'.format(spherical_harmonics), fontsize = 15)
+    axis.set_xlabel(r"$N_r$, $N_l = {}$".format(spherical_harmonics), fontsize=15)
 
-    axis.set_xscale('log')
-    axis.set_yscale('log')
+    axis.set_xscale("log")
+    axis.set_yscale("log")
 
     axis.set_xlim(r_points[0], r_points[-1])
 
-    axis.grid(True, color = 'black', linestyle = ':')  # change grid color to make it show up against the colormesh
+    axis.grid(
+        True, color="black", linestyle=":"
+    )  # change grid color to make it show up against the colormesh
 
     ################
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$', fontsize = 15)
-    title = axis.set_title('Norm Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$",
+        fontsize=15,
+    )
+    title = axis.set_title("Norm Error", fontsize=15)
     title.set_y(1.05)  # move title up a bit
 
     scaled_norm = {state: np.abs(1 - norm) for state, norm in norms.items()}
     # axis.set_ylim(np.min(scaled_norm), np.max(scaled_norm))
-    axis.set_ylim(.5 * min([np.min(norm) for norm in scaled_norm.values()]), 1.5 * max([np.max(norm) for norm in scaled_norm.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(norm) for norm in scaled_norm.values()]),
+        1.5 * max([np.max(norm) for norm in scaled_norm.values()]),
+    )
 
     lines = []
 
     for state in states:
-        lines.append(axis.plot(r_points, scaled_norm[state], label = r'${}$'.format(state.tex))[0])
+        lines.append(
+            axis.plot(r_points, scaled_norm[state], label=r"${}$".format(state.tex))[0]
+        )
 
-    axis.legend(loc = 'best', fontsize = 12)
+    axis.legend(loc="best", fontsize=12)
 
-    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm__norm_{}_{}br".format(
+            spherical_harmonics, uround(bound, bohr_radius, 0)
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ', fontsize = 15)
-    title = axis.set_title('Energy Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Energy Error", fontsize=15)
 
-    scaled_energy = {state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2))))) for state, energy in energies.items()}
+    scaled_energy = {
+        state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2)))))
+        for state, energy in energies.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(energy) for energy in scaled_energy.values()]), 1.5 * max([np.max(energy) for energy in scaled_energy.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(energy) for energy in scaled_energy.values()]),
+        1.5 * max([np.max(energy) for energy in scaled_energy.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.vis.save_current_figure(name = 'sphharm_energy_{}_{}br'.format(spherical_harmonics, uround(bound, bohr_radius, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm_energy_{}_{}br".format(
+            spherical_harmonics, uround(bound, bohr_radius, 0)
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
     plt.close()
 
 
-def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics = 128, bound = 30 * bohr_radius, evolve_for = 10000 * asec, evolve_at = 1 * asec):
+def spherical_harmonic_norm_energy_evolved(
+    r_points,
+    states,
+    spherical_harmonics=128,
+    bound=30 * bohr_radius,
+    evolve_for=10000 * asec,
+    evolve_at=1 * asec,
+):
     r_points = np.rint(r_points)
 
     norms = {state: np.zeros(len(r_points)) for state in states}
@@ -381,11 +501,15 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
 
     for ii, r in enumerate(r_points):
         for state in states:
-            spec = ion.SphericalHarmonicSpecification('test',
-                                                      r_bound = bound,
-                                                      initial_state = state,
-                                                      r_points = r, spherical_harmonics_max_l = spherical_harmonics - 1,
-                                                      time_final = evolve_for, time_step = evolve_at)
+            spec = ion.SphericalHarmonicSpecification(
+                "test",
+                r_bound=bound,
+                initial_state=state,
+                r_points=r,
+                spherical_harmonics_max_l=spherical_harmonics - 1,
+                time_final=evolve_for,
+                time_step=evolve_at,
+            )
 
             sim = ion.ElectricFieldSimulation(spec)
 
@@ -395,90 +519,159 @@ def spherical_harmonic_norm_energy_evolved(r_points, states, spherical_harmonics
             energies[state][ii] = sim.mesh.energy_expectation_value
             init_overlap[state][ii] = sim.mesh.state_overlap(state)
 
-            print(state, ii, r, spherical_harmonics, norms[state][ii], energies[state][ii] / (rydberg / (state.n ** 2)))
+            print(
+                state,
+                ii,
+                r,
+                spherical_harmonics,
+                norms[state][ii],
+                energies[state][ii] / (rydberg / (state.n ** 2)),
+            )
 
             del spec
             del sim.mesh
             del sim
 
-    fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+    fig = plt.figure(figsize=(7, 7 * 2 / 3), dpi=600)
     fig.set_tight_layout(True)
     axis = plt.subplot(111)
 
-    axis.set_xlabel(r'$N_r$, $N_l = {}$'.format(spherical_harmonics), fontsize = 15)
+    axis.set_xlabel(r"$N_r$, $N_l = {}$".format(spherical_harmonics), fontsize=15)
 
-    axis.set_xscale('log')
-    axis.set_yscale('log')
+    axis.set_xscale("log")
+    axis.set_yscale("log")
 
     axis.set_xlim(r_points[0], r_points[-1])
 
-    axis.grid(True, color = 'black', linestyle = ':')  # change grid color to make it show up against the colormesh
+    axis.grid(
+        True, color="black", linestyle=":"
+    )  # change grid color to make it show up against the colormesh
 
     ################
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$', fontsize = 15)
-    title = axis.set_title('Norm Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$",
+        fontsize=15,
+    )
+    title = axis.set_title("Norm Error", fontsize=15)
     title.set_y(1.05)  # move title up a bit
 
     scaled_norm = {state: np.abs(1 - norm) for state, norm in norms.items()}
     # axis.set_ylim(np.min(scaled_norm), np.max(scaled_norm))
-    axis.set_ylim(.5 * min([np.min(norm) for norm in scaled_norm.values()]), 1.5 * max([np.max(norm) for norm in scaled_norm.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(norm) for norm in scaled_norm.values()]),
+        1.5 * max([np.max(norm) for norm in scaled_norm.values()]),
+    )
 
     lines = []
 
     for state in states:
-        lines.append(axis.plot(r_points, scaled_norm[state], label = r'${}$'.format(state.tex))[0])
+        lines.append(
+            axis.plot(r_points, scaled_norm[state], label=r"${}$".format(state.tex))[0]
+        )
 
-    axis.legend(loc = 'best', fontsize = 12)
+    axis.legend(loc="best", fontsize=12)
 
-    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm__norm_{}_{}brevolvedFor{}asec".format(
+            spherical_harmonics,
+            uround(bound, bohr_radius, 0),
+            uround(evolve_for, asec, 0),
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ', fontsize = 15)
-    title = axis.set_title('Energy Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \frac{\left< \psi | H | \psi \right>}{E_n} \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Energy Error", fontsize=15)
 
-    scaled_energy = {state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2))))) for state, energy in energies.items()}
+    scaled_energy = {
+        state: np.abs(1 - np.abs((energy / (rydberg / (state.n ** 2)))))
+        for state, energy in energies.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(energy) for energy in scaled_energy.values()]), 1.5 * max([np.max(energy) for energy in scaled_energy.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(energy) for energy in scaled_energy.values()]),
+        1.5 * max([np.max(energy) for energy in scaled_energy.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_energy[state])
 
-    si.vis.save_current_figure(name = 'sphharm_energy_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm_energy_{}_{}br_evolvedFor{}asec".format(
+            spherical_harmonics,
+            uround(bound, bohr_radius, 0),
+            uround(evolve_for, asec, 0),
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi(t=0) \right> \right)$ ', fontsize = 15)
-    title = axis.set_title('Initial State Overlap Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi(t=0) \right> \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Initial State Overlap Error", fontsize=15)
 
-    scaled_overlap = {state: np.abs(1 - overlap) for state, overlap in init_overlap.items()}
+    scaled_overlap = {
+        state: np.abs(1 - overlap) for state, overlap in init_overlap.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(overlap) for overlap in scaled_overlap.values()]), 1.5 * max([np.max(overlap) for overlap in scaled_overlap.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(overlap) for overlap in scaled_overlap.values()]),
+        1.5 * max([np.max(overlap) for overlap in scaled_overlap.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_overlap[state])
 
-    si.vis.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm_initOverlap_{}_{}br_evolvedFor{}asec".format(
+            spherical_harmonics,
+            uround(bound, bohr_radius, 0),
+            uround(evolve_for, asec, 0),
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
     plt.close()
 
 
-def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics = 128, bound = 30 * bohr_radius, evolve_for = 10000 * asec, evolve_at = 1 * asec):
+def spherical_harmonic_time_stability(
+    r_point_count,
+    states,
+    spherical_harmonics=128,
+    bound=30 * bohr_radius,
+    evolve_for=10000 * asec,
+    evolve_at=1 * asec,
+):
     norms = {state: None for state in states}
     energies = {state: None for state in states}
     init_overlap = {state: None for state in states}
 
     for state in states:
-        spec = ion.SphericalHarmonicSpecification('test',
-                                                  r_bound = bound,
-                                                  initial_state = state,
-                                                  r_points = r_point_count, spherical_harmonics_max_l = spherical_harmonics - 1,
-                                                  time_final = evolve_for, time_step = evolve_at)
+        spec = ion.SphericalHarmonicSpecification(
+            "test",
+            r_bound=bound,
+            initial_state=state,
+            r_points=r_point_count,
+            spherical_harmonics_max_l=spherical_harmonics - 1,
+            time_final=evolve_for,
+            time_step=evolve_at,
+        )
 
         sim = ion.ElectricFieldSimulation(spec)
 
@@ -496,36 +689,56 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
         del sim.mesh
         del sim
 
-    fig = plt.figure(figsize = (7, 7 * 2 / 3), dpi = 600)
+    fig = plt.figure(figsize=(7, 7 * 2 / 3), dpi=600)
     fig.set_tight_layout(True)
     axis = plt.subplot(111)
 
-    axis.set_xlabel(r'$t$ (as)'.format(spherical_harmonics), fontsize = 15)
+    axis.set_xlabel(r"$t$ (as)".format(spherical_harmonics), fontsize=15)
 
-    axis.set_yscale('log')
+    axis.set_yscale("log")
 
     axis.set_xlim(times[0] / asec, times[-1] / asec)
 
-    axis.grid(True, color = 'black', linestyle = ':')  # change grid color to make it show up against the colormesh
+    axis.grid(
+        True, color="black", linestyle=":"
+    )  # change grid color to make it show up against the colormesh
 
     ################
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$', fontsize = 15)
-    title = axis.set_title('Norm Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi \right> \right)$",
+        fontsize=15,
+    )
+    title = axis.set_title("Norm Error", fontsize=15)
     title.set_y(1.05)  # move title up a bit
 
     scaled_norm = {state: np.abs(1 - norm) for state, norm in norms.items()}
     # axis.set_ylim(np.min(scaled_norm), np.max(scaled_norm))
-    axis.set_ylim(.5 * min([np.min(norm) for norm in scaled_norm.values()]), 1.5 * max([np.max(norm) for norm in scaled_norm.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(norm) for norm in scaled_norm.values()]),
+        1.5 * max([np.max(norm) for norm in scaled_norm.values()]),
+    )
 
     lines = []
 
     for state in states:
-        lines.append(axis.plot(times / asec, scaled_norm[state], label = r'${}$'.format(state.tex))[0])
+        lines.append(
+            axis.plot(
+                times / asec, scaled_norm[state], label=r"${}$".format(state.tex)
+            )[0]
+        )
 
-    axis.legend(loc = 'best', fontsize = 12)
+    axis.legend(loc="best", fontsize=12)
 
-    si.vis.save_current_figure(name = 'sphharm__norm_{}_{}brevolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm__norm_{}_{}brevolvedFor{}asec_overtime".format(
+            spherical_harmonics,
+            uround(bound, bohr_radius, 0),
+            uround(evolve_for, asec, 0),
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     ###############
 
@@ -545,17 +758,33 @@ def spherical_harmonic_time_stability(r_point_count, states, spherical_harmonics
 
     ###############
 
-    axis.set_ylabel(r'$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi(t=0) \right> \right)$ ', fontsize = 15)
-    title = axis.set_title('Initial State Overlap Error', fontsize = 15)
+    axis.set_ylabel(
+        r"$\mathrm{Log}_{10} \left( 1 - \left< \psi | \psi(t=0) \right> \right)$ ",
+        fontsize=15,
+    )
+    title = axis.set_title("Initial State Overlap Error", fontsize=15)
 
-    scaled_overlap = {state: np.abs(1 - overlap) for state, overlap in init_overlap.items()}
+    scaled_overlap = {
+        state: np.abs(1 - overlap) for state, overlap in init_overlap.items()
+    }
     # axis.set_ylim(np.min(scaled_energy), np.max(scaled_energy))
-    axis.set_ylim(.5 * min([np.min(overlap) for overlap in scaled_overlap.values()]), 1.5 * max([np.max(overlap) for overlap in scaled_overlap.values()]))
+    axis.set_ylim(
+        0.5 * min([np.min(overlap) for overlap in scaled_overlap.values()]),
+        1.5 * max([np.max(overlap) for overlap in scaled_overlap.values()]),
+    )
 
     for line, state in zip(lines, states):
         line.set_ydata(scaled_overlap[state])
 
-    si.vis.save_current_figure(name = 'sphharm_initOverlap_{}_{}br_evolvedFor{}asec_overtime'.format(spherical_harmonics, uround(bound, bohr_radius, 0), uround(evolve_for, asec, 0)), target_dir = OUT_DIR, img_format = 'pdf')
+    si.vis.save_current_figure(
+        name="sphharm_initOverlap_{}_{}br_evolvedFor{}asec_overtime".format(
+            spherical_harmonics,
+            uround(bound, bohr_radius, 0),
+            uround(evolve_for, asec, 0),
+        ),
+        target_dir=OUT_DIR,
+        img_format="pdf",
+    )
 
     #################
 
@@ -567,14 +796,16 @@ def run_test(spec):
         sim = test.StaticConvergenceTestingSimulation(spec)
         sim.run()
 
-        sim.plot_error_vs_time(save = True, target_dir = os.path.join(OUT_DIR, 'individual_error_vs_time'))
+        sim.plot_error_vs_time(
+            save=True, target_dir=os.path.join(OUT_DIR, "individual_error_vs_time")
+        )
 
         sim.mesh = None
 
         return sim
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # cylindrical_slice_2d_z_rho_points(10, 20, 10, 20, ion.BoundState(1, 0, 0))
     # z = [100, 101, 102, 103 200, 201, 202, 203, 400, 401, 402, 403, 600, 601, 602, 603, 800, 801, 802, 803, 1000, 1001, 1002, 1003]
     # nn = np.linspace(100, 1000, num = 200)
@@ -582,7 +813,9 @@ if __name__ == '__main__':
     # radial_points = np.logspace(start = 7, stop = 12, base = 2, num = 100)
     angular_points = [2 ** 6, 2 ** 7, 2 ** 8]
     n_max = 3
-    states = [ion.HydrogenBoundState(n, l, 0) for n in range(1, n_max + 1) for l in range(n)]
+    states = [
+        ion.HydrogenBoundState(n, l, 0) for n in range(1, n_max + 1) for l in range(n)
+    ]
     bound = 40 * bohr_radius
 
     time_final = 10000
@@ -605,24 +838,45 @@ if __name__ == '__main__':
 
         for state in states:
             for zz in linear_points:
-                spec = ion.CylindricalSliceSpecification('cyl__n{}_l{}__z{}_rho{}__t{}_dt{}'.format(state.n, state.l, zz, zz / 2, time_final, time_step),
-                                                         z_points = zz, rho_points = zz / 2,
-                                                         time_initial = 1 * asec, time_final = time_final * asec + 1 * asec, time_step = time_step * asec)
+                spec = ion.CylindricalSliceSpecification(
+                    "cyl__n{}_l{}__z{}_rho{}__t{}_dt{}".format(
+                        state.n, state.l, zz, zz / 2, time_final, time_step
+                    ),
+                    z_points=zz,
+                    rho_points=zz / 2,
+                    time_initial=1 * asec,
+                    time_final=time_final * asec + 1 * asec,
+                    time_step=time_step * asec,
+                )
 
                 specs.append(spec)
 
             for rr in linear_points:
                 for ll in angular_points:
-                    spec_sphslice = ion.SphericalSliceSpecification('sphslice__n{}_l{}__r{}_theta{}__t{}_dt{}'.format(state.n, state.l, rr, ll, time_final, time_step),
-                                                                    r_points = rr, theta_points = ll,
-                                                                    time_initial = 1 * asec, time_final = time_final * asec + 1 * asec, time_step = time_step * asec)
+                    spec_sphslice = ion.SphericalSliceSpecification(
+                        "sphslice__n{}_l{}__r{}_theta{}__t{}_dt{}".format(
+                            state.n, state.l, rr, ll, time_final, time_step
+                        ),
+                        r_points=rr,
+                        theta_points=ll,
+                        time_initial=1 * asec,
+                        time_final=time_final * asec + 1 * asec,
+                        time_step=time_step * asec,
+                    )
 
                     specs.append(spec_sphslice)
 
-                    spec_sphharm = ion.SphericalHarmonicSpecification('sphharm__n{}_l{}__r{}_harms{}__t{}_dt{}'.format(state.n, state.l, rr, ll, time_final, time_step),
-                                                                      r_points = rr, theta_points = ll,
-                                                                      time_initial = 1 * asec, time_final = time_final * asec + 1 * asec, time_step = time_step * asec)
+                    spec_sphharm = ion.SphericalHarmonicSpecification(
+                        "sphharm__n{}_l{}__r{}_harms{}__t{}_dt{}".format(
+                            state.n, state.l, rr, ll, time_final, time_step
+                        ),
+                        r_points=rr,
+                        theta_points=ll,
+                        time_initial=1 * asec,
+                        time_final=time_final * asec + 1 * asec,
+                        time_step=time_step * asec,
+                    )
 
                     specs.append(spec_sphharm)
 
-        sims = si.utils.multi_map(run_test, specs, processes = 4)
+        sims = si.utils.multi_map(run_test, specs, processes=4)

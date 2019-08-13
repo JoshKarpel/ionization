@@ -3,31 +3,22 @@
 import logging
 import os
 
-import numpy as np
-
 import simulacra as si
-import simulacra.units as u
-
-import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
         specs = [
-            ion.mesh.LineSpecification('line'),
-            ion.mesh.CylindricalSliceSpecification('cyl'),
-            ion.mesh.SphericalSliceSpecification('sph'),
-            ion.mesh.SphericalHarmonicSpecification('harm'),
+            mesh.LineSpecification("line"),
+            mesh.CylindricalSliceSpecification("cyl"),
+            mesh.SphericalSliceSpecification("sph"),
+            mesh.SphericalHarmonicSpecification("harm"),
         ]
 
         for s in specs:
@@ -37,5 +28,5 @@ if __name__ == '__main__':
             print()
             print(s.info())
             print()
-            print('-' * 80)
+            print("-" * 80)
             print()

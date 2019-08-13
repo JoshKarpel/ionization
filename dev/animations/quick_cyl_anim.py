@@ -7,7 +7,7 @@ from simulacra.units import *
 import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
 # def make_movie(spec):
 #     with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.INFO,
@@ -19,38 +19,49 @@ OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
 #         sim.info().log()
 
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG) as logger:
-        anim_kwargs = dict(
-                length = 10,
-                target_dir = OUT_DIR,
-        )
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra", "ionization", stdout_logs=True, stdout_level=logging.DEBUG
+    ) as logger:
+        anim_kwargs = dict(length=10, target_dir=OUT_DIR)
 
         animators = [
             animation.animators.RectangleAnimator(
-                    postfix = 'g2',
-                    axman_wavefunction = animation.animators.CylindricalSliceMeshAxis(shading = 'flat'),
-                    axman_lower = animation.animators.ElectricPotentialPlotAxis(),
-                    **anim_kwargs,
+                postfix="g2",
+                axman_wavefunction=animation.animators.CylindricalSliceMeshAxis(
+                    shading="flat"
+                ),
+                axman_lower=animation.animators.ElectricPotentialPlotAxis(),
+                **anim_kwargs,
             ),
             animation.animators.RectangleAnimator(
-                    postfix = 'g',
-                    axman_wavefunction = animation.animators.CylindricalSliceMeshAxis(
-                            which = 'g',
-                            colormap = si.vis.RichardsonColormap(),
-                            norm = si.vis.RichardsonNormalization(),
-                            shading = 'flat'),
-                    axman_lower = animation.animators.ElectricPotentialPlotAxis(),
-                    **anim_kwargs,
-            )
+                postfix="g",
+                axman_wavefunction=animation.animators.CylindricalSliceMeshAxis(
+                    which="g",
+                    colormap=si.vis.RichardsonColormap(),
+                    norm=si.vis.RichardsonNormalization(),
+                    shading="flat",
+                ),
+                axman_lower=animation.animators.ElectricPotentialPlotAxis(),
+                **anim_kwargs,
+            ),
         ]
 
-        sim = ion.CylindricalSliceSpecification('cyl_slice',
-                                                time_initial = 0 * asec, time_final = 300 * asec,
-                                                z_bound = 20 * bohr_radius, rho_bound = 20 * bohr_radius,
-                                                z_points = 200, rho_points = 100,
-                                                electric_potential = ion.Rectangle(start_time = 100 * asec, end_time = 150 * asec, amplitude = 1 * atomic_electric_field),
-                                                animators = animators).to_sim()
+        sim = ion.CylindricalSliceSpecification(
+            "cyl_slice",
+            time_initial=0 * asec,
+            time_final=300 * asec,
+            z_bound=20 * bohr_radius,
+            rho_bound=20 * bohr_radius,
+            z_points=200,
+            rho_points=100,
+            electric_potential=ion.Rectangle(
+                start_time=100 * asec,
+                end_time=150 * asec,
+                amplitude=1 * atomic_electric_field,
+            ),
+            animators=animators,
+        ).to_sim()
 
         sim.info().log()
         sim.run()

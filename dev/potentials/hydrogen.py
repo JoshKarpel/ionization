@@ -9,11 +9,11 @@ import ionization as ion
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
 si.utils.ensure_dir_exists(OUT_DIR)
 
-logger = logging.getLogger('simulacra')
+logger = logging.getLogger("simulacra")
 logger.setLevel(logging.DEBUG)
 
 stdout_handler = logging.StreamHandler(sys.stdout)
@@ -21,7 +21,7 @@ stdout_handler.setLevel(logging.DEBUG)
 stdout_handler.setFormatter(si.utils.LOG_FORMATTER)
 logger.addHandler(stdout_handler)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     bs = ion.HydrogenBoundState(5, 0)
     logger.info(bs)
     logger.info(repr(bs))
@@ -34,19 +34,24 @@ if __name__ == '__main__':
     try:
         bs2 = ion.HydrogenBoundState(2, 3, 5)
     except ion.IllegalQuantumState as err:
-        logger.exception('expected excepted')
+        logger.exception("expected excepted")
 
     print(ion.HydrogenBoundState(1, 0, 0) < ion.HydrogenBoundState(3, 2, 1))
     print(ion.HydrogenBoundState(1, 0, 0) <= ion.HydrogenBoundState(3, 2, 1))
     print(ion.HydrogenBoundState(3, 2, 1) > ion.HydrogenBoundState(3, 2, 0))
     print(ion.HydrogenBoundState(3, 2, 1) >= ion.HydrogenBoundState(3, 2, 0))
 
-    sortable = [ion.HydrogenBoundState(n, l, m) for n in range(4) for l in range(n) for m in range(-l, l + 1)]
+    sortable = [
+        ion.HydrogenBoundState(n, l, m)
+        for n in range(4)
+        for l in range(n)
+        for m in range(-l, l + 1)
+    ]
     random.shuffle(sortable)
 
-    sort = sorted(sortable, key = ion.HydrogenBoundState.sort_key)
+    sort = sorted(sortable, key=ion.HydrogenBoundState.sort_key)
 
     for state, s in zip(sortable, sort):
-        s1 = '{}'.format(state).rjust(10)
-        s2 = '{}'.format(s).ljust(10)
-        print(s1 + ' | ' + s2)
+        s1 = "{}".format(state).rjust(10)
+        s2 = "{}".format(s).ljust(10)
+        print(s1 + " | " + s2)

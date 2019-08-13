@@ -1,4 +1,3 @@
-import simulacra as si
 import ionization as ion
 
 SPEC_TYPES = [
@@ -22,4 +21,6 @@ SPEC_TYPES_WITH_NUMERIC_EIGENSTATES = [
     ion.mesh.LineSpecification,
     ion.mesh.SphericalHarmonicSpecification,
 ]
-LOW_N_HYDROGEN_BOUND_STATES = [ion.mesh.states.HydrogenBoundState(n, l) for n in range(3) for l in range(n)]
+LOW_N_HYDROGEN_BOUND_STATES = [
+    ion.states.HydrogenBoundState(n, l) for n in range(3) for l in range(n)
+]

@@ -2,20 +2,20 @@
 
 from tqdm import tqdm
 
-import simulacra as si
 import simulacra.cluster as clu
 import simulacra.units as u
 
-import ionization as ion
-import ionization.cluster as iclu
-import ionization.jobutils as ju
+import ionization as iclu
+import ionization as ju
 
 import chtc_job_utils as chtc
 
 JOB_PROCESSOR_TYPE = iclu.MeshJobProcessor
 
-if __name__ == '__main__':
-    args = ju.parse_args(description = 'Create a TDSE Ionization vs Pulse Width, Phase, and Fluence job.')
+if __name__ == "__main__":
+    args = ju.parse_args(
+        description="Create a TDSE Ionization vs Pulse Width, Phase, and Fluence job."
+    )
 
     with ju.get_log_manager(args) as logger:
         ju.check_job_dir(args)
@@ -24,40 +24,45 @@ if __name__ == '__main__':
 
         spec_type, mesh_kwargs = ju.ask_mesh_type()
         ju.ask_mask__radial_cosine(parameters, mesh_kwargs)
-        ju.ask_numeric_eigenstate_basis(parameters, spec_type = spec_type)
+        ju.ask_numeric_eigenstate_basis(parameters, spec_type=spec_type)
 
         ju.ask_initial_state_for_hydrogen_sim(parameters)
 
-        ju.ask_mesh_operators(parameters, spec_type = spec_type)
+        ju.ask_mesh_operators(parameters, spec_type=spec_type)
         ju.ask_evolution_method_tdse(parameters)
 
         ju.ask_time_step(parameters)
-        time_initial_in_pw, time_final_in_pw, extra_time = ju.ask_time_evolution_by_pulse_widths()
+        time_initial_in_pw, time_final_in_pw, extra_time = (
+            ju.ask_time_evolution_by_pulse_widths()
+        )
 
         # PULSE PARAMETERS
         pulse_parameters = ju.construct_pulses(
             parameters,
-            time_initial_in_pw = time_initial_in_pw,
-            time_final_in_pw = time_final_in_pw
+            time_initial_in_pw=time_initial_in_pw,
+            time_final_in_pw=time_final_in_pw,
         )
 
         # MISCELLANEOUS
         do_checkpoints = ju.ask_checkpoints(parameters)
-        ju.ask_data_storage_tdse(parameters, spec_type = spec_type)
+        ju.ask_data_storage_tdse(parameters, spec_type=spec_type)
 
         spec_kwargs_list = clu.expand_parameters(parameters)
         specs = []
 
-        print('Generating specifications...')
-        for job_number, spec_kwargs in enumerate(tqdm(spec_kwargs_list, ascii = True)):
-            electric_potential = spec_kwargs['electric_potential']
+        print("Generating specifications...")
+        for job_number, spec_kwargs in enumerate(tqdm(spec_kwargs_list, ascii=True)):
+            electric_potential = spec_kwargs["electric_potential"]
 
             time_initial = time_initial_in_pw * electric_potential.pulse_width
-            time_final = (time_final_in_pw * electric_potential.pulse_width) + extra_time
+            time_final = (
+                time_final_in_pw * electric_potential.pulse_width
+            ) + extra_time
 
             spec = spec_type(
-                name = job_number,
-                time_initial = time_initial, time_final = time_final,
+                name=job_number,
+                time_initial=time_initial,
+                time_final=time_final,
                 **mesh_kwargs,
                 **spec_kwargs,
             )
@@ -70,9 +75,7 @@ if __name__ == '__main__':
             specs.append(spec)
 
         submit_string = chtc.generate_chtc_submit_string(
-            args.job_name,
-            len(specs),
-            do_checkpoints = do_checkpoints,
+            args.job_name, len(specs), do_checkpoints=do_checkpoints
         )
         chtc.submit_check(submit_string)
 
@@ -87,12 +90,12 @@ if __name__ == '__main__':
         print(f'Estimated Job Runtime: {u.uround(est_runtime_in_sec, "days")} days')
 
         job_dir = ju.create_job_files(
-            args = args,
-            specs = specs,
-            do_checkpoints = do_checkpoints,
-            parameters = parameters,
-            pulse_parameters = pulse_parameters,
-            job_processor_type = JOB_PROCESSOR_TYPE,
+            args=args,
+            specs=specs,
+            do_checkpoints=do_checkpoints,
+            parameters=parameters,
+            pulse_parameters=pulse_parameters,
+            job_processor_type=JOB_PROCESSOR_TYPE,
         )
         chtc.write_submit_file(submit_string, job_dir)
         if not args.dry:

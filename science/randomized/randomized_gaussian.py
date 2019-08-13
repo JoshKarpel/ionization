@@ -1,22 +1,17 @@
 import logging
 import os
 
-import numpy as np
 import simulacra as si
 from simulacra.units import *
 
 import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 5,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
 
 def run_spec(spec):
@@ -27,12 +22,12 @@ def run_spec(spec):
         sim.run()
         sim.info().log()
 
-        sim.plot_wavefunction_vs_time(show_vector_potential = False, **PLOT_KWARGS)
+        sim.plot_wavefunction_vs_time(show_vector_potential=False, **PLOT_KWARGS)
 
     return sim
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
         num_random_pulses = 5
 
@@ -44,37 +39,42 @@ if __name__ == '__main__':
         pulse_bound = 5
         time_bound = 7
 
-        window = ion.SymmetricExponentialTimeWindow(window_time = pulse_bound * pw, window_width = .2 * pw)
+        window = ion.SymmetricExponentialTimeWindow(
+            window_time=pulse_bound * pw, window_width=0.2 * pw
+        )
 
-        cosine_pulse = ion.potentials.GaussianPulse(pulse_width = pw, fluence = flu, phase = 0, window = window)
-        sine_pulse = ion.potentials.GaussianPulse(pulse_width = pw, fluence = flu, phase = pi / 2, window = window)
+        cosine_pulse = potentials.GaussianPulse(
+            pulse_width=pw, fluence=flu, phase=0, window=window
+        )
+        sine_pulse = potentials.GaussianPulse(
+            pulse_width=pw, fluence=flu, phase=pi / 2, window=window
+        )
 
         shared_kwargs = dict(
-            r_bound = r_bound * bohr_radius,
-            r_points = r_bound * 4,
-            l_bound = 100,
-            time_initial = -time_bound * pw,
-            time_final = time_bound * pw,
-            time_step = 1 * asec,
-            mask = ion.RadialCosineMask(inner_radius = (r_bound * .8) * bohr_radius, outer_radius = r_bound * bohr_radius),
-            use_numeric_eigenstates = True,
-            numeric_eigenstate_max_energy = 10 * eV,
-            numeric_eigenstate_max_angular_momentum = 10,
-            electric_potential_dc_correction = True,
-            store_data_every = 20,
+            r_bound=r_bound * bohr_radius,
+            r_points=r_bound * 4,
+            l_bound=100,
+            time_initial=-time_bound * pw,
+            time_final=time_bound * pw,
+            time_step=1 * asec,
+            mask=ion.RadialCosineMask(
+                inner_radius=(r_bound * 0.8) * bohr_radius,
+                outer_radius=r_bound * bohr_radius,
+            ),
+            use_numeric_eigenstates=True,
+            numeric_eigenstate_max_energy=10 * eV,
+            numeric_eigenstate_max_angular_momentum=10,
+            electric_potential_dc_correction=True,
+            store_data_every=20,
         )
 
         specs = [
             ion.SphericalHarmonicSpecification(
-                'cosine',
-                electric_potential = cosine_pulse,
-                **shared_kwargs,
+                "cosine", electric_potential=cosine_pulse, **shared_kwargs
             ),
             ion.SphericalHarmonicSpecification(
-                'sine',
-                electric_potential = sine_pulse,
-                **shared_kwargs,
-            )
+                "sine", electric_potential=sine_pulse, **shared_kwargs
+            ),
         ]
 
         cosine_sim = specs[0].clone().to_sim()
@@ -84,12 +84,14 @@ if __name__ == '__main__':
 
         rand_pulses = []
         for i in range(num_random_pulses):
-            rand_pulses.append(ion.GenericElectricPotential.from_pulse(
-                cosine_pulse,
-                times,
-                phase_function = lambda f: si.math.rand_phase(f.shape),
-                window = window,
-            ))
+            rand_pulses.append(
+                ion.GenericElectricPotential.from_pulse(
+                    cosine_pulse,
+                    times,
+                    phase_function=lambda f: si.math.rand_phase(f.shape),
+                    window=window,
+                )
+            )
 
         # ion.potentials.plot_electric_field_amplitude_vs_time(
         #     'random_pulses',
@@ -130,5 +132,3 @@ if __name__ == '__main__':
         #     legend_on_right = True,
         #     **PLOT_KWARGS,
         # )
-
-

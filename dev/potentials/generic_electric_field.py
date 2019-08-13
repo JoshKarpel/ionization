@@ -8,16 +8,14 @@ from simulacra.units import *
 import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 5,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG) as logger:
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra", "ionization", stdout_level=logging.DEBUG
+    ) as logger:
         pw = 200 * asec
         flu = 1 * Jcm2
 
@@ -25,25 +23,23 @@ if __name__ == '__main__':
         plot_bound = 35
         times = np.linspace(-plot_bound * pw, plot_bound * pw, 2 ** 12)
 
-        window = ion.SymmetricExponentialTimeWindow(window_time = t_bound * pw, window_width = .2 * pw)
+        window = ion.SymmetricExponentialTimeWindow(
+            window_time=t_bound * pw, window_width=0.2 * pw
+        )
 
-        base_pulse = ion.SincPulse(pulse_width = pw, fluence = flu,
-                                   window = window)
+        base_pulse = ion.SincPulse(pulse_width=pw, fluence=flu, window=window)
         base_pulse = ion.DC_correct_electric_potential(base_pulse, times)
 
         replica_pulse = ion.GenericElectricPotential.from_pulse(
-            base_pulse,
-            times,
-            phase_function = lambda f: 0,
-            window = window,
+            base_pulse, times, phase_function=lambda f: 0, window=window
         )
         replica_pulse = ion.DC_correct_electric_potential(replica_pulse, times)
 
         rand_pulse = ion.GenericElectricPotential.from_pulse(
             base_pulse,
             times,
-            phase_function = lambda f: si.math.rand_phase(f.shape),
-            window = window,
+            phase_function=lambda f: si.math.rand_phase(f.shape),
+            window=window,
         )
 
         print(base_pulse)
@@ -62,32 +58,35 @@ if __name__ == '__main__':
         #     **PLOT_KWARGS,
         # )
 
-        ion.potentials.plot_electric_field_amplitude_vs_time(
-            'pulses',
+        potentials.plot_electric_field_amplitude_vs_time(
+            "pulses",
             times,
             base_pulse,
             replica_pulse,
             rand_pulse,
-            line_labels = ['base', 'replica', 'rand'],
-            line_kwargs = [None, {'linestyle': '--'}],
+            line_labels=["base", "replica", "rand"],
+            line_kwargs=[None, {"linestyle": "--"}],
             **PLOT_KWARGS,
         )
 
         for pulse in [base_pulse, replica_pulse, rand_pulse]:
-            print(pulse.get_fluence_numeric(times) / Jcm2, pulse.get_vector_potential_amplitude_numeric(times), pulse)
+            print(
+                pulse.get_fluence_numeric(times) / Jcm2,
+                pulse.get_vector_potential_amplitude_numeric(times),
+                pulse,
+            )
 
         rand_pulses = []
         for i in range(5):
-            rand_pulses.append(ion.GenericElectricPotential.from_pulse(
-                base_pulse,
-                times,
-                phase_function = lambda f: si.math.rand_phase(f.shape),
-                window = window,
-            ))
+            rand_pulses.append(
+                ion.GenericElectricPotential.from_pulse(
+                    base_pulse,
+                    times,
+                    phase_function=lambda f: si.math.rand_phase(f.shape),
+                    window=window,
+                )
+            )
 
-        ion.potentials.plot_electric_field_amplitude_vs_time(
-            'lots_of_pulses',
-            times,
-            *rand_pulses,
-            **PLOT_KWARGS,
+        potentials.plot_electric_field_amplitude_vs_time(
+            "lots_of_pulses", times, *rand_pulses, **PLOT_KWARGS
         )

@@ -1,35 +1,28 @@
 import logging
 import os
 
-import numpy as np
-
 import simulacra as si
 import simulacra.units as u
 
-import ionization as ion
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.DEBUG)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEBUG)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
-        sim = ion.mesh.SphericalSliceSpecification(
-            'test',
-            r_bound = 20 * u.bohr_radius,
-            r_points = 500,
-            theta_points = 500,
-            initial_state = ion.states.HydrogenBoundState(1, 0) + ion.states.HydrogenBoundState(2, 1),
-            time_initial = 0,
-            time_final = 50 * u.asec,
-            time_step = 1 * u.asec
+        sim = mesh.SphericalSliceSpecification(
+            "test",
+            r_bound=20 * u.bohr_radius,
+            r_points=500,
+            theta_points=500,
+            initial_state=states.HydrogenBoundState(1, 0)
+            + states.HydrogenBoundState(2, 1),
+            time_initial=0,
+            time_final=50 * u.asec,
+            time_step=1 * u.asec,
         ).to_sim()
         sim.run()
 

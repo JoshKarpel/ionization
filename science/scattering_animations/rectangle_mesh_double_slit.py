@@ -1,93 +1,74 @@
 import logging
 import os
-import itertools
-
-import numpy as np
-import scipy as sp
-from scipy import special
 
 import simulacra as si
 import simulacra.units as u
 
-import ionization as ion
-
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-LOGMAN = si.utils.LogManager('simulacra', 'ionization', stdout_level = logging.INFO)
+LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INFO)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-ANIM_KWARGS = dict(
-    target_dir = OUT_DIR,
-    fig_dpi_scale = 1,
-    length = 20,
-    fps = 30,
-)
+ANIM_KWARGS = dict(target_dir=OUT_DIR, fig_dpi_scale=1, length=20, fps=30)
 
 
-
-
-if __name__ == '__main__':
+if __name__ == "__main__":
     with LOGMAN as logger:
         # top
-        scatterer = ion.potentials.LogisticScatterer(
-            x_center = -5 * u.nm,
-            z_center = 20 * u.nm,
-            x_extent = .1 * u.nm,
-            z_extent = 16 * u.nm,
+        scatterer = potentials.LogisticScatterer(
+            x_center=-5 * u.nm,
+            z_center=20 * u.nm,
+            x_extent=0.1 * u.nm,
+            z_extent=16 * u.nm,
         )
         # bottom
-        scatterer += ion.potentials.LogisticScatterer(
-            x_center = -5 * u.nm,
-            z_center = -20 * u.nm,
-            x_extent = .1 * u.nm,
-            z_extent = 16 * u.nm
+        scatterer += potentials.LogisticScatterer(
+            x_center=-5 * u.nm,
+            z_center=-20 * u.nm,
+            x_extent=0.1 * u.nm,
+            z_extent=16 * u.nm,
         )
         # center
-        scatterer += ion.potentials.LogisticScatterer(
-            x_center = -5 * u.nm,
-            z_center = 0 * u.nm,
-            x_extent = .1 * u.nm,
-            z_extent = 1 * u.nm
+        scatterer += potentials.LogisticScatterer(
+            x_center=-5 * u.nm,
+            z_center=0 * u.nm,
+            x_extent=0.1 * u.nm,
+            z_extent=1 * u.nm,
         )
 
-        spec = ion.mesh.RectangleSpecification(
-            'test',
-            z_bound = 20 * u.nm,
-            x_bound = 20 * u.nm,
-            z_points = 1000,
-            x_points = 1000,
-            initial_state = ion.states.TwoDGaussianWavepacket(
-                width_x = 1 * u.nm,
-                width_z = 5 * u.nm,
-                center_x = -15 * u.nm,
-                k_x = u.twopi / u.nm,
+        spec = mesh.RectangleSpecification(
+            "test",
+            z_bound=20 * u.nm,
+            x_bound=20 * u.nm,
+            z_points=1000,
+            x_points=1000,
+            initial_state=states.TwoDGaussianWavepacket(
+                width_x=1 * u.nm,
+                width_z=5 * u.nm,
+                center_x=-15 * u.nm,
+                k_x=u.twopi / u.nm,
             ),
-            time_initial = 0,
-            time_final = 30 * u.fsec,
-            time_step = u.fsec / 10,
-            internal_potential = scatterer,
-            animators = [
-                ion.mesh.anim.SquareAnimator(
-                    postfix = '_g',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g',
-                        colormap = si.vis.RichardsonColormap(),
-                        norm = si.vis.RichardsonNormalization(),
-                        distance_unit = 'nm',
+            time_initial=0,
+            time_final=30 * u.fsec,
+            time_step=u.fsec / 10,
+            internal_potential=scatterer,
+            animators=[
+                mesh.anim.SquareAnimator(
+                    postfix="_g",
+                    axman_wavefunction=mesh.anim.RectangleMeshAxis(
+                        which="g",
+                        colormap=si.vis.RichardsonColormap(),
+                        norm=si.vis.RichardsonNormalization(),
+                        distance_unit="nm",
                     ),
                     **ANIM_KWARGS,
                 ),
-                ion.mesh.anim.SquareAnimator(
-                    postfix = '_g2',
-                    axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
-                        which = 'g2',
-                        distance_unit = 'nm',
+                mesh.anim.SquareAnimator(
+                    postfix="_g2",
+                    axman_wavefunction=mesh.anim.RectangleMeshAxis(
+                        which="g2", distance_unit="nm"
                     ),
                     **ANIM_KWARGS,
                 ),
@@ -113,18 +94,18 @@ if __name__ == '__main__':
         # motion = np.exp(1j * k * x)
         #
         # sim.mesh.g = norm * gaussian * motion
-        print('norm', sim.mesh.norm())
+        print("norm", sim.mesh.norm())
 
         sim.mesh.plot.g(**PLOT_KWARGS)
         sim.mesh.plot.g2(**PLOT_KWARGS)
 
         sim.mesh.plot.plot_mesh(
-            scatterer(z = sim.mesh.z_mesh, x = sim.mesh.x_mesh),
-            name = 'scatterer',
+            scatterer(z=sim.mesh.z_mesh, x=sim.mesh.x_mesh),
+            name="scatterer",
             **PLOT_KWARGS,
         )
 
-        sim.run(progress_bar = True)
+        sim.run(progress_bar=True)
 
         # sim.mesh.plot.g(**PLOT_KWARGS)
         # sim.mesh.plot.g2(**PLOT_KWARGS)

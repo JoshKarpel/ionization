@@ -4,29 +4,26 @@ import os
 import numpy as np
 
 import simulacra as si
-from simulacra.units import *
 
 import ionization as ion
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-PLOT_KWARGS = dict(
-    target_dir = OUT_DIR,
-    img_format = 'png',
-    fig_dpi_scale = 6,
-)
+PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG, file_dir = OUT_DIR, file_logs = False) as logger:
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra",
+        "ionization",
+        stdout_logs=True,
+        stdout_level=logging.DEBUG,
+        file_dir=OUT_DIR,
+        file_logs=False,
+    ) as logger:
         x = np.linspace(4.99, 5.01, 1e6)
-        mask = ion.RadialCosineMask(inner_radius = 2, outer_radius = 5, smoothness = 8)
-        si.vis.xy_plot(
-            'mask_test',
-            x,
-            mask(r = x),
-            **PLOT_KWARGS,
-        )
+        mask = ion.RadialCosineMask(inner_radius=2, outer_radius=5, smoothness=8)
+        si.vis.xy_plot("mask_test", x, mask(r=x), **PLOT_KWARGS)
 
         # electric = ion.Rectangle(start_time = 25 * asec, end_time = 100 * asec, amplitude = 1 * atomic_electric_field)
 

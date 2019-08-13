@@ -8,26 +8,43 @@ import ionization as ion
 
 
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
-OUT_DIR = os.path.join(os.getcwd(), 'out', FILE_NAME)
+OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
-if __name__ == '__main__':
-    with si.utils.LogManager('simulacra', 'ionization', stdout_logs = True, stdout_level = logging.DEBUG, file_logs = False, file_mode = 'w', file_dir = OUT_DIR, file_name = 'log') as logger:
+if __name__ == "__main__":
+    with si.utils.LogManager(
+        "simulacra",
+        "ionization",
+        stdout_logs=True,
+        stdout_level=logging.DEBUG,
+        file_logs=False,
+        file_mode="w",
+        file_dir=OUT_DIR,
+        file_name="log",
+    ) as logger:
         bound = 50
         points_per_bohr_radius = 4
 
         t_bound = 500
         t_extra = 0
 
-        amp = .05
+        amp = 0.05
         phase = 0
 
-        window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec)
+        window = ion.SymmetricExponentialTimeWindow(
+            window_time=0.9 * t_bound * asec, window_width=10 * asec
+        )
 
         # efield = ion.SineWave.from_photon_energy(rydberg + 20 * eV, amplitude = .05 * atomic_electric_field,
         #                                                          window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
 
-        efield = ion.SineWave.from_photon_energy(rydberg + 20 * eV, amplitude = amp * atomic_electric_field, phase = phase,
-                                                 window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
+        efield = ion.SineWave.from_photon_energy(
+            rydberg + 20 * eV,
+            amplitude=amp * atomic_electric_field,
+            phase=phase,
+            window=ion.SymmetricExponentialTimeWindow(
+                window_time=0.9 * t_bound * asec, window_width=10 * asec
+            ),
+        )
         #
         # efield += ion.SineWave.from_photon_energy(rydberg + 30 * eV, amplitude = .05 * atomic_electric_field,
         #                                           window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
@@ -36,23 +53,28 @@ if __name__ == '__main__':
         #                       window = window)
 
         spec_kwargs = dict(
-                r_bound = bound * bohr_radius,
-                r_points = bound * points_per_bohr_radius,
-                l_bound = 20,
-                initial_state = ion.HydrogenBoundState(1, 0),
-                time_initial = -t_bound * asec,
-                time_final = (t_bound + t_extra) * asec,
-                time_step = 1 * asec,
-                use_numeric_eigenstates = True,
-                numeric_eigenstate_max_energy = 50 * eV,
-                numeric_eigenstate_max_angular_momentum = 5,
-                electric_potential = efield,
-                electric_potential_dc_correction = True,
-                mask = ion.RadialCosineMask(inner_radius = .8 * bound * bohr_radius, outer_radius = bound * bohr_radius),
-                store_data_every = -1,
+            r_bound=bound * bohr_radius,
+            r_points=bound * points_per_bohr_radius,
+            l_bound=20,
+            initial_state=ion.HydrogenBoundState(1, 0),
+            time_initial=-t_bound * asec,
+            time_final=(t_bound + t_extra) * asec,
+            time_step=1 * asec,
+            use_numeric_eigenstates=True,
+            numeric_eigenstate_max_energy=50 * eV,
+            numeric_eigenstate_max_angular_momentum=5,
+            electric_potential=efield,
+            electric_potential_dc_correction=True,
+            mask=ion.RadialCosineMask(
+                inner_radius=0.8 * bound * bohr_radius, outer_radius=bound * bohr_radius
+            ),
+            store_data_every=-1,
         )
 
-        sim = ion.SphericalHarmonicSpecification(f'PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec', **spec_kwargs).to_sim()
+        sim = ion.SphericalHarmonicSpecification(
+            f"PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec",
+            **spec_kwargs,
+        ).to_sim()
 
         sim.run()
         print(sim.info())
@@ -105,10 +127,7 @@ if __name__ == '__main__':
         #                          energy_upper_limit = 50 * eV, states = 'free',
         #                          angular_momentum_cutoff = 10)
 
-        spectrum_kwargs = dict(
-                target_dir = OUT_DIR,
-                r_points = 500,
-        )
+        spectrum_kwargs = dict(target_dir=OUT_DIR, r_points=500)
 
         for log in (True, False):
             # thetas, wavenumbers, along_z = sim.mesh.inner_product_with_plane_waves(thetas = [0], wavenumbers = np.linspace(.1, 50, 500) * per_nm,
@@ -146,33 +165,57 @@ if __name__ == '__main__':
             #                  target_dir = OUT_DIR)
 
             with si.utils.BlockTimer() as t:
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_unit = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 50 * eV,
-                                                         log = log,
-                                                         **spectrum_kwargs)
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'wavenumber',
-                                                         r_upper_lim = 40 * per_nm,
-                                                         log = log,
-                                                         **spectrum_kwargs)
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_unit = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 2.5 * atomic_momentum,
-                                                         log = log,
-                                                         **spectrum_kwargs)
-            print('RAW PLOTS', t)
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="energy",
+                    r_unit="eV",
+                    r_lower_lim=0.1 * eV,
+                    r_upper_lim=50 * eV,
+                    log=log,
+                    **spectrum_kwargs,
+                )
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="wavenumber",
+                    r_upper_lim=40 * per_nm,
+                    log=log,
+                    **spectrum_kwargs,
+                )
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="momentum",
+                    r_unit="atomic_momentum",
+                    r_lower_lim=0.01 * atomic_momentum,
+                    r_upper_lim=2.5 * atomic_momentum,
+                    log=log,
+                    **spectrum_kwargs,
+                )
+            print("RAW PLOTS", t)
 
             with si.utils.BlockTimer() as t:
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'energy', r_unit = 'eV', r_lower_lim = .1 * eV, r_upper_lim = 50 * eV,
-                                                         log = log,
-                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
-                                                         name_postfix = '__bound_removed',
-                                                         **spectrum_kwargs)
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'wavenumber',
-                                                         r_upper_lim = 40 * per_nm,
-                                                         log = log,
-                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
-                                                         name_postfix = '__bound_removed',
-                                                         **spectrum_kwargs)
-                sim.mesh.plot_electron_momentum_spectrum(r_type = 'momentum', r_unit = 'atomic_momentum', r_lower_lim = .01 * atomic_momentum, r_upper_lim = 2.5 * atomic_momentum,
-                                                         log = log,
-                                                         g = sim.mesh.get_g_with_states_removed(sim.bound_states),
-                                                         name_postfix = '__bound_removed',
-                                                         **spectrum_kwargs)
-            print('BOUND REMOVED PLOTS', t)
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="energy",
+                    r_unit="eV",
+                    r_lower_lim=0.1 * eV,
+                    r_upper_lim=50 * eV,
+                    log=log,
+                    g=sim.mesh.get_g_with_states_removed(sim.bound_states),
+                    name_postfix="__bound_removed",
+                    **spectrum_kwargs,
+                )
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="wavenumber",
+                    r_upper_lim=40 * per_nm,
+                    log=log,
+                    g=sim.mesh.get_g_with_states_removed(sim.bound_states),
+                    name_postfix="__bound_removed",
+                    **spectrum_kwargs,
+                )
+                sim.mesh.plot_electron_momentum_spectrum(
+                    r_type="momentum",
+                    r_unit="atomic_momentum",
+                    r_lower_lim=0.01 * atomic_momentum,
+                    r_upper_lim=2.5 * atomic_momentum,
+                    log=log,
+                    g=sim.mesh.get_g_with_states_removed(sim.bound_states),
+                    name_postfix="__bound_removed",
+                    **spectrum_kwargs,
+                )
+            print("BOUND REMOVED PLOTS", t)

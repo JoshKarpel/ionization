@@ -1,4 +1,3 @@
-import simulacra as si
 import ionization as ion
 
 TUNNELING_MODEL_TYPES = [
