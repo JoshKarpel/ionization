@@ -7,15 +7,14 @@ python:
 
 install:
   - sudo apt-get install --no-install-recommends build-essential
-  - git clone https://github.com/JoshKarpel/simulacra
-  - pip install -e simulacra
-  - pip install --upgrade -r requirements-dev.txt
+  - pip install git+https://github.com/JoshKarpel/simulacra.git
   - pip install -e .
+  - pip install --upgrade -r requirements-dev.txt
   - python -c "import ionization"
   - pip install codecov
 
 script:
-  - pytest -n 2 tests/
+  - pytest --cov -n 2 tests/
 
 after_success:
   - codecov
