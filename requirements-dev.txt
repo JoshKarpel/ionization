@@ -1,5 +1,7 @@
 -r requirements.txt
 pytest
+coverage
+pytest-cov
 pytest-mock
 pytest-xdist
 hypothesis
