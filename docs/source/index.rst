@@ -1,5 +1,5 @@
-Welcome to Ionization
-=====================
+Ionization
+==========
 
 The ``ionization`` library implements a variety of functionality, all with the
 goal of simulating the interaction between electric fields and electrons.
