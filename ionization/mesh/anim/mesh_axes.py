@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLORMESH_GRID_KWARGS = {
-    **si.vis.COLORMESH_GRID_KWARGS,
+    **si.vis.DEFAULT_COLORMESH_GRID_KWARGS,
     **dict(linestyle=":", linewidth=1.5, alpha=0.6),
 }
 
@@ -102,7 +102,7 @@ class LineMeshAxis(QuantumMeshAxis):
         # self.show_potential = show_potential
 
     def initialize_axis(self):
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(self.distance_unit)
 
         self.mesh = self.attach_method(
             self.axis,
@@ -157,7 +157,7 @@ class LineMeshAxis(QuantumMeshAxis):
 
 class RectangleMeshAxis(QuantumMeshAxis):
     def initialize_axis(self):
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(self.distance_unit)
 
         if self.which == "g":
             self.norm.equator_magnitude = np.max(
@@ -227,7 +227,7 @@ class RectangleMeshAxis(QuantumMeshAxis):
 
 class CylindricalSliceMeshAxis(QuantumMeshAxis):
     def initialize_axis(self):
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(self.distance_unit)
 
         if self.which == "g":
             self.norm.equator_magnitude = np.max(
@@ -298,7 +298,7 @@ class SphericalHarmonicPhiSliceMeshAxis(QuantumMeshAxis):
         )
         self.redraw.append(self.mesh)
 
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(self.distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(self.distance_unit)
 
         self.axis.set_theta_zero_location("N")
         self.axis.set_theta_direction("clockwise")

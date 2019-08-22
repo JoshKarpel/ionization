@@ -5,10 +5,10 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import utils
+from .. import summables, utils
 
 
-class TimeWindow(si.summables.Summand):
+class TimeWindow(summables.Summand):
     """A class representing a time-window that can be attached to another potential."""
 
     def __init__(self):
@@ -16,7 +16,7 @@ class TimeWindow(si.summables.Summand):
         self.summation_class = TimeWindowSum
 
 
-class TimeWindowSum(si.summables.Sum, TimeWindow):
+class TimeWindowSum(summables.Sum, TimeWindow):
     """A class representing a combination of time-windows."""
 
     container_name = "windows"
@@ -52,10 +52,10 @@ class RectangularWindow(TimeWindow):
         super().__init__()
 
     def __repr__(self):
-        return utils.fmt_fields(self, "start_time", "end_time")
+        return utils.make_repr(self, "start_time", "end_time")
 
     def __str__(self):
-        return utils.fmt_fields(self, ("start_time", "asec"), ("end_time", "asec"))
+        return utils.make_repr(self, ("start_time", "asec"), ("end_time", "asec"))
 
     def __call__(self, t):
         cond = np.greater_equal(t, self.start_time) * np.less_equal(t, self.end_time)
@@ -93,10 +93,10 @@ class LinearRampWindow(TimeWindow):
         super().__init__()
 
     def __repr__(self):
-        return utils.fmt_fields(self, "ramp_on_time", "ramp_time")
+        return utils.make_repr(self, "ramp_on_time", "ramp_time")
 
     def __str__(self):
-        return utils.fmt_fields(self, ("ramp_on_time", "asec"), ("ramp_time", "asec"))
+        return utils.make_repr(self, ("ramp_on_time", "asec"), ("ramp_time", "asec"))
 
     def __call__(self, t):
         cond = np.greater_equal(t, self.ramp_on_time)
@@ -151,10 +151,10 @@ class LogisticWindow(TimeWindow):
         super().__init__()
 
     def __repr__(self):
-        return utils.fmt_fields(self, "window_time", "window_width", "window_center")
+        return utils.make_repr(self, "window_time", "window_width", "window_center")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("window_time", "asec"),
             ("window_width", "asec"),
@@ -225,10 +225,10 @@ class SmoothedTrapezoidalWindow(TimeWindow):
         return out
 
     def __repr__(self):
-        return utils.fmt_fields(self, "time_front", "time_plateau")
+        return utils.make_repr(self, "time_front", "time_plateau")
 
     def __str__(self):
-        return utils.fmt_fields(self, ("time_front", "asec"), ("time_plateau", "asec"))
+        return utils.make_repr(self, ("time_front", "asec"), ("time_plateau", "asec"))
 
     def info(self) -> si.Info:
         info = super().info()

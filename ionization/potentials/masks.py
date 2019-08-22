@@ -5,10 +5,10 @@ import numpy as np
 import simulacra as si
 import simulacra.units as u
 
-from .. import utils, exceptions
+from .. import summables, utils, exceptions
 
 
-class Mask(si.summables.Summand):
+class Mask(summables.Summand):
     """A class representing a spatial 'mask' that can be applied to the wavefunction to reduce it in certain regions."""
 
     def __init__(self):
@@ -16,15 +16,16 @@ class Mask(si.summables.Summand):
         self.summation_class = MaskSum
 
 
-class MaskSum(si.summables.Sum, Mask):
+class MaskSum(summables.Sum, Mask):
     """A class representing a combination of masks."""
 
     container_name = "masks"
 
     def __call__(self, *args, **kwargs):
+        # masks should be multiplied together, not summed
         return functools.reduce(
             lambda a, b: a * b, (x(*args, **kwargs) for x in self._container)
-        )  # masks should be multiplied together, not summed
+        )
 
 
 class NoMask(Mask):
@@ -88,10 +89,10 @@ class RadialCosineMask(Mask):
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "inner_radius", "outer_radius", "smoothness")
+        return utils.make_repr(self, "inner_radius", "outer_radius", "smoothness")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("inner_radius", "bohr_radius"),
             ("outer_radius", "bohr_radius"),

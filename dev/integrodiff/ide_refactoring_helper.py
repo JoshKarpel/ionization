@@ -139,6 +139,6 @@ if __name__ == "__main__":
         print(si.utils.table(headers, rows))
 
         for key, val in identifier_to_final_b2.items():
-            np.testing.assert_allclose(val, expected[key])
+            assert np.allclose(val, expected[key])
 
         print("\nAll good!")

@@ -89,7 +89,7 @@ def test_radial_cosine_mask_is_one_at_inner_radius(outer_radius):
 
     mask_at_outer_radius = mask(r=inner_radius)
 
-    np.testing.assert_allclose(mask_at_outer_radius, 1)
+    assert np.allclose(mask_at_outer_radius, 1)
 
 
 # sometimes outer radius is very close to inner radius and makes cos misbehave
@@ -105,4 +105,4 @@ def test_radial_cosine_mask_is_zero_at_outer_radius(outer_radius):
 
     mask_at_outer_radius = mask(r=outer_radius)
 
-    np.testing.assert_allclose(mask_at_outer_radius, 0, atol=1e-14)
+    assert np.allclose(mask_at_outer_radius, 0, atol=1e-14)

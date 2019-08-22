@@ -18,8 +18,8 @@ def test_loaded_sim_mesh_is_same_as_original(spec_type, tmpdir):
     path = sim.save(tmpdir, save_mesh=True)
     loaded_sim = sim_type.load(path)
 
-    np.testing.assert_equal(loaded_sim.mesh.g, sim.mesh.g)
-    np.testing.assert_equal(loaded_sim.mesh.g, special_g)
+    assert np.array_equal(loaded_sim.mesh.g, sim.mesh.g)
+    assert np.array_equal(loaded_sim.mesh.g, special_g)
 
 
 @pytest.mark.parametrize("spec_type", SPEC_TYPES)

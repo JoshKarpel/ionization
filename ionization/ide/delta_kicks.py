@@ -205,7 +205,7 @@ class DeltaKickSimulation(si.Simulation):
             A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
         """
         logger.info(
-            f"Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}"
+            f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
         self.status = si.Status.RUNNING
 
@@ -215,16 +215,12 @@ class DeltaKickSimulation(si.Simulation):
             callback(self)
 
         self.status = si.Status.FINISHED
-        logger.info(
-            f"Finished performing time evolution on {self.name} ({self.file_name})"
-        )
+        logger.info(f"Finished performing time evolution on {self}")
 
     def attach_electric_potential_plot_to_axis(
         self, axis, time_unit="asec", show_electric_field=True, overlay_kicks=True
     ):
-        time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-            time_unit
-        )
+        time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
 
         if show_electric_field and not isinstance(
             self.spec.electric_potential, DeltaKicks
@@ -287,10 +283,10 @@ class DeltaKickSimulation(si.Simulation):
         y_upper_limit=1,
         **kwargs,
     ):
-        with si.vis.FigureManager(self.file_name + "__b2_vs_time", **kwargs) as figman:
+        with si.vis.FigureManager(self.name + "__b2_vs_time", **kwargs) as figman:
             fig = figman.fig
 
-            t_scale_unit, t_scale_name = u.get_unit_value_and_latex_from_unit(time_unit)
+            t_scale_unit, t_scale_name = u.get_unit_value_and_latex(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(
                 2, 1, height_ratios=[4, 1], hspace=0.07

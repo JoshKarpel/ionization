@@ -113,7 +113,7 @@ class TunnelingSimulation(si.Simulation):
             )
 
             logger.debug(
-                f"{self.__class__.__name__} {self.name} ({self.file_name}) evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)"
+                f"{self} evolved to time index {self.time_index} / {self.time_steps - 1} ({np.around(100 * (self.time_index + 1) / self.time_steps, 2)}%)"
             )
 
             try:
@@ -127,9 +127,7 @@ class TunnelingSimulation(si.Simulation):
             pass
 
         self.status = si.Status.FINISHED
-        logger.info(
-            f"Finished performing time evolution on {self.name} ({self.file_name})"
-        )
+        logger.info(f"Finished performing time evolution on {self}")
 
 
 class TunnelingSpecification(si.Specification):

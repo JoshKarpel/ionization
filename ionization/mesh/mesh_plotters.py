@@ -187,7 +187,7 @@ class LineMeshPlotter(MeshPlotter):
         slicer="get_mesh_slicer",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -229,7 +229,7 @@ class RectangleMeshPlotter(MeshPlotter):
         slicer="get_mesh_slicer",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -253,8 +253,8 @@ class RectangleMeshPlotter(MeshPlotter):
     #     distance_unit: u.Unit = 'bohr_radius',
     #     rate_unit = 'per_asec',
     # ):
-    #     distance_unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
-    #     rate_unit_value, _ = u.get_unit_value_and_latex_from_unit(rate_unit)
+    #     distance_unit_value, _ = u.get_unit_value_and_latex(distance_unit)
+    #     rate_unit_value, _ = u.get_unit_value_and_latex(rate_unit)
     #
     #     current_mesh_z, current_mesh_rho = self.mesh.get_probability_current_density_vector_field()  # actually densities here
     #
@@ -306,7 +306,7 @@ class RectangleMeshPlotter(MeshPlotter):
         grid_kwargs = collections.ChainMap(
             grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS
         )
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(distance_unit)
 
         with si.vis.FigureManager(f"{self.spec.name}__{name}", **kwargs) as figman:
             fig = figman.fig
@@ -362,7 +362,7 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         slicer="get_mesh_slicer",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -385,8 +385,8 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         distance_unit: u.Unit = "bohr_radius",
         rate_unit="per_asec",
     ):
-        distance_unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
-        rate_unit_value, _ = u.get_unit_value_and_latex_from_unit(rate_unit)
+        distance_unit_value, _ = u.get_unit_value_and_latex(distance_unit)
+        rate_unit_value, _ = u.get_unit_value_and_latex(rate_unit)
 
         current_mesh_z, current_mesh_rho = (
             self.mesh.get_probability_current_density_vector_field()
@@ -445,7 +445,7 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         grid_kwargs = collections.ChainMap(
             grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS
         )
-        unit_value, unit_name = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, unit_name = u.get_unit_value_and_latex(distance_unit)
 
         with si.vis.FigureManager(f"{self.spec.name}__{name}", **kwargs) as figman:
             fig = figman.fig
@@ -532,7 +532,7 @@ class SphericalSliceMeshPlotter(MeshPlotter):
         slicer="get_mesh_slicer",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -583,7 +583,7 @@ class SphericalSliceMeshPlotter(MeshPlotter):
         grid_kwargs = collections.ChainMap(
             grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS
         )
-        unit_value, unit_latex = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, unit_latex = u.get_unit_value_and_latex(distance_unit)
 
         with si.vis.FigureManager(f"{self.spec.name}__{name}", **kwargs) as figman:
             fig = figman.fig
@@ -630,7 +630,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         slicer: str = "get_mesh_slicer_spatial",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -667,7 +667,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         grid_kwargs = collections.ChainMap(
             grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS
         )
-        unit_value, unit_latex = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, unit_latex = u.get_unit_value_and_latex(distance_unit)
 
         with si.vis.FigureManager(name=f"{self.spec.name}__{name}", **kwargs) as figman:
             fig = figman.fig
@@ -808,7 +808,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
         slicer: str = "get_mesh_slicer",
         **kwargs,
     ):
-        unit_value, _ = u.get_unit_value_and_latex_from_unit(distance_unit)
+        unit_value, _ = u.get_unit_value_and_latex(distance_unit)
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
@@ -856,7 +856,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
             fig.set_tight_layout(True)
             axis = plt.subplot(111)
 
-            unit_value, unit_latex = u.get_unit_value_and_latex_from_unit(distance_unit)
+            unit_value, unit_latex = u.get_unit_value_and_latex(distance_unit)
 
             color_mesh = self.attach_mesh_repr_to_axis(
                 axis,
@@ -1017,7 +1017,7 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
                 "Invalid argument to plot_electron_spectrum: r_type must be either 'wavenumber', 'energy', or 'momentum'"
             )
 
-        r_unit_value, r_unit_name = u.get_unit_value_and_latex_from_unit(r_scale)
+        r_unit_value, r_unit_name = u.get_unit_value_and_latex(r_scale)
 
         plot_kwargs = {**dict(aspect_ratio=1), **kwargs}
 

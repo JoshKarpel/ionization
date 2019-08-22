@@ -177,7 +177,7 @@ def test_envelope_is_one_at_center_of_pulse(
 ):
     pulse = pulse_type(pulse_width=pulse_width, pulse_center=pulse_center, phase=phase)
 
-    np.testing.assert_allclose(pulse.get_electric_field_envelope(pulse_center), 1)
+    assert np.allclose(pulse.get_electric_field_envelope(pulse_center), 1)
 
 
 @pytest.mark.parametrize("pulse_type", PULSES_TYPES)
@@ -193,7 +193,7 @@ def test_electric_field_is_amplitude_at_pulse_center_for_cosine_like_pulse(
         pulse_width=pulse_width, pulse_center=pulse_center, fluence=fluence, phase=0
     )
 
-    np.testing.assert_allclose(
+    assert np.allclose(
         pulse.get_electric_field_amplitude(pulse_center), pulse.amplitude
     )
 
@@ -214,6 +214,6 @@ def test_electric_field_is_zero_at_pulse_center_for_sine_like_pulse(
         phase=u.pi / 2,
     )
 
-    np.testing.assert_allclose(
+    assert np.allclose(
         pulse.get_electric_field_amplitude(pulse_center), 0, atol=1e-9 * pulse.amplitude
     )  # smaller than part per billion of the pulse amplitude

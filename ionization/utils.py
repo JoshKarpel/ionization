@@ -17,11 +17,11 @@ MASS_UNITS = ((u.electron_mass, "m_e"), (u.electron_mass_reduced, "mu_e"))
 
 def fmt_quantity(quantity, units):
     """Format a single quantity for multiple units, as in Info fields."""
-    strs = [f"{u.uround(quantity, v):.4g} {s}" for v, s in units]
+    strs = [f"{quantity / v:.4g} {s}" for v, s in units]
     return " | ".join(strs)
 
 
-def fmt_fields(obj, *fields, digits: int = 3):
+def make_repr(obj, *fields, digits: int = 3):
     """
     Generate a repr-like string from the object's attributes.
 
@@ -38,20 +38,18 @@ def fmt_fields(obj, *fields, digits: int = 3):
             field_name, unit = field
             try:
                 field_strings.append(
-                    "{} = {} {}".format(
-                        field_name,
-                        u.uround(getattr(obj, field_name), unit, digits=digits),
-                        unit,
-                    )
+                    f"{field_name} = {getattr(obj, field_name)/ unit:.{digits}f)} {unit}"
                 )
             except TypeError:
-                field_strings.append(
-                    "{} = {}".format(field_name, getattr(obj, field_name))
-                )
+                field_strings.append(f"{field_name} = {getattr(obj, field_name)}")
         except (ValueError, TypeError):
-            field_strings.append("{} = {}".format(field, getattr(obj, field)))
-    return "{}({})".format(obj.__class__.__name__, ", ".join(field_strings))
+            field_strings.append(f"{field} = {getattr(obj, field)}")
+    return f"{obj.__class__.__name__}({', '.join(field_strings)})"
 
 
-def complex_j_to_i(z: Union[float, complex]) -> str:
+def complex_j_to_i(z: complex) -> str:
+    """
+    Given a complex number, return its string representation, using ``i`` as the
+    imaginary unit (instead of the default ``j``).
+    """
     return str(z).replace("j", "i")

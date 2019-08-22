@@ -156,7 +156,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
         """
         logger.info(
-            f"Performing time evolution on {self.name} ({self.file_name}), starting from time index {self.time_index}"
+            f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
         self.status = si.Status.RUNNING
 
@@ -219,9 +219,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.b = self.b[self.data_mask]
 
         self.status = si.Status.FINISHED
-        logger.info(
-            f"Finished performing time evolution on {self.name} ({self.file_name})"
-        )
+        logger.info(f"Finished performing time evolution on {self}")
 
     def do_checkpoint(self, now, callback: Callable[[Path], None]):
         self.status = si.Status.PAUSED
@@ -250,9 +248,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         show_electric_field: bool = True,
         show_vector_potential: bool = True,
     ):
-        time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-            time_unit
-        )
+        time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
 
         if legend_kwargs is None:
             legend_kwargs = dict()
@@ -313,10 +309,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         show_title=False,
         **kwargs,
     ):
-        with si.vis.FigureManager(self.file_name + "__b2_vs_time", **kwargs) as figman:
+        with si.vis.FigureManager(self.name + "__b2_vs_time", **kwargs) as figman:
             fig = figman.fig
 
-            t_scale_unit, t_scale_name = u.get_unit_value_and_latex_from_unit(time_unit)
+            t_scale_unit, t_scale_name = u.get_unit_value_and_latex(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(
                 2, 1, height_ratios=[4, 1], hspace=0.07

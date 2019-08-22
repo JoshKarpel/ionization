@@ -91,7 +91,7 @@ class ThreeDPlaneWave(state.QuantumState):
         return self.eval_r_theta_phi(r, theta, phi)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "wavenumber_x", "wavenumber_y", "wavenumber_z")
+        return utils.make_repr(self, "wavenumber_x", "wavenumber_y", "wavenumber_z")
 
     @property
     def ket(self):
@@ -267,7 +267,7 @@ class FreeSphericalWave(SphericalHarmonicState):
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "energy", "wavenumber", "l", "m")
+        return utils.make_repr(self, "energy", "wavenumber", "l", "m")
 
     @property
     def ket(self):
@@ -358,7 +358,7 @@ class HydrogenBoundState(SphericalHarmonicState):
         return self.n, self.l, self.m
 
     def __repr__(self):
-        return utils.fmt_fields(self, "n", "l", "m", "amplitude")
+        return utils.make_repr(self, "n", "l", "m", "amplitude")
 
     @property
     def ket(self):
@@ -512,7 +512,7 @@ class HydrogenCoulombState(SphericalHarmonicState):
             return self.amplitude * prefactor * bessel(np.sqrt(8 * x)) * np.sqrt(x) / r
 
     def __repr__(self):
-        return utils.fmt_fields(self, "energy", "wavenumber", "l", "m", "amplitude")
+        return utils.make_repr(self, "energy", "wavenumber", "l", "m", "amplitude")
 
     @property
     def ket(self):

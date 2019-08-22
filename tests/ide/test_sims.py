@@ -38,7 +38,7 @@ def test_with_no_potential_final_state_is_initial_state_length_gauge(
 
     sim.run()
 
-    np.testing.assert_allclose(sim.b[-1], b_initial)
+    assert np.allclose(sim.b[-1], b_initial)
 
 
 # expected results for the test just below
@@ -71,4 +71,4 @@ def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_a
 
     sim.run()
 
-    np.testing.assert_allclose(sim.b2[-1], EXPECTED_TEST_RESULTS[evolution_method_type])
+    assert np.allclose(sim.b2[-1], EXPECTED_TEST_RESULTS[evolution_method_type])

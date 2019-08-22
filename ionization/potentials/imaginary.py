@@ -53,10 +53,10 @@ class ImaginaryGaussianRing(potential.PotentialEnergy):
         return self.prefactor * np.exp(-((rel / self.width) ** 2))
 
     def __repr__(self):
-        return utils.fmt_fields(self, self.center, self.width, self.decay_time)
+        return utils.make_repr(self, self.center, self.width, self.decay_time)
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             (self.center, "bohr_radius"),
             (self.width, "bohr_radius"),

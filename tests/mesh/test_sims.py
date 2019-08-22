@@ -25,7 +25,7 @@ class TestSphericalHarmonicSimulation:
             numeric_eigenstate_max_angular_momentum=10,
         ).to_sim()
 
-        np.testing.assert_allclose(sim.mesh.norm(), 1)
+        assert np.allclose(sim.mesh.norm(), 1)
 
     @pytest.mark.parametrize("initial_state", LOW_N_HYDROGEN_BOUND_STATES)
     @pytest.mark.parametrize(
@@ -78,7 +78,5 @@ class TestSphericalHarmonicSimulation:
             ]
         )
 
-        np.testing.assert_allclose(initial_norm, final_norm, atol=1e-14)
-        np.testing.assert_allclose(
-            initial_state_overlaps, final_state_overlaps, atol=1e-14
-        )
+        assert np.allclose(initial_norm, final_norm, atol=1e-14)
+        assert np.allclose(initial_state_overlaps, final_state_overlaps, atol=1e-14)

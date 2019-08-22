@@ -35,7 +35,7 @@ class EvolutionMethod(abc.ABC):
         raise NotImplementedError
 
     def __repr__(self):
-        return utils.fmt_fields(self)
+        return utils.make_repr(self)
 
     def info(self) -> si.Info:
         info = si.Info(header=self.__class__.__name__)

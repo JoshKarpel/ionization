@@ -3,14 +3,15 @@ import logging
 import numpy as np
 import scipy.integrate as integ
 
-import simulacra as si
 import simulacra.units as u
+
+from .. import summables
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 
-class PotentialEnergy(si.summables.Summand):
+class PotentialEnergy(summables.Summand):
     """A class representing some kind of potential energy. Can be summed to form a PotentialEnergySum."""
 
     def __init__(self, *args, **kwargs):
@@ -18,7 +19,7 @@ class PotentialEnergy(si.summables.Summand):
         self.summation_class = PotentialEnergySum
 
 
-class PotentialEnergySum(si.summables.Sum, PotentialEnergy):
+class PotentialEnergySum(summables.Sum, PotentialEnergy):
     """A class representing a combination of potential energies."""
 
     container_name = "potentials"

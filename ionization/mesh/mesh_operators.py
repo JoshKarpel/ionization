@@ -1,6 +1,8 @@
-import logging
-import abc
 from typing import Union, Optional, Iterable, Tuple
+import logging
+
+import abc
+import itertools
 
 import numpy as np
 import scipy.sparse as sparse
@@ -138,6 +140,13 @@ class SumOfOperators:
         return self.operators[item]
 
 
+def grouper(iterable, n, fill_value=None):
+    """Collect data into fixed-length chunks"""
+    # grouper('ABCDEFG', 3, 'x') --> ABC DEF Gxx"
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=fill_value)
+
+
 class SimilarityOperator(DotOperator):
     def __init__(
         self,
@@ -158,10 +167,10 @@ class SimilarityOperator(DotOperator):
     def u_even_g(self, g):
         stack = []
         if len(g) % 2 == 0:
-            for a, b in si.utils.grouper(g, 2, fill_value=0):
+            for a, b in grouper(g, 2, fill_value=0):
                 stack += (a + b, a - b)
         else:
-            for a, b in si.utils.grouper(g[:-1], 2, fill_value=0):
+            for a, b in grouper(g[:-1], 2, fill_value=0):
                 stack += (a + b, a - b)
             stack.append(np.sqrt(2) * g[-1])
 
@@ -170,11 +179,11 @@ class SimilarityOperator(DotOperator):
     def u_odd_g(self, g):
         stack = [np.sqrt(2) * g[0]]
         if len(g) % 2 == 0:
-            for a, b in si.utils.grouper(g[1:-1], 2, fill_value=0):
+            for a, b in grouper(g[1:-1], 2, fill_value=0):
                 stack += (a + b, a - b)
             stack.append(np.sqrt(2) * g[-1])
         else:
-            for a, b in si.utils.grouper(g[1:], 2, fill_value=0):
+            for a, b in grouper(g[1:], 2, fill_value=0):
                 stack += (a + b, a - b)
 
         return np.hstack(stack) / np.sqrt(2)
@@ -222,7 +231,7 @@ class MeshOperators(abc.ABC):
     gauge = None
 
     def __repr__(self):
-        return utils.fmt_fields(self)
+        return utils.make_repr(self)
 
     @abc.abstractmethod
     def kinetic_energy(self, mesh: "meshes.QuantumMesh") -> SumOfOperators:
@@ -1129,7 +1138,7 @@ class SphericalHarmonicVelocityGaugeOperators(SphericalHarmonicLengthGaugeOperat
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "hydrogen_zero_angular_momentum_correction")
+        return utils.make_repr(self, "hydrogen_zero_angular_momentum_correction")
 
     @si.utils.memoize
     def interaction_hamiltonian_matrices_without_field(

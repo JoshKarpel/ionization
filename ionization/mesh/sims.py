@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, Iterable, Callable
+from typing import Optional, Iterable, Callable, Collection
 
 import collections
 import itertools
@@ -397,20 +397,20 @@ class MeshSimulation(si.Simulation):
 
         return frequency, dipole_moment
 
-    def save(
-        self,
-        target_dir: Optional[str] = None,
-        file_extension: str = "sim",
-        save_mesh: bool = False,
-        **kwargs,
-    ):
+    def save(self, target_dir: Optional[str] = None, save_mesh: bool = True):
         """
-        Atomically pickle the Simulation to {target_dir}/{self.file_name}.{file_extension}, and gzip it for reduced disk usage.
+        Atomically pickle the Simulation to ``{target_dir}/{sim.name}.sim``.
 
-        :param target_dir: directory to save the Simulation to
-        :param file_extension: file extension to name the Simulation with
-        :param save_mesh: if True, save the mesh as well as the Simulation. If False, don't.
-        :return: None
+        Parameters
+        ----------
+        target_dir
+            Directory to save the Simulation to
+        save_mesh
+            If ``True`` (default), save the mesh. If ``False``, don't.
+
+        Returns
+        -------
+
         """
         if len(self.spec.animators) > 0:
             raise exceptions.IonizationException(
@@ -424,9 +424,7 @@ class MeshSimulation(si.Simulation):
             mesh = self.mesh
             self.mesh = None
 
-        out = super().save(
-            target_dir=target_dir, file_extension=file_extension, **kwargs
-        )
+        out = super().save(target_dir=target_dir)
 
         if not save_mesh:
             self.mesh = mesh
@@ -469,7 +467,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         snapshot_indices=(),
         snapshot_type=None,
         snapshot_kwargs: Optional[dict] = None,
-        datastores: Optional[Iterable[data.Datastore]] = None,
+        datastores: Optional[Collection[data.Datastore]] = None,
         **kwargs,
     ):
         """
@@ -529,7 +527,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         self.test_mass = test_mass
         self.test_charge = test_charge
         self.initial_state = initial_state
-        self.test_states = tuple(sorted(tuple(test_states)))  # consume input iterators
+        self.test_states = sorted(test_states)
         if len(self.test_states) == 0:
             self.test_states = [self.initial_state]
 
@@ -683,20 +681,21 @@ class LineSpecification(MeshSpecification):
 
     def __init__(
         self,
-        name,
-        internal_potential=potentials.HarmonicOscillator(1 * u.N / u.m),
-        initial_state=states.QHOState(1 * u.N / u.m),
+        name: str,
+        internal_potential: potentials.PotentialEnergy = potentials.HarmonicOscillator(
+            1 * u.N / u.m
+        ),
+        initial_state: states.QuantumState = states.QHOState(1 * u.N / u.m),
         z_bound: float = 10 * u.nm,
         z_points: int = 2 ** 9,
-        use_numeric_eigenstates=False,
-        number_of_numeric_eigenstates=100,
+        use_numeric_eigenstates: bool = False,
+        number_of_numeric_eigenstates: int = 100,
         analytic_eigenstate_type: Optional[states.QuantumState] = None,
         operators: mesh_operators.MeshOperators = mesh_operators.LineLengthGaugeOperators(),
         evolution_method: evolution_methods.EvolutionMethod = evolution_methods.AlternatingDirectionImplicit(),
         **kwargs,
     ):
         """
-
         Parameters
         ----------
         z_bound
@@ -758,13 +757,13 @@ class LineSpecification(MeshSpecification):
 
 
 class RectangleSpecification(MeshSpecification):
-    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`LineMesh`."""
+    """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`RectangleMesh`."""
 
     mesh_type = meshes.RectangleMesh
 
     def __init__(
         self,
-        name,
+        name: str,
         internal_potential=potentials.NoPotentialEnergy(),
         initial_state=states.TwoDGaussianWavepacket(),
         z_bound: float = 10 * u.nm,
@@ -899,51 +898,6 @@ class CylindricalSliceSpecification(MeshSpecification):
         return info
 
 
-# class WarpedCylindricalSliceSpecification(MeshSpecification):
-#     mesh_type = meshes.WarpedCylindricalSliceMesh
-#
-#     def __init__(
-#             self,
-#             name: str,
-#             z_bound: float = 20 * u.bohr_radius,
-#             rho_bound: float = 20 * u.bohr_radius,
-#             z_points: int = 2 ** 9,
-#             rho_points: int = 2 ** 8,
-#             operators = ,
-#             evolution_method = 'CN',
-#             warping: float = 1,
-#             **kwargs):
-#         super().__init__(
-#             name,
-#                          evolution_method = evolution_method,
-#                          **kwargs
-#         )
-#
-#         self.z_bound = z_bound
-#         self.rho_bound = rho_bound
-#         self.z_points = int(z_points)
-#         self.rho_points = int(rho_points)
-#
-#         self.warping = warping
-#
-#     def info(self) -> si.Info:
-#         info = super().info()
-#
-#         info_mesh = si.Info(header = f'Mesh: {self.mesh_type.__name__}')
-#         info_mesh.add_field('Z Boundary', f'{u.uround(self.z_bound, u.bohr_radius, 3)} a_0')
-#         info_mesh.add_field('Z Points', self.z_points)
-#         info_mesh.add_field('Z Mesh Spacing', f'~{u.uround(self.z_bound / self.z_points, u.bohr_radius, 3)} a_0')
-#         info_mesh.add_field('Rho Boundary', f'{u.uround(self.rho_bound, u.bohr_radius, 3)} a_0')
-#         info_mesh.add_field('Rho Points', self.rho_points)
-#         info_mesh.add_field('Rho Mesh Spacing', f'~{u.uround(self.rho_bound / self.rho_points, u.bohr_radius, 3)} a_0')
-#         info_mesh.add_field('Rho Warping', self.warping)
-#         info_mesh.add_field('Total Mesh Points', int(self.z_points * self.rho_points))
-#
-#         info.add_info(info_mesh)
-#
-#         return info
-
-
 class SphericalSliceSpecification(MeshSpecification):
     """A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`SphericalSliceMesh`."""
 
@@ -1011,7 +965,10 @@ class SphericalSliceSpecification(MeshSpecification):
 
 
 class SphericalHarmonicSimulation(MeshSimulation):
-    """An extended :class:`MeshSimulation` that takes advantage of particular features of :class:`SphericalHarmonicMesh`."""
+    """
+    An extended :class:`MeshSimulation` that takes advantage of particular
+    features of :class:`SphericalHarmonicMesh`.
+    """
 
     def check(self):
         super().check()
@@ -1029,9 +986,13 @@ class SphericalHarmonicSimulation(MeshSimulation):
 
 class SphericalHarmonicSpecification(MeshSpecification):
     """
-    A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a :class:`SphericalHarmonicMesh`.
+    A concrete :class:`MeshSpecification` for a :class:`MeshSimulation` with a
+    :class:`SphericalHarmonicMesh`.
 
-    Unlike other :class:`MeshSpecification`, :class:`SphericalHarmonicSpecification` produces a :class:`SphericalHarmonicSimulation`.
+    Unlike other :class:`MeshSpecification`,
+    :class:`SphericalHarmonicSpecification` produces a
+    :class:`SphericalHarmonicSimulation` instead of a
+    :class:`MeshSimulation`.
     """
 
     simulation_type = SphericalHarmonicSimulation
@@ -1053,7 +1014,6 @@ class SphericalHarmonicSpecification(MeshSpecification):
         **kwargs,
     ):
         """
-
         Parameters
         ----------
         r_bound

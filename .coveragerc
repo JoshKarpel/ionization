@@ -16,5 +16,3 @@ exclude_lines =
     def info
 
     raise NotImplementedError
-
-    for _ in \[\]:

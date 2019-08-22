@@ -57,4 +57,4 @@ class TestImaginaryGaussianRing:
         pot = ion.potentials.ImaginaryGaussianRing()
         r = np.linspace(0, pot.center * 2, 10000)
 
-        np.testing.assert_allclose(np.real(pot(r=r)), 0, atol=1e-10)
+        assert np.allclose(np.real(pot(r=r)), 0, atol=1e-10)

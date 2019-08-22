@@ -7,6 +7,8 @@ from typing import NewType, Tuple, Optional, Union
 import numpy as np
 import simulacra as si
 
+from .. import summables
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -47,7 +49,7 @@ def fmt_amplitude_for_tex(amplitude: ProbabilityAmplitude) -> str:
     return out
 
 
-class QuantumState(si.summables.Summand, abc.ABC):
+class QuantumState(summables.Summand, abc.ABC):
     """
     A class that represents a quantum state, with an amplitude and some basic multiplication/addition rules.
     Can be summed to form a Superposition.
@@ -189,16 +191,16 @@ class QuantumState(si.summables.Summand, abc.ABC):
         return self.ket.replace("|", "<").replace(">", "|")
 
     @property
-    def tex(self) -> si.units.TeXString:
+    def tex(self) -> str:
         raise NotImplementedError
 
     @property
     @abc.abstractmethod
-    def tex_ket(self) -> si.units.TeXString:
+    def tex_ket(self) -> str:
         raise NotImplementedError
 
     @property
-    def tex_bra(self) -> si.units.TeXString:
+    def tex_bra(self) -> str:
         return self.tex_ket.replace(r"\left|", r"\left\langle").replace(
             r"\right\rangle", r"\right|"
         )
@@ -211,7 +213,7 @@ class QuantumState(si.summables.Summand, abc.ABC):
         return info
 
 
-class Superposition(si.summables.Sum, QuantumState):
+class Superposition(summables.Sum, QuantumState):
     """
     A class that represents a discrete superposition of states.
 
@@ -254,11 +256,11 @@ class Superposition(si.summables.Sum, QuantumState):
         return " + ".join(s.ket for s in self)
 
     @property
-    def tex(self) -> si.units.TeXString:
+    def tex(self) -> str:
         return " + ".join(s.tex for s in self)
 
     @property
-    def tex_ket(self) -> si.units.TeXString:
+    def tex_ket(self) -> str:
         return " + ".join(s.tex_ket for s in self)
 
     def normalized(self) -> "Superposition":
@@ -274,9 +276,7 @@ class Superposition(si.summables.Sum, QuantumState):
         return info
 
 
-def fmt_inner_product_for_tex(
-    a: QuantumState, b: QuantumState, op: si.units.TeXString = ""
-) -> si.units.TeXString:
+def fmt_inner_product_for_tex(a: QuantumState, b: QuantumState, op: str = "") -> str:
     """
 
     Parameters

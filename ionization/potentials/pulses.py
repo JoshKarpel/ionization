@@ -155,10 +155,10 @@ class Rectangle(UniformLinearlyPolarizedElectricPotential):
         return out
 
     def __repr__(self):
-        return utils.fmt_fields(self, "start_time", "end_time", "amplitude", "window")
+        return utils.make_repr(self, "start_time", "end_time", "amplitude", "window")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("start_time", "asec"),
             ("end_time", "asec"),
@@ -434,12 +434,12 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
         return 0.5 * u.c * u.epsilon_0 * (np.abs(self.amplitude) ** 2)
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, "wavelength", "photon_energy", "amplitude", "phase", "window"
         )
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("wavelength", "nm"),
             ("photon_energy", "eV"),
@@ -543,7 +543,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         return np.sqrt(u.twopi) * self.amplitude_omega
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             "pulse_width",
             "pulse_center",
@@ -554,7 +554,7 @@ class SumOfSinesPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     def __str__(self):
-        out = utils.fmt_fields(
+        out = utils.make_repr(
             self,
             ("pulse_width", "asec"),
             ("pulse_center", "asec"),
@@ -940,7 +940,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             "pulse_width",
             "pulse_center",
@@ -951,7 +951,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("pulse_width", "asec"),
             ("pulse_center", "asec"),
@@ -1372,7 +1372,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             "pulse_width",
             "pulse_center",
@@ -1383,7 +1383,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("pulse_width", "asec"),
             ("pulse_center", "asec"),
@@ -1629,7 +1629,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         return amp * self.amplitude * super().get_electric_field_amplitude(t)
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             "pulse_width",
             "pulse_center",
@@ -1640,7 +1640,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         )
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("pulse_width", "asec"),
             ("pulse_center", "asec"),
@@ -1940,10 +1940,10 @@ class GenericElectricPotential(UniformLinearlyPolarizedElectricPotential):
         return from_field
 
     def __str__(self):
-        return utils.fmt_fields(self, "name")
+        return utils.make_repr(self, "name")
 
     def __repr__(self):
-        return utils.fmt_fields(self, "name")
+        return utils.make_repr(self, "name")
 
     def get_electric_field_amplitude(self, t):
         try:

@@ -44,7 +44,7 @@ class Kernel(ABC):
         raise NotImplementedError
 
     def __repr__(self):
-        return utils.fmt_fields(self)
+        return utils.make_repr(self)
 
     def info(self) -> si.Info:
         info = si.Info(header=self.__class__.__name__)
@@ -127,7 +127,7 @@ class LengthGaugeHydrogenKernel(Kernel):
         return kernel_func
 
     def __repr__(self):
-        return utils.fmt_fields(self, "bound_state_energy")
+        return utils.make_repr(self, "bound_state_energy")
 
     def info(self) -> si.Info:
         info = super().info()

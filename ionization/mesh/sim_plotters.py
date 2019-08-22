@@ -49,9 +49,7 @@ class MeshSimulationPlotter:
             boundaries = np.linspace(attr_min, cutoff_value, num=divisions)
             boundaries = np.concatenate((boundaries, [attr_max]))
 
-        label_unit_value, label_unit_latex = u.get_unit_value_and_latex_from_unit(
-            attr_unit
-        )
+        label_unit_value, label_unit_latex = u.get_unit_value_and_latex(attr_unit)
 
         free_states = list(self.sim.free_states)
 
@@ -109,9 +107,7 @@ class MeshSimulationPlotter:
         legend_kwargs: Optional[dict] = None,
         show_y_label: bool = False,
     ):
-        time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-            time_unit
-        )
+        time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
 
         if legend_kwargs is None:
             legend_kwargs = dict()
@@ -166,9 +162,7 @@ class MeshSimulationPlotter:
         **kwargs,
     ):
         with si.vis.FigureManager(name=f"{self.spec.name}", **kwargs) as figman:
-            time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-                time_unit
-            )
+            time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(
                 2, 1, height_ratios=[4, 1], hspace=0.07
@@ -295,9 +289,7 @@ class MeshSimulationPlotter:
         with si.vis.FigureManager(
             name=getattr(self, plot_name_from) + "__wavefunction_vs_time", **kwargs
         ) as figman:
-            time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-                time_unit
-            )
+            time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
 
             grid_spec = matplotlib.gridspec.GridSpec(
                 2, 1, height_ratios=[4, 1], hspace=0.07
@@ -495,10 +487,8 @@ class MeshSimulationPlotter:
         angular_momentum_cutoff: Optional[int] = None,
         **kwargs,
     ):
-        energy_unit, energy_unit_str = u.get_unit_value_and_latex_from_unit(
-            energy_scale
-        )
-        time_unit, time_unit_str = u.get_unit_value_and_latex_from_unit(time_scale)
+        energy_unit, energy_unit_str = u.get_unit_value_and_latex(energy_scale)
+        time_unit, time_unit_str = u.get_unit_value_and_latex(time_scale)
 
         if states == "all":
             state_list = self.spec.test_states
@@ -797,18 +787,14 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
         if use_name:
             prefix = self.sim.name
 
-        distance_unit_value, distance_unit_latex = u.get_unit_value_and_latex_from_unit(
+        distance_unit_value, distance_unit_latex = u.get_unit_value_and_latex(
             distance_unit
         )
-        time_unit_value, time_unit_latex = u.get_unit_value_and_latex_from_unit(
-            time_unit
-        )
-        current_unit_value, current_unit_latex = u.get_unit_value_and_latex_from_unit(
+        time_unit_value, time_unit_latex = u.get_unit_value_and_latex(time_unit)
+        current_unit_value, current_unit_latex = u.get_unit_value_and_latex(
             current_unit
         )
-        efield_unit_value, efield_unit_latex = u.get_unit_value_and_latex_from_unit(
-            efield_unit
-        )
+        efield_unit_value, efield_unit_latex = u.get_unit_value_and_latex(efield_unit)
 
         if t_lower_limit is None:
             t_lower_limit = self.sim.data_times[0]

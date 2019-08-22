@@ -21,6 +21,6 @@ def test_tdma_agrees_with_solution_via_inverse(n):
     inv_x = np.linalg.inv(dia.toarray()).dot(d)
     tdma_x = tdma(dia, d)
 
-    np.testing.assert_allclose(dia.dot(inv_x), d)  # naive result is actually a solution
-    np.testing.assert_allclose(tdma_x, inv_x)  # get same result as naive method
-    np.testing.assert_allclose(dia.dot(tdma_x), d)  # tdma result is actually a solution
+    assert np.allclose(dia.dot(inv_x), d)  # naive result is actually a solution
+    assert np.allclose(tdma_x, inv_x)  # get same result as naive method
+    assert np.allclose(dia.dot(tdma_x), d)  # tdma result is actually a solution

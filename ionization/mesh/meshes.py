@@ -1348,11 +1348,11 @@ class SphericalHarmonicMesh(QuantumMesh):
                 analytic_to_numeric[analytic_state] = numeric_state
 
             logger.debug(
-                f"Generated numerical eigenbasis for l = {l}, energy <= {u.uround(max_energy, u.eV)} eV"
+                f"Generated numerical eigenbasis for l = {l}, energy <= {max_energy / u.eV:.6f} eV"
             )
 
         logger.debug(
-            f"Generated numerical eigenbasis for l <= {max_angular_momentum}, energy <= {u.uround(max_energy, u.eV)} eV. Found {len(analytic_to_numeric)} states."
+            f"Generated numerical eigenbasis for l <= {max_angular_momentum}, energy <= {max_energy / u.eV:.6f} eV. Found {len(analytic_to_numeric)} states."
         )
 
         return analytic_to_numeric

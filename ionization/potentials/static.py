@@ -38,10 +38,10 @@ class CoulombPotential(potential.PotentialEnergy):
         return u.coulomb_constant * self.charge * test_charge / r
 
     def __repr__(self):
-        return utils.fmt_fields(self, "charge")
+        return utils.make_repr(self, "charge")
 
     def __str__(self):
-        return utils.fmt_fields(self, ("charge", "proton_charge"))
+        return utils.make_repr(self, ("charge", "proton_charge"))
 
     def info(self) -> si.Info:
         info = super().info()
@@ -91,10 +91,10 @@ class SoftCoulombPotential(potential.PotentialEnergy):
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "charge", "softening_distance")
+        return utils.make_repr(self, "charge", "softening_distance")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, ("charge", "proton_charge"), ("softening_distance", "bohr_radius")
         )
 
@@ -228,10 +228,10 @@ class HarmonicOscillator(potential.PotentialEnergy):
         return 1 / self.frequency(mass)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "spring_constant", "center", "cutoff_distance")
+        return utils.make_repr(self, "spring_constant", "center", "cutoff_distance")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self,
             ("spring_constant", "N/m"),
             ("center", "bohr_radius"),
@@ -304,10 +304,10 @@ class FiniteSquareWell(potential.PotentialEnergy):
         return -self.potential_depth * np.where(cond, 1, 0)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "potential_depth", "width", "center")
+        return utils.make_repr(self, "potential_depth", "width", "center")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, ("potential_depth", "u.eV"), ("width", "u.nm"), ("center", "u.nm")
         )
 
@@ -360,10 +360,10 @@ class GaussianPotential(potential.PotentialEnergy):
         return self.potential_extrema * np.exp(-0.5 * ((centered_r / self.width) ** 2))
 
     def __repr__(self):
-        return utils.fmt_fields(self, "potential_depth", "width", "center")
+        return utils.make_repr(self, "potential_depth", "width", "center")
 
     def __str__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, ("potential_depth", "u.eV"), ("width", "u.nm"), ("center", "u.nm")
         )
 

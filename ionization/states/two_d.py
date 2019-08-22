@@ -71,7 +71,7 @@ class TwoDPlaneWave(state.QuantumState):
         return self.eval_r_theta(r, theta)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "wavenumber_x", "wavenumber_y", "wavenumber_z")
+        return utils.make_repr(self, "wavenumber_x", "wavenumber_y", "wavenumber_z")
 
     @property
     def ket(self):
@@ -231,7 +231,7 @@ class TwoDQuantumHarmonicOscillator(state.QuantumState):
         return self.eval_r_theta(r, theta)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "n_z", "n_x")
+        return utils.make_repr(self, "n_z", "n_x")
 
     @property
     def ket(self):
@@ -315,7 +315,7 @@ class TwoDGaussianWavepacket(state.QuantumState):
         return self.eval_r_theta(r, theta)
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, "center_z", "center_x", "width_z", "width_x", "k_z", "k_x"
         )
 

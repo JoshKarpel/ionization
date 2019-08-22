@@ -100,7 +100,7 @@ class OneDPlaneWave(state.QuantumState):
         return np.exp(1j * self.wavenumber * x) / np.sqrt(u.twopi)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "wavenumber", "energy", "mass", "amplitude")
+        return utils.make_repr(self, "wavenumber", "energy", "mass", "amplitude")
 
     @property
     def ket(self):
@@ -270,7 +270,7 @@ class QHOState(state.QuantumState):
         return self.amplitude * (norm * exp * herm).astype(np.complex128)
 
     def __repr__(self):
-        return utils.fmt_fields(self, "n", "mass", "energy", "amplitude")
+        return utils.make_repr(self, "n", "mass", "energy", "amplitude")
 
     @property
     def ket(self):
@@ -537,7 +537,7 @@ class FiniteSquareWellState(state.QuantumState):
         return psi * symmetrization
 
     def __repr__(self):
-        return utils.fmt_fields(
+        return utils.make_repr(
             self, "n", "mass", "well_depth", "well_width", "energy", "amplitude"
         )
 
@@ -697,7 +697,7 @@ class GaussianWellState(state.QuantumState):
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "n", "mass", "energy", "amplitude")
+        return utils.make_repr(self, "n", "mass", "energy", "amplitude")
 
     @property
     def ket(self):
@@ -763,7 +763,7 @@ class OneDSoftCoulombState(state.QuantumState):
         )
 
     def __repr__(self):
-        return utils.fmt_fields(self, "n", "amplitude")
+        return utils.make_repr(self, "n", "amplitude")
 
     @property
     def ket(self):

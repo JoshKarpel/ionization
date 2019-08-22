@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
 COLORMESH_GRID_KWARGS = {
-    **si.vis.COLORMESH_GRID_KWARGS,
+    **si.vis.DEFAULT_COLORMESH_GRID_KWARGS,
     **dict(linestyle=":", linewidth=1.5, alpha=0.6),
 }
 
@@ -44,15 +44,15 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             )
 
         self.time_unit = time_unit
-        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex_from_unit(
+        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex(
             time_unit
         )
         self.electric_field_unit = electric_field_unit
-        self.electric_field_unit_value, self.electric_field_unit_latex = u.get_unit_value_and_latex_from_unit(
+        self.electric_field_unit_value, self.electric_field_unit_latex = u.get_unit_value_and_latex(
             electric_field_unit
         )
         self.vector_potential_unit = vector_potential_unit
-        self.vector_potential_unit_value, self.vector_potential_unit_latex = u.get_unit_value_and_latex_from_unit(
+        self.vector_potential_unit_value, self.vector_potential_unit_latex = u.get_unit_value_and_latex(
             vector_potential_unit
         )
 
@@ -73,7 +73,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
 
         if grid_kwargs is None:
             grid_kwargs = {}
-        self.grid_kwargs = {**si.vis.GRID_KWARGS, **grid_kwargs}
+        self.grid_kwargs = {**si.vis.DEFAULT_GRID_KWARGS, **grid_kwargs}
 
         super().__init__()
 
@@ -208,7 +208,7 @@ class StackplotAxis(si.vis.AxisManager):
         self.show_norm = show_norm
 
         self.time_unit = time_unit
-        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex_from_unit(
+        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex(
             time_unit
         )
 
@@ -227,7 +227,7 @@ class StackplotAxis(si.vis.AxisManager):
 
         if grid_kwargs is None:
             grid_kwargs = {}
-        self.grid_kwargs = {**si.vis.GRID_KWARGS, **grid_kwargs}
+        self.grid_kwargs = {**si.vis.DEFAULT_GRID_KWARGS, **grid_kwargs}
 
         super().__init__()
 
@@ -470,7 +470,7 @@ class AngularMomentumDecompositionAxis(si.vis.AxisManager):
 
         self.redraw += [*self.ang_mom_bar]
 
-        self.axis.yaxis.grid(True, **si.vis.GRID_KWARGS)
+        self.axis.yaxis.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
         self.axis.set_xlabel(r"Orbital Angular Momentum $\ell$", fontsize=22)
         l_label = r"$\left| \left\langle \Psi | Y^{\ell}_0 \right\rangle \right|^2$"

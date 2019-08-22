@@ -20,7 +20,7 @@ class WavefunctionSimulationAnimator(si.vis.Animator):
         self.axis_managers.append(self.axman_wavefunction)
 
     def __str__(self):
-        return utils.fmt_fields(self, "postfix", "axis_managers")
+        return utils.make_repr(self, "postfix", "axis_managers")
 
     def __repr__(self):
         return self.__str__()
@@ -141,7 +141,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         ]
 
         self.fig_dpi_scale = fig_dpi_scale
-        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex_from_unit(
+        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex(
             time_text_unit
         )
         self.time_text_digits = time_text_digits
