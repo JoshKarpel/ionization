@@ -1,16 +1,28 @@
 from pathlib import Path
+import re
 
 from setuptools import setup, find_packages
 
 THIS_DIR = Path(__file__).parent
 
 
+def find_version():
+    """Grab the version out of ionization/version.py without importing it."""
+    version_file_text = (THIS_DIR / "ionization" / "version.py").read_text()
+    version_match = re.search(
+        r"^__version__ = ['\"]([^'\"]*)['\"]", version_file_text, re.M
+    )
+    if version_match:
+        return version_match.group(1)
+    raise RuntimeError("Unable to find version string.")
+
+
 setup(
     name="ionization",
-    version="0.1.0",
+    version=find_version(),
     author="Josh Karpel",
     author_email="josh.karpel@gmail.com",
-    description="Ionization simulations for the Yavuz Group.",
+    description="A Python library for simulating intense laser-atom interactions.",
     long_description=Path("README.md").read_text(),
     url="https://github.com/JoshKarpel/ionization",
     classifiers=[
