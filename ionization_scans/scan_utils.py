@@ -636,7 +636,7 @@ def transfer_potential_attrs_to_spec(electric_potential, spec):
 
 @htmap.mapped(map_options=htmap.MapOptions(custom_options={"is_resumable": "true"}))
 def run(spec):
-    sim_path = Path.cwd() / f"{spec.file_name}.sim"
+    sim_path = Path.cwd() / f"{spec.name}.sim"
 
     try:
         sim = si.Simulation.load(str(sim_path))
