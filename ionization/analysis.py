@@ -3,6 +3,15 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
+POTENTIAL_ATTRS = [
+    "pulse_width",
+    "phase",
+    "fluence",
+    "amplitude",
+    "number_of_cycles",
+    "omega_carrier",
+]
+
 PARAMETER_TO_SYMBOL = {
     "pulse_width": r"\tau",
     "fluence": r"H",
