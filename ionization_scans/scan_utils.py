@@ -27,26 +27,26 @@ def ask_mesh_type():
     mesh_kwargs = {}
 
     mesh_type = si.ask_for_input(
-        "Mesh Type [cyl | sph | harm]", default="harm", cast_to=str
+        "Mesh Type [cyl | sph | harm]", default="harm", callback=str
     )
 
     if mesh_type == "cyl":
         spec_type = ion.mesh.CylindricalSliceSpecification
 
         mesh_kwargs["z_bound"] = u.bohr_radius * si.ask_for_input(
-            "Z Bound (Bohr radii)", default=30, cast_to=float
+            "Z Bound (Bohr radii)", default=30, callback=float
         )
         mesh_kwargs["rho_bound"] = u.bohr_radius * si.ask_for_input(
-            "Rho Bound (Bohr radii)", default=30, cast_to=float
+            "Rho Bound (Bohr radii)", default=30, callback=float
         )
         mesh_kwargs["z_points"] = (
             2
             * (mesh_kwargs["z_bound"] / u.bohr_radius)
-            * si.ask_for_input("Z Points per Bohr Radii", default=20, cast_to=int)
+            * si.ask_for_input("Z Points per Bohr Radii", default=20, callback=int)
         )
         mesh_kwargs["rho_points"] = (
             mesh_kwargs["rho_bound"] / u.bohr_radius
-        ) * si.ask_for_input("Rho Points per Bohr Radii", default=20, cast_to=int)
+        ) * si.ask_for_input("Rho Points per Bohr Radii", default=20, callback=int)
 
         mesh_kwargs["outer_radius"] = max(
             mesh_kwargs["z_bound"], mesh_kwargs["rho_bound"]
@@ -60,13 +60,13 @@ def ask_mesh_type():
         spec_type = ion.mesh.SphericalSliceSpecification
 
         mesh_kwargs["r_bound"] = u.bohr_radius * si.ask_for_input(
-            "R Bound (Bohr radii)", default=30, cast_to=float
+            "R Bound (Bohr radii)", default=30, callback=float
         )
         mesh_kwargs["r_points"] = (
             mesh_kwargs["r_bound"] / u.bohr_radius
-        ) * si.ask_for_input("R Points per Bohr Radii", default=40, cast_to=int)
+        ) * si.ask_for_input("R Points per Bohr Radii", default=40, callback=int)
         mesh_kwargs["theta_points"] = si.ask_for_input(
-            "Theta Points", default=100, cast_to=int
+            "Theta Points", default=100, callback=int
         )
 
         mesh_kwargs["outer_radius"] = mesh_kwargs["r_bound"]
@@ -78,11 +78,11 @@ def ask_mesh_type():
     elif mesh_type == "harm":
         spec_type = ion.mesh.SphericalHarmonicSpecification
 
-        r_bound = si.ask_for_input("R Bound (Bohr radii)", default=200, cast_to=float)
+        r_bound = si.ask_for_input("R Bound (Bohr radii)", default=200, callback=float)
         mesh_kwargs["r_points"] = r_bound * si.ask_for_input(
-            "R Points per Bohr Radii", default=10, cast_to=int
+            "R Points per Bohr Radii", default=10, callback=int
         )
-        mesh_kwargs["l_bound"] = si.ask_for_input("l points", default=500, cast_to=int)
+        mesh_kwargs["l_bound"] = si.ask_for_input("l points", default=500, callback=int)
 
         mesh_kwargs["r_bound"] = u.bohr_radius * r_bound
 
@@ -109,14 +109,14 @@ def ask_mask__radial_cosine(parameters, mesh_kwargs):
     inner = u.bohr_radius * si.ask_for_input(
         "Mask Inner Radius (in Bohr radii)?",
         default=np.ceil(outer_radius_default * 0.8),
-        cast_to=float,
+        callback=float,
     )
     outer = u.bohr_radius * si.ask_for_input(
         "Mask Outer Radius (in Bohr radii)?",
         default=np.ceil(outer_radius_default),
-        cast_to=float,
+        callback=float,
     )
-    smoothness = si.ask_for_input("Mask Smoothness?", default=8, cast_to=int)
+    smoothness = si.ask_for_input("Mask Smoothness?", default=8, callback=int)
 
     mask = si.Parameter(
         name="mask",
@@ -131,8 +131,8 @@ def ask_initial_state_for_hydrogen_sim(parameters):
     initial_state = si.Parameter(
         name="initial_state",
         value=ion.states.HydrogenBoundState(
-            n=si.ask_for_input("Initial State n?", default=1, cast_to=int),
-            l=si.ask_for_input("Initial State l?", default=0, cast_to=int),
+            n=si.ask_for_input("Initial State n?", default=1, callback=int),
+            l=si.ask_for_input("Initial State l?", default=0, callback=int),
         ),
     )
     parameters.append(initial_state)
@@ -146,7 +146,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
         parameters.append(si.Parameter(name="use_numeric_eigenstates", value=True))
 
         max_energy = u.eV * si.ask_for_input(
-            "Numeric Eigenstate Max Energy (in eV)?", default=20, cast_to=float
+            "Numeric Eigenstate Max Energy (in eV)?", default=20, callback=float
         )
         parameters.append(
             si.Parameter(name="numeric_eigenstate_max_energy", value=max_energy)
@@ -154,7 +154,7 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
 
         if spec_type == ion.mesh.SphericalHarmonicSpecification:
             max_angular_momentum = si.ask_for_input(
-                "Numeric Eigenstate Maximum l?", default=20, cast_to=int
+                "Numeric Eigenstate Maximum l?", default=20, callback=int
             )
             parameters.append(
                 si.Parameter(
@@ -173,20 +173,20 @@ def ask_time_step(parameters):
         si.Parameter(
             name="time_step",
             value=u.asec
-            * si.ask_for_input("Time Step (in as)?", default=1, cast_to=float),
+            * si.ask_for_input("Time Step (in as)?", default=1, callback=float),
         )
     )
 
 
 def ask_time_evolution_by_pulse_widths():
     time_initial_in_pw = si.ask_for_input(
-        "Initial Time (in pulse widths)?", default=-35, cast_to=float
+        "Initial Time (in pulse widths)?", default=-35, callback=float
     )
     time_final_in_pw = si.ask_for_input(
-        "Final Time (in pulse widths)?", default=35, cast_to=float
+        "Final Time (in pulse widths)?", default=35, callback=float
     )
     extra_time = u.asec * si.ask_for_input(
-        "Extra Time (in as)?", default=0, cast_to=float
+        "Extra Time (in as)?", default=0, callback=float
     )
 
     return time_initial_in_pw, time_final_in_pw, extra_time
@@ -450,10 +450,10 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
     )
 
     window_time_in_pw = si.ask_for_input(
-        "Window Time (in pulse widths)?", default=window_time_guess, cast_to=float
+        "Window Time (in pulse widths)?", default=window_time_guess, callback=float
     )
     window_width_in_pw = si.ask_for_input(
-        "Window Width (in pulse widths)?", default=0.2, cast_to=float
+        "Window Width (in pulse widths)?", default=0.2, callback=float
     )
 
     return window_time_in_pw, window_width_in_pw
@@ -539,7 +539,7 @@ def ask_checkpoints(parameters):
 
     if do_checkpoints:
         time_between_checkpoints = si.ask_for_input(
-            "How long between checkpoints (in minutes)?", default=60, cast_to=int
+            "How long between checkpoints (in minutes)?", default=60, callback=int
         )
         parameters.append(
             si.Parameter(
@@ -556,7 +556,7 @@ def ask_data_storage_tdse(parameters, *, spec_type):
         si.Parameter(
             name="store_data_every",
             value=si.ask_for_input(
-                "Store Data Every n Time Steps", default=-1, cast_to=int
+                "Store Data Every n Time Steps", default=-1, callback=int
             ),
         )
     )
@@ -619,7 +619,7 @@ def ask_data_storage_ide(parameters, *, spec_type):
         si.Parameter(
             name="store_data_every",
             value=si.ask_for_input(
-                "Store Data Every n Time Steps", default=-1, cast_to=int
+                "Store Data Every n Time Steps", default=-1, callback=int
             ),
         )
     )
