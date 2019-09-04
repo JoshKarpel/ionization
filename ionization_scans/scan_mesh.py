@@ -39,7 +39,7 @@ def create_scan(tag):
     utils.ask_data_storage_tdse(parameters, spec_type=spec_type)
 
     # CREATE SPECS
-    expanded_parameters = si.cluster.expand_parameters(parameters)
+    expanded_parameters = si.expand_parameters(parameters)
     extra_parameters = dict(
         checkpoints=True, checkpoint_every=datetime.timedelta(minutes=20)
     )
