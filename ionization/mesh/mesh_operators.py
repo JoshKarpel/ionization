@@ -928,19 +928,19 @@ class SphericalHarmonicLengthGaugeOperators(MeshOperators):
         )
 
     def kinetic_energy_for_single_l(
-        self, mesh: "meshes.SphericalHarmonicMesh", l: core.AngularMomentum
+        self, mesh: "meshes.SphericalHarmonicMesh", l: int
     ) -> MeshOperator:
         return getattr(
             self, f"kinetic_energy_for_single_l_from_{self.kinetic_energy_derivation}"
         )(mesh, l)
 
     def kinetic_energy_for_single_l_from_hamiltonian(
-        self, mesh: "meshes.SphericalHarmonicMesh", l: core.AngularMomentum
+        self, mesh: "meshes.SphericalHarmonicMesh", l: int
     ) -> MeshOperator:
         raise NotImplementedError
 
     def kinetic_energy_for_single_l_from_lagrangian(
-        self, mesh: "meshes.SphericalHarmonicMesh", l: core.AngularMomentum
+        self, mesh: "meshes.SphericalHarmonicMesh", l: int
     ) -> MeshOperator:
         r_prefactor = -(u.hbar ** 2) / (
             2 * u.electron_mass_reduced * (mesh.delta_r ** 2)
@@ -968,7 +968,7 @@ class SphericalHarmonicLengthGaugeOperators(MeshOperators):
         return DotOperator(matrix, wrapping_direction=meshes.WrappingDirection.R)
 
     def internal_hamiltonian_for_single_l(
-        self, mesh: "meshes.SphericalHarmonicMesh", l: core.AngularMomentum
+        self, mesh: "meshes.SphericalHarmonicMesh", l: int
     ) -> MeshOperator:
         kinetic_operator = self.kinetic_energy_for_single_l(mesh, l)
         potential_mesh = mesh.spec.internal_potential(
