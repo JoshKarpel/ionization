@@ -1,7 +1,4 @@
-import functools
 from pathlib import Path
-import random
-import sys
 import itertools
 import inspect
 import datetime
@@ -11,7 +8,6 @@ from tqdm import tqdm
 
 import simulacra as si
 import simulacra.units as u
-import simulacra.cluster as clu
 
 import ionization as ion
 
@@ -21,7 +17,7 @@ import htmap
 
 
 def ask_for_tag():
-    tag = si.cluster.ask_for_input("Map Tag?", default=None)
+    tag = si.ask_for_input("Map Tag?", default=None)
     if tag is None:
         raise ValueError("tag cannot be None")
     return tag
@@ -30,27 +26,27 @@ def ask_for_tag():
 def ask_mesh_type():
     mesh_kwargs = {}
 
-    mesh_type = clu.ask_for_input(
+    mesh_type = si.ask_for_input(
         "Mesh Type [cyl | sph | harm]", default="harm", cast_to=str
     )
 
     if mesh_type == "cyl":
         spec_type = ion.mesh.CylindricalSliceSpecification
 
-        mesh_kwargs["z_bound"] = u.bohr_radius * clu.ask_for_input(
+        mesh_kwargs["z_bound"] = u.bohr_radius * si.ask_for_input(
             "Z Bound (Bohr radii)", default=30, cast_to=float
         )
-        mesh_kwargs["rho_bound"] = u.bohr_radius * clu.ask_for_input(
+        mesh_kwargs["rho_bound"] = u.bohr_radius * si.ask_for_input(
             "Rho Bound (Bohr radii)", default=30, cast_to=float
         )
         mesh_kwargs["z_points"] = (
             2
             * (mesh_kwargs["z_bound"] / u.bohr_radius)
-            * clu.ask_for_input("Z Points per Bohr Radii", default=20, cast_to=int)
+            * si.ask_for_input("Z Points per Bohr Radii", default=20, cast_to=int)
         )
         mesh_kwargs["rho_points"] = (
             mesh_kwargs["rho_bound"] / u.bohr_radius
-        ) * clu.ask_for_input("Rho Points per Bohr Radii", default=20, cast_to=int)
+        ) * si.ask_for_input("Rho Points per Bohr Radii", default=20, cast_to=int)
 
         mesh_kwargs["outer_radius"] = max(
             mesh_kwargs["z_bound"], mesh_kwargs["rho_bound"]
@@ -63,13 +59,13 @@ def ask_mesh_type():
     elif mesh_type == "sph":
         spec_type = ion.mesh.SphericalSliceSpecification
 
-        mesh_kwargs["r_bound"] = u.bohr_radius * clu.ask_for_input(
+        mesh_kwargs["r_bound"] = u.bohr_radius * si.ask_for_input(
             "R Bound (Bohr radii)", default=30, cast_to=float
         )
         mesh_kwargs["r_points"] = (
             mesh_kwargs["r_bound"] / u.bohr_radius
-        ) * clu.ask_for_input("R Points per Bohr Radii", default=40, cast_to=int)
-        mesh_kwargs["theta_points"] = clu.ask_for_input(
+        ) * si.ask_for_input("R Points per Bohr Radii", default=40, cast_to=int)
+        mesh_kwargs["theta_points"] = si.ask_for_input(
             "Theta Points", default=100, cast_to=int
         )
 
@@ -82,11 +78,11 @@ def ask_mesh_type():
     elif mesh_type == "harm":
         spec_type = ion.mesh.SphericalHarmonicSpecification
 
-        r_bound = clu.ask_for_input("R Bound (Bohr radii)", default=200, cast_to=float)
-        mesh_kwargs["r_points"] = r_bound * clu.ask_for_input(
+        r_bound = si.ask_for_input("R Bound (Bohr radii)", default=200, cast_to=float)
+        mesh_kwargs["r_points"] = r_bound * si.ask_for_input(
             "R Points per Bohr Radii", default=10, cast_to=int
         )
-        mesh_kwargs["l_bound"] = clu.ask_for_input("l points", default=500, cast_to=int)
+        mesh_kwargs["l_bound"] = si.ask_for_input("l points", default=500, cast_to=int)
 
         mesh_kwargs["r_bound"] = u.bohr_radius * r_bound
 
@@ -110,19 +106,19 @@ def ask_mesh_type():
 def ask_mask__radial_cosine(parameters, mesh_kwargs):
     outer_radius_default = mesh_kwargs["outer_radius"] / u.bohr_radius
 
-    inner = u.bohr_radius * clu.ask_for_input(
+    inner = u.bohr_radius * si.ask_for_input(
         "Mask Inner Radius (in Bohr radii)?",
         default=np.ceil(outer_radius_default * 0.8),
         cast_to=float,
     )
-    outer = u.bohr_radius * clu.ask_for_input(
+    outer = u.bohr_radius * si.ask_for_input(
         "Mask Outer Radius (in Bohr radii)?",
         default=np.ceil(outer_radius_default),
         cast_to=float,
     )
-    smoothness = clu.ask_for_input("Mask Smoothness?", default=8, cast_to=int)
+    smoothness = si.ask_for_input("Mask Smoothness?", default=8, cast_to=int)
 
-    mask = clu.Parameter(
+    mask = si.Parameter(
         name="mask",
         value=ion.potentials.RadialCosineMask(
             inner_radius=inner, outer_radius=outer, smoothness=smoothness
@@ -132,11 +128,11 @@ def ask_mask__radial_cosine(parameters, mesh_kwargs):
 
 
 def ask_initial_state_for_hydrogen_sim(parameters):
-    initial_state = clu.Parameter(
+    initial_state = si.Parameter(
         name="initial_state",
         value=ion.states.HydrogenBoundState(
-            n=clu.ask_for_input("Initial State n?", default=1, cast_to=int),
-            l=clu.ask_for_input("Initial State l?", default=0, cast_to=int),
+            n=si.ask_for_input("Initial State n?", default=1, cast_to=int),
+            l=si.ask_for_input("Initial State l?", default=0, cast_to=int),
         ),
     )
     parameters.append(initial_state)
@@ -145,23 +141,23 @@ def ask_initial_state_for_hydrogen_sim(parameters):
 
 
 def ask_numeric_eigenstate_basis(parameters, *, spec_type):
-    numeric_basis_q = clu.ask_for_bool("Use numeric eigenstate basis?", default=True)
+    numeric_basis_q = si.ask_for_bool("Use numeric eigenstate basis?", default=True)
     if numeric_basis_q:
-        parameters.append(clu.Parameter(name="use_numeric_eigenstates", value=True))
+        parameters.append(si.Parameter(name="use_numeric_eigenstates", value=True))
 
-        max_energy = u.eV * clu.ask_for_input(
+        max_energy = u.eV * si.ask_for_input(
             "Numeric Eigenstate Max Energy (in eV)?", default=20, cast_to=float
         )
         parameters.append(
-            clu.Parameter(name="numeric_eigenstate_max_energy", value=max_energy)
+            si.Parameter(name="numeric_eigenstate_max_energy", value=max_energy)
         )
 
         if spec_type == ion.mesh.SphericalHarmonicSpecification:
-            max_angular_momentum = clu.ask_for_input(
+            max_angular_momentum = si.ask_for_input(
                 "Numeric Eigenstate Maximum l?", default=20, cast_to=int
             )
             parameters.append(
-                clu.Parameter(
+                si.Parameter(
                     name="numeric_eigenstate_max_angular_momentum",
                     value=max_angular_momentum,
                 )
@@ -174,22 +170,22 @@ def ask_numeric_eigenstate_basis(parameters, *, spec_type):
 
 def ask_time_step(parameters):
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="time_step",
             value=u.asec
-            * clu.ask_for_input("Time Step (in as)?", default=1, cast_to=float),
+            * si.ask_for_input("Time Step (in as)?", default=1, cast_to=float),
         )
     )
 
 
 def ask_time_evolution_by_pulse_widths():
-    time_initial_in_pw = clu.ask_for_input(
+    time_initial_in_pw = si.ask_for_input(
         "Initial Time (in pulse widths)?", default=-35, cast_to=float
     )
-    time_final_in_pw = clu.ask_for_input(
+    time_final_in_pw = si.ask_for_input(
         "Final Time (in pulse widths)?", default=35, cast_to=float
     )
-    extra_time = u.asec * clu.ask_for_input(
+    extra_time = u.asec * si.ask_for_input(
         "Extra Time (in as)?", default=0, cast_to=float
     )
 
@@ -214,7 +210,7 @@ def ask_mesh_operators(parameters, *, spec_type):
         },
     }
     choices = choices_by_spec_type[spec_type]
-    key = clu.ask_for_input(
+    key = si.ask_for_input(
         f'Mesh Operators? [{" | ".join(choices.keys())}]',
         default=ion.Gauge.LENGTH.value,
     )
@@ -223,7 +219,7 @@ def ask_mesh_operators(parameters, *, spec_type):
     except KeyError:
         raise ion.exceptions.InvalidChoice(f"{method} is not one of {choices}")
 
-    parameters.append(clu.Parameter(name="evolution_method", value=method))
+    parameters.append(si.Parameter(name="evolution_method", value=method))
 
     return method
 
@@ -235,7 +231,7 @@ def ask_evolution_method_ide(parameters):
         "TRAP": ion.ide.TrapezoidMethod,
         "RK4": ion.ide.RungeKuttaFourMethod,
     }
-    key = clu.ask_for_input(
+    key = si.ask_for_input(
         f'Evolution Method? [{" | ".join(choices.keys())}]', default="RK4"
     )
     try:
@@ -243,7 +239,7 @@ def ask_evolution_method_ide(parameters):
     except KeyError:
         raise ion.exceptions.InvalidChoice(f"{method} is not one of {choices}")
 
-    parameters.append(clu.Parameter(name="evolution_method", value=method))
+    parameters.append(si.Parameter(name="evolution_method", value=method))
 
     return method
 
@@ -253,13 +249,13 @@ def ask_evolution_method_tdse(parameters):
         "ADI": ion.mesh.AlternatingDirectionImplicit,
         "SO": ion.mesh.SplitInteractionOperator,
     }
-    key = clu.ask_for_input(f'Evolution Method? [{" | ".join(choices)}]', default="SO")
+    key = si.ask_for_input(f'Evolution Method? [{" | ".join(choices)}]', default="SO")
     try:
         method = choices[key]()
     except KeyError:
         raise ion.exceptions.InvalidChoice(f"{method} is not one of {choices}")
 
-    parameters.append(clu.Parameter(name="evolution_method", value=method))
+    parameters.append(si.Parameter(name="evolution_method", value=method))
 
     return method
 
@@ -269,7 +265,7 @@ def ask_ide_kernel(parameters):
         "hydrogen": ion.ide.LengthGaugeHydrogenKernel,
         "hydrogen_with_cc": ion.ide.LengthGaugeHydrogenKernelWithContinuumContinuumInteraction,
     }
-    kernel_key = clu.ask_for_input(
+    kernel_key = si.ask_for_input(
         f'IDE Kernel? [{" | ".join(choices)}]', default="hydrogen"
     )
     try:
@@ -279,7 +275,7 @@ def ask_ide_kernel(parameters):
             f"{kernel_key} is not one of {choices.keys()}"
         )
 
-    parameters.append(clu.Parameter(name="kernel", value=kernel))
+    parameters.append(si.Parameter(name="kernel", value=kernel))
 
     return kernel
 
@@ -289,7 +285,7 @@ def ask_ide_tunneling(parameters):
         cls.__name__.replace("Rate", ""): cls
         for cls in ion.tunneling.TUNNELING_MODEL_TYPES
     }
-    model_key = clu.ask_for_input(
+    model_key = si.ask_for_input(
         f'Tunneling Model? [{" | ".join(choices)}]', default=tuple(choices.keys())[0]
     )
 
@@ -305,7 +301,7 @@ def ask_ide_tunneling(parameters):
     arg_defaults = argspec.defaults
     if len(arg_names) > 0:
         args = {
-            name: clu.ask_for_eval(f"Value for {name}?", default=repr(default))
+            name: si.ask_for_eval(f"Value for {name}?", default=repr(default))
             for name, default in reversed(
                 tuple(
                     itertools.zip_longest(reversed(arg_names), reversed(arg_defaults))
@@ -316,7 +312,7 @@ def ask_ide_tunneling(parameters):
     else:
         model = cls()
 
-    parameters.append(clu.Parameter(name="tunneling_model", value=model))
+    parameters.append(si.Parameter(name="tunneling_model", value=model))
 
     return model
 
@@ -337,13 +333,11 @@ PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS = {
 
 
 def ask_pulse_widths(pulse_parameters):
-    pulse_width = clu.Parameter(
+    pulse_width = si.Parameter(
         name="pulse_width",
         value=u.asec
         * np.array(
-            clu.ask_for_eval(
-                "Pulse Widths (in as)?", default="[50, 100, 200, 400, 800]"
-            )
+            si.ask_for_eval("Pulse Widths (in as)?", default="[50, 100, 200, 400, 800]")
         ),
         expandable=True,
     )
@@ -351,11 +345,11 @@ def ask_pulse_widths(pulse_parameters):
 
 
 def ask_pulse_fluences(pulse_parameters):
-    fluence = clu.Parameter(
+    fluence = si.Parameter(
         name="fluence",
         value=u.Jcm2
         * np.array(
-            clu.ask_for_eval(
+            si.ask_for_eval(
                 "Pulse Fluence (in J/cm^2)?", default="[.01, .1, 1, 10, 20]"
             )
         ),
@@ -365,10 +359,10 @@ def ask_pulse_fluences(pulse_parameters):
 
 
 def ask_pulse_phases(pulse_parameters):
-    phases = clu.Parameter(
+    phases = si.Parameter(
         name="phase",
         value=np.array(
-            clu.ask_for_eval("Pulse CEP (in rad)?", default="[0, u.pi / 4, u.pi / 2]")
+            si.ask_for_eval("Pulse CEP (in rad)?", default="[0, u.pi / 4, u.pi / 2]")
         ),
         expandable=True,
     )
@@ -376,12 +370,12 @@ def ask_pulse_phases(pulse_parameters):
 
 
 def ask_pulse_omega_mins(pulse_parameters):
-    omega_mins = clu.Parameter(
+    omega_mins = si.Parameter(
         name="omega_min",
         value=u.twopi
         * u.THz
         * np.array(
-            clu.ask_for_eval("Pulse Frequency Minimum? (in THz)", default="[30]")
+            si.ask_for_eval("Pulse Frequency Minimum? (in THz)", default="[30]")
         ),
         expandable=True,
     )
@@ -397,11 +391,11 @@ def ask_pulse_keldysh_parameters(pulse_parameters):
 
 
 def ask_pulse_amplitudes(pulse_parameters):
-    amplitude_prefactors = clu.Parameter(
+    amplitude_prefactors = si.Parameter(
         name="amplitude",
         value=u.atomic_electric_field
         * np.array(
-            clu.ask_for_eval(
+            si.ask_for_eval(
                 "Pulse Amplitudes? (in AEF)", default="[.01, .05, .1, .5, 1, 2]"
             )
         ),
@@ -415,10 +409,10 @@ def ask_pulse_power_exclusion(pulse_parameters):
 
 
 def ask_pulse_number_of_pulse_widths(pulse_parameters):
-    number_of_pulse_widths = clu.Parameter(
+    number_of_pulse_widths = si.Parameter(
         name="number_of_pulse_widths",
         value=np.array(
-            clu.ask_for_eval(
+            si.ask_for_eval(
                 "Number of Pulse Widths to count Cycles over?", default="[3]"
             )
         ),
@@ -428,9 +422,9 @@ def ask_pulse_number_of_pulse_widths(pulse_parameters):
 
 
 def ask_pulse_number_of_cycles(pulse_parameters):
-    number_of_cycles = clu.Parameter(
+    number_of_cycles = si.Parameter(
         name="number_of_cycles",
-        value=np.array(clu.ask_for_eval("Number of Cycles?", default="[2, 3, 4]")),
+        value=np.array(si.ask_for_eval("Number of Cycles?", default="[2, 3, 4]")),
         expandable=True,
     )
     pulse_parameters.append(number_of_cycles)
@@ -455,10 +449,10 @@ def ask_pulse_window(*, pulse_type, time_initial_in_pw, time_final_in_pw):
         - PULSE_TYPE_TO_WINDOW_TIME_CORRECTIONS[pulse_type]
     )
 
-    window_time_in_pw = clu.ask_for_input(
+    window_time_in_pw = si.ask_for_input(
         "Window Time (in pulse widths)?", default=window_time_guess, cast_to=float
     )
-    window_width_in_pw = clu.ask_for_input(
+    window_width_in_pw = si.ask_for_input(
         "Window Width (in pulse widths)?", default=0.2, cast_to=float
     )
 
@@ -469,14 +463,14 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
     pulse_parameters = []
 
     pulse_type = PULSE_NAMES_TO_TYPES[
-        clu.ask_for_input("Pulse Type? [sinc | gaussian | sech | cos2]", default="sinc")
+        si.ask_for_input("Pulse Type? [sinc | gaussian | sech | cos2]", default="sinc")
     ]
     constructor_names = (
         name.replace("from_", "")
         for name in pulse_type.__dict__
         if name.startswith("from_")
     )
-    constructor_name = clu.ask_for_input(
+    constructor_name = si.ask_for_input(
         f'Pulse Constructor? [{" | ".join(constructor_names)}]', default="omega_min"
     )
     constructor = getattr(pulse_type, f"from_{constructor_name}")
@@ -512,25 +506,25 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
                 window_width=d["pulse_width"] * window_width_in_pw,
             ),
         )
-        for d in tqdm(clu.expand_parameters(pulse_parameters), ascii=True)
+        for d in tqdm(si.expand_parameters(pulse_parameters), ascii=True)
     )
     parameters.append(
-        clu.Parameter(name="electric_potential", value=pulses, expandable=True)
+        si.Parameter(name="electric_potential", value=pulses, expandable=True)
     )
 
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="electric_potential_dc_correction",
-            value=clu.ask_for_bool(
+            value=si.ask_for_bool(
                 "Perform Electric Field DC Correction?", default=True
             ),
         )
     )
 
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="electric_potential_fluence_correction",
-            value=clu.ask_for_bool(
+            value=si.ask_for_bool(
                 "Perform Electric Field Fluence Correction?", default=False
             ),
         )
@@ -540,15 +534,15 @@ def construct_pulses(parameters, *, time_initial_in_pw, time_final_in_pw):
 
 
 def ask_checkpoints(parameters):
-    do_checkpoints = clu.ask_for_bool("Checkpoints?", default=True)
-    parameters.append(clu.Parameter(name="checkpoints", value=do_checkpoints))
+    do_checkpoints = si.ask_for_bool("Checkpoints?", default=True)
+    parameters.append(si.Parameter(name="checkpoints", value=do_checkpoints))
 
     if do_checkpoints:
-        time_between_checkpoints = clu.ask_for_input(
+        time_between_checkpoints = si.ask_for_input(
             "How long between checkpoints (in minutes)?", default=60, cast_to=int
         )
         parameters.append(
-            clu.Parameter(
+            si.Parameter(
                 name="checkpoint_every",
                 value=datetime.timedelta(minutes=time_between_checkpoints),
             )
@@ -559,9 +553,9 @@ def ask_checkpoints(parameters):
 
 def ask_data_storage_tdse(parameters, *, spec_type):
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="store_data_every",
-            value=clu.ask_for_input(
+            value=si.ask_for_input(
                 "Store Data Every n Time Steps", default=-1, cast_to=int
             ),
         )
@@ -597,13 +591,13 @@ def ask_data_storage_tdse(parameters, *, spec_type):
 
     datastores = []
     for cls, question, default in datastores_questions_defaults:
-        if clu.ask_for_bool(question, default=default):
+        if si.ask_for_bool(question, default=default):
             argspec = inspect.getfullargspec(cls.__init__)
             arg_names = argspec.args[1:]
             arg_defaults = argspec.defaults
             if len(arg_names) > 0:
                 args = {
-                    name: clu.ask_for_eval(f"Value for {name}?", default=default)
+                    name: si.ask_for_eval(f"Value for {name}?", default=default)
                     for name, default in reversed(
                         tuple(
                             itertools.zip_longest(
@@ -617,14 +611,14 @@ def ask_data_storage_tdse(parameters, *, spec_type):
                 datastore = cls()
             datastores.append(datastore)
 
-    parameters.append(clu.Parameter(name="datastores", value=datastores))
+    parameters.append(si.Parameter(name="datastores", value=datastores))
 
 
 def ask_data_storage_ide(parameters, *, spec_type):
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="store_data_every",
-            value=clu.ask_for_input(
+            value=si.ask_for_input(
                 "Store Data Every n Time Steps", default=-1, cast_to=int
             ),
         )
@@ -667,11 +661,11 @@ def run(spec):
 
 
 def ask_htmap_settings():
-    docker_image = si.cluster.ask_for_input("Docker image (repository:tag)?")
+    docker_image = si.ask_for_input("Docker image (repository:tag)?")
     htmap.settings["DOCKER.IMAGE"] = docker_image
     htmap.settings["SINGULARITY.IMAGE"] = f"docker://{docker_image}"
 
-    delivery_method = si.cluster.ask_for_choices(
+    delivery_method = si.ask_for_choices(
         "Use Docker or Singularity?",
         choices={"docker": "docker", "singularity": "singularity"},
         default="docker",
@@ -684,17 +678,13 @@ def ask_htmap_settings():
 
 def ask_map_options() -> (dict, dict):
     opts = {
-        "request_memory": si.cluster.ask_for_input("Memory?", default="500MB"),
-        "request_disk": si.cluster.ask_for_input("Disk?", default="1GB"),
+        "request_memory": si.ask_for_input("Memory?", default="500MB"),
+        "request_disk": si.ask_for_input("Disk?", default="1GB"),
         "max_idle": "100",
     }
     custom_opts = {
-        "wantflocking": str(
-            si.cluster.ask_for_bool("Want flocking?", default=False)
-        ).lower(),
-        "wantglidein": str(
-            si.cluster.ask_for_bool("Want gliding?", default=False)
-        ).lower(),
+        "wantflocking": str(si.ask_for_bool("Want flocking?", default=False)).lower(),
+        "wantglidein": str(si.ask_for_bool("Want gliding?", default=False)).lower(),
     }
 
     return opts, custom_opts

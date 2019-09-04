@@ -1,12 +1,8 @@
-from pathlib import Path
 import datetime
 
 from tqdm import tqdm
 
-import scipy.optimize as opt
-
 import simulacra as si
-import simulacra.cluster as clu
 import simulacra.units as u
 
 import ionization as ion

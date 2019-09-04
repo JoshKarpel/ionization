@@ -1,10 +1,8 @@
-from pathlib import Path
 import datetime
 
 from tqdm import tqdm
 
 import simulacra as si
-import simulacra.cluster as clu
 import simulacra.units as u
 
 import ionization as ion
@@ -23,11 +21,11 @@ def create_scan(tag):
     test_mass = u.electron_mass
     test_energy = ion.states.HydrogenBoundState(1, 0).energy
 
-    parameters.append(clu.Parameter(name="test_charge", value=test_charge))
-    parameters.append(clu.Parameter(name="test_mass", value=test_mass))
-    parameters.append(clu.Parameter(name="test_energy", value=test_energy))
+    parameters.append(si.Parameter(name="test_charge", value=test_charge))
+    parameters.append(si.Parameter(name="test_mass", value=test_mass))
+    parameters.append(si.Parameter(name="test_energy", value=test_energy))
     parameters.append(
-        clu.Parameter(
+        si.Parameter(
             name="integral_prefactor", value=-(u.electron_charge / u.hbar) ** 2
         )
     )
@@ -52,7 +50,7 @@ def create_scan(tag):
     utils.ask_data_storage_ide(parameters, spec_type=spec_type)
 
     # CREATE SPECS
-    expanded_parameters = si.cluster.expand_parameters(parameters)
+    expanded_parameters = si.sister.expand_parameters(parameters)
     extra_parameters = dict(
         checkpoints=True, checkpoint_every=datetime.timedelta(minutes=20)
     )
