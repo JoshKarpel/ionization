@@ -418,16 +418,13 @@ class MeshSimulation(si.Simulation):
             )
 
         if not save_mesh:
-            for state in self.spec.test_states:  # remove numeric eigenstate information
+            # remove numeric eigenstate information
+            for state in self.spec.test_states:
                 state.g = None
 
-            mesh = self.mesh
             self.mesh = None
 
         out = super().save(target_dir=target_dir)
-
-        if not save_mesh:
-            self.mesh = mesh
 
         return out
 

@@ -1,8 +1,6 @@
 import logging
-from typing import NewType
 
-import collections
-from dataclasses import dataclass
+import dataclasses
 
 import numpy as np
 from scipy.special import factorial
@@ -12,8 +10,6 @@ import simulacra.units as u
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
-
-AngularMomentum = NewType("AngularMomentum", int)
 
 
 def electron_energy_from_wavenumber(k):
@@ -122,12 +118,7 @@ def triple_y_integral(j1, m1, j2, m2, j, m):
     return np.real(result)
 
 
-warning_record = collections.namedtuple(
-    "warning_record", ["data_time_index", "message"]
-)
-
-
-@dataclass
+@dataclasses.dataclass(frozen=True)
 class WarningRecord:
     data_time_index: int
     message: str

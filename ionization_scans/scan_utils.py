@@ -658,6 +658,11 @@ def run(spec):
 
     print(sim.info())
 
+    if isinstance(sim, ion.mesh.MeshSimulation):
+        for state in sim.spec.test_states:
+            state.g = None
+        sim.mesh = None
+
     return sim
 
 
