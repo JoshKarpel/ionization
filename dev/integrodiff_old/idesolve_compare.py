@@ -25,7 +25,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 def make_comparison_plot(identifier, rk4solvers, idesolvers):
     labels = [
         *[
-            fr"RK4 $\Delta t = {uround(solver.time_step, asec)} \, \mathrm{{as}}$ ({solver.elapsed_time.total_seconds()} s)"
+            fr"RK4 $\Delta t = {solver.time_step / asec:.3f} \, \mathrm{{as}}$ ({solver.elapsed_time.total_seconds()} s)"
             for solver in rk4solvers
         ],
         *[
@@ -81,7 +81,7 @@ def run(solver):
 def rk4(pulse, tb=3, dts=(1 * asec, 0.1 * asec), processes=2):
     specs = [
         ide.IntegroDifferentialEquationSpecification(
-            f"rk4solver_dt={uround(dt, asec)}as__pw={uround(pulse.pulse_width, asec)}as",
+            f"rk4solver_dt={dt / asec:3f}as__pw={pulse.pulse_width / asec:.3f}as",
             time_initial=-pulse.pulse_width * tb,
             time_final=pulse.pulse_width * tb,
             time_step=dt,
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             flu = 1 * Jcm2
             phase = 0
 
-            pulse = ion.GaussianPulse.from_number_of_cycles(
+            pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
                 pulse_width=pw, fluence=flu, phase=phase
             )
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             maxiter = 400
             pts = 100
 
-            ident = f"pw={uround(pw, asec)}as__pts={pts}"
+            ident = f"pw={pw / asec:3f}as__pts={pts}"
 
             rk4solvers = rk4(pulse, tb=tb, dts=dts)
             idesolvers = iterative(pulse, tb=tb, t_pts=pts, tols=tols, maxiter=maxiter)

@@ -34,18 +34,18 @@ if __name__ == "__main__":
             pulse_widths_dense,
             *[
                 [
-                    ion.SincPulse(pulse_width=pw, fluence=flu).amplitude
+                    ion.potentials.SincPulse(pulse_width=pw, fluence=flu).amplitude
                     for pw in pulse_widths_dense
                 ]
                 for flu in fluences_sparse
             ],
             line_labels=[
-                rf"$ H = {uround(flu, Jcm2, 1)} \, \mathrm{{J/cm^2}} $"
+                rf"$ H = {flu / Jcm2:1f} \, \mathrm{{J/cm^2}} $"
                 for flu in fluences_sparse
             ],
             x_label=r"Pulse Width $ \tau $",
             x_unit="asec",
-            y_label=rf"Field Prefactor $ {ion.LATEX_EFIELD}_0 $",
+            y_label=rf"Field Prefactor $ {ion.vis.LATEX_EFIELD}_0 $",
             y_unit="atomic_electric_field",
             y_lower_limit=0,
             y_upper_limit=3.5 * atomic_electric_field,
@@ -60,18 +60,18 @@ if __name__ == "__main__":
             fluences_dense,
             *[
                 [
-                    ion.SincPulse(pulse_width=pw, fluence=flu).amplitude
+                    ion.potentials.SincPulse(pulse_width=pw, fluence=flu).amplitude
                     for flu in fluences_dense
                 ]
                 for pw in pulse_widths_sparse
             ],
             line_labels=[
-                rf"$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $"
+                rf"$ \tau = {pw / asec:1f} \, \mathrm{{as}} $"
                 for pw in pulse_widths_sparse
             ],
             x_label=r"Fluence $ H $",
             x_unit="Jcm2",
-            y_label=rf"Field Prefactor $ {ion.LATEX_EFIELD}_0 $",
+            y_label=rf"Field Prefactor $ {ion.vis.LATEX_EFIELD}_0 $",
             y_unit="atomic_electric_field",
             y_lower_limit=0,
             y_upper_limit=3.5 * atomic_electric_field,
@@ -87,19 +87,19 @@ if __name__ == "__main__":
             fluences_log,
             *[
                 [
-                    ion.SincPulse(pulse_width=pw, fluence=flu).amplitude
+                    ion.potentials.SincPulse(pulse_width=pw, fluence=flu).amplitude
                     for flu in fluences_log
                 ]
                 for pw in pulse_widths_sparse
             ],
             line_labels=[
-                rf"$ \tau = {uround(pw, asec, 1)} \, \mathrm{{as}} $"
+                rf"$ \tau = {pw / asec:1f} \, \mathrm{{as}} $"
                 for pw in pulse_widths_sparse
             ],
             x_label=r"Fluence $ H $",
             x_unit="Jcm2",
             x_log_axis=True,
-            y_label=rf"Field Prefactor $ {ion.LATEX_EFIELD}_0 $",
+            y_label=rf"Field Prefactor $ {ion.vis.LATEX_EFIELD}_0 $",
             y_unit="atomic_electric_field",
             y_lower_limit=0,
             y_upper_limit=3.5 * atomic_electric_field,

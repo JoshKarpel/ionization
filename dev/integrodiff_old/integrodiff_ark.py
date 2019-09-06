@@ -18,7 +18,9 @@ if __name__ == "__main__":
         pw = 50
         flu = 20
 
-        electric_field = ion.SincPulse(pulse_width=pw * asec, fluence=flu * Jcm2)
+        electric_field = ion.potentials.SincPulse(
+            pulse_width=pw * asec, fluence=flu * Jcm2
+        )
 
         q = electron_charge
         m = electron_mass_reduced

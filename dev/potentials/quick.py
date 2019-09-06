@@ -19,8 +19,8 @@ if __name__ == "__main__":
     with LOGMAN as logger:
         pw = 200 * u.asec
 
-        cos = potentials.SincPulse(pulse_width=pw)
-        sin = potentials.SincPulse(pulse_width=pw, phase=u.pi / 2)
+        cos = ion.potentials.SincPulse(pulse_width=pw)
+        sin = ion.potentials.SincPulse(pulse_width=pw, phase=u.pi / 2)
 
         print(cos.info())
         print((1 / pw) / cos.omega_carrier)

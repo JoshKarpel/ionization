@@ -17,7 +17,7 @@ if __name__ == "__main__":
     ):
         # nc < 2 has negative-frequency components
         nc = 2
-        pulse = potentials.CosSquaredPulse(
+        pulse = ion.potentials.CosSquaredPulse(
             amplitude=1 * u.atomic_electric_field,
             wavelength=800 * u.nm,
             number_of_cycles=nc,
@@ -42,10 +42,10 @@ if __name__ == "__main__":
         )
 
         dt = np.abs(times[1] - times[0])
-        print(f"dt = {u.uround(dt, u.asec)} as")
+        print(f"dt = {dt / u.asec:.3f} as")
         freqs = nfft.fftshift(nfft.fftfreq(len(times), dt))
         df = np.abs(freqs[1] - freqs[0])
-        print(f"df = {u.uround(df, u.THz)} THz")
+        print(f"df = {df / u.THz:.3f} THz")
 
         fft = (
             nfft.fftshift(

@@ -67,7 +67,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
     # sine_product = 1.25 * atomic_electric_field * 10 * asec
 
     # classical_orbit_time = twopi * bohr_radius / (alpha * c)
-    # print('orbit time', uround(classical_orbit_time, asec))
+    # print('orbit time', classical_orbit_time / asec:3f)
 
     tau_alpha = ide.gaussian_tau_alpha_LEN(test_width, test_mass)
     kernel = functools.partial(ide.gaussian_kernel_LEN, tau_alpha=tau_alpha)
@@ -113,7 +113,7 @@ def compare_cosine_and_sine(cosine_product, sine_product):
     )
 
     si.vis.xy_plot(
-        f"double_kick__cos={uround(cosine_product, time_field_unit)}__sin={uround(sine_product, time_field_unit)}",
+        f"double_kick__cos={cosine_product / time_field_unit:3f}__sin={sine_product / time_field_unit:3f}",
         2 * pulse_delays,
         double_kick(pulse_delays),
         np.ones_like(pulse_delays) * t1(b_sine),
@@ -216,19 +216,15 @@ def decompose_pulse_into_kicks__fluence(electric_potential, times):
 
 
 def plot_pulse_decomposition(pulse, times, selector="amplitude"):
-    # kicks = locals()[f'decompose_pulse_into_kicks__{selector}'](sinc, times)
     if selector == "amplitude":
         kicks = decompose_pulse_into_kicks__amplitude(pulse, times)
     elif selector == "power":
         kicks = decompose_pulse_into_kicks__fluence(pulse, times)
 
-    # for wavenumber in kicks:
-    #     print(uround(wavenumber.time, asec), uround(wavenumber.time_field_product, time_field_unit))
-
     try:
-        name = f"pulse__{uround(pulse.pulse_width, asec)}as_{uround(pulse.fluence, Jcm2)}jcm2_{uround(pulse.phase, pi)}pi"
+        name = f"pulse__{pulse.pulse_width / asec:.3f}as_{pulse.fluence / Jcm2:.3f}jcm2_{pulse.phase / pi:.3f}pi"
     except AttributeError:
-        name = f"sinewave__{uround(pulse.period_carrier, asec)}as_{uround(pulse.amplitude, atomic_electric_field)}aef"
+        name = f"sinewave__{pulse.period_carrier / asec:.3f}as_{pulse.amplitude / atomic_electric_field:.3f}aef"
 
     si.vis.xy_plot(
         name,
@@ -300,11 +296,15 @@ if __name__ == "__main__":
     ) as logger:
         # for selector in ['amplitude', 'power']:
         kicks_cos = decompose_pulse_into_kicks__amplitude(
-            ion.SincPulse(pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=0),
+            ion.potentials.SincPulse(
+                pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=0
+            ),
             np.linspace(-1000 * asec, 1000 * asec, 1e4),
         )
         kicks_sin = decompose_pulse_into_kicks__amplitude(
-            ion.SincPulse(pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=pi / 2),
+            ion.potentials.SincPulse(
+                pulse_width=200 * asec, fluence=0.1 * Jcm2, phase=pi / 2
+            ),
             np.linspace(-1000 * asec, 1000 * asec, 1e4),
         )
 
@@ -329,8 +329,8 @@ if __name__ == "__main__":
         #
         # internal_potential = ion.FiniteSquareWell(potential_depth = potential_depth, width = test_width)
         # bound_state = ion.FiniteSquareWellState.from_potential(internal_potential, mass = electron_mass)
-        # # pulse = ion.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
-        # pulse = ion.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        # # pulse = ion.potentials.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        # pulse = ion.potentials.SincPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
         #
         # t_bound = 10 * pulse_width
         #
@@ -427,10 +427,10 @@ if __name__ == "__main__":
         #
         #
         # pulse_widths = np.linspace(50, 2000, 1e3) * asec
-        # # cosine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
-        # cosine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
-        # # sine_pulses = list(ion.GaussianPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
-        # sine_pulses = list(ion.SincPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+        # # cosine_pulses = list(ion.potentials.GaussianPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        # cosine_pulses = list(ion.potentials.SincPulse(pulse_width = pw, fluence = fluence, phase = 0) for pw in pulse_widths)
+        # # sine_pulses = list(ion.potentials.GaussianPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
+        # sine_pulses = list(ion.potentials.SincPulse(pulse_width = pw, fluence = fluence, phase = pi / 2) for pw in pulse_widths)
         #
         # cosine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(cosine_pulses)))
         # sine_results = np.array(list(get_final_a2(pulse, sim.times) for pulse in tqdm(sine_pulses)))

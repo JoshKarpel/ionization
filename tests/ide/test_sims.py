@@ -52,7 +52,7 @@ EXPECTED_TEST_RESULTS = {
 
 
 @pytest.mark.parametrize("evolution_method_type", FIXED_STEP_EVOLUTION_METHOD_TYPES)
-def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_and_gaussian_pulse(
+def test_fixed_step_evolution_method_gives_expected_result_for_hydrogen_kernel_and_gaussian_Pulse(
     evolution_method_type
 ):
     pulse = ion.potentials.GaussianPulse.from_number_of_cycles(

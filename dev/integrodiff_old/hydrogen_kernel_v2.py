@@ -82,7 +82,7 @@ if __name__ == "__main__":
             **PLOT_KWARGS,
         )
 
-        pulse = ion.SincPulse(pulse_width=200 * asec)
+        pulse = ion.potentials.SincPulse(pulse_width=200 * asec)
 
         shared_kwargs = dict(
             time_initial=-pulse.pulse_width * 10,

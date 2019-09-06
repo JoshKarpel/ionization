@@ -22,10 +22,10 @@ if __name__ == "__main__":
         pw = 1 * fsec
         dt = 1 * asec
 
-        pulse = ion.SincPulse(
+        pulse = ion.potentials.SincPulse(
             pulse_width=pw,
             fluence=1 * Jcm2,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=30 * pw, window_width=0.2 * pw
             ),
         )
@@ -57,7 +57,7 @@ if __name__ == "__main__":
             sim.spec.electric_potential.get_electric_field_amplitude(sim.times),
             x_label=r"$t$",
             x_unit="asec",
-            y_label=rf"${ion.LATEX_EFIELD}$",
+            y_label=rf"${ion.vis.LATEX_EFIELD}$",
             y_unit="atomic_electric_field",
             target_dir=OUT_DIR,
         )
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             sim.spec.electric_potential.get_electric_field_amplitude(sim.times),
             x_label=r"$t$",
             x_unit="asec",
-            y_label=rf"${ion.LATEX_EFIELD}$",
+            y_label=rf"${ion.vis.LATEX_EFIELD}$",
             y_unit="atomic_electric_field",
             x_lower_limit=-5 * pw,
             x_upper_limit=5 * pw,

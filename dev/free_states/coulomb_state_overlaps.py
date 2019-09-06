@@ -80,9 +80,9 @@ if __name__ == "__main__":
             inner_radius=0.8 * space_bound, outer_radius=space_bound
         )
 
-        # electric_field = ion.SincPulse(pulse_width = pw, fluence = flu, dc_correction_time = time_bound, phase = phase,
-        #                                window = ion.SymmetricExponentialTimeWindow(window_time = time_bound - pw, window_width = pw / 2))
-        # electric_field = ion.Rectangle(start_time = -time_bound + 25 * asec, end_time = -time_bound + 25 * asec + pw, amplitude = 1 * atomic_electric_field)
+        # electric_field = ion.potentials.SincPulse(pulse_width = pw, fluence = flu, dc_correction_time = time_bound, phase = phase,
+        #                                window = ion.potentials.LogisticWindow(window_time = time_bound - pw, window_width = pw / 2))
+        # electric_field = ion.potentials.Rectangle(start_time = -time_bound + 25 * asec, end_time = -time_bound + 25 * asec + pw, amplitude = 1 * atomic_electric_field)
         # electric_field = ion.SineWave.from_photon_energy(rydberg + 1 * eV, amplitude = .01 * atomic_electric_field)
         electric_field = ion.SineWave.from_photon_energy(
             rydberg + 5 * eV, amplitude=0.01 * atomic_electric_field

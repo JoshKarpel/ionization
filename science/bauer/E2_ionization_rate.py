@@ -152,7 +152,7 @@ if __name__ == "__main__":
             x_unit="fsec",
             # y_lower_limit = -1,
             # y_upper_limit = 1,
-            **PLOT_KWARGS
+            **PLOT_KWARGS,
         )
 
         # WITH EXTRA C-C TERM STATIC (SEE NOTEBOOK #3 P.103)
@@ -201,7 +201,7 @@ if __name__ == "__main__":
                 KHCC_per_atomic_time_per_prefactor
             )
 
-            print("efield_0", uround(efield_0, atomic_electric_field))
+            print("efield_0", f"{efield_0 / atomic_electric_field:3f}")
             print(
                 "KHCC / atomic time / kernel prefactor",
                 KHCC_per_atomic_time_per_prefactor,
@@ -248,7 +248,7 @@ if __name__ == "__main__":
                 KHCC_per_atomic_time_per_prefactor
             )
 
-            print("efield_0", uround(efield_0, atomic_electric_field))
+            print("efield_0", f"{efield_0 / atomic_electric_field:3f}")
             print(
                 "KHCC / atomic time / kernel prefactor",
                 KHCC_per_atomic_time_per_prefactor,

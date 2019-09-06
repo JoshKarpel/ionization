@@ -48,7 +48,7 @@ if __name__ == "__main__":
             2, 1, 0
         )
 
-        window = ion.LinearRampTimeWindow(
+        window = ion.potentials.LinearRampTimeWindow(
             ramp_on_time=t_init * asec, ramp_time=200 * asec
         )
         e_field = ion.SineWave.from_frequency(
@@ -67,7 +67,7 @@ if __name__ == "__main__":
             ),
         ]
         specs.append(
-            ion.CylindricalSliceSpecification(
+            ion.mesh.CylindricalSliceSpecification(
                 "cyl_slice",
                 time_initial=t_init * asec,
                 time_final=t_final * asec,

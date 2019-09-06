@@ -83,11 +83,11 @@ def run(spec):
 
 
 def get_pulse_identifier(pulse):
-    return f"E={uround(pulse.amplitude, atomic_electric_field, 1)}_Nc={pulse.number_of_cycles}_omega={uround(pulse.omega, atomic_angular_frequency, 1)}"
+    return f"E={pulse.amplitude / atomic_electric_field:1f}_Nc={pulse.number_of_cycles}_omega={pulse.omega / atomic_angular_frequency:1f}"
 
 
 def calculate_landau_rate(field_amplitude):
-    scaled_energy = np.abs(states.HydrogenBoundState(1, 0).energy) / hartree
+    scaled_energy = np.abs(ion.states.HydrogenBoundState(1, 0).energy) / hartree
     scaled_field = np.abs(field_amplitude) / atomic_electric_field
 
     return np.where(
@@ -201,7 +201,7 @@ def run_tdse_sims(
     r_points=500,
     l_points=300,
 ):
-    mesh_identifier = f"R={uround(r_bound, bohr_radius)}_Nr={r_points}_L={l_points}"
+    mesh_identifier = f"R={r_bound / bohr_radius:3f}_Nr={r_points}_L={l_points}"
 
     specs = []
     for amplitude, number_of_cycles, omega in itertools.product(
@@ -255,7 +255,7 @@ def run_ide_sims(tdse_sims):
     for sim in tdse_sims:
         specs.append(
             ide.IntegroDifferentialEquationSpecification(
-                sim.name.replace("tdse", "ide") + f"__dt={uround(dt, asec)}",
+                sim.name.replace("tdse", "ide") + f"__dt={dt / asec:3f}",
                 electric_potential=sim.spec.electric_potential,
                 time_initial=sim.times[0],
                 time_final=sim.times[-1],
@@ -288,7 +288,7 @@ def run_ide_sims_with_decay(tdse_sims, prefactor=2.4):
         specs.append(
             ide.IntegroDifferentialEquationSpecification(
                 sim.name.replace("tdse", "ide")
-                + f"__dt={uround(dt, asec)}__WITH_DECAY_prefactor={prefactor}",
+                + f"__dt={dt / asec:3f}__WITH_DECAY_prefactor={prefactor}",
                 electric_potential=sim.spec.electric_potential,
                 time_initial=sim.times[0],
                 time_final=sim.times[-1],
@@ -369,7 +369,7 @@ def make_comparison_plot(
     legend_handles = color_patches + style_patches
 
     si.vis.xxyy_plot(
-        f"pulse_ionization_comparison_with_empirical_rates__prefactor={prefactor}__{mesh_identifier}__IDEdt={uround(ide_time_step, asec)}",
+        f"pulse_ionization_comparison_with_empirical_rates__prefactor={prefactor}__{mesh_identifier}__IDEdt={ide_time_step / asec:3f}",
         x_data,
         y_data,
         # line_labels = line_labels,

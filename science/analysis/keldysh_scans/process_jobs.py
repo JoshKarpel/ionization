@@ -98,7 +98,7 @@ if __name__ == "__main__":
                             ]
                         ],
                         line_labels=[
-                            fr"$\varphi = {uround(phase, pi)}\pi$" for phase in phases
+                            fr"$\varphi = {phase / pi:3f}\pi$" for phase in phases
                         ],
                         x_label=r"$\tau$",
                         x_unit="asec",

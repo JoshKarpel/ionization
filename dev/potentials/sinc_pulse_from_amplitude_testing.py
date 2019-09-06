@@ -38,7 +38,9 @@ if __name__ == "__main__":
         file_dir=OUT_DIR,
         file_level=logging.DEBUG,
     ) as logger:
-        source = ion.SincPulse(pulse_width=200 * asec, fluence=1 * (J / (cm ** 2)))
+        source = ion.potentials.SincPulse(
+            pulse_width=200 * asec, fluence=1 * (J / (cm ** 2))
+        )
         pulse_widths = [290, 310, 390, 410]
         # pulse_widths = [50, 100, 200, 400, 600, 800]
         t_step = 2 * asec
@@ -50,7 +52,7 @@ if __name__ == "__main__":
         specs = []
         for phase in ("cos", "sin"):
             for pw in pulse_widths:
-                sinc = ion.SincPulse.from_amplitude_density(
+                sinc = ion.potentials.SincPulse.from_amplitude_density(
                     pulse_width=pw * asec,
                     amplitude_density=source.amplitude_omega,
                     phase=phase,

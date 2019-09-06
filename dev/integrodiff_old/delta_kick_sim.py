@@ -32,8 +32,10 @@ if __name__ == "__main__":
         bound_state = ion.FiniteSquareWellState.from_potential(
             internal_potential, mass=electron_mass
         )
-        # pulse = ion.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
-        pulse = ion.SincPulse(pulse_width=pulse_width, fluence=fluence, phase=phase)
+        # pulse = ion.potentials.GaussianPulse(pulse_width = pulse_width, fluence = fluence, phase = phase)
+        pulse = ion.potentials.SincPulse(
+            pulse_width=pulse_width, fluence=fluence, phase=phase
+        )
 
         t_bound = 10 * pulse_width
 

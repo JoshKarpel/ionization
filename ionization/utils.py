@@ -25,11 +25,11 @@ def make_repr(obj, *fields, digits: int = 3):
     """
     Generate a repr-like string from the object's attributes.
 
-    Each field should be a string containing the name of an attribute or a ('attribute_name', 'unit_name') pair. uround will be used to format in the second case.
+    Each field should be a string containing the name of an attribute or a ('attribute_name', 'unit_name') pair.
 
     :param obj: the object to get attributes from
     :param fields: the attributes or (attribute, unit) pairs to get from obj
-    :param digits: the number of digits to round to for uround
+    :param digits: the number of digits to round to
     :return: the formatted string
     """
     field_strings = []

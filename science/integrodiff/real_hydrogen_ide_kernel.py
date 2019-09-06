@@ -64,7 +64,7 @@ if __name__ == "__main__":
         #
         # for td in tds:
         #     si.vis.xy_plot(
-        #         f'integrands_vs_k__td={uround(td, asec)}',
+        #         f'integrands_vs_k__td={td / asec:3f}',
         #         wavenumber,
         #         np.abs(integrand_from_bessels(wavenumber, td)),
         #         np.real(integrand_from_bessels(wavenumber, td)),

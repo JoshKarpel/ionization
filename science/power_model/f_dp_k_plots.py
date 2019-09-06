@@ -7,7 +7,7 @@ import scipy.integrate as integ
 import scipy.interpolate as interp
 
 import simulacra as si
-from simulacra.units import *
+import simulacra.units as u
 
 import ionization as ion
 import ide as ide
@@ -23,23 +23,23 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 PLOT_POINTS = 300
 
-PULSE_TO_T_BOUND = {ion.GaussianPulse: 10, ion.SincPulse: 35}
+PULSE_TO_T_BOUND = {ion.potentials.GaussianPulse: 10, ion.potentials.SincPulse: 35}
 
-PULSE_TO_P_BOUND = {ion.GaussianPulse: 3, ion.SincPulse: 30}
+PULSE_TO_P_BOUND = {ion.potentials.GaussianPulse: 3, ion.potentials.SincPulse: 30}
 
 
 def pulse_to_filename(pulse):
     attrs = [
-        ("pulse_width", functools.partial(uround, unit="asec")),
-        ("fluence", functools.partial(uround, unit="Jcm2")),
-        ("phase", functools.partial(uround, unit="pi")),
+        ("pulse_width", lambda x: f"{x / u.asec:.3f}"),
+        ("fluence", lambda x: f"{x / u.Jcm2:.3f}"),
+        ("phase", lambda x: f"{x / u.pi:.3f}"),
     ]
 
-    if isinstance(pulse, ion.GaussianPulse):
+    if isinstance(pulse, ion.potentials.GaussianPulse):
         attrs.append("number_of_cycles")
 
-    if isinstance(pulse, ion.SincPulse):
-        attrs.append(("omega_min", lambda x: uround(x, twopi * THz)))
+    if isinstance(pulse, ion.potentials.SincPulse):
+        attrs.append(("omega_min", lambda x: f"{x / u.twopi * u.THz:.3f}"))
 
     return si.utils.obj_to_filename(pulse, attrs)
 
@@ -60,26 +60,27 @@ def make_f_dp_k_plots(pulse):
     si.vis.xy_plot(
         prefix + "fields",
         times,
-        pulse.get_electric_field_amplitude(times) / atomic_electric_field,
+        pulse.get_electric_field_amplitude(times) / u.atomic_electric_field,
         pulse.get_vector_potential_amplitude_numeric_cumulative(times)
-        * proton_charge
-        / atomic_momentum,
+        * u.proton_charge
+        / u.atomic_momentum,
         line_labels=[r"$\mathcal{E}(t)$", r"$q \, \mathcal{A}(t)$"],
         x_unit="asec",
         x_label=r"$ t $",
         y_label="Field Amplitudes (a.u.)",
         x_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
-    force = lambda t: electron_charge * pulse.get_electric_field_amplitude(t)
+    force = lambda t: u.electron_charge * pulse.get_electric_field_amplitude(t)
 
     m_times = np.linspace(
         -t_bound * pulse.pulse_width, t_bound * pulse.pulse_width, 1000
     )
     momentum_array = (
-        electron_charge * pulse.get_electric_field_integral_numeric_cumulative(m_times)
+        u.electron_charge
+        * pulse.get_electric_field_integral_numeric_cumulative(m_times)
     )
     momentum = interp.interp1d(
         m_times, momentum_array, fill_value=np.NaN, bounds_error=False, kind="cubic"
@@ -102,13 +103,13 @@ def make_f_dp_k_plots(pulse):
         x_label=r"$ t $",
         y_unit="asec",
         y_label=r"$ \delta $",
-        z_unit=atomic_force * atomic_momentum,
+        z_unit=u.atomic_force * u.atomic_momentum,
         z_label=r"$ \mathcal{F}(t) \times \Delta p(t, \delta) $",
         colormap=plt.get_cmap("RdBu_r"),
         x_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
         title=r"Force $\times$ Momentum",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     si.vis.xyz_plot(
@@ -120,12 +121,12 @@ def make_f_dp_k_plots(pulse):
         x_label=r"$ t $",
         y_unit="asec",
         y_label=r"$ \delta $",
-        z_unit=atomic_force * atomic_momentum,
+        z_unit=u.atomic_force * u.atomic_momentum,
         z_label=r"$ \left| \mathcal{F}(t) \times \Delta p(t, \delta) \right| $",
         x_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
         title=r"Force $\times$ Momentum (Abs.)",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     with si.utils.BlockTimer() as timer:
@@ -147,7 +148,7 @@ def make_f_dp_k_plots(pulse):
         x_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
         title=r"$ \mathcal{K}(t, \, \delta) \times \mathcal{F}(t) \times \Delta p(t, \delta) $",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     si.vis.xyz_plot(
@@ -163,7 +164,7 @@ def make_f_dp_k_plots(pulse):
         x_upper_limit=p_bound * pulse.pulse_width,
         z_upper_limit=10,
         title=r"$ \left| \mathcal{K}(t, \, \delta) \times \mathcal{F}(t) \times \Delta p(t, \delta) \right| $ (norm. by avg.)",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
 
@@ -199,26 +200,27 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
     si.vis.xy_plot(
         prefix + "fields",
         current_times,
-        pulse.get_electric_field_amplitude(current_times) / atomic_electric_field,
+        pulse.get_electric_field_amplitude(current_times) / u.atomic_electric_field,
         pulse.get_vector_potential_amplitude_numeric_cumulative(current_times)
-        * proton_charge
-        / atomic_momentum,
+        * u.proton_charge
+        / u.atomic_momentum,
         line_labels=[r"$\mathcal{E}(t)$", r"$q \, \mathcal{A}(t)$"],
         x_unit="asec",
         x_label=r"$ t $",
         y_label="Field Amplitudes (a.u.)",
         x_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
-    force = lambda t: electron_charge * pulse.get_electric_field_amplitude(t)
+    force = lambda t: u.electron_charge * pulse.get_electric_field_amplitude(t)
 
     m_times = np.linspace(
         -t_bound * pulse.pulse_width, t_bound * pulse.pulse_width, 1000
     )
     momentum_array = (
-        electron_charge * pulse.get_electric_field_integral_numeric_cumulative(m_times)
+        u.electron_charge
+        * pulse.get_electric_field_integral_numeric_cumulative(m_times)
     )
     momentum = interp.interp1d(
         m_times, momentum_array, fill_value=np.NaN, bounds_error=False, kind="cubic"
@@ -241,7 +243,7 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
         x_label=r"$ t $",
         y_unit="asec",
         y_label=r"$ t' $",
-        z_unit=atomic_force * atomic_momentum,
+        z_unit=u.atomic_force * u.atomic_momentum,
         z_label=r"$ \mathcal{F}(t) \times \Delta p(t, t') $",
         colormap=plt.get_cmap("RdBu_r"),
         x_lower_limit=-p_bound * pulse.pulse_width,
@@ -249,7 +251,7 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
         x_upper_limit=p_bound * pulse.pulse_width,
         y_upper_limit=p_bound * pulse.pulse_width,
         title=r"Force $\times$ Momentum",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     si.vis.xyz_plot(
@@ -261,14 +263,14 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
         x_label=r"$ t $",
         y_unit="asec",
         y_label=r"$ t' $",
-        z_unit=atomic_force * atomic_momentum,
+        z_unit=u.atomic_force * u.atomic_momentum,
         z_label=r"$ \left| \mathcal{F}(t) \times \Delta p(t, t') \right| $",
         x_lower_limit=-p_bound * pulse.pulse_width,
         y_lower_limit=-p_bound * pulse.pulse_width,
         x_upper_limit=p_bound * pulse.pulse_width,
         y_upper_limit=p_bound * pulse.pulse_width,
         title=r"Force $\times$ Momentum (Abs.)",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     with si.utils.BlockTimer() as timer:
@@ -294,7 +296,7 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
         x_upper_limit=p_bound * pulse.pulse_width,
         y_upper_limit=p_bound * pulse.pulse_width,
         title=r"$ \mathcal{K}(t, \, t') \times \mathcal{F}(t) \times \Delta p(t, t') $",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
     si.vis.xyz_plot(
@@ -312,7 +314,7 @@ def make_f_dp_k_plots_by_earlier_time(pulse):
         y_upper_limit=p_bound * pulse.pulse_width,
         z_upper_limit=10,
         title=r"$ \left| \mathcal{K}(t, \, t') \times \mathcal{F}(t) \times \Delta p(t, t') \right| $ (norm. by avg.)",
-        **PLOT_KWARGS
+        **PLOT_KWARGS,
     )
 
 
@@ -342,12 +344,12 @@ determine_K_from_earlier_time = np.vectorize(
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        pulse_widths = np.array([50, 100, 150, 200, 250, 300, 500, 800]) * asec
-        fluences = np.array([1]) * Jcm2
-        phases = np.array([0, 0.5]) * pi
+        pulse_widths = np.array([50, 100, 150, 200, 250, 300, 500, 800]) * u.asec
+        fluences = np.array([1]) * u.Jcm2
+        phases = np.array([0, 0.5]) * u.pi
 
         pulses = [
-            ion.GaussianPulse.from_number_of_cycles(
+            ion.potentials.GaussianPulse.from_number_of_cycles(
                 pulse_width=pw, fluence=flu, phase=cep, number_of_cycles=3
             )
             for pw in pulse_widths

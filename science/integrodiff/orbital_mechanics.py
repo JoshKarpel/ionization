@@ -107,7 +107,7 @@ if __name__ == "__main__":
         etas = np.array([0.01, 0.05, 0.1, 0.2, 0.3, 0.4]) * time_field_unit
         for eta in etas:
             si.vis.xyz_plot(
-                f"eta={uround(eta, time_field_unit)}au",
+                f"eta={eta / time_field_unit:3f}au",
                 theta_mesh,
                 alpha_mesh,
                 orbit_ratio(eta, theta_mesh, alpha_mesh),
@@ -115,7 +115,7 @@ if __name__ == "__main__":
                 x_unit="rad",
                 y_label=r"$\alpha$",
                 y_unit="rad",
-                z_label=fr"$T' / T$ at $\eta = {uround(eta, time_field_unit)}$ a.u.",
+                z_label=fr"$T' / T$ at $\eta = {eta / time_field_unit:3f}$ a.u.",
                 **PLOT_KWARGS,
             )
 

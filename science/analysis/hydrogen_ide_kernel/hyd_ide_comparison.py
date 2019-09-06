@@ -45,7 +45,7 @@ def version_1():
     fluence_to_color = dict(zip(fluences, colors))
     color_patches = [
         mpatches.Patch(
-            color=color, label=fr"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $"
+            color=color, label=fr"$ H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}} $"
         )
         for fluence, color in fluence_to_color.items()
     ]
@@ -162,7 +162,7 @@ def version_2():
     fluence_to_color = dict(zip(fluences, colors))
     color_patches = [
         mpatches.Patch(
-            color=color, label=fr"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $"
+            color=color, label=fr"$ H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}} $"
         )
         for fluence, color in fluence_to_color.items()
     ]
@@ -277,7 +277,7 @@ def version_2():
                 )
 
             # LIMITS AND GRIDS
-            grid_kwargs = si.vis.GRID_KWARGS
+            grid_kwargs = si.vis.DEFAULT_GRID_KWARGS
             minor_grid_kwargs = si.vis.MINOR_GRID_KWARGS
             for ax in [ax_hyd, ax_ide]:
                 ax.grid(True, which="major", **grid_kwargs)
@@ -305,7 +305,7 @@ def version_3():
 
     # phase_to_style = dict(zip(phases, styles))
     fluence_to_color = dict(zip(fluences, colors))
-    # color_patches = [mpatches.Patch(color = color, label = fr'$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $')
+    # color_patches = [mpatches.Patch(color = color, label = fr'$ H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}} $')
     #                  for fluence, color in fluence_to_color.items()]
 
     # phases_latex = [r'0', r'\pi / 4', r'\pi / 2']
@@ -396,7 +396,7 @@ def version_3():
                 ax_hyd.plot(
                     [r.pulse_width / asec for r in hyd_cos[fluence]],
                     y,
-                    label=rf"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $",
+                    label=rf"$ H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}} $",
                     **line_kwargs[fluence],
                 )
             for fluence in fluences:
@@ -406,7 +406,7 @@ def version_3():
                 ax_ide.plot(
                     [r.pulse_width / asec for r in ide_cos[fluence]],
                     y,
-                    label=rf"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $",
+                    label=rf"$ H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}} $",
                     **line_kwargs[fluence],
                 )
             legend = ax_hyd.legend(
@@ -414,7 +414,7 @@ def version_3():
             )
 
             # LIMITS AND GRIDS
-            grid_kwargs = si.vis.GRID_KWARGS
+            grid_kwargs = si.vis.DEFAULT_GRID_KWARGS
             minor_grid_kwargs = si.vis.MINOR_GRID_KWARGS
             for ax in [ax_hyd, ax_ide]:
                 ax.grid(True, which="major", **grid_kwargs)

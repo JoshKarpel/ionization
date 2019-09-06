@@ -18,7 +18,7 @@ if __name__ == "__main__":
         "simulacra", "ionization", stdout_logs=True, stdout_level=logging.DEBUG
     ) as logger:
         tau_alpha = 4 * electron_mass * (bohr_radius ** 2) / hbar
-        print(f"tau alpha: {uround(tau_alpha, asec)}")
+        print(f"tau alpha: {tau_alpha / asec:3f}")
 
         time_diffs = np.linspace(0, 10 * tau_alpha, 1000)
         kernel = ide.gaussian_kernel_LEN(time_diffs, tau_alpha=tau_alpha)

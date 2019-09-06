@@ -67,7 +67,7 @@ if __name__ == "__main__":
             optim.brentq(lambda td: np.imag(kernel(td * asec, omega)) / norm, 30, 70)
             * asec
         )
-        print(f"first imag zero of kernel is at {uround(imag_zero_at, asec)} as")
+        print(f"first imag zero of kernel is at {imag_zero_at / asec:3f} as")
         print(f"ratio to tau alpha: {imag_zero_at / tau_alpha:.6f}")
 
         print()
@@ -76,7 +76,7 @@ if __name__ == "__main__":
             optim.brentq(lambda td: np.real(kernel(td * asec, omega)) / norm, 140, 160)
             * asec
         )
-        print(f"first real zero of kernel is at {uround(real_zero_at, asec)} as")
+        print(f"first real zero of kernel is at {real_zero_at / asec:3f} as")
         print(f"ratio to orbit time: {real_zero_at / orbit_time:.6f}")
 
         print()
@@ -107,7 +107,7 @@ if __name__ == "__main__":
             ).x
             * asec
         )
-        print(f"max ionization at td = {uround(max_ionization_at, asec)} as")
+        print(f"max ionization at td = {max_ionization_at / asec:3f} as")
 
         zero_diff_at = (
             optim.brentq(
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             )
             * asec
         )
-        print(f"zero diff ionization at td = {uround(zero_diff_at, asec)} as")
+        print(f"zero diff ionization at td = {zero_diff_at / asec:3f} as")
         print(kernel(0, omega))
         print(kernel(40 * asec, omega))
         print(kernel(zero_diff_at, omega))

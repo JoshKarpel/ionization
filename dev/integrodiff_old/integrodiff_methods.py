@@ -32,7 +32,7 @@ def run(spec):
 
         for kwargs in PLOT_KWARGS:
             sim.plot_b2_vs_time(
-                name_postfix=f"{uround(sim.spec.time_step, asec, 3)}", **kwargs
+                name_postfix=f"{sim.spec.time_step / asec:3f}", **kwargs
             )
 
         return sim
@@ -49,23 +49,23 @@ if __name__ == "__main__":
                 flu = 0.1 * Jcm2
 
                 # t_bound = 10
-                # electric_pot = ion.SincPulse(pulse_width = pw, fluence = flu,
-                #                              window = ion.SymmetricExponentialTimeWindow((t_bound - 2) * pw, .2 * pw))
+                # electric_pot = ion.potentials.SincPulse(pulse_width = pw, fluence = flu,
+                #                              window = ion.potentials.LogisticWindow((t_bound - 2) * pw, .2 * pw))
 
                 t_bound = 3
-                electric_pot = ion.Rectangle(
+                electric_pot = ion.potentials.Rectangle(
                     start_time=-5 * pw,
                     end_time=5 * pw,
                     amplitude=1 * atomic_electric_field,
-                    window=ion.SymmetricExponentialTimeWindow(
+                    window=ion.potentials.LogisticWindow(
                         pw / 2, 0.1 * pw, window_center=-1 * pw
                     ),
                 )
-                electric_pot += ion.Rectangle(
+                electric_pot += ion.potentials.Rectangle(
                     start_time=0 * pw,
                     end_time=5 * pw,
                     amplitude=-1 * atomic_electric_field,
-                    window=ion.SymmetricExponentialTimeWindow(
+                    window=ion.potentials.LogisticWindow(
                         pw / 2, 0.1 * pw, window_center=1 * pw
                     ),
                 )
@@ -136,7 +136,7 @@ if __name__ == "__main__":
 
                 for kwargs in PLOT_KWARGS:
                     si.vis.xxyy_plot(
-                        f"{gauge}__method_comparison__pw={uround(pw, asec, 3)}_dt={uround(dt, asec, 3)}",
+                        f"{gauge}__method_comparison__pw={pw / asec:3f}_dt={dt / asec:3f}",
                         (r.times for r in results),
                         (r.b2 for r in results),
                         line_labels=(r.name for r in results),
@@ -147,7 +147,7 @@ if __name__ == "__main__":
                         y_label=r"$\left| a(t) \right|^2$",
                         y_lower_limit=0,
                         y_upper_limit=1,
-                        title=fr"Method Comparison at $\tau = {uround(pw, asec, 3)}$ as, $\Delta t = {uround(dt, asec, 3)}$ as",
+                        title=fr"Method Comparison at $\tau = {pw / asec:3f}$ as, $\Delta t = {dt / asec:3f}$ as",
                         **kwargs,
                     )
 
@@ -156,12 +156,10 @@ if __name__ == "__main__":
 
                     print()
 
-                    # print(f'gauge: {gauge}, dt = {uround(dt, asec, 3)} as')
+                    # print(f'gauge: {gauge}, dt = {dt / asec:3f} as')
                     just = max(len(r.name) for r in results) + 1
                     with open(
-                        os.path.join(
-                            OUT_DIR, f"gauge={gauge}_dt={uround(dt, asec, 3)}as.txt"
-                        ),
+                        os.path.join(OUT_DIR, f"gauge={gauge}_dt={dt / asec:3f}as.txt"),
                         mode="w",
                     ) as file:
                         for r in results:

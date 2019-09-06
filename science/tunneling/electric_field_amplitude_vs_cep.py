@@ -40,9 +40,13 @@ if __name__ == "__main__":
 
         ceps = np.linspace(0, twopi, 1e3)
 
-        power_fractions_by_pulse_type = dict()
+        power_fraction.potentials._by_Pulse_type = dict()
 
-        for pulse_type in (ion.SincPulse, ion.GaussianPulse, ion.SechPulse):
+        for pulse_type in (
+            ion.potentials.SincPulse,
+            ion.potentials.GaussianPulse,
+            ion.potentials.SechPulse,
+        ):
             power_fraction_vs_cep = np.zeros(len(ceps))
 
             pot_zero = pulse_type.from_omega_carrier(
@@ -57,7 +61,7 @@ if __name__ == "__main__":
                     pulse_width=pw,
                     fluence=flu,
                     phase=cep,
-                    window=ion.SymmetricExponentialTimeWindow(
+                    window=ion.potentials.LogisticWindow(
                         window_time=(bound - 2) * pw, window_width=0.2 * pw
                     ),
                 )
@@ -70,7 +74,7 @@ if __name__ == "__main__":
                     np.abs(field) > power_cut
                 ).sum() / len_times
 
-            power_fractions_by_pulse_type[pulse_type] = (
+            power_fraction.potentials._by_Pulse_type[pulse_type] = (
                 power_fraction_vs_cep / power_fraction_vs_cep[0]
             )  # normalize to cep = 0
 
@@ -78,8 +82,8 @@ if __name__ == "__main__":
             # f'power_fractions_vs_cep',
             f"power_fractions_vs_cep__dc_corrected",
             ceps,
-            *(v for k, v in power_fractions_by_pulse_type.items()),
-            line_labels=(k.__name__ for k in power_fractions_by_pulse_type),
+            *(v for k, v in power_fraction.potentials._by_Pulse_type.items()),
+            line_labels=(k.__name__ for k in power_fraction.potentials._by_Pulse_type),
             x_label=r"Carrier-Envelope Phase $\varphi$",
             x_unit="rad",
             y_label=r"Rel. Fraction of Time at $>\frac{1}{2}$ Power",

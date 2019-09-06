@@ -17,7 +17,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        window = potentials.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=500 * u.asec,
             window_width=50 * u.asec,
             window_center=100 * u.asec,

@@ -27,14 +27,11 @@ def run(spec):
         file_mode="w",
     ) as logger:
         logger.info(
-            "Predicted initial energy: {} eV".format(
-                uround(sim.spec.initial_state.energy, eV, 10)
-            )
+            f"Predicted initial energy: {sim.spec.initial_state.energy / eV:0f} eV"
         )
+
         logger.info(
-            "Measured initial energy: {} eV".format(
-                uround(sim.spec.initial_state.energy, eV, 10)
-            )
+            f"Measured initial energy: {sim.spec.initial_state.energy / eV:0f} eV"
         )
 
         si.vis.xy_plot(
@@ -163,7 +160,7 @@ if __name__ == "__main__":
             fsw_potential, mass
         )
 
-        # electric_field = ion.Rectangle(start_time = 100 * asec, end_time = 150 * asec, amplitude = 1 * atomic_electric_field)
+        # electric_field = ion.potentials.Rectangle(start_time = 100 * asec, end_time = 150 * asec, amplitude = 1 * atomic_electric_field)
 
         specs = []
 
@@ -218,9 +215,7 @@ if __name__ == "__main__":
             for sim in sims
         ]
         labels = [
-            "bound = {} nm, points = $2^{{{}}}$".format(
-                uround(sim.spec.x_bound, "nm"), int(np.log2(sim.spec.x_points))
-            )
+            f"bound = {sim.spec.x_bound / nm:.3f} nm, points = $2^{{{int(np.log2(sim.spec.x_points))}}}$"
             for sim in sims
         ]
 
@@ -233,7 +228,7 @@ if __name__ == "__main__":
             x_unit="asec",
             y_label=r"$E(t)$",
             y_unit="eV",
-            target_dir=OUT_DIR
+            target_dir=OUT_DIR,
         )
 
         si.vis.xy_plot(
@@ -245,7 +240,7 @@ if __name__ == "__main__":
             x_unit="asec",
             y_label=r"$E(t) - E_0$",
             y_unit="eV",
-            target_dir=OUT_DIR
+            target_dir=OUT_DIR,
         )
 
         si.vis.xy_plot(
@@ -256,7 +251,7 @@ if __name__ == "__main__":
             x_label="$t$",
             x_unit="asec",
             y_label=r"$\left| \frac{E(t)}{E_0} \right|$",
-            target_dir=OUT_DIR
+            target_dir=OUT_DIR,
         )
 
         si.vis.xy_plot(
@@ -268,5 +263,5 @@ if __name__ == "__main__":
             x_unit="asec",
             y_label=r"$\left| \frac{E(t)}{E_0} \right|$",
             y_log_axis=True,
-            target_dir=OUT_DIR
+            target_dir=OUT_DIR,
         )

@@ -28,7 +28,7 @@ def make_anim(args):
     p_bound = 4
 
     pulse_dummy = ion.SineWave.from_wavelength(wavelength=wavelength, amplitude=amp)
-    window = ion.SymmetricExponentialTimeWindow(
+    window = ion.potentials.LogisticWindow(
         window_time=p_bound * pulse_dummy.period, window_width=0.2 * pulse_dummy.period
     )
     pulse = ion.SineWave.from_wavelength(
@@ -52,7 +52,9 @@ def make_anim(args):
         for start in starts
     )
 
-    identifier = f"HHG__lambda={uround(wavelength, nm, 0)}nm_amp={uround(amp, atomic_electric_field, 5)}au"
+    identifier = (
+        f"HHG__lambda={wavelength / nm:0f}nm_amp={amp / atomic_electric_field:5f}au"
+    )
 
     efield_color = ion.COLOR_ELECTRIC_FIELD
     trajectory_color = si.vis.BLACK
@@ -73,7 +75,7 @@ def make_anim(args):
 
         ax_efield.plot(times, efield, color=efield_color)
         ax_efield.set_xlabel(r"Time $ t $ (as)")
-        ax_efield.set_ylabel(fr"$ {ion.LATEX_EFIELD}(t) $", color=efield_color)
+        ax_efield.set_ylabel(fr"$ {ion.vis.LATEX_EFIELD}(t) $", color=efield_color)
         ax_efield.set_title(r"Free Electron Trajectories")
 
         ax_efield.tick_params("y", colors=efield_color)

@@ -31,24 +31,24 @@ if __name__ == "__main__":
         amp = 0.01
         phase = 0
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=0.9 * t_bound * asec, window_width=10 * asec
         )
 
         # efield = ion.SineWave.from_photon_energy(rydberg + 20 * eV, amplitude = .05 * atomic_electric_field,
-        #                                                          window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
+        #                                                          window = ion.potentials.LogisticWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
 
         efield = ion.SineWave.from_photon_energy(
             rydberg + 20 * eV,
             amplitude=amp * atomic_electric_field,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=0.9 * t_bound * asec, window_width=10 * asec
             ),
         )
         #
         # efield += ion.SineWave.from_photon_energy(rydberg + 30 * eV, amplitude = .05 * atomic_electric_field,
-        #                                           window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
+        #                                           window = ion.potentials.LogisticWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
 
         # efield = ion.SineWave(twopi * (c / (800 * nm)), amplitude = .01 * atomic_electric_field,
         #                       window = window)
@@ -81,7 +81,7 @@ if __name__ == "__main__":
         )
 
         sim = ion.SphericalHarmonicSpecification(
-            f"R={r_bound}_amp={amp}_phase={uround(phase, pi, 3)}pi_tB={t_bound}_tE={t_extra}",
+            f"R={r_bound}_amp={amp}_phase={phase / pi:3f}pi_tB={t_bound}_tE={t_extra}",
             **spec_kwargs,
         ).to_sim()
 
@@ -145,12 +145,12 @@ if __name__ == "__main__":
                     "wavenumber",
                     "per_nm",
                     log=log,
-                    name_postfix=f"_t={uround(snapshot.time, asec, 3)}",
+                    name_postfix=f"_t={snapshot.time / asec:3f}",
                     **snapshot_spectrum_kwargs,
                 )
 
                 si.vis.xy_plot(
-                    f"snapshot_t={uround(snapshot.time, asec, 3)}__free_only__theta=0__log={log}",
+                    f"snapshot_t={snapshot.time / asec:3f}__free_only__theta=0__log={log}",
                     wavenumber[0, :],
                     np.abs(ip[0, :]) ** 2,
                     x_unit="per_nm",

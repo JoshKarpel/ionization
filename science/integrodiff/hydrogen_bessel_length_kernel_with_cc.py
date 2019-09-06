@@ -71,7 +71,7 @@ def plot_integral_vs_c_and_d():
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        pulse = ion.GaussianPulse(pulse_width=100 * u.asec)
+        pulse = ion.potentials.GaussianPulse(pulse_width=100 * u.asec)
         times = np.linspace(-1000, 1000, 1000) * u.asec
 
         # phase_factor = np.

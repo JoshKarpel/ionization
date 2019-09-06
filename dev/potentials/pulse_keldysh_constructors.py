@@ -19,7 +19,7 @@ if __name__ == "__main__":
     with si.utils.LogManager(
         "simulacra", "ionization", stdout_logs=True, stdout_level=logging.INFO
     ):
-        pulse_type = ion.GaussianPulse
+        pulse_type = ion.potentials.GaussianPulse
         pulse_widths = np.array([50, 200, 800, 1600]) * asec
 
         print("\n\n\n\n####### CONSTANT KELDYSH CARRIER ########")

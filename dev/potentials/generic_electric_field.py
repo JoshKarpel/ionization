@@ -23,11 +23,13 @@ if __name__ == "__main__":
         plot_bound = 35
         times = np.linspace(-plot_bound * pw, plot_bound * pw, 2 ** 12)
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=t_bound * pw, window_width=0.2 * pw
         )
 
-        base_pulse = ion.SincPulse(pulse_width=pw, fluence=flu, window=window)
+        base_pulse = ion.potentials.SincPulse(
+            pulse_width=pw, fluence=flu, window=window
+        )
         base_pulse = ion.DC_correct_electric_potential(base_pulse, times)
 
         replica_pulse = ion.GenericElectricPotential.from_pulse(
@@ -58,7 +60,7 @@ if __name__ == "__main__":
         #     **PLOT_KWARGS,
         # )
 
-        potentials.plot_electric_field_amplitude_vs_time(
+        ion.potentials.plot_electric_field_amplitude_vs_time(
             "pulses",
             times,
             base_pulse,
@@ -87,6 +89,6 @@ if __name__ == "__main__":
                 )
             )
 
-        potentials.plot_electric_field_amplitude_vs_time(
+        ion.potentials.plot_electric_field_amplitude_vs_time(
             "lots_of_pulses", times, *rand_pulses, **PLOT_KWARGS
         )

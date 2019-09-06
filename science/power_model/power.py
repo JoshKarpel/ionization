@@ -34,7 +34,7 @@ def run(spec):
 
 
 def pulse_identifier(pulse):
-    return f"{pulse.__class__.__name__}_pw={u.uround(pulse.pulse_width, u.asec)}as_cep={u.uround(pulse.phase, u.pi)}pi_flu={u.uround(pulse.fluence, u.Jcm2)}jcm2"
+    return f"{pulse.__class__.__name__}_pw={pulse.pulse_width / u.asec:.3f}as_cep={pulse.phase / u.pi:.3f}pi_flu={pulse.fluence / u.Jcm2:.3f}jcm2"
 
 
 def get_power(pulse, times, lookback=None):
@@ -60,7 +60,7 @@ def plot_power(cos_pulse, sin_pulse, times, lookback=None):
     si.vis.xy_plot(
         "F_AND_V___"
         + "__".join(pulse_identifier(pulse[0]) for pulse in pulses)
-        + (f"__{u.uround(lookback, u.asec)}" if lookback is not None else ""),
+        + (f"__{lookback / u.asec:.3f}" if lookback is not None else ""),
         times,
         *[power / u.atomic_power for power in powers],
         line_labels=[
@@ -123,7 +123,7 @@ def plot_tdse_initial_state_overlap(sims):
         x_unit="asec",
         y_label=r"$ \left\langle \psi_{100}(t) | \Psi(t) \right\rangle $",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -143,7 +143,7 @@ def plot_tdse_initial_state_overlap(sims):
         y_label=r"$ \partial_t \left\langle \psi_{100}(t) | \Psi(t)  \right\rangle $",
         y_unit="per_asec",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -169,7 +169,7 @@ def plot_tdse_energy_and_power_expectation_values(sims):
         y_label=r"$ \left\langle H(t) \right\rangle $",
         y_unit="hartree",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -199,7 +199,7 @@ def plot_tdse_energy_and_power_expectation_values(sims):
         y_label=r"$ \partial_t \left\langle H(t) \right\rangle $",
         y_unit="atomic_power",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -221,7 +221,7 @@ def plot_tdse_z_and_vz_expectation_values(sims):
         y_label=r"$ \left\langle z(t) \right\rangle $",
         y_unit="bohr_radius",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -244,7 +244,7 @@ def plot_tdse_z_and_vz_expectation_values(sims):
         y_label=r"$ \partial_t \left\langle z(t) \right\rangle $",
         y_unit="atomic_velocity",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -266,7 +266,7 @@ def plot_tdse_z_and_vz_expectation_values(sims):
         y_label=r"$ q \, \mathcal{E}(t) \, \partial_t \left\langle v_z(t) \right\rangle $",
         y_unit="atomic_power",
         line_labels=[
-            rf"$ \varphi = {u.uround(s.spec.electric_potential[0].phase, u.pi)} \pi $"
+            rf"$ \varphi = {s.spec.electric_potential[0].phase/u.pi:.3f} \pi $"
             for s in sims
         ],
         **PLOT_KWARGS,
@@ -312,7 +312,7 @@ def peak_power_vs_cep():
     pw = 200 * u.asec
     ceps = np.linspace(0, u.pi, 1000)
 
-    pulses = [potentials.SincPulse(pulse_width=pw, phase=cep) for cep in ceps]
+    pulses = [ion.potentials.SincPulse(pulse_width=pw, phase=cep) for cep in ceps]
     times = np.linspace(-50 * pw, 50 * pw, 20000)
 
     powers = [get_power(pulse, times) for pulse in pulses]
@@ -337,7 +337,7 @@ def power_vs_cep_movie():
     times = np.linspace(-50 * pw, 50 * pw, 20000)
 
     def y(times, cep):
-        pulse = potentials.SincPulse(pulse_width=pw, phase=cep)
+        pulse = ion.potentials.SincPulse(pulse_width=pw, phase=cep)
         return get_power(pulse, times)
 
     si.vis.xyt_plot(
@@ -365,13 +365,15 @@ if __name__ == "__main__":
         # power_vs_cep_movie()
 
         pulses = [
-            potentials.SincPulse(pulse_width=20 * u.asec, fluence=2 * u.Jcm2, phase=0),
-            potentials.SincPulse(
+            ion.potentials.SincPulse(
+                pulse_width=20 * u.asec, fluence=2 * u.Jcm2, phase=0
+            ),
+            ion.potentials.SincPulse(
                 pulse_width=20 * u.asec, fluence=2 * u.Jcm2, phase=u.pi / 2
             ),
             # ion.potentials.SincPulse(phase = u.pi / 3),
         ]
-        window = potentials.LogisticWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=30 * pulses[0].pulse_width,
             window_width=0.2 * pulses[0].pulse_width,
         )
@@ -382,7 +384,8 @@ if __name__ == "__main__":
         )
 
         corrected_pulses = [
-            potentials.DC_correct_electric_potential(pulse, times) for pulse in pulses
+            ion.potentials.DC_correct_electric_potential(pulse, times)
+            for pulse in pulses
         ]
         plot_power(*corrected_pulses, times, lookback=None)
         plot_power(*corrected_pulses, times, lookback=5 * u.asec)

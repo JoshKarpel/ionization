@@ -60,7 +60,7 @@ if __name__ == "__main__":
                     for results in results_by_photon_energy.values()
                 ),
                 line_labels=(
-                    fr"$ \hbar \omega = {uround(photon_energy, eV, 1)} \, \mathrm{{eV}} $"
+                    fr"$ \hbar \omega = {photon_energy / eV:1f} \, \mathrm{{eV}} $"
                     for photon_energy in results_by_photon_energy.keys()
                 ),
                 x_label=r"Intensity",
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                     for results in results_by_photon_energy.values()
                 ),
                 line_labels=(
-                    fr"$ \hbar \omega = {uround(photon_energy, eV, 1)} \, \mathrm{{eV}} $"
+                    fr"$ \hbar \omega = {photon_energy / eV:1f} \, \mathrm{{eV}} $"
                     for photon_energy in results_by_photon_energy.keys()
                 ),
                 x_label=r"Intensity",
@@ -110,7 +110,7 @@ if __name__ == "__main__":
                     for results in results_by_photon_energy.values()
                 ),
                 line_labels=(
-                    fr"$ \hbar \omega = {uround(photon_energy, eV, 1)} \, \mathrm{{eV}} $"
+                    fr"$ \hbar \omega = {photon_energy / eV:1f} \, \mathrm{{eV}} $"
                     for photon_energy in results_by_photon_energy.keys()
                 ),
                 x_label=r"Intensity",

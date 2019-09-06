@@ -31,7 +31,7 @@ PLOT_KWARGS = dict(
 #     ax.legend(loc = 'best')
 #     ax.set_xlabel(r'Time $t$ ($\mathrm{as}$)')
 #     ax.set_ylabel(r'$   \left| a_{\alpha}(t) \right|^2   $')
-#     ax.grid(True, **si.vis.GRID_KWARGS)
+#     ax.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 #
 #     si.vis.save_current_figure('{}__comparison'.format(title),
 #                                **PLOT_KWARGS)
@@ -61,7 +61,7 @@ PLOT_KWARGS = dict(
 #     ax.legend(loc = 'best')
 #     ax.set_xlabel(r'Time $t$ ($\mathrm{as}$)')
 #     ax.set_ylabel(r'$   \left| a_{\alpha}(t) \right|^2 - \left| a_{\alpha}^{\mathrm{best}}(t) \right|^2  $')
-#     ax.grid(True, **si.vis.GRID_KWARGS)
+#     ax.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 #
 #     si.vis.save_current_figure('{}__error'.format(title),
 #                                **PLOT_KWARGS)
@@ -92,8 +92,8 @@ PLOT_KWARGS = dict(
 #     ax.set_xlabel(r'Time $t$ ($\mathrm{as}$)')
 #     ax.set_ylabel(r'$  1 -  \left| a_{\alpha}(t) \right|^2 / \left| a_{\alpha}^{\mathrm{best}}(t) \right|^2 $')
 #
-#     ax.grid(True, which = 'major', **si.vis.GRID_KWARGS)
-#     ax.grid(True, which = 'minor', **si.vis.GRID_KWARGS)
+#     ax.grid(True, which = 'major', **si.vis.DEFAULT_GRID_KWARGS)
+#     ax.grid(True, which = 'minor', **si.vis.DEFAULT_GRID_KWARGS)
 #
 #     ax.set_yscale('log')
 #     # ax.set_ylim(bottom = 1e-10, top = 1)
@@ -119,8 +119,8 @@ PLOT_KWARGS = dict(
 #     ax.set_xlabel(r'Time Step $\Delta t$ ($\mathrm{as}$)')
 #     ax.set_ylabel(r'$   \left| \left| a_{\alpha}(t_{\mathrm{final}}) \right| - \left| a_{\alpha}^{\mathrm{best}}(t_{\mathrm{final}}) \right| \right|  $')
 #
-#     ax.grid(True, which = 'major', **si.vis.GRID_KWARGS)
-#     ax.grid(True, which = 'minor', **si.vis.GRID_KWARGS)
+#     ax.grid(True, which = 'major', **si.vis.DEFAULT_GRID_KWARGS)
+#     ax.grid(True, which = 'minor', **si.vis.DEFAULT_GRID_KWARGS)
 #
 #     ax.set_xscale('log')
 #     ax.set_yscale('log')
@@ -146,8 +146,8 @@ PLOT_KWARGS = dict(
 #
 #     ax.set_xlabel(r'Time Step $\Delta t$ ($\mathrm{as}$)')
 #     ax.set_ylabel(r'$   \left| \left| a_{\alpha}(t_{\mathrm{final}}) \right|^2 - \left| a_{\alpha}^{\mathrm{best}}(t_{\mathrm{final}}) \right|^2 \right|  $')
-#     ax.grid(True, which = 'major', **si.vis.GRID_KWARGS)
-#     ax.grid(True, which = 'minor', **si.vis.GRID_KWARGS)
+#     ax.grid(True, which = 'major', **si.vis.DEFAULT_GRID_KWARGS)
+#     ax.grid(True, which = 'minor', **si.vis.DEFAULT_GRID_KWARGS)
 #
 #     ax.set_xscale('log')
 #     ax.set_yscale('log')
@@ -173,7 +173,7 @@ def run(spec):
 
         sim.plot_b2_vs_time(
             y_axis_label=r"$   \left| a_{\alpha}(t) \right|^2  $",
-            field_axis_label=r"${}(t)$".format(ion.LATEX_EFIELD),
+            field_axis_label=r"${}(t)$".format(ion.vis.LATEX_EFIELD),
             field_scale="AEF",
             **PLOT_KWARGS,
         )
@@ -185,15 +185,15 @@ def run(spec):
 
 if __name__ == "__main__":
     with logman as logger:
-        # electric_field = ion.Rectangle(start_time = -500 * asec, end_time = 500 * asec, amplitude = 1 * atomic_electric_field)
+        # electric_field = ion.potentials.Rectangle(start_time = -500 * asec, end_time = 500 * asec, amplitude = 1 * atomic_electric_field)
 
         t_bound_per_pw = 5
         pw = 50
 
-        electric_field = ion.SincPulse(
+        electric_field = ion.potentials.SincPulse(
             pulse_width=pw * asec,
             fluence=1 * Jcm2,
-            window=ion.RectangularTimeWindow(
+            window=ion.potentials.RectangularTimeWindow(
                 on_time=-(t_bound_per_pw - 1) * pw * asec,
                 off_time=(t_bound_per_pw - 1) * pw * asec,
             ),
@@ -244,7 +244,7 @@ if __name__ == "__main__":
             title + "__comparison",
             (r.times for r in results),
             (r.b2 for r in results),
-            line_labels=(f"${uround(r.spec.time_step, asec, 3)}$ as" for r in results),
+            line_labels=(f"${r.spec.time_step / asec:3f}$ as" for r in results),
             x_label=r"Time $t$",
             x_unit="asec",
             y_label=r"$\left| a(t) \right|^2$",

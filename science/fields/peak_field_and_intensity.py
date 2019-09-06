@@ -31,7 +31,7 @@ def pulse_peaks_values_2d(
     pulse_width_max,
     fluence_min,
     fluence_max,
-    pulse_type=ion.SincPulse,
+    pulse_type=ion.potentials.SincPulse,
     phase=0,
     points=200,
 ):
@@ -44,8 +44,10 @@ def pulse_peaks_values_2d(
 
     for ii, pulse_width in enumerate(tqdm(pulse_widths)):
         for jj, fluence in enumerate(fluences):
-            pulse = ion.SincPulse(pulse_width=pulse_width, fluence=fluence, phase=phase)
-            if pulse_type != ion.SincPulse:
+            pulse = ion.potentials.SincPulse(
+                pulse_width=pulse_width, fluence=fluence, phase=phase
+            )
+            if pulse_type != ion.potentials.SincPulse:
                 pulse = pulse_type(
                     pulse_width=pulse_width,
                     fluence=fluence,
@@ -70,7 +72,7 @@ def pulse_peaks_values_2d(
     obi_field = (pi * epsilon_0 / (proton_charge ** 3)) * (rydberg ** 2)
     obi_intensity = c * epsilon_0 * (obi_field ** 2)
 
-    postfix = f"{uround(pulse_width_min, asec)}as_to_{uround(pulse_width_max, asec)}as__{uround(fluence_min, Jcm2)}jcm2_to_{uround(fluence_max, Jcm2)}jcm2_phase={uround(phase, pi, 2)}pi___{pulse_type.__name__}"
+    postfix = f"{pulse_width_min / asec:3f}as_to_{pulse_width_max / asec:3f}as__{fluence_min / Jcm2:3f}jcm2_to_{fluence_max / Jcm2:3f}jcm2_phase={phase / pi:2f}pi___{pulse_type.__name__}"
 
     si.vis.xyz_plot(
         f"2d_pulse_efield__{postfix}",
@@ -79,7 +81,7 @@ def pulse_peaks_values_2d(
         max_efield_mesh,
         z_unit="atomic_electric_field",
         z_log_axis=True,
-        z_label=fr"Max $\left| {ion.LATEX_EFIELD} \right|$ vs. $\tau$ and $H$ for {pulse_type.__name__}",
+        z_label=fr"Max $\left| {ion.vis.LATEX_EFIELD} \right|$ vs. $\tau$ and $H$ for {pulse_type.__name__}",
         contours=[
             0.01 * atomic_electric_field,
             0.05 * atomic_electric_field,
@@ -117,7 +119,7 @@ def pulse_peaks_values_2d(
 if __name__ == "__main__":
     with log as logger:
         points = 300
-        for pulse_type in (ion.SincPulse, ion.GaussianPulse):
+        for pulse_type in (ion.potentials.SincPulse, ion.potentials.GaussianPulse):
             pulse_peaks_values_2d(
                 50 * asec,
                 1000 * asec,

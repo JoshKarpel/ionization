@@ -81,7 +81,7 @@ if __name__ == "__main__":
             **PLOT_KWARGS,
         )
 
-        pulse = ion.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=200 * asec, fluence=1 * Jcm2, phase=0
         )
 

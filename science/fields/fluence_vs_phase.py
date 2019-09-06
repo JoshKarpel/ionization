@@ -16,7 +16,11 @@ logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INF
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=3)
 
-PULSE_TYPES = (ion.SincPulse, ion.GaussianPulse, ion.SechPulse)
+PULSE_TYPES = (
+    ion.potentials.SincPulse,
+    ion.potentials.GaussianPulse,
+    ion.potentials.SechPulse,
+)
 
 if __name__ == "__main__":
     with logman as logger:
@@ -30,16 +34,16 @@ if __name__ == "__main__":
         times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 16)
         dt = np.abs(times[1] - times[0])
 
-        window = window = ion.SymmetricExponentialTimeWindow(
+        window = window = ion.potentials.LogisticWindow(
             window_time=p_bound * pw, window_width=0.2 * pw
         )
-        # dummy = ion.SincPulse(pulse_width = pw, fluence = flu, phase = 0,
+        # dummy = ion.potentials.SincPulse(pulse_width = pw, fluence = flu, phase = 0,
         #                       )
         # pulses = [
         #     dummy,
-        #     ion.GaussianPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
+        #     ion.potentials.GaussianPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
         #                       window = dummy.window),
-        #     ion.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
+        #     ion.potentials.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
         #                   window = dummy.window),
         # ]
 
@@ -47,10 +51,10 @@ if __name__ == "__main__":
 
         for pulse_type in PULSE_TYPES:
             for ii, phase in enumerate(tqdm(phases)):
-                pulse = ion.SincPulse(
+                pulse = ion.potentials.SincPulse(
                     pulse_width=pw, fluence=flu, phase=phase, window=window
                 )
-                if pulse_type != ion.SincPulse:
+                if pulse_type != ion.potentials.SincPulse:
                     pulse = pulse_type(
                         pulse_width=pw,
                         fluence=flu,

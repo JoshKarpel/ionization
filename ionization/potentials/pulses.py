@@ -455,7 +455,7 @@ class SineWave(UniformLinearlyPolarizedElectricPotential):
             "Amplitude", utils.fmt_quantity(self.amplitude, utils.ELECTRIC_FIELD_UNITS)
         )
         info.add_field(
-            "Intensity", f"{u.uround(self.intensity, u.TW / (u.cm ** 2))} TW/cm^2"
+            "Intensity", f"{self.intensity / u.TW / (u.cm ** 2):.3f} TW/cm^2"
         )
         info.add_field(
             "Photon Energy", utils.fmt_quantity(self.photon_energy, utils.ENERGY_UNITS)
@@ -985,7 +985,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         )
         info.add_field(
             "Photon Energy Range",
-            f"{u.uround(self.photon_energy_min, u.eV)} eV to {u.uround(self.photon_energy_max, u.eV)} eV",
+            f"{self.photon_energy_min / u.eV:.3f} eV to {self.photon_energy_max / u.eV:.3f} eV",
         )
         info.add_field(
             "Photon Energy Bandwidth",
@@ -997,7 +997,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         )
         info.add_field(
             "Frequency Range",
-            f"{u.uround(self.frequency_min, u.THz)} THz to {u.uround(self.frequency_max, u.THz)} THz",
+            f"{self.frequency_min / u.THz:.3f} THz to {self.frequency_max / u.THz:.3f} THz",
         )
         info.add_field(
             "Frequency Bandwidth",
@@ -1005,7 +1005,7 @@ class SincPulse(UniformLinearlyPolarizedElectricPotential):
         )
         info.add_field(
             "Keldysh Parameter (hydrogen ground state)",
-            f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)',
+            f'{self.keldysh_parameter(keldysh_omega_selector = "carrier"):.3f} (Carrier) | {self.keldysh_parameter(keldysh_omega_selector = "bandwidth"):.3f} (Bandwidth)',
         )
 
         info.add_info(self.window.info())
@@ -1436,7 +1436,7 @@ class GaussianPulse(UniformLinearlyPolarizedElectricPotential):
         )
         info.add_field(
             "Keldysh Parameter (hydrogen ground state)",
-            f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)',
+            f'{self.keldysh_parameter(keldysh_omega_selector = "carrier"):.3f} (Carrier) | {self.keldysh_parameter(keldysh_omega_selector = "bandwidth"):.3f} (Bandwidth)',
         )
 
         info.add_info(self.window.info())
@@ -1685,7 +1685,7 @@ class SechPulse(UniformLinearlyPolarizedElectricPotential):
         )
         info.add_field(
             "Keldysh Parameter (hydrogen ground state)",
-            f'{u.uround(self.keldysh_parameter(keldysh_omega_selector = "carrier"))} (Carrier) | {u.uround(self.keldysh_parameter(keldysh_omega_selector = "bandwidth"))} (Bandwidth)',
+            f'{self.keldysh_parameter(keldysh_omega_selector = "carrier"):.3f} (Carrier) | {self.keldysh_parameter(keldysh_omega_selector = "bandwidth"):.3f} (Bandwidth)',
         )
 
         info.add_info(self.window.info())
@@ -1817,11 +1817,11 @@ class CosSquaredPulse(UniformLinearlyPolarizedElectricPotential):
         info = super().info()
 
         info.add_field(
-            "Amplitude", f"{u.uround(self.amplitude, u.atomic_electric_field)} a.u."
+            "Amplitude", f"{self.amplitude / u.atomic_electric_field:.3f} a.u."
         )
         info.add_field(
             "Center Wavelength",
-            f"{u.uround(self.wavelength_carrier, u.nm)} u.nm | {u.uround(self.wavelength_carrier, um)} um",
+            f"{self.wavelength_carrier / u.nm:.3f} u.nm | {self.wavelength_carrier / um:.3f} um",
         )
         info.add_field("Number of Cycles", self.number_of_cycles)
 
@@ -2024,9 +2024,7 @@ class FluenceCorrector(UniformLinearlyPolarizedElectricPotential):
 
         info.add_info(self.electric_potential.info())
 
-        info.add_field(
-            "Target Fluence", f"{u.uround(self.target_fluence, u.Jcm2)} J/cm2"
-        )
+        info.add_field("Target Fluence", f"{self.target_fluence / u.Jcm2:.3f} J/cm2")
         info.add_field("Amplitude Correction Ratio", self.amplitude_correction_ratio)
 
         return info

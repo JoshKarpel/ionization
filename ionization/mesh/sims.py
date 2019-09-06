@@ -245,7 +245,7 @@ class MeshSimulation(si.Simulation):
         self.snapshots[self.time_index] = snapshot
 
         logger.info(
-            f"Stored {snapshot.__class__.__name__} for {self} at time index {self.time_index} (t = {u.uround(self.time, u.asec)} as)"
+            f"Stored {snapshot.__class__.__name__} for {self} at time index {self.time_index} (t = {self.time / u.asec:.3f} as)"
         )
 
     def run(
@@ -491,7 +491,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         electric_potential_dc_correction
             If ``True``, perform DC correction on the ``electric_potential``.
         mask
-            A :class:`ionization.potentials.Mask` to apply to the wavefunction after every time step.
+            A :class:`ionizatpotentials.Mask` to apply to the wavefunction after every time step.
         operators
             A :class:`MeshOperators` to generate discretized mesh operators from.
         evolution_method
@@ -666,7 +666,7 @@ class MeshSpecification(si.Specification, abc.ABC):
         )
         info_analysis.add_field(
             "Snapshot Times",
-            (f"{u.uround(st, u.asec)} as" for st in self.snapshot_times)
+            (f"{st / u.asec:.3f} as" for st in self.snapshot_times)
             if len(self.snapshot_times) > 0
             else "none",
         )

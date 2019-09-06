@@ -134,7 +134,7 @@ class LengthGaugeHydrogenKernel(Kernel):
 
         info.add_field(
             "Bound State Energy",
-            f"{u.uround(self.bound_state_energy, u.eV)} eV | {u.uround(self.bound_state_energy, u.hartree)} hartree",
+            f"{self.bound_state_energy / u.eV:.3f} eV | {self.bound_state_energy / u.hartree:.3f} hartree",
         )
 
         return info

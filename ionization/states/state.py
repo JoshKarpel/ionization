@@ -37,7 +37,7 @@ def fmt_amplitude(amplitude: ProbabilityAmplitude) -> str:
     if amplitude == 1:
         return ""
     else:
-        return str(si.units.uround(amplitude))
+        return f"{amplitude:.3f}"
 
 
 def fmt_amplitude_for_tex(amplitude: ProbabilityAmplitude) -> str:

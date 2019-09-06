@@ -35,9 +35,7 @@ def create_scan(tag):
 
     utils.ask_time_step(parameters)
 
-    time_initial_in_pw, time_final_in_pw, extra_time = (
-        utils.ask_time_evolution_by_pulse_widths()
-    )
+    time_initial_in_pw, time_final_in_pw, extra_time = utils.ask_time_evolution()
 
     # PULSE PARAMETERS
     pulse_parameters = utils.construct_pulses(
@@ -50,7 +48,7 @@ def create_scan(tag):
     utils.ask_data_storage_ide(parameters, spec_type=spec_type)
 
     # CREATE SPECS
-    expanded_parameters = si.sister.expand_parameters(parameters)
+    expanded_parameters = si.expand_parameters(parameters)
     extra_parameters = dict(
         checkpoints=True, checkpoint_every=datetime.timedelta(minutes=20)
     )

@@ -95,15 +95,15 @@ class ThreeDPlaneWave(state.QuantumState):
 
     @property
     def ket(self):
-        return f"{state.fmt_amplitude(self.amplitude)}|kx={u.uround(self.wavenumber_x, u.per_nm)} 1/nm, ky={u.uround(self.wavenumber_y, u.per_nm)} 1/nm, kz={u.uround(self.wavenumber_z, u.per_nm)} 1/nm>"
+        return f"{state.fmt_amplitude(self.amplitude)}|kx={self.wavenumber_x / u.per_nm:.3f} 1/nm, ky={self.wavenumber_y / u.per_nm:.3f} 1/nm, kz={self.wavenumber_z / u.per_nm:.3f} 1/nm>"
 
     @property
     def tex(self):
-        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_y={u.uround(self.wavenumber_y, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}}"
+        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{k_x={self.wavenumber_x / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_y={self.wavenumber_y / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_x={self.wavenumber_z / u.per_nm:.3f} \, \mathrm{{nm^-1}}}}"
 
     @property
     def tex_ket(self):
-        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_y={u.uround(self.wavenumber_y, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}} \right\rangle"
+        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{k_x={self.wavenumber_x / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_y={self.wavenumber_y / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_x={self.wavenumber_z / u.per_nm:.3f} \, \mathrm{{nm^-1}}}} \right\rangle"
 
     def info(self) -> si.Info:
         info = super().info()
@@ -271,15 +271,15 @@ class FreeSphericalWave(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f"{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>"
+        return f"{state.fmt_amplitude(self.amplitude)}|{self.energy / u.eV:.3f} eV,{self.l},{self.m}>"
 
     @property
     def tex(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}, {self.l}, {self.m}}}"
 
     @property
     def tex_ket(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle"
 
     def info(self) -> si.Info:
         info = super().info()
@@ -516,15 +516,15 @@ class HydrogenCoulombState(SphericalHarmonicState):
 
     @property
     def ket(self):
-        return f"{state.fmt_amplitude(self.amplitude)}|{u.uround(self.energy, u.eV)} eV,{self.l},{self.m}>"
+        return f"{state.fmt_amplitude(self.amplitude)}|{self.energy / u.eV:.3f} eV,{self.l},{self.m}>"
 
     @property
     def tex(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}}"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}, {self.l}, {self.m}}}"
 
     @property
     def tex_ket(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}, {self.l}, {self.m}}} \right\rangle"
 
     def info(self) -> si.Info:
         info = super().info()

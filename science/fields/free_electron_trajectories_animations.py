@@ -21,8 +21,8 @@ logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INF
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-T_BOUND_MAP = {ion.SincPulse: 12, ion.GaussianPulse: 6}
-P_BOUND_MAP = {ion.SincPulse: 10, ion.GaussianPulse: 5}
+T_BOUND_MAP = {ion.potentials.SincPulse: 12, ion.potentials.GaussianPulse: 6}
+P_BOUND_MAP = {ion.potentials.SincPulse: 10, ion.potentials.GaussianPulse: 5}
 
 
 def make_anim(args):
@@ -33,7 +33,7 @@ def make_anim(args):
 
     times = np.linspace(-t_bound * pw, t_bound * pw, 1e4)
 
-    window = ion.SymmetricExponentialTimeWindow(
+    window = ion.potentials.LogisticWindow(
         window_time=p_bound * pw, window_width=0.2 * pw
     )
     pulse = pulse_type(pulse_width=pw, fluence=flu, phase=cep, window=window)
@@ -59,7 +59,7 @@ def make_anim(args):
         for start in starts
     )
 
-    identifier = f"{pulse_type.__name__}__pw={uround(pw, asec, 0)}as_flu={uround(flu, Jcm2, 2)}jcm2_cep={uround(cep, pi, 2)}pi"
+    identifier = f"{pulse_type.__name__}__pw={pw / asec:0f}as_flu={flu / Jcm2:2f}jcm2_cep={cep / pi:2f}pi"
 
     efield_color = ion.COLOR_ELECTRIC_FIELD
     afield_color = ion.COLOR_VECTOR_POTENTIAL
@@ -85,7 +85,7 @@ def make_anim(args):
         ax_efield = plt.subplot(111)
 
         ax_efield.plot(
-            times, efield, color=efield_color, label=fr"$ {ion.LATEX_EFIELD}(t) $"
+            times, efield, color=efield_color, label=fr"$ {ion.vis.LATEX_EFIELD}(t) $"
         )
         vect_line, = ax_efield.plot(
             [],
@@ -97,7 +97,7 @@ def make_anim(args):
 
         ax_efield.set_xlabel(r"Time $ t $ (as)")
         ax_efield.set_ylabel(
-            fr"$ {ion.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $ (a.u.)",
+            fr"$ {ion.vis.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $ (a.u.)",
             color=efield_color,
         )
         ax_efield.set_title(r"Free Electron Trajectories")
@@ -152,7 +152,7 @@ if __name__ == "__main__":
         pulse_widths = np.array([200]) * asec
         fluences = np.array([1]) * Jcm2
         phases = [0, pi / 4, pi / 2]
-        pulse_types = [ion.SincPulse, ion.GaussianPulse]
+        pulse_types = [ion.potentials.SincPulse, ion.potentials.GaussianPulse]
 
         si.utils.multi_map(
             make_anim,

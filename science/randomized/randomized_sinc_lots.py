@@ -39,14 +39,14 @@ if __name__ == "__main__":
         pulse_bound = 10
         time_bound = 12
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=pulse_bound * pw, window_width=0.2 * pw
         )
 
-        cosine_pulse = potentials.SincPulse(
+        cosine_pulse = ion.potentials.SincPulse(
             pulse_width=pw, fluence=flu, phase=0, window=window
         )
-        sine_pulse = potentials.SincPulse(
+        sine_pulse = ion.potentials.SincPulse(
             pulse_width=pw, fluence=flu, phase=pi / 2, window=window
         )
 

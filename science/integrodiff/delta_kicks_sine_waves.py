@@ -64,7 +64,7 @@ def make_eta_plot(etas):
         f"bound_state_amplitude_vs_sine_period__eta__{etas}",
         periods,
         *[curve(periods, eta) for eta in etas],
-        line_labels=[fr"$\eta = {uround(eta, time_field_unit)}$ a.u." for eta in etas],
+        line_labels=[fr"$\eta = {eta / time_field_unit:3f}$ a.u." for eta in etas],
         x_label=r"Sine Wave Period $T$ ($ \tau_{\alpha} $)",
         x_unit=tau_alpha,
         y_label=r"$\left|\left\langle a | a \right\rangle\right|^2$",
@@ -172,7 +172,7 @@ if __name__ == "__main__":
         #             )[-1])
         #
         #     si.vis.xy_plot(
-        #         f'bound_state_amplitude_vs_sine_period__eta={uround(eta, dpm.time_field_unit)}',
+        #         f'bound_state_amplitude_vs_sine_period__eta={eta / dpm.time_field_unit:.3f}',
         #         periods,
         #         np.abs(results) ** 2,
         #         x_label = r'Sine Wave Period $T$ ($ \tau_{\alpha} $)', x_unit = tau_alpha,

@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
         peak_amplitude = np.sqrt(peak_intensity / (epsilon_0 * c))
 
-        pulse = ion.CosSquaredPulse(
+        pulse = ion.potentials.CosSquaredPulse(
             amplitude=peak_amplitude,
             wavelength=wavelength,
             number_of_cycles=number_of_cycles,
@@ -60,7 +60,7 @@ if __name__ == "__main__":
         pulse.pulse_center = time_final / 2
 
         spec = ion.LineSpecification(
-            f"LR__cep={uround(phase, pi)}pi_{num_states}",
+            f"LR__cep={phase / pi:3f}pi_{num_states}",
             internal_potential=ion.SoftCoulomb(),
             electric_potential=pulse,
             initial_state=ion.OneDSoftCoulombState(),

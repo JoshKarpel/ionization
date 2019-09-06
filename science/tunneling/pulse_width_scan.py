@@ -15,7 +15,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 
 def identifier(pulse):
-    return f"pw={u.uround(pulse.pulse_width, u.asec)}as_flu={u.uround(pulse.fluence, u.Jcm2)}jcm2_cep={u.uround(pulse.phase, u.pi)}pi"
+    return f"pw={pulse.pulse_width / u.asec:.3f}as_flu={pulse.fluence / u.Jcm2:.3f}jcm2_cep={pulse.phase / u.pi:.3f}pi"
 
 
 def run(spec):
@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
             for flu in fluences:
                 pulses = [
-                    potentials.SincPulse(pulse_width=pw, fluence=flu, phase=cep)
+                    ion.potentials.SincPulse(pulse_width=pw, fluence=flu, phase=cep)
                     for cep in ceps
                 ]
 
@@ -60,7 +60,7 @@ if __name__ == "__main__":
                 results[flu] = si.utils.multi_map(run, specs, processes=2)
 
                 si.vis.xy_plot(
-                    f"ionization_vs_cep__pw={u.uround(pw, u.asec)}as_flu={u.uround(flu, u.Jcm2)}jcm2",
+                    f"ionization_vs_cep__pw={pw / u.asec:.3f}as_flu={flu / u.Jcm2:.3f}jcm2",
                     ceps,
                     [r.b2[-1] for r in results[flu]],
                     x_label=r"$ \varphi $",
@@ -70,15 +70,14 @@ if __name__ == "__main__":
                 )
 
             si.vis.xy_plot(
-                f"ionization_vs_cep__pw={u.uround(pw, u.asec)}as",
+                f"ionization_vs_cep__pw={pw / u.asec:.3f}as",
                 ceps,
                 *[
                     [r.b2[-1] / results[flu][0].b2[-1] for r in results[flu]]
                     for flu in fluences
                 ],
                 line_labels=[
-                    rf"$ {u.uround(flu, u.Jcm2)} \mathrm{{J/cm^2}} $"
-                    for flu in fluences
+                    rf"$ {flu / u.Jcm2:.3f} \mathrm{{J/cm^2}} $" for flu in fluences
                 ],
                 x_label=r"$ \varphi $",
                 x_unit="rad",

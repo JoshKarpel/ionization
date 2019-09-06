@@ -57,10 +57,10 @@ def tunneling_rate_plot(
     tunneling_rates = instantaneous_tunneling_rate(amplitudes, ionization_potential)
 
     si.vis.xy_plot(
-        f"tunneling_rate_vs_amplitude__amp={uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_amp={uround(electric_field_amplitude_max, atomic_electric_field)}aef",
+        f"tunneling_rate_vs_amplitude__amp={electric_field_amplitude_min / atomic_electric_field:3f}aef_to_amp={electric_field_amplitude_max / atomic_electric_field:3f}aef",
         amplitudes,
         tunneling_rates * asec,
-        x_label=fr"Electric Field Amplitude ${ion.LATEX_EFIELD}$",
+        x_label=fr"Electric Field Amplitude ${ion.vis.LATEX_EFIELD}$",
         x_unit="atomic_electric_field",
         y_label=r"Tunneling Rate ($\mathrm{as}^{-1}$)",
         title="Tunneling Rate in a Static Electric Field",
@@ -80,16 +80,16 @@ if __name__ == "__main__":
         # pw = 100 * asec
         # t_bound = 10 * pw
         # flu = .01 * Jcm2
-        # efield = ion.SincPulse(pulse_width = pw, fluence = flu,
-        #                       window = ion.SymmetricExponentialTimeWindow(window_time = (t_bound - (2 * pw)), window_width = .2 * pw))
+        # efield = ion.potentials.SincPulse(pulse_width = pw, fluence = flu,
+        #                       window = ion.potentials.LogisticWindow(window_time = (t_bound - (2 * pw)), window_width = .2 * pw))
 
         # amp = 0.03 * atomic_electric_field
         # t_bound = 20 * fsec
         # frac = .6
         #
-        # title = f'rect_amp={uround(amp, atomic_electric_field)}aef_tb={uround(t_bound, asec)}_frac={frac}'
-        # efield = ion.Rectangle(start_time = -t_bound, end_time = t_bound, amplitude = amp,
-        #                        window = ion.SymmetricExponentialTimeWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
+        # title = f'rect_amp={amp / atomic_electric_field:3f}aef_tb={t_bound / asec:3f}_frac={frac}'
+        # efield = ion.potentials.Rectangle(start_time = -t_bound, end_time = t_bound, amplitude = amp,
+        #                        window = ion.potentials.LogisticWindow(window_time = frac * t_bound, window_width = .05 * t_bound))
 
         energy = 1.0 * eV
         amp = 0.1 * atomic_electric_field
@@ -97,16 +97,16 @@ if __name__ == "__main__":
         bound_mult = 3
         efield = ion.SineWave.from_photon_energy(energy, amplitude=amp)
         t_bound = bound_mult * efield.period_carrier
-        efield.window = window = ion.SymmetricExponentialTimeWindow(
+        efield.window = window = ion.potentials.LogisticWindow(
             window_time=frac * t_bound, window_width=0.05 * t_bound
         )
-        title = f"sine_energy={uround(energy, eV)}eV_amp={uround(amp, atomic_electric_field)}aef_tb={bound_mult}pw_frac={frac}"
+        title = f"sine_energy={energy / eV:3f}eV_amp={amp / atomic_electric_field:3f}aef_tb={bound_mult}pw_frac={frac}"
 
         r_bound = 200
         dt = 2 * asec
 
         sim = ion.SphericalHarmonicSpecification(
-            title + f"__tdse__dt={uround(dt, asec)}as",
+            title + f"__tdse__dt={dt / asec:3f}as",
             r_bound=r_bound * bohr_radius,
             r_points=r_bound * 4,
             # evolution_gauge = 'VEL', l_bound = 200,

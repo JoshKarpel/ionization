@@ -17,9 +17,9 @@ LOGMAN = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEB
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 PULSE_TYPES = (
-    ion.SincPulse,
-    ion.GaussianPulse,
-    # ion.SechPulse,
+    ion.potentials.SincPulse,
+    ion.potentials.GaussianPulse,
+    # ion.potentials.SechPulse,
 )
 
 if __name__ == "__main__":
@@ -34,7 +34,7 @@ if __name__ == "__main__":
         times = np.linspace(-t_bound * pw, t_bound * pw, 2 ** 14)
         dt = np.abs(times[1] - times[0])
 
-        window = window = ion.SymmetricExponentialTimeWindow(
+        window = window = ion.potentials.LogisticWindow(
             window_time=p_bound * pw, window_width=0.2 * pw
         )
 

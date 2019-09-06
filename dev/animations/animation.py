@@ -53,7 +53,7 @@ if __name__ == "__main__":
                     t_init = 0
                     t_final = 20 * period * asec
 
-                    window = ion.LinearRampTimeWindow(
+                    window = ion.potentials.LinearRampTimeWindow(
                         ramp_on_time=t_init + period * asec, ramp_time=5 * period * asec
                     )
                     e_field = ion.SineWave(
@@ -71,7 +71,7 @@ if __name__ == "__main__":
                     #              ion.animators.CylindricalSliceAnimator(postfix = 'log', target_dir = OUT_DIR, log = True, renormalize = False),
                     #              ion.animators.CylindricalSliceAnimator(postfix = '30', target_dir = OUT_DIR, plot_limit = 30 * bohr_radius),
                     #              ion.animators.CylindricalSliceAnimator(postfix = '100', target_dir = OUT_DIR, plot_limit = 100 * bohr_radius)]
-                    # spec = ion.CylindricalSliceSpecification(prefix + 'cyl_slice', time_initial = t_init, time_final = t_final, time_step = dt,
+                    # spec = ion.mesh.CylindricalSliceSpecification(prefix + 'cyl_slice', time_initial = t_init, time_final = t_final, time_step = dt,
                     #                                          z_bound = bound * bohr_radius, z_points = bound * 10,
                     #                                          rho_bound = bound * bohr_radius, rho_points = bound * 5,
                     #                                          initial_state = state,

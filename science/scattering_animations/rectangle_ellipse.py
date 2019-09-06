@@ -15,7 +15,7 @@ ANIM_KWARGS = dict(target_dir=OUT_DIR, fig_dpi_scale=1, length=30, fps=30)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        well = potentials.InfiniteEllipticalWell(z_axis=5 * u.nm, x_axis=10 * u.nm)
+        well = ion.potentials.InfiniteEllipticalWell(z_axis=5 * u.nm, x_axis=10 * u.nm)
 
         spec = mesh.RectangleSpecification(
             "test",

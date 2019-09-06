@@ -49,11 +49,11 @@ def monochromatic_keldysh_1d(
             )
         )
         labels.append(
-            fr"${ion.LATEX_EFIELD}_0 = {uround(amplitude, atomic_electric_field)} \; \mathrm{{a.u.}}$"
+            fr"${ion.vis.LATEX_EFIELD}_0 = {amplitude / atomic_electric_field:3f} \; \mathrm{{a.u.}}$"
         )
 
     si.vis.xy_plot(
-        f"1d_monochromatic_keldysh__{uround(photon_energy_min, eV)}eV_to_{uround(photon_energy_max, eV)}eV",
+        f"1d_monochromatic_keldysh__{photon_energy_min / eV:3f}eV_to_{photon_energy_max / eV:3f}eV",
         energies,
         *gammas,
         line_labels=labels,
@@ -95,18 +95,18 @@ def monochromatic_keldysh_2d(
             ).keldysh_parameter(ionization_potential)
 
     si.vis.xyz_plot(
-        f"2d_monochromatic_keldysh__{uround(photon_energy_min, eV)}eV_to_{uround(photon_energy_max, eV)}eV__{uround(electric_field_amplitude_min, atomic_electric_field)}aef_to_{uround(electric_field_amplitude_max, atomic_electric_field)}aef",
+        f"2d_monochromatic_keldysh__{photon_energy_min / eV:3f}eV_to_{photon_energy_max / eV:3f}eV__{electric_field_amplitude_min / atomic_electric_field:3f}aef_to_{electric_field_amplitude_max / atomic_electric_field:3f}aef",
         photon_energy_mesh,
         electric_field_amplitude_mesh,
         gamma_mesh,
         x_label=r"Photon Energy $E$",
         x_unit="eV",
-        y_label=fr"Electric Field Amplitude ${ion.LATEX_EFIELD}_0$",
+        y_label=fr"Electric Field Amplitude ${ion.vis.LATEX_EFIELD}_0$",
         y_unit="atomic_electric_field",
         z_log_axis=True,
         z_lower_limit=0.01,
         z_upper_limit=10,
-        z_label=fr"Keldysh Parameter $\gamma$ vs. $E$ and ${ion.LATEX_EFIELD}_0$",
+        z_label=fr"Keldysh Parameter $\gamma$ vs. $E$ and ${ion.vis.LATEX_EFIELD}_0$",
         contours=(0.01, 0.1, 0.5, 1),
         contour_kwargs={"colors": "white", "linewidths": 0.5},
         **PLOT_KWARGS,
@@ -119,7 +119,7 @@ def pulse_keldysh_2d(
     fluence_min,
     fluence_max,
     ionization_potential=-rydberg,
-    pulse_type=ion.SincPulse,
+    pulse_type=ion.potentials.SincPulse,
     points=200,
 ):
     pulse_widths = np.linspace(pulse_width_min, pulse_width_max, points)
@@ -130,8 +130,8 @@ def pulse_keldysh_2d(
 
     for ii, pulse_width in enumerate(tqdm(pulse_widths)):
         for jj, fluence in enumerate(fluences):
-            pulse = ion.SincPulse(pulse_width=pulse_width, fluence=fluence)
-            if pulse_type != ion.SincPulse:
+            pulse = ion.potentials.SincPulse(pulse_width=pulse_width, fluence=fluence)
+            if pulse_type != ion.potentials.SincPulse:
                 pulse = pulse_type(
                     pulse_width=pulse_width,
                     fluence=fluence,
@@ -140,7 +140,7 @@ def pulse_keldysh_2d(
             gamma_mesh[ii, jj] = pulse.keldysh_parameter(ionization_potential)
 
     si.vis.xyz_plot(
-        f"2d_pulse_keldysh__{uround(pulse_width_min, asec)}as_to_{uround(pulse_width_max, asec)}as__{uround(fluence_min, Jcm2)}jcm2_to_{uround(fluence_max, Jcm2)}jcm2___{pulse_type.__name__}",
+        f"2d_pulse_keldysh__{pulse_width_min / asec:3f}as_to_{pulse_width_max / asec:3f}as__{fluence_min / Jcm2:3f}jcm2_to_{fluence_max / Jcm2:3f}jcm2___{pulse_type.__name__}",
         pulse_width_mesh,
         fluence_mesh,
         gamma_mesh,
@@ -199,7 +199,11 @@ if __name__ == "__main__":
             points=300,
         )
 
-        for pulse_type in (ion.SincPulse, ion.GaussianPulse, ion.SechPulse):
+        for pulse_type in (
+            ion.potentials.SincPulse,
+            ion.potentials.GaussianPulse,
+            ion.potentials.SechPulse,
+        ):
             pulse_keldysh_2d(
                 50 * asec,
                 1000 * asec,

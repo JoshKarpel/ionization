@@ -21,7 +21,7 @@ if __name__ == "__main__":
         nc_pulses = [
             (
                 nc,
-                potentials.SincPulse.from_number_of_cycles(
+                ion.potentials.SincPulse.from_number_of_cycles(
                     pulse_width=100 * u.asec, number_of_cycles=nc, phase=u.pi / 2
                 ),
             )

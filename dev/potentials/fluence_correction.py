@@ -47,24 +47,22 @@ if __name__ == "__main__":
 
         flu = 1 * u.Jcm2
 
-        window = potentials.SymmetricExponentialTimeWindow(
-            window_time=tw, window_width=pw / 5
-        )
+        window = ion.potentials.LogisticWindow(window_time=tw, window_width=pw / 5)
 
-        uncorrected_cos_pulse = potentials.SincPulse(
+        uncorrected_cos_pulse = ion.potentials.SincPulse(
             pulse_width=pw, phase=0, fluence=flu, window=window
         )
-        uncorrected_sin_pulse = potentials.SincPulse(
+        uncorrected_sin_pulse = ion.potentials.SincPulse(
             pulse_width=pw, phase=u.pi / 2, fluence=flu, window=window
         )
 
         times = np.linspace(-tb, tb, int(2 * tb / u.asec))
         dt = np.abs(times[1] - times[0])
 
-        dc_corrected_cos_pulse = potentials.DC_correct_electric_potential(
+        dc_corrected_cos_pulse = ion.potentials.DC_correct_electric_potential(
             uncorrected_cos_pulse, times
         )
-        dc_corrected_sin_pulse = potentials.DC_correct_electric_potential(
+        dc_corrected_sin_pulse = ion.potentials.DC_correct_electric_potential(
             uncorrected_sin_pulse, times
         )
         # dc_corrected_cos_pulse = uncorrected_cos_pulse
@@ -79,21 +77,21 @@ if __name__ == "__main__":
             times
         )
         print(
-            f"cos field integral: {u.uround(cos_integral_of_field, u.atomic_electric_field * u.asec, 15)}"
+            f"cos field integral: {{cos_integral_of_field / u.atomic_electric_field * u.asec:.15f}}"
         )
         print(
-            f"sin field integral: {u.uround(sin_integral_of_field, u.atomic_electric_field * u.asec, 15)}"
+            f"sin field integral: {{sin_integral_of_field / u.atomic_electric_field * u.asec:.15f}}"
         )
 
         cos_fluence = dc_corrected_cos_pulse.get_fluence_numeric(times)
         sin_fluence = dc_corrected_sin_pulse.get_fluence_numeric(times)
-        print(f"cos fluence: {u.uround(cos_fluence, u.Jcm2, 15)}")
-        print(f"sin fluence: {u.uround(sin_fluence, u.Jcm2, 15)}")
+        print(f"cos fluence: {cos_fluence / u.Jcm2:15f}")
+        print(f"sin fluence: {sin_fluence / u.Jcm2:15f}")
 
-        fluence_and_dc_corrected_cos_pulse = potentials.FluenceCorrector(
+        fluence_and_dc_corrected_cos_pulse = ion.potentials.FluenceCorrector(
             electric_potential=dc_corrected_cos_pulse, times=times, target_fluence=flu
         )
-        fluence_and_dc_corrected_sin_pulse = potentials.FluenceCorrector(
+        fluence_and_dc_corrected_sin_pulse = ion.potentials.FluenceCorrector(
             electric_potential=dc_corrected_sin_pulse, times=times, target_fluence=flu
         )
 
@@ -106,10 +104,10 @@ if __name__ == "__main__":
             times
         )
         print(
-            f"cos field integral: {u.uround(corrected_cos_integral_of_field, u.atomic_electric_field * u.atomic_time, 15)}"
+            f"cos field integral: {{corrected_cos_integral_of_field / u.atomic_electric_field * u.atomic_time:.15f}}"
         )
         print(
-            f"sin field integral: {u.uround(corrected_sin_integral_of_field, u.atomic_electric_field * u.atomic_time, 15)}"
+            f"sin field integral: {{corrected_sin_integral_of_field / u.atomic_electric_field * u.atomic_time:.15f}}"
         )
 
         corrected_cos_fluence = fluence_and_dc_corrected_cos_pulse.get_fluence_numeric(
@@ -118,8 +116,8 @@ if __name__ == "__main__":
         corrected_sin_fluence = fluence_and_dc_corrected_sin_pulse.get_fluence_numeric(
             times
         )
-        print(f"cos fluence: {u.uround(corrected_cos_fluence, u.Jcm2, 15)}")
-        print(f"sin fluence: {u.uround(corrected_sin_fluence, u.Jcm2, 15)}")
+        print(f"cos fluence: {corrected_cos_fluence / u.Jcm2:15f}")
+        print(f"sin fluence: {corrected_sin_fluence / u.Jcm2:15f}")
 
         print(
             f"cos correction ratio: {fluence_and_dc_corrected_cos_pulse.amplitude_correction_ratio}"

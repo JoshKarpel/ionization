@@ -33,7 +33,7 @@ if __name__ == "__main__":
                 -bound * pulse_width * asec, bound * pulse_width * asec, 1e4
             )
 
-            window = ion.SymmetricExponentialTimeWindow(
+            window = ion.potentials.LogisticWindow(
                 window_time=bound * pulse_width * asec,
                 window_width=pulse_width * asec / 2,
             )
@@ -42,19 +42,19 @@ if __name__ == "__main__":
 
             omega_c = twopi * 20000 * THz
 
-            # sinc_cos = ion.SincPulse(**efield_kwargs, phase = 0)
-            # sinc_sin = ion.SincPulse(**efield_kwargs, phase = pi / 2)
+            # sinc_cos = ion.potentials.SincPulse(**efield_kwargs, phase = 0)
+            # sinc_sin = ion.potentials.SincPulse(**efield_kwargs, phase = pi / 2)
             #
-            # gaus_cos = ion.GaussianPulse(**efield_kwargs, phase = 0, omega_carrier = 2 * sinc_cos.omega_carrier)
-            # gaus_sin = ion.GaussianPulse(**efield_kwargs, phase = pi / 2, omega_carrier = 2 * sinc_cos.omega_carrier)
+            # gaus_cos = ion.potentials.GaussianPulse(**efield_kwargs, phase = 0, omega_carrier = 2 * sinc_cos.omega_carrier)
+            # gaus_sin = ion.potentials.GaussianPulse(**efield_kwargs, phase = pi / 2, omega_carrier = 2 * sinc_cos.omega_carrier)
             #
-            # sech_cos = ion.SechPulse(**efield_kwargs, phase = 0, omega_carrier = 2 * sinc_cos.omega_carrier)
-            # sech_sin = ion.SechPulse(**efield_kwargs, phase = pi / 2, omega_carrier = 2 * sinc_cos.omega_carrier)
+            # sech_cos = ion.potentials.SechPulse(**efield_kwargs, phase = 0, omega_carrier = 2 * sinc_cos.omega_carrier)
+            # sech_sin = ion.potentials.SechPulse(**efield_kwargs, phase = pi / 2, omega_carrier = 2 * sinc_cos.omega_carrier)
 
-            sinc_cos = ion.SincPulse.from_omega_carrier(
+            sinc_cos = ion.potentials.SincPulse.from_omega_carrier(
                 **efield_kwargs, phase=0, omega_carrier=omega_c
             )
-            sinc_sin = ion.SincPulse.from_omega_carrier(
+            sinc_sin = ion.potentials.SincPulse.from_omega_carrier(
                 **efield_kwargs, phase=pi / 2, omega_carrier=omega_c
             )
 
@@ -64,15 +64,17 @@ if __name__ == "__main__":
             print("max", sinc_cos.omega_max / (twopi * THz))
             print()
 
-            gaus_cos = ion.GaussianPulse(
+            gaus_cos = ion.potentials.GaussianPulse(
                 **efield_kwargs, phase=0, omega_carrier=omega_c
             )
-            gaus_sin = ion.GaussianPulse(
+            gaus_sin = ion.potentials.GaussianPulse(
                 **efield_kwargs, phase=pi / 2, omega_carrier=omega_c
             )
 
-            sech_cos = ion.SechPulse(**efield_kwargs, phase=0, omega_carrier=omega_c)
-            sech_sin = ion.SechPulse(
+            sech_cos = ion.potentials.SechPulse(
+                **efield_kwargs, phase=0, omega_carrier=omega_c
+            )
+            sech_sin = ion.potentials.SechPulse(
                 **efield_kwargs, phase=pi / 2, omega_carrier=omega_c
             )
 

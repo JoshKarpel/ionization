@@ -121,7 +121,6 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         axman_colorbar=axes.ColorBarAxis(),
         fig_dpi_scale=1,
         time_text_unit: u.Unit = "asec",
-        time_text_digits=1,
         **kwargs,
     ):
         super().__init__(**kwargs)
@@ -141,10 +140,9 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         ]
 
         self.fig_dpi_scale = fig_dpi_scale
-        self.time_text_unit, self.time_text_unit_tex = u.get_unit_value_and_latex(
+        self.time_unit_value, self.time_unit_latex = u.get_unit_value_and_latex(
             time_text_unit
         )
-        self.time_text_digits = time_text_digits
 
     def _initialize_figure(self):
         self.fig = si.vis.get_figure(
@@ -197,7 +195,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
         self.time_text = plt.figtext(
             0.6,
             0.3,
-            fr"$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, {self.time_text_unit_tex}$",
+            fr"$t = {self.sim.time / self.time_unit_value:.1f} \, {self.time_unit_latex}$",
             fontsize=30,
             animated=True,
         )
@@ -207,7 +205,7 @@ class PolarAnimator(WavefunctionSimulationAnimator):
 
     def _update_data(self):
         self.time_text.set_text(
-            fr"$t = {u.uround(self.sim.time, self.time_text_unit, self.time_text_digits)} \, {self.time_text_unit_tex}$"
+            fr"$t = {self.sim.time / self.time_unit_value:.1f} \, {self.time_unit_latex}$"
         )
 
         super()._update_data()

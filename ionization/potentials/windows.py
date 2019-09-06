@@ -235,11 +235,11 @@ class SmoothedTrapezoidalWindow(TimeWindow):
 
         info.add_field(
             "Front Time",
-            f"{u.uround(self.time_front, u.asec)} as | {u.uround(self.time_front, u.fsec)} fs | {u.uround(self.time_front, u.atomic_time)} a.u.",
+            f"{self.time_front / u.asec:.3f} as | {self.time_front / u.fsec:.3f} fs | {self.time_front / u.atomic_time:.3f} a.u.",
         )
         info.add_field(
             "Plateau Time",
-            f"{u.uround(self.time_plateau, u.asec)} as | {u.uround(self.time_plateau, u.fsec)} fs  | {u.uround(self.time_plateau, u.atomic_time)} a.u.",
+            f"{self.time_plateau / u.asec:.3f} as | {self.time_plateau / u.fsec:.3f} fs  | {self.time_plateau / u.atomic_time:.3f} a.u.",
         )
 
         return info

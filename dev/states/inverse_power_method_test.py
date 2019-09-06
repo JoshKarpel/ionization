@@ -27,7 +27,7 @@ if __name__ == "__main__":
             "time_final": 1000 * asec,
             "time_step": 1 * asec,
             "test_states": test_states,
-            # 'electric_potential': ion.Rectangle(50 * asec, 100 * asec, amplitude = 1 * atomic_electric_field)
+            # 'electric_potential': ion.potentials.Rectangle(50 * asec, 100 * asec, amplitude = 1 * atomic_electric_field)
         }
 
         steps = [1, 10, 50, 100, 500, 1000, 2000]

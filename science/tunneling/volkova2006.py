@@ -73,7 +73,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
     time_plateau = 5 * dummy.period_carrier
 
     efield = ion.SineWave.from_photon_energy_and_intensity(photon_energy, intensity)
-    efield.window = ion.SmoothedTrapezoidalWindow(
+    efield.window = ion.potentials.SmoothedTrapezoidalWindow(
         time_front=time_front, time_plateau=time_plateau
     )
 
@@ -99,7 +99,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
         )
     )
 
-    title = f"P={uround(intensity, atomic_intensity, 5)}_E={uround(photon_energy, eV, 1)}_R={r_bound}_Rp={r_points}_L={l_bound}_dt={dt}_sde={store}"
+    title = f"P={intensity / atomic_intensity:5f}_E={photon_energy / eV:1f}_R={r_bound}_Rp={r_points}_L={l_bound}_dt={dt}_sde={store}"
 
     spec = ion.SphericalHarmonicSpecification(
         f"tdse_{h}",
@@ -140,7 +140,7 @@ def compare_quasistatic_to_tdse(intensity, photon_energy):
         efield.get_electric_field_amplitude(times),
         x_label=r"Time $t$",
         x_unit="asec",
-        y_label=fr"$ {ion.LATEX_EFIELD}(t) $)",
+        y_label=fr"$ {ion.vis.LATEX_EFIELD}(t) $)",
         y_unit="atomic_electric_field",
         **PLOT_KWARGS,
     )
@@ -211,7 +211,7 @@ if __name__ == "__main__":
             "rate_vs_field",
             efields,
             quasi_static_tunneling_rates,
-            x_label=fr"Electric Field $ {ion.LATEX_EFIELD}_0 $",
+            x_label=fr"Electric Field $ {ion.vis.LATEX_EFIELD}_0 $",
             x_unit="atomic_electric_field",
             y_label=fr"Tunneling Rate ($\mathrm{{s^{{-1}}}}$)",
             y_log_axis=True,

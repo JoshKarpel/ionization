@@ -35,7 +35,7 @@ def make_error_plot(solver, exact):
 def iterative():
     pw = 200 * asec
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
-    efield = ion.GaussianPulse.from_number_of_cycles(
+    efield = ion.potentials.GaussianPulse.from_number_of_cycles(
         pulse_width=pw, fluence=1 * Jcm2, phase=0
     ).get_electric_field_amplitude
     kern = ide.hydrogen_kernel_LEN

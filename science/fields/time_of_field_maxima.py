@@ -33,7 +33,7 @@ def find_time_between_maxima(pulse):
 
 if __name__ == "__main__":
     with logman as logger:
-        p = ion.SincPulse(pulse_width=200 * asec, phase=pi / 2)
+        p = ion.potentials.SincPulse(pulse_width=200 * asec, phase=pi / 2)
         times = np.linspace(-100 * asec, 100 * asec, 1000)
         si.vis.xy_plot(
             "test",
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         time_between_maxima = np.empty_like(pulse_widths)
 
         for ii, pulse_width in enumerate(tqdm(pulse_widths)):
-            pulse = ion.SincPulse(pulse_width=pulse_width, phase=pi / 2)
+            pulse = ion.potentials.SincPulse(pulse_width=pulse_width, phase=pi / 2)
             time_between_maxima[ii] = find_time_between_maxima(pulse)
 
         si.vis.xy_plot(

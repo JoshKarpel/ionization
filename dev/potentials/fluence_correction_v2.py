@@ -47,14 +47,12 @@ if __name__ == "__main__":
 
         flu = 1 * u.Jcm2
 
-        window = potentials.SymmetricExponentialTimeWindow(
-            window_time=tw, window_width=pw / 5
-        )
+        window = ion.potentials.LogisticWindow(window_time=tw, window_width=pw / 5)
 
-        uncorrected_cos_pulse = potentials.SincPulse(
+        uncorrected_cos_pulse = ion.potentials.SincPulse(
             pulse_width=pw, phase=0, fluence=flu, window=window
         )
-        uncorrected_sin_pulse = potentials.SincPulse(
+        uncorrected_sin_pulse = ion.potentials.SincPulse(
             pulse_width=pw, phase=u.pi / 2, fluence=flu, window=window
         )
 

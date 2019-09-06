@@ -59,6 +59,8 @@ if __name__ == "__main__":
 
         dense_t = np.linspace(0, 1, 1e5)
 
-        rect = ion.Rectangle(start_time=0, end_time=1 * s, amplitude=1 * V / m)
+        rect = ion.potentials.Rectangle(
+            start_time=0, end_time=1 * s, amplitude=1 * V / m
+        )
         print(rect)
         print(rect.get_electric_field_integral_numeric_cumulative(dense_t))

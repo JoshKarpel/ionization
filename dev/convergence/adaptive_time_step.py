@@ -35,7 +35,7 @@ def dense_center(t, spec):
 
 if __name__ == "__main__":
     with logman as logger:
-        efield = ion.Rectangle(
+        efield = ion.potentials.Rectangle(
             start_time=100 * asec,
             end_time=300 * asec,
             amplitude=1 * atomic_electric_field,

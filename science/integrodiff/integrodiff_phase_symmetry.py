@@ -96,11 +96,11 @@ if __name__ == "__main__":
         specs = []
 
         for phase in phases:
-            electric_field = ion.SincPulse(
+            electric_field = ion.potentials.SincPulse(
                 pulse_width=pw * asec,
                 fluence=flu * Jcm2,
                 phase=phase,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=(t_bound_per_pw - 1) * pw * asec,
                     window_width=0.5 * pw * asec,
                 ),

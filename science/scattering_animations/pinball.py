@@ -30,12 +30,12 @@ if __name__ == "__main__":
                 z += z_offset
             offset = not offset
             while z < 25 * u.nm:
-                s = potentials.GaussianScatterer(
+                s = ion.potentials.GaussianScatterer(
                     z_width=z_width, x_width=x_width, z_center=z, x_center=x
                 )
                 print(s)
                 scatterers.append(
-                    potentials.GaussianScatterer(
+                    ion.potentials.GaussianScatterer(
                         z_width=z_width, x_width=x_width, z_center=z, x_center=x
                     )
                 )
@@ -43,7 +43,7 @@ if __name__ == "__main__":
 
             x += x_spacing
 
-        scatterer = potentials.PotentialEnergySum(*scatterers)
+        scatterer = ion.potentials.PotentialEnergySum(*scatterers)
         print(scatterer)
 
         # scatterer = ion.potentials.GaussianScatterer(

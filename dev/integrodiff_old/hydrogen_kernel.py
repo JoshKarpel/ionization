@@ -30,7 +30,7 @@ def run(spec):
         logger.debug(sim.info())
 
         sim.plot_b2_vs_time(**PLOT_KWARGS)
-        # sim.plot_a2_vs_time(name_postfix = f'{uround(sim.spec.time_step, asec, 3)}', **PLOT_KWARGS)
+        # sim.plot_a2_vs_time(name_postfix = f'{sim.spec.time_step / asec:3f}', **PLOT_KWARGS)
 
         return sim
 
@@ -119,7 +119,7 @@ if __name__ == "__main__":
             **PLOT_KWARGS,
         )
 
-        pulse = ion.SincPulse(pulse_width=200 * asec)
+        pulse = ion.potentials.SincPulse(pulse_width=200 * asec)
 
         shared_kwargs = dict(
             time_initial=-pulse.pulse_width * 10,

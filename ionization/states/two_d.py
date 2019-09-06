@@ -75,15 +75,15 @@ class TwoDPlaneWave(state.QuantumState):
 
     @property
     def ket(self):
-        return f"{state.fmt_amplitude(self.amplitude)}|kx={u.uround(self.wavenumber_x, u.per_nm)} 1/nm, kz={u.uround(self.wavenumber_z, u.per_nm)} 1/nm>"
+        return f"{state.fmt_amplitude(self.amplitude)}|kx={self.wavenumber_x / u.per_nm:.3f} 1/nm, kz={self.wavenumber_z / u.per_nm:.3f} 1/nm>"
 
     @property
     def tex(self):
-        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}}"
+        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{k_x={self.wavenumber_x / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_x={self.wavenumber_z / u.per_nm:.3f} \, \mathrm{{nm^-1}}}}"
 
     @property
     def tex_ket(self):
-        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{k_x={u.uround(self.wavenumber_x, u.per_nm)} \, \mathrm{{nm^-1}}, k_x={u.uround(self.wavenumber_z, u.per_nm)} \, \mathrm{{nm^-1}}}} \right\rangle"
+        return fr"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{k_x={self.wavenumber_x / u.per_nm:.3f} \, \mathrm{{nm^-1}}, k_x={self.wavenumber_z / u.per_nm:.3f} \, \mathrm{{nm^-1}}}} \right\rangle"
 
     def info(self) -> si.Info:
         info = super().info()

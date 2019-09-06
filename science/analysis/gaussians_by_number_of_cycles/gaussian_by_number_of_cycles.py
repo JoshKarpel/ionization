@@ -61,7 +61,7 @@ def scan_plots_absolute__separate():
     fluence_to_color = dict(zip(fluences, colors))
     color_patches = [
         mpatches.Patch(
-            color=color, label=fr"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $"
+            color=color, label=fr"$ H = {fluence / Jcm2:.3f} \, \mathrm{{J/cm^2}} $"
         )
         for fluence, color in fluence_to_color.items()
     ]
@@ -160,7 +160,7 @@ def scan_plots_absolute__combined():
     fluence_to_color = dict(zip(fluences, colors))
     color_patches = [
         mpatches.Patch(
-            color=color, label=fr"$ H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}} $"
+            color=color, label=fr"$ H = {fluence / Jcm2:.3f} \, \mathrm{{J/cm^2}} $"
         )
         for fluence, color in fluence_to_color.items()
     ]
@@ -272,7 +272,7 @@ def scan_plots_absolute__combined():
 
             # GRIDS
             for ax in axes:
-                ax.grid(True, **si.vis.GRID_KWARGS)
+                ax.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             # LOG
             if log_y:
@@ -288,7 +288,7 @@ def pulse_comparison(
     pulse_width=200 * asec, fluence=1 * Jcm2, phase=0, n_cycles=(2, 3, 4)
 ):
     pulses = [
-        ion.GaussianPulse.from_number_of_cycles(
+        ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pulse_width, fluence=fluence, phase=phase, number_of_cycles=n
         )
         for n in n_cycles
@@ -297,15 +297,15 @@ def pulse_comparison(
     times = np.linspace(-4 * pulse_width, 4 * pulse_width, 1e4)
 
     si.vis.xy_plot(
-        f"pulse_comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}_cep={uround(phase, pi)}pi",
+        f"pulse_comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}_cep={phase / pi:3f}pi",
         times,
         *[pulse.get_electric_field_amplitude(times) for pulse in pulses],
         line_labels=[rf"$N_c = {n}$" for n in n_cycles],
         x_label=r"Time $t$",
         x_unit="asec",
-        y_label=rf"Electric Field $ {ion.LATEX_EFIELD}(t) $",
+        y_label=rf"Electric Field $ {ion.vis.LATEX_EFIELD}(t) $",
         y_unit="atomic_electric_field",
-        title=rf"Gaussian Pulse Comparison, $\varphi = {uround(phase, pi)}\pi$",
+        title=rf"Gaussian Pulse Comparison, $\varphi = {phase / pi:3f}\pi$",
         **PLOT_KWARGS,
     )
 

@@ -42,7 +42,7 @@ if __name__ == "__main__":
 
             initial_states = [ion.HydrogenBoundState(1, 0)]
 
-            pulse_types = [ion.SincPulse]
+            pulse_types = [ion.potentials.SincPulse]
             pulse_widths = [93, 200]
             fluences = [1, 5, 10]
             phases = np.linspace(0, pi / 2, 3)
@@ -80,7 +80,7 @@ if __name__ == "__main__":
             ) in itertools.product(
                 initial_states, pulse_types, pulse_widths, fluences, phases
             ):
-                name = f"{pulse_type.__name__}__{initial_state.n}_{initial_state.l}__pw={pulse_width}as_flu={fluence}jcm2_cep={uround(phase, pi)}pi"
+                name = f"{pulse_type.__name__}__{initial_state.n}_{initial_state.l}__pw={pulse_width}as_flu={fluence}jcm2_cep={phase / pi:3f}pi"
 
                 pw = pulse_width * asec
                 flu = fluence * Jcm2
@@ -89,7 +89,7 @@ if __name__ == "__main__":
                     pulse_width=pw,
                     fluence=flu,
                     phase=phase,
-                    window=ion.SymmetricExponentialTimeWindow(
+                    window=ion.potentials.LogisticWindow(
                         window_time=(t_bound - 2) * pw, window_width=0.2 * pw
                     ),
                 )

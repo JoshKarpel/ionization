@@ -24,18 +24,18 @@ def power_exclusion():
     plot_bound = 5
 
     pulses_by_exclusion = [
-        ion.GaussianPulse.from_power_exclusion(
+        ion.potentials.GaussianPulse.from_power_exclusion(
             pulse_width=pw,
             exclusion=exclusion,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=3 * pw, window_width=0.1 * pw
             ),
         )
         for exclusion in exclusions
     ]
 
-    ti_sapph = ion.GaussianPulse.from_omega_carrier(
+    ti_sapph = ion.potentials.GaussianPulse.from_omega_carrier(
         pulse_width=3400 * asec, omega_carrier=twopi * c / (800 * nm)
     )
 
@@ -52,7 +52,7 @@ def power_exclusion():
         x_unit="asec",
         x_label=r"Time $ t $",
         y_unit="atomic_electric_field",
-        y_label=rf"$ {ion.LATEX_EFIELD}(t) $",
+        y_label=rf"$ {ion.vis.LATEX_EFIELD}(t) $",
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -73,7 +73,7 @@ def power_exclusion():
         x_unit="asec",
         x_label=r"Time $ t $",
         y_unit="atomic_electric_field",
-        y_label=rf"$ {ion.LATEX_EFIELD}(t) $",
+        y_label=rf"$ {ion.vis.LATEX_EFIELD}(t) $",
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -82,11 +82,9 @@ def power_exclusion():
         # print(pulse.info())
         print()
         print(f"N_sigma: {exclusion}")
+        print(f"Numeric Fluence: {pulse.get_fluence_numeric(times)/ Jcm2:.3f} J/cm^2")
         print(
-            f"Numeric Fluence: {uround(pulse.get_fluence_numeric(times), Jcm2)} J/cm^2"
-        )
-        print(
-            f"Vector Potential at End: {uround(proton_charge * pulse.get_vector_potential_amplitude_numeric(times), atomic_momentum)} a.u."
+            f"Vector Potential at End: {proton_charge * pulse.get_vector_potential_amplitude_numeric(times)/atomic_momentum:3f} a.u."
         )
         print()
 
@@ -99,12 +97,12 @@ def number_of_cycles():
     plot_bound = 5
 
     pulses_by_num_cycles = [
-        ion.GaussianPulse.from_number_of_cycles(
+        ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw,
             number_of_cycles=num_cyc,
             number_of_pulse_widths=3,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=3 * pw, window_width=0.1 * pw
             ),
         )
@@ -121,7 +119,7 @@ def number_of_cycles():
         x_unit="asec",
         x_label=r"Time $ t $",
         y_unit="atomic_electric_field",
-        y_label=rf"$ {ion.LATEX_EFIELD}(t) $",
+        y_label=rf"$ {ion.vis.LATEX_EFIELD}(t) $",
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -139,7 +137,7 @@ def number_of_cycles():
         x_unit="asec",
         x_label=r"Time $ t $",
         y_unit="atomic_electric_field",
-        y_label=rf"$ {ion.LATEX_EFIELD}(t) $",
+        y_label=rf"$ {ion.vis.LATEX_EFIELD}(t) $",
         legend_on_right=True,
         **PLOT_KWARGS,
     )
@@ -148,11 +146,9 @@ def number_of_cycles():
         # print(pulse.info())
         print()
         print(f"N_cycles: {num_cyc}")
+        print(f"Numeric Fluence: {pulse.get_fluence_numeric(times)/ Jcm2:.3f} J/cm^2")
         print(
-            f"Numeric Fluence: {uround(pulse.get_fluence_numeric(times), Jcm2)} J/cm^2"
-        )
-        print(
-            f"Vector Potential at End: {uround(proton_charge * pulse.get_vector_potential_amplitude_numeric(times), atomic_momentum)} a.u."
+            f"Vector Potential at End: {proton_charge * pulse.get_vector_potential_amplitude_numeric(times)/ atomic_momentum:.3f} a.u."
         )
         print()
 
@@ -165,12 +161,12 @@ def number_of_cycles_fluence_and_vp():
     plot_bound = 5
 
     pulses_by_num_cycles = [
-        ion.GaussianPulse.from_number_of_cycles(
+        ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw,
             number_of_cycles=num_cyc,
             number_of_pulse_widths=3,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=3 * pw, window_width=0.1 * pw
             ),
         )

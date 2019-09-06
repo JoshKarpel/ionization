@@ -18,7 +18,9 @@ if __name__ == "__main__":
         times = np.linspace(0, 20, 1000) * s
 
         field_1 = ion.SineWave(1 * Hz, amplitude=1 * V / m)
-        field_2 = ion.Rectangle(start_time=5 * s, end_time=10 * s, amplitude=1 * V / m)
+        field_2 = ion.potentials.Rectangle(
+            start_time=5 * s, end_time=10 * s, amplitude=1 * V / m
+        )
 
         field_sum = field_1 + field_2
 

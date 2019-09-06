@@ -104,15 +104,15 @@ class OneDPlaneWave(state.QuantumState):
 
     @property
     def ket(self):
-        return rf"{state.fmt_amplitude(self.amplitude)}|wavenumber = {u.uround(self.wavenumber, u.per_nm)} 1/nm, E = {u.uround(self.energy, u.eV)} eV>"
+        return rf"{state.fmt_amplitude(self.amplitude)}|wavenumber = {self.wavenumber / u.per_nm:.3f} 1/nm, E = {self.energy / u.eV:.3f} eV>"
 
     @property
     def tex(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}}"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}}}"
 
     @property
     def tex_ket(self):
-        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{u.uround(self.energy, u.eV)} \, \mathrm{{eV}}}} \right\rangle"
+        return rf"{state.fmt_amplitude_for_tex(self.amplitude)}\left| \phi_{{{self.energy / u.eV:.3f} \, \mathrm{{eV}}}} \right\rangle"
 
     def info(self) -> si.Info:
         info = super().info()

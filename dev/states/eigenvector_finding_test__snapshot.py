@@ -64,7 +64,7 @@ if __name__ == "__main__":
             logger.info("Matrix diagonalization took: {}".format(t))
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
-                energy = uround(eigenvalue, eV, 5)  # for str representation
+                energy = f"{eigenvalue / eV:5f}"  # for str representation
                 eigenvector /= np.sqrt(
                     sim.mesh.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2)
                 )  # normalize

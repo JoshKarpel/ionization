@@ -79,7 +79,7 @@ class QuantumMeshAxis(si.vis.AxisManager):
         info.add_field("Normalization", self.norm.__class__.__name__)
         info.add_field(
             "Plot Limit",
-            f"{u.uround(self.plot_limit, u.bohr_radius)} Bohr radii | {u.uround(self.plot_limit, u.nm)} nm"
+            f"{self.plot_limit / u.bohr_radius:.3f} Bohr radii | {self.plot_limit / u.nm:.3f} nm"
             if self.plot_limit is not None
             else "none",
         )

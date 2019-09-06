@@ -17,7 +17,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 if __name__ == "__main__":
     with LOGMAN as logger:
         time_bound = 3.5
-        pulse = potentials.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=200 * asec, fluence=5 * Jcm2, phase=pi / 2, number_of_cycles=10
         )
 

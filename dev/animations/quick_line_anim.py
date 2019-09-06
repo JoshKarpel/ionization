@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 ion.QHOState.from_potential(pot, mass=electron_mass, n=n)
                 for n in range(50)
             ),
-            electric_potential=ion.Rectangle(
+            electric_potential=ion.potentials.Rectangle(
                 start_time=100 * asec,
                 end_time=150 * asec,
                 amplitude=0.1 * atomic_electric_field,

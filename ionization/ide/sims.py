@@ -295,7 +295,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         axis.legend(**legend_kwargs)
 
-        axis.grid(True, **si.vis.GRID_KWARGS)
+        axis.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
     def plot_wavefunction_vs_time(self, *args, **kwargs):
         """Alias for plot_b2_vs_time."""
@@ -330,11 +330,11 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 ax_b2.set_yscale("log")
                 min_overlap = np.min(self.b2)
                 ax_b2.set_ylim(bottom=max(1e-9, min_overlap * 0.1), top=1.0)
-                ax_b2.grid(True, which="both", **si.vis.GRID_KWARGS)
+                ax_b2.grid(True, which="both", **si.vis.DEFAULT_GRID_KWARGS)
             else:
                 ax_b2.set_ylim(0.0, 1.0)
                 ax_b2.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_b2.grid(True, **si.vis.GRID_KWARGS)
+                ax_b2.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             ax_b2.set_xlim(
                 self.spec.time_initial / t_scale_unit,
@@ -403,7 +403,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         time_step: float = 1 * u.asec,
         test_mass: float = u.electron_mass,
         test_charge: float = u.electron_charge,
-        b_initial: Union[float, complex] = 1,
+        b_initial: complex = 1,
         integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
         electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
         electric_potential_dc_correction: bool = False,
@@ -421,7 +421,6 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         **kwargs,
     ):
         """
-
         Parameters
         ----------
         name
@@ -447,7 +446,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         kernel
             The :class:`Kernel` to use for the simulation.
         integration_method : {'trapezoid', 'simpson'}
-            The kind of integration rule to use.
+            The integration rule to use.
         evolution_method
             The :class:`EvolutionMethod` to use.
         evolution_gauge
@@ -464,7 +463,7 @@ class IntegroDifferentialEquationSpecification(si.Specification):
         tunneling_model
             A :class:`TunnelingModel` that will be applied to the wavefunction after every time step.
         ionization_potential
-            The ionization pot
+            The ionization potential of the bound state.
         kwargs
             Any additional keyword arguments are passed to the :class:`simulacra.Specification` constructor.
         """

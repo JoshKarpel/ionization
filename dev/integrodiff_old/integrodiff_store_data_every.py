@@ -16,8 +16,10 @@ if __name__ == "__main__":
     with si.utils.LogManager(
         "simulacra", "ionization", stdout_logs=True, stdout_level=logging.INFO
     ) as logger:
-        # electric_field = ion.Rectangle(start_time = -500 * asec, end_time = 500 * asec, amplitude = 1 * atomic_electric_field)
-        electric_field = ion.SincPulse(pulse_width=100 * asec, fluence=1 * Jcm2)
+        # electric_field = ion.potentials.Rectangle(start_time = -500 * asec, end_time = 500 * asec, amplitude = 1 * atomic_electric_field)
+        electric_field = ion.potentials.SincPulse(
+            pulse_width=100 * asec, fluence=1 * Jcm2
+        )
 
         q = electron_charge
         m = electron_mass_reduced

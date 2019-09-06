@@ -13,7 +13,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass()
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass()
         sim = mesh.LineSpecification(
             "test",
             z_bound=100 * u.nm,

@@ -36,7 +36,7 @@ if __name__ == "__main__":
 
         bound = 30
         times = np.linspace(-bound * pw, bound * pw, 1e5)
-        print(f"dt = {uround(times[1] - times[0], asec)} as")
+        print(f"dt = {(times[1] - times[0]) /asec:.3f} as")
         len_times = len(times)
 
         ceps = np.linspace(0, pi, 5e2)
@@ -47,7 +47,7 @@ if __name__ == "__main__":
         avg_abs_field_vs_cep = np.zeros(len(ceps))
         avg_abs_power_vs_cep = np.zeros(len(ceps))
 
-        pot_zero = ion.SincPulse.from_omega_carrier(
+        pot_zero = ion.potentials.SincPulse.from_omega_carrier(
             pulse_width=pw, fluence=flu, phase=0
         )
 
@@ -56,11 +56,11 @@ if __name__ == "__main__":
         power_cut = np.max(np.abs(field_zero)) / np.sqrt(2)
 
         for ii, cep in enumerate(tqdm(ceps)):
-            pot = ion.SincPulse(
+            pot = ion.potentials.SincPulse(
                 pulse_width=pw,
                 fluence=flu,
                 phase=cep,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=(bound - 2) * pw, window_width=0.2 * pw
                 ),
             )
@@ -85,16 +85,16 @@ if __name__ == "__main__":
             avg_abs_field_vs_cep / avg_abs_field_vs_cep[0],
             avg_abs_power_vs_cep / avg_abs_power_vs_cep[0],
             line_labels=[
-                rf"$ {ion.LATEX_EFIELD} $ Fraction",
-                rf"$ \left|{ion.LATEX_EFIELD}\right|^2 $ Fraction",
-                rf"RMS $ {ion.LATEX_EFIELD} $",
-                rf"RMS $ \left|{ion.LATEX_EFIELD}\right|^2 $",
-                rf"AVG $ \left|{ion.LATEX_EFIELD}\right| $",
-                rf"AVG $ \left|{ion.LATEX_EFIELD}\right|^2 $",
+                rf"$ {ion.vis.LATEX_EFIELD} $ Fraction",
+                rf"$ \left|{ion.vis.LATEX_EFIELD}\right|^2 $ Fraction",
+                rf"RMS $ {ion.vis.LATEX_EFIELD} $",
+                rf"RMS $ \left|{ion.vis.LATEX_EFIELD}\right|^2 $",
+                rf"AVG $ \left|{ion.vis.LATEX_EFIELD}\right| $",
+                rf"AVG $ \left|{ion.vis.LATEX_EFIELD}\right|^2 $",
             ],
             x_label=r"Carrier-Envelope Phase $ \varphi $",
             x_unit="rad",
-            title=fr"Relative $ {ion.LATEX_EFIELD} $ Properties for T = $ {bound}\tau $",
+            title=fr"Relative $ {ion.vis.LATEX_EFIELD} $ Properties for T = $ {bound}\tau $",
             legend_on_right=True,
             **PLOT_KWARGS,
         )

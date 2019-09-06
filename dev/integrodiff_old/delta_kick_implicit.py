@@ -151,11 +151,11 @@ def pw_scan(fluence):
 
     cep_to_pulses = {
         cep: [
-            ion.SincPulse(
+            ion.potentials.SincPulse(
                 pulse_width=pw,
                 fluence=fluence,
                 phase=cep,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=pw * (tb - 2), window_width=0.2 * pw
                 ),
             )
@@ -169,17 +169,17 @@ def pw_scan(fluence):
     }
 
     si.vis.xy_plot(
-        f"pulse_width_scan__flu={uround(fluence, Jcm2)}jcm2",
+        f"pulse_width_scan__flu={fluence / Jcm2:3f}jcm2",
         pulse_widths,
         *[
             [np.abs(soln[0][-1]) ** 2 for soln in solns]
             for cep, solns in cep_to_solns.items()
         ],
-        line_labels=[rf"$\varphi = {uround(cep, pi)}\pi$" for cep in ceps],
+        line_labels=[rf"$\varphi = {cep / pi:3f}\pi$" for cep in ceps],
         x_label=r"$ \tau $",
         x_unit="asec",
         y_label=r"$ \left| a(t_f) \right|^2 $",
-        title=rf"Delta-Kick Model Pulse Width Scan, $H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}}$",
+        title=rf"Delta-Kick Model Pulse Width Scan, $H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
         x_lower_limit=0,
         **PLOT_KWARGS,
     )
@@ -205,7 +205,7 @@ def kick_delay_scan(eta=0.1 * atomic_time * atomic_electric_field):
     print()
 
     si.vis.xy_plot(
-        f"kick_delay_scan__eta={uround(eta, atomic_time * atomic_electric_field)}au",
+        f"kick_delay_scan__eta={eta / atomic_time * atomic_electric_field:.3f}au",
         delays,
         [np.abs(soln[0][-1]) ** 2 for soln in solns],
         np.abs(analytic) ** 2,
@@ -214,7 +214,7 @@ def kick_delay_scan(eta=0.1 * atomic_time * atomic_electric_field):
         x_label=r"Kick Delay $ \Delta $",
         x_unit="asec",
         y_label=r"$ \left| a(t_f) \right|^2 $",
-        title=f"Delta-Kick Model Kick Delay Scan, $\eta = {uround(eta, atomic_time * atomic_electric_field)} \, \mathrm{{a.u.}}$",
+        title=f"Delta-Kick Model Kick Delay Scan, $\eta = {eta / atomic_time * atomic_electric_field:.3f} \, \mathrm{{a.u.}}$",
         vlines=[93 * asec, 150 * asec],
         hlines=[ime_limit, ana_limit],
         x_lower_limit=0,
@@ -224,10 +224,10 @@ def kick_delay_scan(eta=0.1 * atomic_time * atomic_electric_field):
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        pulse = ion.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=50 * asec, fluence=0.1 * Jcm2, phase=0, number_of_cycles=2
         )
-        # pulse = ion.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
+        # pulse = ion.potentials.SincPulse(pulse_width = 50 * asec, fluence = .1 * Jcm2, phase = pi / 2)
         compare_ide_to_matrix(pulse, tb=4)
 
         # etas = np.array([.01, .05, .1, .2, .3, .4, .5,]) * atomic_time * atomic_electric_field

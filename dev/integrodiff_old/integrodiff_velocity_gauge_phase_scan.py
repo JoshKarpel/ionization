@@ -47,20 +47,20 @@ if __name__ == "__main__":
 
         specs = []
         for phase in phases:
-            reference_sinc = ion.SincPulse(pulse_width=pw)
-            efield = ion.GaussianPulse(
+            reference_sinc = ion.potentials.SincPulse(pulse_width=pw)
+            efield = ion.potentials.GaussianPulse(
                 pulse_width=pw,
                 fluence=flu,
                 phase=phase,
                 omega_carrier=reference_sinc.omega_carrier,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=(t_bound * 0.9) * pw, window_width=0.2 * pw
                 ),
             )
 
             specs.append(
                 ide.VelocityGaugeIntegroDifferentialEquationSpecification(
-                    f"{efield.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2_phase={uround(phase)}",
+                    f"{efield.__class__.__name__}_pw={pw / asec:3f}as_flu={flu / Jcm2:3f}Jcm2_phase={phase:.3f}",
                     time_initial=-t_bound * pw,
                     time_final=t_bound * pw,
                     time_step=0.5 * asec,
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                 y_lower_limit = None
 
             si.vis.xy_plot(
-                f"ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}",
+                f"ionization_vs_phase__pw={pw / asec:3f}as_flu={flu / Jcm2:3f}Jcm2__log={log}",
                 [r.spec.phase for r in results],
                 [np.abs(r.a[-1]) ** 2 for r in results],
                 x_label=r"CEP $\varphi$ ($\pi$)",
@@ -99,7 +99,7 @@ if __name__ == "__main__":
             )
 
             si.vis.xy_plot(
-                f"ionization_vs_phase__pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2__log={log}__rel",
+                f"ionization_vs_phase__pw={pw / asec:3f}as_flu={flu / Jcm2:3f}Jcm2__log={log}__rel",
                 [r.spec.phase for r in results],
                 [
                     (np.abs(r.a[-1]) ** 2) / (np.abs(results[0].a[-1]) ** 2)

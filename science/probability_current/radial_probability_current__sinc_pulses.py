@@ -42,7 +42,7 @@ def run_spec(spec):
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        pulse_type = ion.SincPulse
+        pulse_type = ion.potentials.SincPulse
 
         pulse_widths = np.array([50, 100, 200, 400, 800]) * asec
         fluences = np.array([0.1, 1, 10, 20]) * Jcm2
@@ -62,14 +62,14 @@ if __name__ == "__main__":
                 pulse_width=pw,
                 fluence=flu,
                 phase=cep,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=pulse_time_bound * pw, window_width=0.2 * pw
                 ),
             )
 
             specs.append(
                 ion.SphericalHarmonicSpecification(
-                    f"{pulse_type.__name__}__pw={uround(pw, asec)}as_flu={uround(flu, Jcm2)}jcm2_cep={uround(cep, pi)}pi__R={uround(r_bound, bohr_radius)}br_ppbr={r_points_per_br}_L={l_bound}_dt={uround(dt, asec)}as",
+                    f"{pulse_type.__name__}__pw={pw / asec:3f}as_flu={flu / Jcm2:3f}jcm2_cep={cep / pi:3f}pi__R={r_bound / bohr_radius:3f}br_ppbr={r_points_per_br}_L={l_bound}_dt={dt / asec:3f}as",
                     r_bound=r_bound,
                     r_points=r_points_per_br * r_bound / bohr_radius,
                     l_bound=l_bound,

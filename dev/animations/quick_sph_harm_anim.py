@@ -126,7 +126,7 @@ if __name__ == "__main__":
             r_bound=50 * bohr_radius,
             l_bound=20,
             r_points=200,
-            electric_potential=ion.Rectangle(
+            electric_potential=ion.potentials.Rectangle(
                 start_time=25 * asec,
                 end_time=75 * asec,
                 amplitude=1 * atomic_electric_field,

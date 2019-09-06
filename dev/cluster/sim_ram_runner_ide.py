@@ -26,7 +26,7 @@ if __name__ == "__main__":
 
         pw = 100 * asec
 
-        pulse = ion.SincPulse(pulse_width=pw * asec)
+        pulse = ion.potentials.SincPulse(pulse_width=pw * asec)
 
         test_width = 1 * bohr_radius
         test_charge = 1 * electron_charge
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         steps = pw * 20 / dt
 
         sim = ide.IntegroDifferentialEquationSpecification(
-            f"ram_test__dt={uround(dt, asec, 5)}as",
+            f"ram_test__dt={dt / asec:5f}as",
             time_initial=-pw * 10,
             time_final=pw * 10,
             time_step=dt,

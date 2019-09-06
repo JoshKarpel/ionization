@@ -19,8 +19,8 @@ logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INF
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 
-T_BOUND_MAP = {ion.SincPulse: 12}
-P_BOUND_MAP = {ion.SincPulse: 10}
+T_BOUND_MAP = {ion.potentials.SincPulse: 12}
+P_BOUND_MAP = {ion.potentials.SincPulse: 10}
 
 
 def make_plot(args):
@@ -31,7 +31,7 @@ def make_plot(args):
 
     times = np.linspace(-t_bound * pw, t_bound * pw, 1e4)
 
-    window = ion.SymmetricExponentialTimeWindow(
+    window = ion.potentials.LogisticWindow(
         window_time=p_bound * pw, window_width=0.2 * pw
     )
     pulse = pulse_type(pulse_width=pw, fluence=flu, phase=cep, window=window)
@@ -53,7 +53,7 @@ def make_plot(args):
         for start in starts
     )
 
-    identifier = f"{pulse_type.__name__}__pw={uround(pw, asec, 0)}as_flu={uround(flu, Jcm2, 2)}jcm2_cep={uround(cep, pi, 2)}pi"
+    identifier = f"{pulse_type.__name__}__pw={pw / asec:0f}as_flu={flu / Jcm2:2f}jcm2_cep={cep / pi:2f}pi"
 
     spec = ion.SphericalHarmonicSpecification(
         identifier,
@@ -90,7 +90,7 @@ def make_plot(args):
             *(alpha / bohr_radius for alpha in sliced_alphas),
         ],
         line_labels=[
-            rf"$ {ion.LATEX_EFIELD}(t) $",
+            rf"$ {ion.vis.LATEX_EFIELD}(t) $",
             rf"$ e \, {ion.LATEX_AFIELD}(t) $",
             rf"$ \left\langle r(t) \right\rangle $",
             rf"$ \alpha(t) $",
@@ -104,7 +104,7 @@ def make_plot(args):
         x_label=r"Time $t$",
         x_unit="asec",
         # y_label = r'Field Amplitude (a.u.) / Distance ($a_0$)',
-        title=rf"$ \tau = {uround(pw, asec, 0)} \, \mathrm{{as}}, \; H = {uround(flu, Jcm2, 2)} \, \mathrm{{J/cm^2}}, \; \varphi = {uround(cep, pi, 2)}\pi $",
+        title=rf"$ \tau = {pw / asec:0f} \, \mathrm{{as}}, \; H = {flu / Jcm2:2f} \, \mathrm{{J/cm^2}}, \; \varphi = {cep / pi:2f}\pi $",
         **PLOT_KWARGS,
     )
 
@@ -114,7 +114,7 @@ if __name__ == "__main__":
         pulse_widths = np.array([200, 400, 800, 2000]) * asec
         fluences = np.array([0.01, 0.1, 1, 2, 5, 10]) * Jcm2
         phases = [0, pi / 4, pi / 2]
-        pulse_types = [ion.SincPulse, ion.GaussianPulse]
+        pulse_types = [ion.potentials.SincPulse, ion.potentials.GaussianPulse]
 
         si.utils.multi_map(
             make_plot,

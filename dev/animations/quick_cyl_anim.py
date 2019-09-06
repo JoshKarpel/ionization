@@ -47,7 +47,7 @@ if __name__ == "__main__":
             ),
         ]
 
-        sim = ion.CylindricalSliceSpecification(
+        sim = ion.mesh.CylindricalSliceSpecification(
             "cyl_slice",
             time_initial=0 * asec,
             time_final=300 * asec,
@@ -55,7 +55,7 @@ if __name__ == "__main__":
             rho_bound=20 * bohr_radius,
             z_points=200,
             rho_points=100,
-            electric_potential=ion.Rectangle(
+            electric_potential=ion.potentials.Rectangle(
                 start_time=100 * asec,
                 end_time=150 * asec,
                 amplitude=1 * atomic_electric_field,
@@ -67,7 +67,7 @@ if __name__ == "__main__":
         sim.run()
         sim.info().log()
 
-        # window = ion.LinearRampWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)
+        # window = ion.potentials.LinearRampWindow(ramp_on_time = t_init * asec, ramp_time = 200 * asec)
         # e_field = ion.SineWave.from_frequency(1 / (50 * asec), amplitude = 1 * atomic_electric_field, window = window)
         # mask = ion.RadialCosineMask(inner_radius = (bound - 25) * bohr_radius, outer_radius = bound * bohr_radius)
         #
@@ -75,7 +75,7 @@ if __name__ == "__main__":
         #     src.ionization.animators.CylindricalSliceAnimator(postfix = '_nm', target_dir = OUT_DIR, distance_unit = 'nm'),
         #     src.ionization.animators.CylindricalSliceAnimator(postfix = '_br', target_dir = OUT_DIR, distance_unit = 'bohr_radius'),
         # ]
-        # specs.append(ion.CylindricalSliceSpecification('cyl_slice',
+        # specs.append(ion.mesh.CylindricalSliceSpecification('cyl_slice',
         #                                                time_initial = t_init * asec, time_final = t_final * asec, time_step = dt * asec,
         #                                                z_bound = 20 * bohr_radius, z_points = 300,
         #                                                rho_bound = 20 * bohr_radius, rho_points = 150,

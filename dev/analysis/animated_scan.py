@@ -2,7 +2,6 @@ import os
 import time
 
 import simulacra as si
-import simulacra.cluster as clu
 from simulacra.units import *
 
 
@@ -26,7 +25,7 @@ if __name__ == "__main__":
                 return [r.final_bound_state_overlap for r in results]
 
             si.vis.xyt_plot(
-                f'phase_fluence__pw={uround(pw, "asec", 3)}as',
+                f"phase_fluence__pw={pw / asec:.3f}as",
                 x,
                 fluences,
                 f,

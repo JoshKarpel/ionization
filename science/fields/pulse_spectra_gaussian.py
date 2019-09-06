@@ -20,7 +20,7 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 if __name__ == "__main__":
     with LOGMAN as logger:
         pw = 200 * u.asec
-        pulse = potentials.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw,
             fluence=1 * u.Jcm2,
             phase=0,
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         times = np.linspace(-t_bound, t_bound, int(2 * t_bound / u.asec))
         print("time steps", len(times))
 
-        dc_corrected_pulse = potentials.DC_correct_electric_potential(pulse, times)
+        dc_corrected_pulse = ion.potentials.DC_correct_electric_potential(pulse, times)
 
         si.vis.xy_plot(
             "electric_field_vs_time",
@@ -63,10 +63,10 @@ if __name__ == "__main__":
         )
 
         dt = np.abs(times[1] - times[0])
-        print(f"dt = {u.uround(dt, u.asec)} as")
+        print(f"dt = {dt / u.asec:.3f} as")
         freqs = nfft.fftshift(nfft.fftfreq(len(times), dt))
         df = np.abs(freqs[1] - freqs[0])
-        print(f"df = {u.uround(df, u.THz)} THz")
+        print(f"df = {df / u.THz:.3f} THz")
 
         fft = (
             nfft.fftshift(
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         fft_fluence = (
             df * u.c * u.epsilon_0 * integ.simps(np.abs(fft) ** 2) / len(times)
         )
-        print(f"fft fluence {u.uround(fft_fluence, u.Jcm2, 6)} J/cm^2")
+        print(f"fft fluence {fft_fluence / u.Jcm2:6f} J/cm^2")
         corrected_fft_fluence = (
             df
             * u.c
@@ -121,6 +121,4 @@ if __name__ == "__main__":
             * integ.simps(np.abs(fft_corrected) ** 2)
             / len(times)
         )
-        print(
-            f"corrected fft fluence {u.uround(corrected_fft_fluence, u.Jcm2, 6)} J/cm^2"
-        )
+        print(f"corrected fft fluence {corrected_fft_fluence / u.Jcm2:6f} J/cm^2")

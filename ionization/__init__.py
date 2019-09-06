@@ -21,5 +21,5 @@ _pyximport.install(
     setup_args={"include_dirs": _np.get_include()}, build_dir=_pyx_dir, language_level=3
 )
 
-from . import mesh, ide, tunneling, potentials, states, exceptions, analysis
+from . import mesh, ide, tunneling, potentials, states, exceptions, analysis, vis
 from .core import Gauge

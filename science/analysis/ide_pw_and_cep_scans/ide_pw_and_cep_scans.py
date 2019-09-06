@@ -48,7 +48,7 @@ def make_scans(jp_name, SCAN_ATTR):
                 for log_y in [False, True]:
                     si.vis.xxyy_plot(
                         ("logY_" if log_y else "")
-                        + f"{plot_attr}={uround(plot_attr_value, units[plot_attr])}_{line_attr}_{scan_attr}",
+                        + f"{plot_attr}={plot_attr_value / units[plot_attr]:.3f}_{line_attr}_{scan_attr}",
                         [
                             *[
                                 [
@@ -74,14 +74,14 @@ def make_scans(jp_name, SCAN_ATTR):
                             ]
                         ],
                         line_labels=[
-                            rf"$ {symbols[line_attr]} = {uround(line_attr_value, units[line_attr])} \, {line_unit_tex} $"
+                            rf"$ {symbols[line_attr]} = {line_attr_value / units[line_attr]:3f} \, {line_unit_tex} $"
                             for line_attr_value in line_attr_values
                         ],
                         legend_on_right=True,
                         x_unit=units[scan_attr],
                         x_label=rf"${symbols[scan_attr]}$",
                         y_label=metric.replace("_", " ").title(),
-                        title=rf"$ {symbols[plot_attr]} = {uround(plot_attr_value, units[plot_attr])} \, {plot_unit_tex} $",
+                        title=rf"$ {symbols[plot_attr]} = {plot_attr_value / units[plot_attr]:3f} \, {plot_unit_tex} $",
                         y_log_axis=log_y,
                         y_lower_limit=None if log_y else 0,
                         y_upper_limit=1.1,

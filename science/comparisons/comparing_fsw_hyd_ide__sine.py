@@ -51,7 +51,7 @@ if __name__ == "__main__":
 
         for photon_energy, amplitude in itertools.product(photon_energies, amplitudes):
             efield = ion.SineWave.from_photon_energy(photon_energy, amplitude=amplitude)
-            efield.window = ion.SmoothedTrapezoidalWindow(
+            efield.window = ion.potentials.SmoothedTrapezoidalWindow(
                 time_front=front_periods * efield.period_carrier,
                 time_plateau=plat_periods * efield.period_carrier,
             )
@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 store_data_every=1,
             )
 
-            prefix = f"E={uround(photon_energy, eV, 3)}eV_amp={uround(amplitude, atomic_electric_field, 3)}aef"
+            prefix = f"E={photon_energy / eV:3f}eV_amp={amplitude / atomic_electric_field:3f}aef"
             fsw_initial_state = ion.FiniteSquareWellState.from_potential(
                 internal_potential, mass=test_mass
             )

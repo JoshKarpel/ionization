@@ -30,24 +30,24 @@ if __name__ == "__main__":
         amp = 0.05
         phase = 0
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=0.9 * t_bound * asec, window_width=10 * asec
         )
 
         # efield = ion.SineWave.from_photon_energy(rydberg + 20 * eV, amplitude = .05 * atomic_electric_field,
-        #                                                          window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
+        #                                                          window = ion.potentials.LogisticWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
 
         efield = ion.SineWave.from_photon_energy(
             rydberg + 20 * eV,
             amplitude=amp * atomic_electric_field,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=0.9 * t_bound * asec, window_width=10 * asec
             ),
         )
         #
         # efield += ion.SineWave.from_photon_energy(rydberg + 30 * eV, amplitude = .05 * atomic_electric_field,
-        #                                           window = ion.SymmetricExponentialTimeWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
+        #                                           window = ion.potentials.LogisticWindow(window_time = .9 * t_bound * asec, window_width = 10 * asec))
 
         # efield = ion.SineWave(twopi * (c / (800 * nm)), amplitude = .01 * atomic_electric_field,
         #                       window = window)
@@ -72,7 +72,7 @@ if __name__ == "__main__":
         )
 
         sim = ion.SphericalHarmonicSpecification(
-            f"PWTest_amp={amp}aef_phase={uround(phase, pi, 3)}pi__tB={t_bound}pw__tE={t_extra}asec",
+            f"PWTest_amp={amp}aef_phase={phase / pi:3f}pi__tB={t_bound}pw__tE={t_extra}asec",
             **spec_kwargs,
         ).to_sim()
 

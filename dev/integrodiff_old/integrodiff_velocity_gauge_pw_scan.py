@@ -44,20 +44,20 @@ if __name__ == "__main__":
 
         specs = []
         for pw in pulse_widths:
-            reference_sinc = ion.SincPulse(pulse_width=pw)
-            efield = ion.GaussianPulse(
+            reference_sinc = ion.potentials.SincPulse(pulse_width=pw)
+            efield = ion.potentials.GaussianPulse(
                 pulse_width=pw,
                 fluence=flu,
                 phase=phase,
                 omega_carrier=reference_sinc.omega_carrier,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=(t_bound * 0.9) * pw, window_width=0.2 * pw
                 ),
             )
 
             specs.append(
-                ide.VelocityGaugeIntegroDifferentialEquationSpecification(
-                    f"{efield.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}Jcm2",
+                ide.potentials.VelocityGaugeIntegroDifferentialEquationSpecification(
+                    f"{efield.__class__.__name__}_pw={pw / asec:3f}as_flu={flu / Jcm2:3f}Jcm2",
                     time_initial=-t_bound * pw,
                     time_final=t_bound * pw,
                     time_step=0.1 * asec,
@@ -78,7 +78,7 @@ if __name__ == "__main__":
 
         for log in (True, False):
             si.vis.xy_plot(
-                f"ionization_vs_pulse_width__flu={uround(flu, Jcm2, 3)}Jcm2_phase={uround(phase)}__log={log}",
+                f"ion.potentials.zation_vs_Pulse_width__flu={flu / Jcm2:3f}Jcm2_phase={phase:.3f}__log={log}",
                 [r.spec.pulse_width for r in results],
                 [np.abs(r.a[-1]) ** 2 for r in results],
                 x_label=r"Pulse Width $  \tau  $",

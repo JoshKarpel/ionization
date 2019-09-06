@@ -34,7 +34,7 @@ if __name__ == "__main__":
 
             times = np.linspace(-t_bound * wave.period, t_bound * wave.period, 1e4)
 
-            window = ion.SymmetricExponentialTimeWindow(
+            window = ion.potentials.LogisticWindow(
                 window_time=p_bound * wave.period, window_width=0.2 * wave.period
             )
             wave = ion.SineWave.from_wavelength(
@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 for start in starts
             )
 
-            identifier = f"{wave.__class__.__name__}__lambda={uround(wave.wavelength, nm, 0)}nm_amp={uround(wave.amplitude, atomic_electric_field, 5)}aef_cep={uround(cep, pi, 2)}pi"
+            identifier = f"{wave.__class__.__name__}__lambda={wave.wavelength / nm:0f}nm_amp={wave.amplitude / atomic_electric_field:5f}aef_cep={cep / pi:2f}pi"
 
             si.vis.xxyy_plot(
                 identifier,
@@ -72,7 +72,7 @@ if __name__ == "__main__":
                     *(alpha / bohr_radius for alpha in sliced_alphas),
                 ],
                 line_labels=[
-                    rf"$ {ion.LATEX_EFIELD}(t) $ (norm.)",
+                    rf"$ {ion.vis.LATEX_EFIELD}(t) $ (norm.)",
                     rf"$ e \, {ion.LATEX_AFIELD}(t) $ (norm.)",
                     rf"$ \alpha(t) $",
                 ],
@@ -83,6 +83,6 @@ if __name__ == "__main__":
                 ],
                 x_label=r"Time $t$",
                 x_unit="asec",
-                title=rf"$ \lambda = {uround(wave.wavelength, nm, 0)} \, \mathrm{{nm}}, \; {ion.LATEX_EFIELD}_0 = {uround(wave.amplitude, atomic_electric_field, 5)} \, \mathrm{{a.u.}}, \; \varphi = {uround(cep, pi, 2)}\pi $",
+                title=rf"$ \lambda = {wave.wavelength / nm:0f} \, \mathrm{{nm}}, \; {ion.vis.LATEX_EFIELD}_0 = {wave.amplitude / atomic_electric_field:5f} \, \mathrm{{a.u.}}, \; \varphi = {cep / pi:2f}\pi $",
                 **PLOT_KWARGS,
             )

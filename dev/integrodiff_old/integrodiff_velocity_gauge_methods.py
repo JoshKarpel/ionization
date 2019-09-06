@@ -35,13 +35,13 @@ if __name__ == "__main__":
         m = electron_mass
         q = electron_charge
 
-        sinc = ion.SincPulse(pulse_width=pw)
-        efield = ion.GaussianPulse(
+        sinc = ion.potentials.SincPulse(pulse_width=pw)
+        efield = ion.potentials.GaussianPulse(
             pulse_width=pw, fluence=20 * Jcm2, omega_carrier=sinc.omega_carrier
         )
-        # efield = ion.SincPulse(pulse_width = pw, fluence = 1 * Jcm2)
+        # efield = ion.potentials.SincPulse(pulse_width = pw, fluence = 1 * Jcm2)
 
-        # efield = ion.Rectangle(start_time = -100 * asec, end_time = 100 * asec, amplitude = .01 * atomic_electric_field)
+        # efield = ion.potentials.Rectangle(start_time = -100 * asec, end_time = 100 * asec, amplitude = .01 * atomic_electric_field)
 
         prefactor = -((q / m) ** 2) / (4 * (L ** 2))
         tau_alpha = 2 * m * (L ** 2) / hbar

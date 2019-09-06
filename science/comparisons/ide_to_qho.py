@@ -44,11 +44,11 @@ if __name__ == "__main__":
         for pw, flu, phase in itertools.product(pulse_widths, fluences, phases):
             t_bound = 30
 
-            efield = ion.SincPulse(
+            efield = ion.potentials.SincPulse(
                 pulse_width=pw,
                 fluence=flu,
                 phase=phase,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=(t_bound - 2) * pw, window_width=0.2 * pw
                 ),
             )
@@ -88,7 +88,9 @@ if __name__ == "__main__":
                 checkpoint_dir=SIM_LIB,
             )
 
-            prefix = f"pw={uround(pw, asec, 2)}as_flu={uround(flu, Jcm2, 4)}jcm2_phase={uround(phase, pi, 3)}pi"
+            prefix = (
+                f"pw={pw / asec:2f}as_flu={flu / Jcm2:4f}jcm2_phase={phase / pi:3f}pi"
+            )
 
             specs = [
                 ion.LineSpecification(

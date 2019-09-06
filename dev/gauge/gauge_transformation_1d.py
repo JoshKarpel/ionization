@@ -90,12 +90,12 @@ if __name__ == "__main__":
         )
 
         efield = ion.SineWave.from_photon_energy(spacing, amplitude=amp)
-        efield.window = ion.SymmetricExponentialTimeWindow(
+        efield.window = ion.potentials.LogisticWindow(
             window_time=(t_bound - 1) * efield.period_carrier,
             window_width=0.1 * efield.period_carrier,
         )
 
-        # efield = ion.Rectangle(amplitude = 1 * atomic_electric_field, start_time = 50 * asec, end_time = 250 * asec)
+        # efield = ion.potentials.Rectangle(amplitude = 1 * atomic_electric_field, start_time = 50 * asec, end_time = 250 * asec)
 
         line_spec_base = dict(
             x_bound=x_bound,

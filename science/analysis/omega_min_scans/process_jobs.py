@@ -67,7 +67,7 @@ if __name__ == "__main__":
                     metric_name = metric.replace("_", " ").title()
 
                     si.vis.xxyy_plot(
-                        f"{metric}__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}",
+                        f"{metric}__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}",
                         [
                             *[
                                 [
@@ -91,12 +91,12 @@ if __name__ == "__main__":
                             ]
                         ],
                         line_labels=[
-                            fr"$\varphi = {uround(phase, pi)}\pi$" for phase in phases
+                            fr"$\varphi = {phase / pi:3f}\pi$" for phase in phases
                         ],
                         x_label=r"$f_{\mathrm{carrier}}$",
                         x_unit="THz",
                         # y_label = metric_name,
-                        title=fr"{metric_name}: $\tau = {uround(pulse_width, asec)} \, \mathrm{{as}}, H = {uround(fluence, Jcm2)} \, \mathrm{{J/cm^2}}$",
+                        title=fr"{metric_name}: $\tau = {pulse_width / asec:3f} \, \mathrm{{as}}, H = {fluence / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
                         vlines=transition_frequencies,
                         font_size_title=20,
                         font_size_axis_labels=16,

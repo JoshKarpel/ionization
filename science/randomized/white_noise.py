@@ -40,11 +40,9 @@ if __name__ == "__main__":
 
         t_bound = 30
 
-        sinc_pulse = ion.SincPulse(pulse_width=pw)
+        sinc_pulse = ion.potentials.SincPulse(pulse_width=pw)
 
-        times = np.linspace(
-            -t_bound * pw, t_bound * pw, int(uround(pw, asec)) * 2 * t_bound
-        )
+        times = np.linspace(-t_bound * pw, t_bound * pw, int(pw / asec) * 2 * t_bound)
         dt = np.abs(times[1] - times[0])
 
         print(times / asec)

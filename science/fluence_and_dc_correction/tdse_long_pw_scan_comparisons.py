@@ -61,7 +61,7 @@ if __name__ == "__main__":
                 }
 
                 si.vis.xxyy_plot(
-                    f"compare__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi",
+                    f"compare__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi",
                     x_data=[
                         [r.pulse_width for r in results if r.pulse_width]
                         for jp, results in jp_to_results.items()
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                 )
 
                 si.vis.xxyy_plot(
-                    f"diffs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi",
+                    f"diffs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi",
                     x_data=[
                         [r.pulse_width for r in results if r.pulse_width]
                         for jp, results in jp_to_results.items()
@@ -107,7 +107,7 @@ if __name__ == "__main__":
                 )
 
                 si.vis.xxyy_plot(
-                    f"fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi",
+                    f"fracs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi",
                     x_data=[
                         [r.pulse_width for r in results if r.pulse_width]
                         for jp, results in jp_to_results.items()
@@ -132,7 +132,7 @@ if __name__ == "__main__":
                 )
 
                 si.vis.xxyy_plot(
-                    f"sym_diff_fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi",
+                    f"sym_diff_fracs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi",
                     x_data=[
                         [r.pulse_width for r in results if r.pulse_width]
                         for jp, results in jp_to_results.items()

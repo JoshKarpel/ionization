@@ -3,13 +3,11 @@ import ionization  # will get nasty import error if not this first
 
 from pathlib import Path
 import random
-
+import sys
 import gzip
 import pickle
 
-
 import htmap
-
 
 import click
 from tqdm import tqdm

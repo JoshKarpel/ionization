@@ -57,8 +57,8 @@ class MeshSimulationPlotter:
             upper_boundary = boundaries[ii + 1]
 
             label = label_format_str.format(
-                u.uround(lower_boundary, label_unit_value, 2),
-                u.uround(upper_boundary, label_unit_value, 2),
+                f"{lower_boundary / label_unit_value:.2f}",
+                f"{upper_boundary / label_unit_value:.2f}",
                 label_unit_latex,
             )
             group_labels[(lower_boundary, upper_boundary)] = label
@@ -150,7 +150,7 @@ class MeshSimulationPlotter:
 
         axis.legend(**legend_kwargs)
 
-        axis.grid(True, **si.vis.GRID_KWARGS)
+        axis.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
     def state_overlaps_vs_time(
         self,
@@ -226,11 +226,11 @@ class MeshSimulationPlotter:
                     [np.min(overlap) for overlap in state_overlaps.values()]
                 )
                 ax_overlaps.set_ylim(bottom=max(1e-9, min_overlap * 0.1), top=1.0)
-                ax_overlaps.grid(True, which="both", **si.vis.GRID_KWARGS)
+                ax_overlaps.grid(True, which="both", **si.vis.DEFAULT_GRID_KWARGS)
             else:
                 ax_overlaps.set_ylim(0.0, 1.0)
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_overlaps.grid(True, **si.vis.GRID_KWARGS)
+                ax_overlaps.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             ax_overlaps.set_xlim(
                 self.sim.times[0] / time_unit_value,
@@ -409,11 +409,11 @@ class MeshSimulationPlotter:
                     [np.min(overlap) for overlap in state_overlaps.values()]
                 )
                 ax_overlaps.set_ylim(bottom=max(1e-9, min_overlap * 0.1), top=1.0)
-                ax_overlaps.grid(True, which="both", **si.vis.GRID_KWARGS)
+                ax_overlaps.grid(True, which="both", **si.vis.DEFAULT_GRID_KWARGS)
             else:
                 ax_overlaps.set_ylim(0.0, 1.0)
                 ax_overlaps.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_overlaps.grid(True, **si.vis.GRID_KWARGS)
+                ax_overlaps.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             ax_overlaps.set_xlim(
                 self.spec.time_initial / time_unit_value,
@@ -573,7 +573,7 @@ class MeshSimulationPlotter:
                 label=labels,
             )
 
-            ax.grid(True, **si.vis.GRID_KWARGS)
+            ax.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             x_range = energy_upper_bound - energy_lower_bound
             ax.set_xlim(
@@ -583,7 +583,7 @@ class MeshSimulationPlotter:
             ax.set_xlabel(rf"Energy $E$ (${energy_unit_str}$)")
             ax.set_ylabel(r"Wavefunction Overlap")
             ax.set_title(
-                rf"Wavefunction Overlap by Energy at $ t = {u.uround(self.sim.times[time_index], time_unit)} \, {time_unit_str} $"
+                rf"Wavefunction Overlap by Energy at $ t = {self.sim.times[time_index]/ time_unit:.3f} \, {time_unit_str} $"
             )
 
             if group_angular_momentum:
@@ -897,7 +897,7 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
             )
 
             # LIMITS AND GRIDS
-            grid_kwargs = si.vis.GRID_KWARGS
+            grid_kwargs = si.vis.DEFAULT_GRID_KWARGS
             for ax in [ax_pos, ax_neg]:
                 ax.set_xlim(
                     t_lower_limit / time_unit_value, t_upper_limit / time_unit_value
@@ -953,7 +953,7 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
                 )
 
                 efield_grid_kwargs = {
-                    **si.vis.GRID_KWARGS,
+                    **si.vis.DEFAULT_GRID_KWARGS,
                     **{"color": efield_color, "linestyle": "--"},
                 }
                 ax_efield.yaxis.grid(True, **efield_grid_kwargs)

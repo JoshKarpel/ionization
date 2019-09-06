@@ -75,24 +75,11 @@ if __name__ == "__main__":
         )
 
         for state in [variational_ground_state, numeric_ground_state]:
-            print(f"{state}: E = {uround(state.energy, eV)} eV")
+            print(f"{state}: E = {state.energy / eV:.3f} eV")
 
         print(
-            f"Variational ground state width = {uround(variational_ground_state.width, bohr_radius)} a_0"
+            f"Variational ground state width = {variational_ground_state.width / bohr_radius:.3f} a_0"
         )
-
-        # for state in sim.spec.test_states:
-        #     si.vis.xy_plot(
-        #         si.utils.strip_illegal_characters(f'numeric__{"n" if state.bound else "E"}={state.n if state.bound else uround(state.energy, eV)}'),
-        #         sim.mesh.x_mesh,
-        #         np.abs(state(sim.mesh.x_mesh)) ** 2,
-        #         x_label = r'$x$', x_unit = 'bohr_radius',
-        #         y_label = fr'$\left| \psi_{{{"n" if state.bound else "E"}={state.n if state.bound else uround(state.energy, eV)}}}(x) \right|^2$',
-        #         **PLOT_KWARGS
-        #     )
-        #
-        # for state in sim.spec.test_states:
-        #     print(f'n={state}: {uround(state.energy, eV)}')
 
         sim.run()
 

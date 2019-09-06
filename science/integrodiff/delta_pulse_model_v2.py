@@ -72,8 +72,12 @@ def double_kick_v3(beta, delta_t, omega_alpha, tau_alpha):
 
 
 def get_cosine_and_sine_etas(pulse_width=200 * asec, fluence=1 * Jcm2):
-    cos_pulse = ion.SincPulse(pulse_width=pulse_width, fluence=fluence, phase=0)
-    sin_pulse = ion.SincPulse(pulse_width=pulse_width, fluence=fluence, phase=pi / 2)
+    cos_pulse = ion.potentials.SincPulse(
+        pulse_width=pulse_width, fluence=fluence, phase=0
+    )
+    sin_pulse = ion.potentials.SincPulse(
+        pulse_width=pulse_width, fluence=fluence, phase=pi / 2
+    )
 
     times = np.linspace(-35 * pulse_width, 35 * pulse_width, 10000)
     cos_pulse = ion.DC_correct_electric_potential(cos_pulse, times)

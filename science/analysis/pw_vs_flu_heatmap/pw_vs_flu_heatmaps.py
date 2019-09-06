@@ -27,9 +27,7 @@ def make_heatmaps_for_each_cep(jp):
     for metric in METRICS:
         for cep in ceps:
             for log_z in (True, False):
-                logger.debug(
-                    f"Making plot for CEP {uround(cep, pi)}pi, metric {metric}"
-                )
+                logger.debug(f"Making plot for CEP {cep / pi:3f}pi, metric {metric}")
 
                 results = {
                     (r.pulse_width, r.fluence): getattr(r, metric)
@@ -46,7 +44,7 @@ def make_heatmaps_for_each_cep(jp):
                         z_mesh[i, j] = results[pw, flu]
 
                 si.vis.xyz_plot(
-                    f'ION_MAP__{metric}_{"logZ" if log_z else ""}_cep={uround(cep, pi, 2)}pi',
+                    f'ION_MAP__{metric}_{"logZ" if log_z else ""}_cep={cep / pi:2f}pi',
                     x_mesh,
                     y_mesh,
                     z_mesh,

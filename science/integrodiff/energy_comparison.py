@@ -54,7 +54,7 @@ if __name__ == "__main__":
         specs = []
         for gauge in gauges:
             for test_energy, phase in itertools.product(test_energies, phases):
-                pulse = ion.SincPulse(
+                pulse = ion.potentials.SincPulse(
                     pulse_width=pulse_width, fluence=fluence, phase=phase
                 )
 
@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
                 specs.append(
                     ide.IntegroDifferentialEquationSpecification(
-                        f"ide_{gauge}_tb={tb}_E={uround(test_energy, eV)}_pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2_cep={uround(phase, pi)}",
+                        f"ide_{gauge}_tb={tb}_E={test_energy / eV:3f}_pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2_cep={phase / pi:3f}",
                         test_width=test_width,
                         test_charge=test_charge,
                         test_mass=test_mass,
@@ -96,7 +96,7 @@ if __name__ == "__main__":
         phase_to_style = dict(zip(phases, styles))
 
         line_labels = [
-            fr'$E_{{\alpha}} = {uround(energy, eV)} \mathrm{{eV}}, \; \varphi = {uround(phase, pi)}\pi$'
+            fr'$E_{{\alpha}} = {energy / eV:3f} \mathrm{{eV}}, \; \varphi = {phase / pi:3f}\pi$'
             for energy, phase in energy_cep_to_a2.keys()
         ]
         line_kwargs = [
@@ -105,7 +105,7 @@ if __name__ == "__main__":
         ]
 
         si.vis.xy_plot(
-            f"comparison_pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2",
+            f"comparison_pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2",
             times,
             *energy_cep_to_a2.values(),
             line_labels=line_labels,

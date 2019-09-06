@@ -266,7 +266,7 @@ class DeltaKickSimulation(si.Simulation):
 
         axis.set_xlim(self.times[0] / time_unit_value, self.times[-1] / time_unit_value)
 
-        axis.grid(True, **si.vis.GRID_KWARGS)
+        axis.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
     def plot_wavefunction_vs_time(self, *args, **kwargs):
         """Alias for plot_a2_vs_time."""
@@ -317,11 +317,11 @@ class DeltaKickSimulation(si.Simulation):
                 ax_b.set_yscale("log")
                 min_overlap = np.min(self.b2)
                 ax_b.set_ylim(bottom=max(1e-9, min_overlap * 0.1), top=1.0)
-                ax_b.grid(True, which="both", **si.vis.GRID_KWARGS)
+                ax_b.grid(True, which="both", **si.vis.DEFAULT_GRID_KWARGS)
             else:
                 ax_b.set_ylim(0.0, 1.0)
                 ax_b.set_yticks([0.0, 0.2, 0.4, 0.6, 0.8, 1.0])
-                ax_b.grid(True, **si.vis.GRID_KWARGS)
+                ax_b.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             ax_b.set_xlim(
                 self.spec.time_initial / t_scale_unit,
@@ -469,12 +469,8 @@ class DeltaKickSpecification(si.Specification):
         info = super().info()
 
         info_evolution = si.Info(header="Time Evolution")
-        info_evolution.add_field(
-            "Initial Time", f"{u.uround(self.time_initial, u.asec, 3)} as"
-        )
-        info_evolution.add_field(
-            "Final Time", f"{u.uround(self.time_final, u.asec, 3)} as"
-        )
+        info_evolution.add_field("Initial Time", f"{self.time_initial / u.asec:3f} as")
+        info_evolution.add_field("Final Time", f"{self.time_final / u.asec:3f} as")
 
         info.add_info(info_evolution)
 

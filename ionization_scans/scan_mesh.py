@@ -24,9 +24,7 @@ def create_scan(tag):
     utils.ask_evolution_method_tdse(parameters)
 
     utils.ask_time_step(parameters)
-    time_initial_in_pw, time_final_in_pw, extra_time = (
-        utils.ask_time_evolution_by_pulse_widths()
-    )
+    time_initial_in_pw, time_final_in_pw, extra_time = utils.ask_time_evolution()
 
     # PULSE PARAMETERS
     pulse_parameters = utils.construct_pulses(

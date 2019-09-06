@@ -38,11 +38,13 @@ if __name__ == "__main__":
         pw = 100 * asec
         flu = 10 * Jcm2
         tb = 4
-        pulse = ion.GaussianPulse.from_number_of_cycles(pulse_width=pw, fluence=flu)
-        # pulse = ion.SincPulse(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
+            pulse_width=pw, fluence=flu
+        )
+        # pulse = ion.potentials.SincPulse(
         #     pulse_width = pw,
         #     fluence = flu,
-        #     window = ion.SymmetricExponentialTimeWindow(
+        #     window = ion.potentials.LogisticWindow(
         #         window_time = tb * pw,
         #         window_width = .2 * pw
         #     )
@@ -60,7 +62,7 @@ if __name__ == "__main__":
         specs = []
         for method, dt in itertools.product(methods, max_dts):
             spec = ide.IntegroDifferentialEquationSpecification(
-                f"{method}_dt={uround(dt, asec)}as",
+                f"{method}_dt={dt / asec:3f}as",
                 evolution_method=method,
                 time_step=dt,
                 time_step_max=dt,
@@ -90,5 +92,5 @@ if __name__ == "__main__":
             for method in methods:
                 r = results[method, dt]
                 print(
-                    f" {r.spec.evolution_method.ljust(col_1_len)} │ {uround(r.spec.time_step_min, asec, 6):.3f} | {uround(r.spec.time_step_max, asec, 6):.3f} │ {r.b2[-1]:.12f} │ {r.running_time}"
+                    f" {r.spec.evolution_method.ljust(col_1_len)} │ {r.spec.time_step_min / asec:6f:.3f} | {r.spec.time_step_max / asec:6f:.3f} │ {r.b2[-1]:.12f} │ {r.running_time}"
                 )

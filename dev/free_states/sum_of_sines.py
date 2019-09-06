@@ -41,10 +41,10 @@ if __name__ == "__main__":
         ]
         # ani = []
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=0.9 * t_bound * asec, window_width=10 * asec
         )
-        efield = ion.SumOfSinesPulse(
+        efield = ion.potentials.SumOfSinesPulse(
             pulse_width=pw * asec,
             pulse_frequency_ratio=25,
             number_of_modes=71,

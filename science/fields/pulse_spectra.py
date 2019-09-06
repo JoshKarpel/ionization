@@ -17,7 +17,11 @@ logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.INF
 
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=3)
 
-PULSE_TYPES = (ion.SincPulse, ion.GaussianPulse, ion.SechPulse)
+PULSE_TYPES = (
+    ion.potentials.SincPulse,
+    ion.potentials.GaussianPulse,
+    ion.potentials.SechPulse,
+)
 
 if __name__ == "__main__":
     with logman as logger:
@@ -33,23 +37,23 @@ if __name__ == "__main__":
         dt = np.abs(times[1] - times[0])
 
         pulses = [
-            ion.SincPulse.from_omega_min(
+            ion.potentials.SincPulse.from_omega_min(
                 pulse_width=pw,
                 fluence=flu,
                 phase=phase,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=30 * pw, window_width=0.2 * pw
                 ),
             ),
-            ion.GaussianPulse(
+            ion.potentials.GaussianPulse(
                 pulse_width=pw,
                 fluence=flu,
                 phase=phase,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=5 * pw, window_width=0.2 * pw
                 ),
             ),
-            # ion.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
+            # ion.potentials.SechPulse(pulse_width = pw, fluence = flu, omega_carrier = dummy.omega_carrier, phase = dummy.phase,
             #               window = dummy.window),
         ]
 
@@ -67,11 +71,11 @@ if __name__ == "__main__":
             line_labels=(pulse.__class__.__name__ for pulse in pulses),
             x_label=r"$ t $",
             x_unit="asec",
-            y_label=fr"$ {ion.LATEX_EFIELD}(t) $",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(t) $",
             y_unit="atomic_electric_field",
             x_lower_limit=-p_bound * pw,
             x_upper_limit=p_bound * pw,
-            title=fr"Electric Fields at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            title=fr"Electric Fields at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             # hlines = (gaussian_max, gaussian_max / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_time, gaussian_hwhm_time), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLOT_KWARGS,
@@ -93,8 +97,8 @@ if __name__ == "__main__":
             x_unit="THz",
             x_lower_limit=-freq_window,
             x_upper_limit=freq_window,
-            y_label=fr"$ {ion.LATEX_EFIELD}(f) $",
-            title=fr"Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(f) $",
+            title=fr"Real Amplitude Spectra at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             **PLOT_KWARGS,
         )
         si.vis.xy_plot(
@@ -106,8 +110,8 @@ if __name__ == "__main__":
             x_unit="THz",
             x_lower_limit=-freq_window,
             x_upper_limit=freq_window,
-            y_label=fr"$ {ion.LATEX_EFIELD}(f) $",
-            title=fr"Imaginary Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(f) $",
+            title=fr"Imaginary Amplitude Spectra at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             **PLOT_KWARGS,
         )
         si.vis.xy_plot(
@@ -118,8 +122,8 @@ if __name__ == "__main__":
             x_label=r"$ f $",
             x_unit="THz",
             # x_lower_limit = -freq_window, x_upper_limit = freq_window,
-            y_label=fr"$ {ion.LATEX_EFIELD}(f) $",
-            title=fr"Real Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(f) $",
+            title=fr"Real Amplitude Spectra at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             x_lower_limit=2450 * THz,
             x_upper_limit=2550 * THz,
             **PLOT_KWARGS,
@@ -139,9 +143,9 @@ if __name__ == "__main__":
             x_unit="THz",
             x_lower_limit=-freq_window,
             x_upper_limit=freq_window,
-            y_label=fr"$ \left| {ion.LATEX_EFIELD}(f) \right| $ ($\mathrm{{a.u. / THz}}$)",
+            y_label=fr"$ \left| {ion.vis.LATEX_EFIELD}(f) \right| $ ($\mathrm{{a.u. / THz}}$)",
             y_unit=atomic_electric_field / THz,
-            title=fr"Amplitude Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            title=fr"Amplitude Spectra at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             # hlines = (gaussian_max_freq, gaussian_max_freq / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_freq + gaussian_center_freq, gaussian_hwhm_freq + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLOT_KWARGS,
@@ -158,9 +162,9 @@ if __name__ == "__main__":
             x_unit="THz",
             x_lower_limit=-freq_window,
             x_upper_limit=freq_window,
-            y_label=fr"$ \left| {ion.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)",
+            y_label=fr"$ \left| {ion.vis.LATEX_EFIELD}(f) \right|^2 $  ($\mathrm{{J / cm^2 / THz}}$)",
             y_unit=Jcm2 / THz,
-            title=fr"Power Density Spectra at $\tau = {uround(pw, asec)} \, \mathrm{{as}}, \, H = {uround(flu, Jcm2)} \, \mathrm{{J/cm^2}}$",
+            title=fr"Power Density Spectra at $\tau = {pw / asec:3f} \, \mathrm{{as}}, \, H = {flu / Jcm2:3f} \, \mathrm{{J/cm^2}}$",
             # hlines = (gaussian_max_power, gaussian_max_power / 2), hline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             # vlines = (-gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq, gaussian_hwhm_freq / np.sqrt(2) + gaussian_center_freq), vline_kwargs = ({'linestyle': '--'}, {'linestyle': '--'}),
             **PLOT_KWARGS,

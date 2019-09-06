@@ -52,13 +52,13 @@ if __name__ == "__main__":
             # logger.info('Generating Specifications...')
             specs = []
             for phase in phases:
-                pulse = ion.SincPulse(
+                pulse = ion.potentials.SincPulse(
                     pulse_width=pulse_width, fluence=fluence, phase=phase
                 )
 
                 specs.append(
                     ide.DeltaKickSpecification(
-                        f"delta_kick__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2_cep={uround(phase, pi)}pi",
+                        f"delta_kick__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2_cep={phase / pi:3f}pi",
                         time_initial=-t_bound_per_pw * pulse_width,
                         time_final=t_bound_per_pw * pulse_width,
                         test_width=test_width,
@@ -95,7 +95,7 @@ if __name__ == "__main__":
                     postfix = ""
 
                 si.vis.xy_plot(
-                    f"phase_scan__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2"
+                    f"phase_scan__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2"
                     + postfix,
                     [sim.spec.electric_potential.phase for sim in sims],
                     [sim.b2[-1] for sim in sims],
@@ -103,6 +103,6 @@ if __name__ == "__main__":
                     x_unit="rad",
                     y_label=r"$\left| a \right|^2$",
                     y_log_axis=log,
-                    title=rf"$ \tau = {uround(pulse_width, asec)} \; \mathrm{{as}}, \, H = {uround(fluence, Jcm2)} \; \mathrm{{J/cm^2}} $",
+                    title=rf"$ \tau = {pulse_width / asec:3f} \; \mathrm{{as}}, \, H = {fluence / Jcm2:3f} \; \mathrm{{J/cm^2}} $",
                     **PLOT_KWARGS,
                 )

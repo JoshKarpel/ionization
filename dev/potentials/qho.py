@@ -69,7 +69,7 @@ if __name__ == "__main__":
         print("norm", sim.mesh.norm())
         print("energy EV", sim.energy_expectation_value_vs_time_internal / eV)
         # print(pot.omega(init.mass), init.omega)
-        # print('period: {} fs'.format(uround(init.period, fsec, 3)))
+        # print('period: {} fs'.format(init.period / fsec:3f))
 
         sim.mesh.plot_g2(name_postfix="_post", target_dir=OUT_DIR)
         # sim.plot_wavefunction_vs_time(target_dir = OUT_DIR, x_unit = 'fsec')

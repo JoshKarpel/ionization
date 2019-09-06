@@ -43,7 +43,7 @@ if __name__ == "__main__":
         states = list(ion.FiniteSquareWellState.all_states_of_well_from_well(pot, mass))
         for state in states:
             print(
-                f"{state} with energy {uround(state.energy, eV, 10)} eV, ratio {-state.energy / rydberg}"
+                f"{state} with energy {state.energy / eV:0f} eV, ratio {-state.energy / rydberg}"
             )
 
         # wavenumbers = (twopi / nm) * np.linspace(-10, 10, 1000)
@@ -51,12 +51,12 @@ if __name__ == "__main__":
         # dk = np.abs(plane_waves[1].wavenumber - plane_waves[0].wavenumber)
 
         # electric = ion.SineWave.from_photon_energy(1 * eV, amplitude = .01 * atomic_electric_field,
-        #                                            window = ion.SymmetricExponentialTimeWindow(window_time = 10 * fsec, window_width = 1 * fsec, window_center = 5 * fsec))
-        electric = ion.SincPulse(
+        #                                            window = ion.potentials.LogisticWindow(window_time = 10 * fsec, window_width = 1 * fsec, window_center = 5 * fsec))
+        electric = ion.potentials.SincPulse(
             pulse_width=pw * asec,
             fluence=1 * Jcm2,
             phase=0,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=28 * pw * asec, window_width=0.2 * pw * asec
             ),
         )

@@ -16,10 +16,10 @@ OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 if __name__ == "__main__":
     n_max = 10
     test_states = [
-        ion.HydrogenBoundState(n, l) for n in range(n_max + 1) for l in range(n)
+        ion.states.HydrogenBoundState(n, l) for n in range(n_max + 1) for l in range(n)
     ]
     test_states += [
-        ion.HydrogenCoulombState(energy=e * eV, l=l)
+        ion.states.HydrogenCoulombState(energy=e * eV, l=l)
         for e in range(0, 10)
         for l in range(5)
     ]
@@ -32,7 +32,7 @@ if __name__ == "__main__":
         "r_bound": bound * bohr_radius,
         "r_points": bound * points_per_bohr_radius,
         "l_bound": 100,
-        "initial_state": ion.HydrogenBoundState(1, 0),
+        "initial_state": ion.states.HydrogenBoundState(1, 0),
         "time_initial": 0 * asec,
         "time_final": 200 * asec,
         "time_step": 1 * asec,
@@ -67,13 +67,13 @@ if __name__ == "__main__":
             logger.info("Matrix diagonalization took: {}".format(t))
 
             for eigenvalue, eigenvector in zip(eigenvalues, eigenvectors.T):
-                energy = uround(eigenvalue, eV, 5)  # for str representation
+                energy = f"{eigenvalue / eV:5f}"  # for str representation
                 eigenvector /= np.sqrt(
                     sim.mesh.inner_product_multiplier * np.sum(np.abs(eigenvector) ** 2)
                 )  # normalize
 
                 if energy > 0:
-                    state = ion.HydrogenCoulombState(energy=eigenvalue, l=l)
+                    state = ion.states.HydrogenCoulombState(energy=eigenvalue, l=l)
                     name = "g__{}eV_l={}".format(np.abs(energy), l)
                     # OUT_DIR_tmp = os.path.join(OUT_DIR, 'free_{}'.format(int((energy // 100) * 100)))
                     # logger.info('Numerical Eigenstate E = {}, l = {} -> {}'.format(energy, l, state))
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                     n_guess = round(np.sqrt(rydberg / np.abs(eigenvalue)))
                     if n_guess == 0:
                         n_guess = 1
-                    state = ion.HydrogenBoundState(n=n_guess, l=l)
+                    state = ion.states.HydrogenBoundState(n=n_guess, l=l)
                     # name = 'g__n={}_l={}'.format(state.n, state.l, np.abs(energy), l)
                     # OUT_DIR_tmp = os.path.join(OUT_DIR, 'bound')
                     frac_diff = np.abs((state.energy - eigenvalue) / state.energy)

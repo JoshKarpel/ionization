@@ -29,14 +29,14 @@ if __name__ == "__main__":
     ) as logger:
         pw = 100 * asec
 
-        window = ion.SymmetricExponentialTimeWindow(
+        window = ion.potentials.LogisticWindow(
             window_time=25 * pw, window_width=0.2 * pw
-        ) + ion.RectangularTimeWindow(on_time=-31 * pw, off_time=31 * pw)
+        ) + ion.potentials.RectangularTimeWindow(on_time=-31 * pw, off_time=31 * pw)
 
-        ref_sinc = ion.SincPulse(pulse_width=pw)
+        ref_sinc = ion.potentials.SincPulse(pulse_width=pw)
         print(ref_sinc)
 
-        pulse = ion.SincPulse(
+        pulse = ion.potentials.SincPulse(
             pulse_width=pw,
             fluence=1 * Jcm2,
             phase=0,
@@ -77,7 +77,7 @@ if __name__ == "__main__":
 
         ### CORRECTION 1 ###
 
-        correction_field = ion.Rectangle(
+        correction_field = ion.potentials.Rectangle(
             start_time=t[0],
             end_time=t[-1],
             amplitude=-pulse.get_electric_field_integral_numeric_cumulative(t)[-1]
@@ -117,7 +117,7 @@ if __name__ == "__main__":
         ### CORRECTION 2 ###
 
         def func_to_minimize(amp, original_pulse):
-            test_correction_field = ion.Rectangle(
+            test_correction_field = ion.potentials.Rectangle(
                 start_time=t[0],
                 end_time=t[-1],
                 amplitude=amp,
@@ -133,7 +133,7 @@ if __name__ == "__main__":
 
         print(correction_amp)
 
-        correction_field = ion.Rectangle(
+        correction_field = ion.potentials.Rectangle(
             start_time=t[0],
             end_time=t[-1],
             amplitude=correction_amp.x,

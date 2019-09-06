@@ -162,11 +162,11 @@ if __name__ == "__main__":
         t_bound = 250  # symmetric around 0
         amp = 0.1
 
-        electric_potential = ion.Rectangle(
+        electric_potential = ion.potentials.Rectangle(
             start_time=-t_bound * 0.9 * asec,
             end_time=t_bound * 0.9 * asec,
             amplitude=amp * atomic_electric_field,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=100 * asec, window_width=5 * asec
             ),
         )

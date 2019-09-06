@@ -16,14 +16,14 @@ if __name__ == "__main__":
         energy_spacing = 0.1 * u.eV
         test_mass = u.electron_mass
 
-        qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass(
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(
             energy_spacing=energy_spacing, mass=test_mass
         )
         states = [
             states.QHOState.from_potential(qho, n=n, mass=test_mass) for n in range(30)
         ]
 
-        efield = potentials.SineWave.from_photon_energy(
+        efield = ion.potentials.SineWave.from_photon_energy(
             photon_energy=energy_spacing, amplitude=0.0001 * u.atomic_electric_field
         )
 

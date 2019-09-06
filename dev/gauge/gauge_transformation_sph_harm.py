@@ -78,7 +78,7 @@ if __name__ == "__main__":
         t_bound = 2
 
         efield = ion.SineWave.from_photon_energy(photon_energy, amplitude=amp)
-        efield.window = ion.SymmetricExponentialTimeWindow(
+        efield.window = ion.potentials.LogisticWindow(
             window_time=(t_bound - 1) * efield.period_carrier,
             window_width=0.1 * efield.period_carrier,
         )

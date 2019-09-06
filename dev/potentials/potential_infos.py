@@ -16,28 +16,28 @@ PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=6)
 if __name__ == "__main__":
     with LOGMAN as logger:
         potentials = [
-            potentials.ImaginaryGaussianRing(),
-            potentials.RadialCosineMask(),
-            potentials.Rectangle(window=potentials.RectangularWindow()),
-            potentials.SineWave.from_photon_energy(
+            ion.potentials.ImaginaryGaussianRing(),
+            ion.potentials.RadialCosineMask(),
+            ion.potentials.Rectangle(window=potentials.RectangularWindow()),
+            ion.potentials.SineWave.from_photon_energy(
                 13.6 * u.eV, phase=u.pi / 2, window=potentials.LogisticWindow()
             ),
-            potentials.SincPulse(phase=u.pi, window=potentials.LinearRampWindow()),
-            potentials.GaussianPulse(
+            ion.potentials.SincPulse(phase=u.pi, window=potentials.LinearRampWindow()),
+            ion.potentials.GaussianPulse(
                 phase=u.pi / 3,
                 window=potentials.SmoothedTrapezoidalWindow(
                     time_front=100 * u.asec, time_plateau=1000 * u.asec
                 ),
             ),
-            potentials.SechPulse(
+            ion.potentials.SechPulse(
                 phase=u.pi / 3,
                 window=potentials.SmoothedTrapezoidalWindow(
                     time_front=100 * u.asec, time_plateau=1000 * u.asec
                 ),
             ),
-            potentials.CoulombPotential(),
-            potentials.SoftCoulombPotential(),
-            potentials.HarmonicOscillator(),
+            ion.potentials.CoulombPotential(),
+            ion.potentials.SoftCoulombPotential(),
+            ion.potentials.HarmonicOscillator(),
         ]
 
         for p in potentials:

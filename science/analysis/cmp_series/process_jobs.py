@@ -49,7 +49,7 @@ if __name__ == "__main__":
 
             for log in [True, False]:
                 si.vis.xxyy_plot(
-                    f'{metric}__pw={uround(selector["pulse_width"], asec)}as_flu={uround(selector["fluence"], Jcm2)}jcm2'
+                    f'{metric}__pw={selector["pulse_width"] / asec:3f}as_flu={selector["fluence"] / Jcm2:3f}jcm2'
                     + ("__log" if log else ""),
                     x_by_job,
                     y_by_job,
@@ -62,6 +62,6 @@ if __name__ == "__main__":
                     y_label=metric.replace("_", " ").title(),
                     y_log_axis=log,
                     y_log_pad=2,
-                    title=fr'$ \tau = {uround(selector["pulse_width"], asec)} \, \mathrm{{as}}$, $H = {uround(selector["fluence"], Jcm2)} \, \mathrm{{J/cm^2}}$',
+                    title=fr'$ \tau = {selector["pulse_width"] / asec:3f} \, \mathrm{{as}}$, $H = {selector["fluence"] / Jcm2:3f} \, \mathrm{{J/cm^2}}$',
                     **PLOT_KWARGS,
                 )

@@ -33,20 +33,20 @@ if __name__ == "__main__":
         flu = 1 * u.Jcm2
         cep = 0
         tb = 4
-        three_d_gaussian_pulse = potentials.GaussianPulse.from_number_of_cycles(
+        three_d_gaussian_pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw, fluence=flu, phase=cep, number_of_cycles=3
         )
 
         energy_spacing = 0.1 * u.eV
         test_mass = u.electron_mass
-        line_qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass(
+        line_qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(
             energy_spacing=energy_spacing, mass=test_mass
         )
         line_states = [
             states.QHOState.from_potential(line_qho, n=n, mass=test_mass)
             for n in range(5)
         ]
-        sine_wave = potentials.SineWave.from_photon_energy(
+        sine_wave = ion.potentials.SineWave.from_photon_energy(
             photon_energy=energy_spacing, amplitude=0.0001 * u.atomic_electric_field
         )
         line_kwargs = dict(
@@ -87,7 +87,7 @@ if __name__ == "__main__":
 
         specs = []
 
-        qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass(
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(
             energy_spacing, mass=test_mass
         )
         specs.append(

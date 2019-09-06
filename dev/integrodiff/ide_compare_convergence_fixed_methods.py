@@ -50,11 +50,11 @@ if __name__ == "__main__":
         flu = 0.1 * Jcm2
         cep = 0
         tb = 3.5
-        pulse = ion.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw, fluence=flu, phase=cep, number_of_cycles=3
         )
 
-        pulse_ident = f"{pulse.__class__.__name__}_pw={uround(pw, asec, 3)}as_flu={uround(flu, Jcm2, 3)}jcm2_cep={uround(cep, pi)}pi_tb={tb}"
+        pulse_ident = f"{pulse.__class__.__name__}_pw={pw / asec:3f}as_flu={flu / Jcm2:3f}jcm2_cep={cep / pi:3f}pi_tb={tb}"
 
         shared_spec_kwargs = dict(
             time_initial=-tb * pulse.pulse_width,
@@ -70,7 +70,7 @@ if __name__ == "__main__":
         specs = []
         for method, dt in itertools.product(methods, dts):
             spec = ide.IntegroDifferentialEquationSpecification(
-                f"{method}_dt={uround(dt, asec)}as__{pulse_ident}",
+                f"{method}_dt={dt / asec:3f}as__{pulse_ident}",
                 evolution_method=method,
                 time_step=dt,
                 **shared_spec_kwargs,
@@ -141,4 +141,4 @@ if __name__ == "__main__":
         #     print()
         #     for method in methods:
         #         r = results[method, dt]
-        #         print(f' {r.spec.evolution_method.ljust(col_1_len)} │ {uround(r.spec.time_step, asec, 6):.3f} │ {r.b2[-1]:.12f} │ {r.running_time}')
+        #         print(f' {r.spec.evolution_method.ljust(col_1_len)} │ {r.spec.time_step / asec:6f:.3f} │ {r.b2[-1]:.12f} │ {r.running_time}')

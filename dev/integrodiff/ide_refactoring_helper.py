@@ -56,7 +56,7 @@ if __name__ == "__main__":
         flu = 2 * u.Jcm2
         cep = 0
         tb = 4
-        pulse = potentials.GaussianPulse.from_number_of_cycles(
+        pulse = ion.potentials.GaussianPulse.from_number_of_cycles(
             pulse_width=pw, fluence=flu, phase=cep, number_of_cycles=3
         )
 

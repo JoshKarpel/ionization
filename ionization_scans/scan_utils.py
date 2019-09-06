@@ -178,7 +178,7 @@ def ask_time_step(parameters):
     )
 
 
-def ask_time_evolution_by_pulse_widths():
+def ask_time_evolution():
     time_initial_in_pw = si.ask_for_input(
         "Initial Time (in pulse widths)?", default=-35, callback=float
     )
@@ -210,14 +210,14 @@ def ask_mesh_operators(parameters, *, spec_type):
         },
     }
     choices = choices_by_spec_type[spec_type]
-    key = si.ask_for_input(
+    choice = si.ask_for_input(
         f'Mesh Operators? [{" | ".join(choices.keys())}]',
         default=ion.Gauge.LENGTH.value,
     )
     try:
-        method = choices[key]()
+        method = choices[choice]()
     except KeyError:
-        raise ion.exceptions.InvalidChoice(f"{method} is not one of {choices}")
+        raise ion.exceptions.InvalidChoice(f"{choice} is not one of {choices}")
 
     parameters.append(si.Parameter(name="evolution_method", value=method))
 
@@ -641,7 +641,9 @@ def run(spec):
     try:
         sim = si.Simulation.load(str(sim_path))
         print(f"Recovered checkpoint from {sim_path}")
-        print(f"Checkpoint size is {si.utils.get_file_size_as_string(sim_path)}")
+        print(
+            f"Checkpoint size is {si.utils.bytes_to_str(si.utils.get_file_size(sim_path))}"
+        )
     except (FileNotFoundError, EOFError):
         sim = spec.to_sim()
         print("No checkpoint found")

@@ -37,7 +37,7 @@ if __name__ == "__main__":
             for idx, amplitude in enumerate(
                 amplitudes
             ):  # lexical sort is not good enough
-                print(f"AMPLITUDE {uround(amplitude, atomic_electric_field)}")
+                print(f"AMPLITUDE {amplitude / atomic_electric_field:3f}")
                 results = {
                     (r.pulse_width, r.phase): r
                     for r in jp.select_by_kwargs(amplitude=amplitude)
@@ -56,7 +56,7 @@ if __name__ == "__main__":
                         metric.upper()
                         + ("_logY_" if log_y else "")
                         + f"_{idx}_"
-                        + f"__amp={uround(amplitude, atomic_electric_field)}aef",
+                        + f"__amp={amplitude / atomic_electric_field:3f}aef",
                         [
                             *[
                                 [results[pw, cep].pulse_width for pw in pws]
@@ -70,12 +70,12 @@ if __name__ == "__main__":
                             ]
                         ],
                         line_labels=[
-                            fr"$\varphi = {uround(phase, pi)}\pi$" for phase in ceps
+                            fr"$\varphi = {phase / pi:3f}\pi$" for phase in ceps
                         ],
                         x_label=r"$\tau$",
                         x_unit="asec",
                         y_label=metric_name,
-                        title=fr"Constant Amplitude Scan: ${ion.LATEX_EFIELD}_0 = {uround(amplitude, atomic_electric_field)} \, \mathrm{{a.u.}}$",
+                        title=fr"Constant Amplitude Scan: ${ion.vis.LATEX_EFIELD}_0 = {amplitude / atomic_electric_field:3f} \, \mathrm{{a.u.}}$",
                         y_lower_limit=None if log_y else 0,
                         y_log_axis=log_y,
                         **PLOT_KWARGS,

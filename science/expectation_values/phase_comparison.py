@@ -39,19 +39,19 @@ if __name__ == "__main__":
 
         specs = []
         for phase in phases:
-            pulse = ion.SincPulse(
+            pulse = ion.potentials.SincPulse(
                 pulse_width=pulse_width,
                 fluence=fluence,
                 phase=phase,
-                window=ion.SymmetricExponentialTimeWindow(
+                window=ion.potentials.LogisticWindow(
                     window_time=9 * pulse_width, window_width=0.2 * pulse_width
                 ),
             )
 
             specs.append(
                 ion.SphericalHarmonicSpecification(
-                    # fr'cep={uround(phase, pi)}pi',
-                    f"pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2_cep={uround(phase, pi)}pi",
+                    # fr'cep={phase / pi:3f}pi',
+                    f"pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2_cep={phase / pi:3f}pi",
                     r_bound=100 * bohr_radius,
                     r_points=400,
                     l_bound=100,
@@ -101,7 +101,7 @@ if __name__ == "__main__":
         ]
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__initial_state_overlap",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__initial_state_overlap",
             [*[r.data_times for r in results]],
             [*[r.state_overlaps_vs_time[r.spec.initial_state] for r in results]],
             line_labels=tex_labels,
@@ -113,7 +113,7 @@ if __name__ == "__main__":
         )
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__bound_state_overlap",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__bound_state_overlap",
             [*[r.data_times for r in results]],
             [
                 *[
@@ -130,7 +130,7 @@ if __name__ == "__main__":
         )
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__radial_position",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__radial_position",
             [*[r.data_times for r in results]],
             [*[r.radial_position_expectation_value_vs_time for r in results]],
             line_labels=tex_labels,
@@ -143,7 +143,7 @@ if __name__ == "__main__":
         )
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__dipole_moment",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__dipole_moment",
             [*[r.data_times for r in results]],
             [*[r.electric_dipole_moment_expectation_value_vs_time for r in results]],
             line_labels=tex_labels,
@@ -156,7 +156,7 @@ if __name__ == "__main__":
         )
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__internal_energy",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__internal_energy",
             [*[r.data_times for r in results]],
             [*[r.internal_energy_expectation_value_vs_time for r in results]],
             line_labels=tex_labels,
@@ -169,7 +169,7 @@ if __name__ == "__main__":
         )
 
         si.vis.xxyy_plot(
-            f"comparison__pw={uround(pulse_width, asec)}as_flu={uround(fluence, Jcm2)}jcm2__total_energy",
+            f"comparison__pw={pulse_width / asec:3f}as_flu={fluence / Jcm2:3f}jcm2__total_energy",
             [*[r.data_times for r in results]],
             [*[r.total_energy_expectation_value_vs_time for r in results]],
             line_labels=tex_labels,

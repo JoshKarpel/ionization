@@ -57,11 +57,11 @@ if __name__ == "__main__":
         pulse_width = 200 * asec
         fluence = 1 * Jcm2
         phase = 0
-        pulse = ion.SincPulse(
+        pulse = ion.potentials.SincPulse(
             pulse_width=pulse_width,
             fluence=fluence,
             phase=phase,
-            window=ion.SymmetricExponentialTimeWindow(
+            window=ion.potentials.LogisticWindow(
                 window_time=10 * pulse_width, window_width=0.2 * pulse_width
             ),
         )

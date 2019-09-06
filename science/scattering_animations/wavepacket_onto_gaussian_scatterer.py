@@ -19,22 +19,22 @@ ANIM_KWARGS = dict(target_dir=OUT_DIR, fig_dpi_scale=1, length=20, fps=30)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        scatterer = potentials.GaussianScatterer(
+        scatterer = ion.potentials.GaussianScatterer(
             x_center=-5 * u.nm,
             z_center=0 * u.nm,
             x_width=0.5 * u.nm,
             z_width=0.1 * u.nm,
         )
-        scatterer += potentials.GaussianScatterer(
+        scatterer += ion.potentials.GaussianScatterer(
             x_center=0 * u.nm, z_center=5 * u.nm, x_width=0.1 * u.nm, z_width=0.1 * u.nm
         )
-        scatterer += potentials.GaussianScatterer(
+        scatterer += ion.potentials.GaussianScatterer(
             x_center=0 * u.nm,
             z_center=-5 * u.nm,
             x_width=0.1 * u.nm,
             z_width=0.1 * u.nm,
         )
-        scatterer += potentials.GaussianScatterer(
+        scatterer += ion.potentials.GaussianScatterer(
             x_center=2.5 * u.nm,
             z_center=0 * u.nm,
             x_width=0.1 * u.nm,

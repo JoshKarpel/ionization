@@ -17,21 +17,21 @@ ANIM_KWARGS = dict(target_dir=OUT_DIR, fig_dpi_scale=1, length=20, fps=30)
 if __name__ == "__main__":
     with LOGMAN as logger:
         # top
-        scatterer = potentials.LogisticScatterer(
+        scatterer = ion.potentials.LogisticScatterer(
             x_center=-5 * u.nm,
             z_center=20 * u.nm,
             x_extent=0.1 * u.nm,
             z_extent=16 * u.nm,
         )
         # bottom
-        scatterer += potentials.LogisticScatterer(
+        scatterer += ion.potentials.LogisticScatterer(
             x_center=-5 * u.nm,
             z_center=-20 * u.nm,
             x_extent=0.1 * u.nm,
             z_extent=16 * u.nm,
         )
         # center
-        scatterer += potentials.LogisticScatterer(
+        scatterer += ion.potentials.LogisticScatterer(
             x_center=-5 * u.nm,
             z_center=0 * u.nm,
             x_extent=0.1 * u.nm,

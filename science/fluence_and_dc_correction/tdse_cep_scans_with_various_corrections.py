@@ -65,7 +65,7 @@ if __name__ == "__main__":
             }
 
             si.vis.xxyy_plot(
-                f"compare__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as",
+                f"compare__H={fluence / u.Jcm2:.3f}jcm2_PW={pulse_width / u.asec:.3f}as",
                 x_data=[
                     [r.phase for r in results] for jp, results in jp_to_results.items()
                 ],
@@ -76,12 +76,12 @@ if __name__ == "__main__":
                 line_labels=[label for jp, label in jp_to_label.items()],
                 line_kwargs=[None, {"linestyle": "--"}, {"linestyle": ":"}],
                 x_unit="rad",
-                title=fr"Comparison $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $",
+                title=fr"Comparison $ H = {fluence / u.Jcm2:.3f} \, \mathrm{{J/cm^2}}, \tau = {pulse_width / u.asec:.3f} \, \mathrm{{as}} $",
                 **PLOT_KWARGS,
             )
 
             si.vis.xxyy_plot(
-                f"difference__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as",
+                f"difference__H={fluence / u.Jcm2:.3f}jcm2_PW={pulse_width / u.asec:.3f}as",
                 x_data=[
                     [r.phase for r in results] for jp, results in jp_to_results.items()
                 ][1:],
@@ -96,12 +96,12 @@ if __name__ == "__main__":
                 line_labels=[label for jp, label in jp_to_label.items()][1:],
                 line_kwargs=[{"linestyle": "--"}, {"linestyle": ":"}],
                 x_unit="rad",
-                title=fr"Difference $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $",
+                title=fr"Difference $ H = {fluence / u.Jcm2:.3f} \, \mathrm{{J/cm^2}}, \tau = {pulse_width / u.asec:.3f} \, \mathrm{{as}} $",
                 **PLOT_KWARGS,
             )
 
             si.vis.xxyy_plot(
-                f"ratio__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as",
+                f"ratio__H={fluence / u.Jcm2:.3f}jcm2_PW={pulse_width / u.asec:.3f}as",
                 x_data=[
                     [r.phase for r in results] for jp, results in jp_to_results.items()
                 ][1:],
@@ -116,12 +116,12 @@ if __name__ == "__main__":
                 line_labels=[label for jp, label in jp_to_label.items()][1:],
                 line_kwargs=[{"linestyle": "--"}, {"linestyle": ":"}],
                 x_unit="rad",
-                title=fr"Ratio $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $",
+                title=fr"Ratio $ H = {fluence / u.Jcm2:.3f} \, \mathrm{{J/cm^2}}, \tau = {pulse_width / u.asec:.3f} \, \mathrm{{as}} $",
                 **PLOT_KWARGS,
             )
 
             si.vis.xxyy_plot(
-                f"sym_diff__H={u.uround(fluence, u.Jcm2)}jcm2_PW={u.uround(pulse_width, u.asec)}as",
+                f"sym_diff__H={fluence / u.Jcm2:.3f}jcm2_PW={pulse_width / u.asec:.3f}as",
                 x_data=[
                     [r.phase for r in results] for jp, results in jp_to_results.items()
                 ][1:],
@@ -145,12 +145,12 @@ if __name__ == "__main__":
                 line_labels=[label for jp, label in jp_to_label.items()][1:],
                 line_kwargs=[{"linestyle": "--"}, {"linestyle": ":"}],
                 x_unit="rad",
-                title=fr"Sym. Diff. $ H = {u.uround(fluence, u.Jcm2)} \, \mathrm{{J/cm^2}}, \tau = {u.uround(pulse_width, u.asec)} \, \mathrm{{as}} $",
+                title=fr"Sym. Diff. $ H = {fluence / u.Jcm2:.3f} \, \mathrm{{J/cm^2}}, \tau = {pulse_width / u.asec:.3f} \, \mathrm{{as}} $",
                 **PLOT_KWARGS,
             )
 
             # si.vis.xxyy_plot(
-            #     f'diffs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     f'diffs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi',
             #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
             #     y_data = [
             #         [
@@ -166,7 +166,7 @@ if __name__ == "__main__":
             # )
 
             # si.vis.xxyy_plot(
-            #     f'fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     f'fracs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi',
             #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
             #     y_data = [
             #         [
@@ -182,7 +182,7 @@ if __name__ == "__main__":
             # )
             #
             # si.vis.xxyy_plot(
-            #     f'sym_diff_fracs__{u.uround(fluence, u.Jcm2)}jcm2_{u.uround(phase, u.pi)}pi',
+            #     f'sym_diff_fracs__{fluence / u.Jcm2:.3f}jcm2_{phase / u.pi:.3f}pi',
             #     x_data = [[r.pulse_width for r in results if r.pulse_width] for jp, results in jp_to_results.items()],
             #     y_data = [
             #         [

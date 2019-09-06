@@ -332,7 +332,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
             sim.time_step = max(self.time_step_min, sim.time_step)
 
             logger.debug(
-                f"Accepted ARK4 step to {u.uround(times[-1] + time_step, u.asec, 6)} as. Changed time step to {u.uround(sim.time_step, u.asec, 6)} as from {u.uround(old_step, u.asec, 6)} as"
+                f"Accepted ARK4 step to {times[-1] + time_step / u.asec:.6f)} as. Changed time step to {sim.time_step / u.asec:6f} as from {old_step / u.asec:6f} as"
             )
 
             return a_double_step_estimate + (delta_1 / 15), time_curr + time_step
@@ -344,7 +344,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
             sim.time_step = max(self.time_step_min, sim.time_step)
 
             logger.debug(
-                f"Rejected ARK4 step. Changed time step to {u.uround(sim.time_step, u.asec, 6)} as from {u.uround(old_step, u.asec, 6)} as"
+                f"Rejected ARK4 step. Changed time step to {sim.time_step / u.asec:6f} as from {old_step / u.asec:6f} as"
             )
             return self.evolve(sim, b, times, sim.time_step)  # retry with new time step
 
@@ -354,11 +354,7 @@ class AdaptiveRungeKuttaFourMethod(RungeKuttaFourMethod):
         info.add_field("Error Control On", self.error_on)
         info.add_field("Epsilon", self.epsilon)
         info.add_field("Safety Factor", self.safety_factor)
-        info.add_field(
-            "Minimum Time Step", f"{u.uround(self.time_step_min, u.asec, 3)} as"
-        )
-        info.add_field(
-            "Maximum Time Step", f"{u.uround(self.time_step_max, u.asec, 3)} as"
-        )
+        info.add_field("Minimum Time Step", f"{self.time_step_min / u.asec:3f} as")
+        info.add_field("Maximum Time Step", f"{self.time_step_max / u.asec:3f} as")
 
         return info

@@ -19,10 +19,10 @@ ANIM_KWARGS = dict(target_dir=OUT_DIR, fig_dpi_scale=1, length=20, fps=30)
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        qho = potentials.HarmonicOscillator.from_energy_spacing_and_mass(1 * u.eV)
+        qho = ion.potentials.HarmonicOscillator.from_energy_spacing_and_mass(1 * u.eV)
         qho_period = u.twopi / qho.omega(u.electron_mass)
 
-        sine = potentials.SineWave.from_photon_energy(
+        sine = ion.potentials.SineWave.from_photon_energy(
             1 * u.eV, amplitude=0.001 * u.atomic_electric_field
         )
 

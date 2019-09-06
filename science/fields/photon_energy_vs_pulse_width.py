@@ -25,7 +25,7 @@ if __name__ == "__main__":
         largest_photon_energy = []
         frequency_cutoff = []
 
-        pulses = [ion.SincPulse(pulse_width=pw) for pw in pulse_widths]
+        pulses = [ion.potentials.SincPulse(pulse_width=pw) for pw in pulse_widths]
 
         largest_photon_energy = np.array(
             list(pulse.photon_energy_max for pulse in pulses)
@@ -33,8 +33,8 @@ if __name__ == "__main__":
         frequency_cutoff = np.array(list(pulse.frequency_max for pulse in pulses))
 
         # for pw in pulse_widths:
-        #     largest_photon_energy.append(ion.SincPulse(pulse_width = pw).photon_energy_max)
-        #     frequency_cutoff.append(ion.SincPulse(pulse_width = pw).frequency_max)
+        #     largest_photon_energy.append(ion.potentials.SincPulse(pulse_width = pw).photon_energy_max)
+        #     frequency_cutoff.append(ion.potentials.SincPulse(pulse_width = pw).frequency_max)
         #
         # largest_photon_energy = np.array(largest_photon_energy)
         # frequency_cutoff = np.array(frequency_cutoff)

@@ -65,7 +65,7 @@ class BauerGaussianPulse(potentials.UniformLinearlyPolarizedElectricPotential):
 
 
 def get_pulse_identifier(pulse):
-    return f"E={u.uround(pulse.amplitude, u.atomic_electric_field, 1)}_Nc={pulse.number_of_cycles}_omega={u.uround(pulse.omega, u.atomic_angular_frequency, 1)}"
+    return f"E={pulse.amplitude / u.atomic_electric_field:1f}_Nc={pulse.number_of_cycles}_omega={pulse.omega / u.atomic_angular_frequency:1f}"
 
 
 prefactor = -((u.electron_charge / u.hbar) ** 2)
@@ -197,7 +197,7 @@ if __name__ == "__main__":
                 6 * (np.max(np.abs(efield_vs_time / u.atomic_electric_field))) ** 2
             )
             ax_rate.set_ylim(-gamma_max, gamma_max)
-            ax_rate.grid(True, **si.vis.GRID_KWARGS)
+            ax_rate.grid(True, **si.vis.DEFAULT_GRID_KWARGS)
 
             ax_fields.grid(False, axis="y")
             ax_fields.set_xlim(

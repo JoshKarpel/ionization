@@ -17,7 +17,7 @@ if __name__ == "__main__":
         "simulacra", "ionization", stdout_logs=True, stdout_level=logging.INFO
     ):
         for nc in [0.1, 0.5, 0.75, 1.0, 1.1, 1.5, 1.9, 2.0, 3.0, 4.0]:
-            pulse = ion.CosSquaredPulse.from_pulse_width(
+            pulse = ion.potentials.CosSquaredPulse.from_pulse_width(
                 pulse_width=200 * asec,
                 amplitude=1 * atomic_electric_field,
                 number_of_cycles=nc,
@@ -74,6 +74,6 @@ if __name__ == "__main__":
                 y_lower_limit=0,
                 y_upper_limit=1,
                 y_pad=0,
-                title=fr"$\tau = {uround(pulse.pulse_width, asec)} \, \mathrm{{as}}, \; N_c = {nc}$",
+                title=fr"$\tau = {pulse.pulse_width / asec:.3f} \, \mathrm{{as}}, \; N_c = {nc}$",
                 **PLOT_KWARGS,
             )

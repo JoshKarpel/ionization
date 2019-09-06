@@ -99,12 +99,12 @@ def plot_norm_within_radius(sim):
 
 if __name__ == "__main__":
     with LOGMAN as logger:
-        potential = potentials.Rectangle(
+        potential = ion.potentials.Rectangle(
             start_time=10 * u.asec,
             end_time=40 * u.asec,
             amplitude=1 * u.atomic_electric_field,
         )
-        potential += potentials.Rectangle(
+        potential += ion.potentials.Rectangle(
             start_time=60 * u.asec,
             end_time=90 * u.asec,
             amplitude=-1 * u.atomic_electric_field,

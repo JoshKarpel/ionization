@@ -16,7 +16,7 @@ logman = si.utils.LogManager("simulacra", "ionization", stdout_level=logging.DEB
 PLOT_KWARGS = dict(target_dir=OUT_DIR, img_format="png", fig_dpi_scale=5)
 
 
-# class VolkovaWindow(ion.TimeWindow):
+# class VolkovaWindow(ion.potentials.TimeWindow):
 #     def __init__(self, *, t_front, t_platueau):
 #         super().__init__()
 #
@@ -43,7 +43,7 @@ if __name__ == "__main__":
         efield = ion.SineWave.from_photon_energy_and_intensity(
             2 * eV, intensity=100 * TWcm2, phase=pi / 2
         )
-        efield.window = ion.SmoothedTrapezoidalWindow(
+        efield.window = ion.potentials.SmoothedTrapezoidalWindow(
             time_front=1 * dummy.period_carrier, time_plateau=5 * dummy.period_carrier
         )
 
@@ -64,11 +64,11 @@ if __name__ == "__main__":
             times,
             efield.get_electric_field_amplitude(times),
             # np.abs(efield.get_electric_field_amplitude(times)),
-            # line_labels = (fr'$ {ion.LATEX_EFIELD}(t) $', fr'$ \left| {ion.LATEX_EFIELD}(t) \right| $'),
+            # line_labels = (fr'$ {ion.vis.LATEX_EFIELD}(t) $', fr'$ \left| {ion.vis.LATEX_EFIELD}(t) \right| $'),
             # line_kwargs = (None, {'linestyle': '--'}),
             x_label=r"$ t $",
             x_unit="fsec",
-            y_label=fr"$ {ion.LATEX_EFIELD}(t) $",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(t) $",
             y_unit="atomic_electric_field",
             **PLOT_KWARGS,
         )
@@ -80,11 +80,11 @@ if __name__ == "__main__":
             efield.get_vector_potential_amplitude_numeric_cumulative(times)
             / (atomic_momentum / proton_charge),
             line_labels=(
-                fr"$ {ion.LATEX_EFIELD}(t) $",
+                fr"$ {ion.vis.LATEX_EFIELD}(t) $",
                 fr"$ e \, {ion.LATEX_AFIELD}(t) $",
             ),
             x_label=r"$ t $",
             x_unit="fsec",
-            y_label=fr"$ {ion.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $",
+            y_label=fr"$ {ion.vis.LATEX_EFIELD}(t), \; e \, {ion.LATEX_AFIELD}(t) $",
             **PLOT_KWARGS,
         )
