@@ -591,25 +591,26 @@ def ask_data_storage_tdse(parameters, *, spec_type):
 
     datastores = []
     for cls, question, default in datastores_questions_defaults:
-        if si.ask_for_bool(question, default=default):
-            argspec = inspect.getfullargspec(cls.__init__)
-            arg_names = argspec.args[1:]
-            arg_defaults = argspec.defaults
-            if len(arg_names) > 0:
-                args = {
-                    name: si.ask_for_eval(f"Value for {name}?", default=default)
-                    for name, default in reversed(
-                        tuple(
-                            itertools.zip_longest(
-                                reversed(arg_names), reversed(arg_defaults)
-                            )
+        if not si.ask_for_bool(question, default=default):
+            continue
+        argspec = inspect.getfullargspec(cls.__init__)
+        arg_names = argspec.args[1:]
+        arg_defaults = argspec.defaults
+        if len(arg_names) > 0:
+            args = {
+                name: si.ask_for_eval(f"Value for {name}?", default=default)
+                for name, default in reversed(
+                    tuple(
+                        itertools.zip_longest(
+                            reversed(arg_names), reversed(arg_defaults)
                         )
                     )
-                }
-                datastore = cls(**args)
-            else:
-                datastore = cls()
-            datastores.append(datastore)
+                )
+            }
+            datastore = cls(**args)
+        else:
+            datastore = cls()
+        datastores.append(datastore)
 
     parameters.append(si.Parameter(name="datastores", value=datastores))
 
