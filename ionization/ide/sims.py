@@ -191,7 +191,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.time_index += 1
 
             logger.debug(
-                f"{self} evolved to time index {self.time_index} ({round(self.percent_completed)}%)"
+                f"{self} evolved to time index {self.time_index} ({self.percent_completed:.2f}%)"
             )
 
             callback(self)
@@ -233,7 +233,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         callback(path)
         self.latest_checkpoint_time = now
         logger.info(
-            f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)"
+            f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed:.2f}%)"
         )
         self.status = si.Status.RUNNING
 

@@ -319,7 +319,7 @@ class MeshSimulation(si.Simulation):
                 )  # evolve the mesh forward to the next time step
 
                 logger.debug(
-                    f"{self} evolved to time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)"
+                    f"{self} evolved to time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed:.2f}%)"
                 )
 
                 if self.spec.checkpoints:
@@ -350,7 +350,7 @@ class MeshSimulation(si.Simulation):
         callback(path)
         self.latest_checkpoint_time = now
         logger.info(
-            f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed}%)"
+            f"{self} checkpointed at time index {self.time_index} / {self.time_steps - 1} ({self.percent_completed:.2f}%)"
         )
         self.status = si.Status.RUNNING
 
