@@ -1,5 +1,5 @@
 import logging
-from typing import Union, Callable
+from typing import Union, Callable, Optional
 
 import datetime
 import itertools
@@ -143,8 +143,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
     def run(
         self,
         progress_bar: bool = False,
-        callback: Callable[["IntegroDifferentialEquationSimulation"], None] = None,
-        checkpoint_callback: Callable[[Path], None] = None,
+        callback: Optional[
+            Callable[["IntegroDifferentialEquationSimulation"], None]
+        ] = None,
+        checkpoint_callback: Optional[Callable[[Path], None]] = None,
     ):
         """
         Run the IDE simulation by repeatedly evolving it forward in time.
@@ -155,6 +157,11 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         callback : callable
             A function that accepts the ``Simulation`` as an argument, called at the end of each time step.
         """
+        if callback is None:
+            callback = lambda s: None
+        if checkpoint_callback is None:
+            checkpoint_callback = lambda p: None
+
         logger.info(
             f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
@@ -187,8 +194,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 f"{self} evolved to time index {self.time_index} ({round(self.percent_completed)}%)"
             )
 
-            if callback is not None:
-                callback(self)
+            callback(self)
 
             if self.spec.checkpoints:
                 now = datetime.datetime.utcnow()
@@ -223,7 +229,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
     def do_checkpoint(self, now, callback: Callable[[Path], None]):
         self.status = si.Status.PAUSED
-        path = self.save(target_dir=self.spec.checkpoint_dir, save_mesh=True)
+        path = self.save(target_dir=self.spec.checkpoint_dir)
         callback(path)
         self.latest_checkpoint_time = now
         logger.info(

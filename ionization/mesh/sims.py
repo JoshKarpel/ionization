@@ -265,6 +265,11 @@ class MeshSimulation(si.Simulation):
         callback
             If given, will be called with the :class:`MeshSimulation` as its argument after every time step.
         """
+        if callback is None:
+            callback = lambda s: None
+        if checkpoint_callback is None:
+            checkpoint_callback = lambda p: None
+
         logger.info(
             f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
@@ -297,8 +302,7 @@ class MeshSimulation(si.Simulation):
                     ):
                         animator.send_frame_to_ffmpeg()
 
-                if callback is not None:
-                    callback(self)
+                callback(self)
 
                 if (
                     is_data_time
