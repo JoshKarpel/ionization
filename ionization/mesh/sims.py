@@ -5,6 +5,8 @@ import collections
 import itertools
 import datetime
 import sys
+import functools
+import operator
 from pathlib import Path
 from copy import deepcopy
 import abc
@@ -88,8 +90,8 @@ class MeshSimulation(si.Simulation):
         self.data_times = self.times[self.data_mask]
         self.data_indices = time_indices[self.data_mask]
         self.data_time_steps = len(self.data_times)
-        self.spacetime_points = (
-            self.mesh.g.shape[0] * self.mesh.g.shape[1] * self.time_steps
+        self.spacetime_points = self.time_steps * (
+            functools.reduce(operator.mul, self.mesh.g.shape)
         )
 
         self.data = data.Data(self)
