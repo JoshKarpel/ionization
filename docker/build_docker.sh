@@ -2,8 +2,7 @@
 
 set -e
 
-USERNAME=maventree
-IMAGE=ionization
+TAG=$1
 
-docker build --pull --build-arg CACHEBUST=$(date +%s) -t ${USERNAME}/${IMAGE}:$1 .
-docker push ${USERNAME}/${IMAGE}:$1
+docker build --pull --build-arg CACHEBUST="$(date +%s)" -t "${TAG}" .
+docker push "${TAG}"
