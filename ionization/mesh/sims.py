@@ -274,8 +274,6 @@ class MeshSimulation(si.Simulation):
             f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
         try:
-            self.status = si.Status.RUNNING
-
             for animator in self.spec.animators:
                 animator.initialize(self)
 
@@ -333,7 +331,6 @@ class MeshSimulation(si.Simulation):
             if progress_bar:
                 pbar.close()
 
-            self.status = si.Status.FINISHED
             logger.info(f"Finished performing time evolution on {self}")
         except Exception as e:
             raise e

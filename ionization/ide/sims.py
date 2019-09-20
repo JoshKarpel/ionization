@@ -165,7 +165,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         logger.info(
             f"Performing time evolution on {self}, starting from time index {self.time_index}"
         )
-        self.status = si.Status.RUNNING
 
         if progress_bar:
             num_asecs_remaining = int((self.spec.time_final - self.times[-1]) / u.asec)
@@ -224,7 +223,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
         self.times = self.times[self.data_mask]
         self.b = self.b[self.data_mask]
 
-        self.status = si.Status.FINISHED
         logger.info(f"Finished performing time evolution on {self}")
 
     def do_checkpoint(self, now, callback: Callable[[Path], None]):
