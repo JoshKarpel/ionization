@@ -88,7 +88,9 @@ class MeshSimulation(si.Simulation):
         self.data_times = self.times[self.data_mask]
         self.data_indices = time_indices[self.data_mask]
         self.data_time_steps = len(self.data_times)
-        self.spacetime_points = np.prod(self.mesh.g.shape) * self.time_steps
+        self.spacetime_points = (
+            self.mesh.g.shape[0] * self.mesh.g.shape[1] * self.time_steps
+        )
 
         self.data = data.Data(self)
         self.datastores_by_type = {
@@ -219,7 +221,7 @@ class MeshSimulation(si.Simulation):
         """Update the time-indexed data arrays with the current values."""
         for ds_type, ds in self.datastores_by_type.items():
             ds.store()
-            logger.debug(f"{self} stored data for {ds_type}")
+            logger.debug(f"{self} stored data for {ds_type.__name__}")
 
     def check(self):
         norm = self.data.norm[self.data_time_index]
