@@ -14,7 +14,7 @@ install:
   - pip install codecov
 
 script:
-  - pytest --cov -n 2 tests/
+  - pytest --cov -n 2 -- tests/
 
 after_success:
   - codecov
