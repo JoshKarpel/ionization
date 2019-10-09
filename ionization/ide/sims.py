@@ -53,12 +53,7 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
 
         self.b = [self.spec.b_initial]
 
-        time_range = self.spec.time_final - self.spec.time_initial
-        dummy_times = np.linspace(
-            self.spec.time_initial,
-            self.spec.time_final,
-            int(time_range / self.time_step),
-        )
+        dummy_times = self.dummy_times
         if self.spec.electric_potential_dc_correction:
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.DC_correct_electric_potential(
@@ -68,7 +63,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             logger.warning(
                 f"DC-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}"
             )
-
         if self.spec.electric_potential_fluence_correction:
             old_pot = self.spec.electric_potential
             self.spec.electric_potential = potentials.FluenceCorrector(
@@ -83,14 +77,6 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 f"Fluence-corrected electric potential {old_pot} --> {self.spec.electric_potential} for {self}"
             )
 
-        self.interpolated_vector_potential = interp.CubicSpline(
-            x=dummy_times,
-            y=self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(
-                dummy_times
-            ),
-            bc_type="natural",
-        )
-
         if self.spec.integration_method == "simpson":
             self.integrate = integ.simps
         elif self.spec.integration_method == "trapezoid":
@@ -102,6 +88,26 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
             self.f = (
                 self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative
             )
+
+    @property
+    def dummy_times(self):
+        time_range = self.spec.time_final - self.spec.time_initial
+        return np.linspace(
+            self.spec.time_initial,
+            self.spec.time_final,
+            int(time_range / self.time_step),
+        )
+
+    @si.utils.cached_property
+    def interpolated_vector_potential(self):
+        dummy_times = self.dummy_times
+        return interp.CubicSpline(
+            x=dummy_times,
+            y=self.spec.electric_potential.get_vector_potential_amplitude_numeric_cumulative(
+                dummy_times
+            ),
+            bc_type="natural",
+        )
 
     @property
     def time_steps(self):
@@ -390,6 +396,10 @@ class IntegroDifferentialEquationSimulation(si.Simulation):
                 postfix += "__log"
 
             figman.name += postfix
+
+    def save(self, target_dir: Optional[Path] = None) -> Path:
+        del self.interpolated_vector_potential
+        return super().save(target_dir=target_dir)
 
 
 class IntegroDifferentialEquationSpecification(si.Specification):
