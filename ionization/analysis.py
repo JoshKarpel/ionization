@@ -80,7 +80,7 @@ class ParameterScan:
             # first entry is the number of entries
             if isinstance(first, int):
                 sims = []
-                it = range(pickle.load(f))
+                it = range(first)
                 if show_progress:
                     it = tqdm(it)
                 for _ in it:
