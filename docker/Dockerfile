@@ -13,6 +13,7 @@ RUN conda install -y python=3.7.3 numpy scipy matplotlib cython \
 ARG CACHEBUST=1
 
 # my packages
-RUN pip install git+https://github.com/JoshKarpel/simulacra.git \
+RUN pip install --no-cache-dir \
+                git+https://github.com/JoshKarpel/simulacra.git \
                 git+https://github.com/JoshKarpel/ionization.git \
  && python3 -c "import ionization"

@@ -31,7 +31,6 @@ def create_scan(tag):
     )
 
     kernel = utils.ask_ide_kernel(parameters)
-    tunneling_model = utils.ask_ide_tunneling(parameters)
 
     utils.ask_time_step(parameters)
 
