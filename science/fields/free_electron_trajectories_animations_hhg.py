@@ -88,7 +88,7 @@ def make_anim(args):
         # TRAJECTORIES
         ax_trajectory = ax_efield.twinx()
 
-        traj_line, = ax_trajectory.plot([], [], color=trajectory_color)
+        (traj_line,) = ax_trajectory.plot([], [], color=trajectory_color)
         vert_line = ax_trajectory.axvline(
             np.NaN, color=trajectory_color, alpha=0.75, linestyle=":"
         )

@@ -317,9 +317,10 @@ class MeshSimulationPlotter:
             )
 
             if grouped_free_states is None:
-                grouped_free_states, group_free_states_labels = self.group_free_states_by_continuous_attr(
-                    "energy", attr_unit="eV"
-                )
+                (
+                    grouped_free_states,
+                    group_free_states_labels,
+                ) = self.group_free_states_by_continuous_attr("energy", attr_unit="eV")
             overlaps = []
             labels = []
             colors = []
@@ -366,7 +367,7 @@ class MeshSimulationPlotter:
 
             overlaps.append(extra_bound_overlap)
             labels.append(
-                rf'$ \left| \left\langle \Psi | \psi_{{n \geq {bound_state_max_n + 1} }}  \right\rangle \right|^2 $'
+                rf"$ \left| \left\langle \Psi | \psi_{{n \geq {bound_state_max_n + 1} }}  \right\rangle \right|^2 $"
             )
             colors.append(".4")
 
@@ -945,7 +946,7 @@ class SphericalHarmonicSimulationPlotter(MeshSimulationPlotter):
                 ax_efield.tick_params(axis="y", colors=efield_color)
                 ax_efield.tick_params(axis="x", colors=efield_color)
 
-                efield, = ax_efield.plot(
+                (efield,) = ax_efield.plot(
                     self.sim.data_times / time_unit_value,
                     self.sim.data.electric_field_amplitude / efield_unit_value,
                     color=efield_color,

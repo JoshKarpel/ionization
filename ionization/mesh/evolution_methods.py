@@ -91,7 +91,7 @@ class SplitInteractionOperator(EvolutionMethod):
     ) -> "meshes.GMesh":
         tau = time_step / (2 * u.hbar)
 
-        cn_oper, = mesh.operators.internal_hamiltonian(
+        (cn_oper,) = mesh.operators.internal_hamiltonian(
             mesh
         ).operators  # this is the operator we do Crank-Nicolson ADI with
 

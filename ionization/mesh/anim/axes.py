@@ -48,13 +48,15 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             time_unit
         )
         self.electric_field_unit = electric_field_unit
-        self.electric_field_unit_value, self.electric_field_unit_latex = u.get_unit_value_and_latex(
-            electric_field_unit
-        )
+        (
+            self.electric_field_unit_value,
+            self.electric_field_unit_latex,
+        ) = u.get_unit_value_and_latex(electric_field_unit)
         self.vector_potential_unit = vector_potential_unit
-        self.vector_potential_unit_value, self.vector_potential_unit_latex = u.get_unit_value_and_latex(
-            vector_potential_unit
-        )
+        (
+            self.vector_potential_unit_value,
+            self.vector_potential_unit_latex,
+        ) = u.get_unit_value_and_latex(vector_potential_unit)
 
         self.show_y_label = show_y_label
         self.show_ticks_bottom = show_ticks_bottom
@@ -84,7 +86,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
         self.redraw.append(self.time_line)
 
         if self.show_electric_field:
-            self.electric_field_line, = self.axis.plot(
+            (self.electric_field_line,) = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
                 self.sim.data.electric_field_amplitude / self.electric_field_unit_value,
                 label=fr"${vis.LATEX_EFIELD}(t)$",
@@ -96,7 +98,7 @@ class ElectricPotentialPlotAxis(si.vis.AxisManager):
             self.redraw.append(self.electric_field_line)
 
         if self.show_vector_potential:
-            self.vector_potential_line, = self.axis.plot(
+            (self.vector_potential_line,) = self.axis.plot(
                 self.sim.data_times / self.time_unit_value,
                 u.proton_charge
                 * self.sim.data.vector_potential_amplitude
@@ -233,7 +235,7 @@ class StackplotAxis(si.vis.AxisManager):
 
     def initialize_axis(self):
         if self.show_norm:
-            self.norm_line, = self.axis.plot(
+            (self.norm_line,) = self.axis.plot(
                 self.sim.data.times / self.time_unit_value,
                 self.sim.data.norm,
                 label=r"$\left\langle \Psi|\psi \right\rangle$",
@@ -440,7 +442,7 @@ class WavefunctionStackplotAxis(StackplotAxis):
                 for state, overlap in sorted(selected_state_overlaps.items())
             ),
             r"$ \sum_{\mathrm{other \, bound}} \; \left| \left\langle \Psi | \psi_{{n, \, \ell}} \right\rangle \right|^2 $",
-            fr'$ \sum_{{ \mathrm{{other \, free}} }} \; \left| \left\langle \Psi | \phi_{{E, \, \ell}} \right\rangle \right|^2 $',
+            fr"$ \sum_{{ \mathrm{{other \, free}} }} \; \left| \left\langle \Psi | \phi_{{E, \, \ell}} \right\rangle \right|^2 $",
         )
 
         return data, labels

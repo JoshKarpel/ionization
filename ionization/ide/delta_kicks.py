@@ -399,7 +399,7 @@ class DeltaKickSpecification(si.Specification):
         test_mass: float = u.electron_mass,
         test_charge: float = u.electron_charge,
         b_initial: Union[float, complex] = 1,
-        integral_prefactor: float = -(u.electron_charge / u.hbar) ** 2,
+        integral_prefactor: float = -((u.electron_charge / u.hbar) ** 2),
         electric_potential: potentials.PotentialEnergy = potentials.NoElectricPotential(),
         electric_potential_dc_correction: bool = True,
         kernel: kernels.Kernel = kernels.LengthGaugeHydrogenKernel(),

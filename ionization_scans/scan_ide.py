@@ -26,7 +26,7 @@ def create_scan(tag):
     parameters.append(si.Parameter(name="test_energy", value=test_energy))
     parameters.append(
         si.Parameter(
-            name="integral_prefactor", value=-(u.electron_charge / u.hbar) ** 2
+            name="integral_prefactor", value=-((u.electron_charge / u.hbar) ** 2)
         )
     )
 

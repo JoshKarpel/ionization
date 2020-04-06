@@ -1162,7 +1162,7 @@ class SphericalHarmonicMesh(QuantumMesh):
         multiplier = (
             np.sqrt(2 / u.pi)
             * self.g_factor
-            * (-1j ** (l_mesh % 4))
+            * (-(1j ** (l_mesh % 4)))
             * self.inner_product_multiplier
             * g
         )
@@ -1298,9 +1298,7 @@ class SphericalHarmonicMesh(QuantumMesh):
 
             while True:
                 if number_of_eigenvectors > max_eigenvectors:
-                    number_of_eigenvectors = (
-                        max_eigenvectors
-                    )  # this will cause the loop to break after this attempt
+                    number_of_eigenvectors = max_eigenvectors  # this will cause the loop to break after this attempt
 
                 eigenvalues, eigenvectors = sparsealg.eigsh(
                     h, k=number_of_eigenvectors, which="SA"

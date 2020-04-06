@@ -96,7 +96,7 @@ if __name__ == "__main__":
         phase_to_style = dict(zip(phases, styles))
 
         line_labels = [
-            fr'$E_{{\alpha}} = {energy / eV:3f} \mathrm{{eV}}, \; \varphi = {phase / pi:3f}\pi$'
+            fr"$E_{{\alpha}} = {energy / eV:3f} \mathrm{{eV}}, \; \varphi = {phase / pi:3f}\pi$"
             for energy, phase in energy_cep_to_a2.keys()
         ]
         line_kwargs = [

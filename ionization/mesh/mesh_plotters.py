@@ -191,7 +191,7 @@ class LineMeshPlotter(MeshPlotter):
 
         _slice = getattr(self.mesh, slicer)(plot_limit)
 
-        line, = axis.plot(
+        (line,) = axis.plot(
             self.mesh.z_mesh[_slice] / unit_value, norm(mesh[_slice]), **kwargs
         )
 
@@ -304,7 +304,7 @@ class RectangleMeshPlotter(MeshPlotter):
         **kwargs,
     ):
         grid_kwargs = collections.ChainMap(
-            grid_kwargs or {}, si.vis.COLORMESH_GRID_KWARGS
+            grid_kwargs or {}, si.vis.DEFAULT_COLORMESH_GRID_KWARGS
         )
         unit_value, unit_name = u.get_unit_value_and_latex(distance_unit)
 
@@ -388,7 +388,10 @@ class CylindricalSliceMeshPlotter(MeshPlotter):
         distance_unit_value, _ = u.get_unit_value_and_latex(distance_unit)
         rate_unit_value, _ = u.get_unit_value_and_latex(rate_unit)
 
-        current_mesh_z, current_mesh_rho = (
+        (
+            current_mesh_z,
+            current_mesh_rho,
+        ) = (
             self.mesh.get_probability_current_density_vector_field()
         )  # actually densities here
 
@@ -971,9 +974,11 @@ class SphericalHarmonicMeshPlotter(MeshPlotter):
 
         g = self.mesh.state_to_g(g)
 
-        theta_mesh, wavenumber_mesh, inner_product_mesh = self.mesh.inner_product_with_plane_waves(
-            thetas, wavenumbers, g=g
-        )
+        (
+            theta_mesh,
+            wavenumber_mesh,
+            inner_product_mesh,
+        ) = self.mesh.inner_product_with_plane_waves(thetas, wavenumbers, g=g)
 
         if r_type == "wavenumber":
             r_mesh = wavenumber_mesh

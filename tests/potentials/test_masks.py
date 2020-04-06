@@ -22,7 +22,7 @@ def test_can_construct_radial_cosine_mask_with_positive_inner_radius(inner_radiu
 
 @hyp.given(inner_radius=st.floats(max_value=0, allow_nan=False, allow_infinity=False))
 def test_cannot_construct_radial_cosine_mask_with_non_positive_inner_radius(
-    inner_radius
+    inner_radius,
 ):
     outer_radius = abs(inner_radius)
     hyp.assume(outer_radius > inner_radius)

@@ -18,7 +18,7 @@ import ionization as ion
     ],
 )
 def test_dc_correct_electric_potential_replaces_given_potential_after_simulation_initialization(
-    spec_type
+    spec_type,
 ):
     pot = ion.potentials.SincPulse()
 

@@ -89,7 +89,7 @@ def compare_omega_mins(pulse_types, pulse_widths, fluences, phases, omega_mins):
                 for pulse in pulses
             ],
             line_labels=[
-                rf'$ \omega_{{\min}} = 2\pi \, \times \, {omega_min / twopi * THz:.3f} \; \mathrm{{THz}} $'
+                rf"$ \omega_{{\min}} = 2\pi \, \times \, {omega_min / twopi * THz:.3f} \; \mathrm{{THz}} $"
                 for omega_min in omega_mins
             ],
             x_label=r"$t$ ($\tau$)",

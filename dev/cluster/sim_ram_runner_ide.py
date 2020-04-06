@@ -21,7 +21,7 @@ if __name__ == "__main__":
     with si.utils.LogManager(
         "simulacra", "ionization", stdout_logs=True, stdout_level=logging.INFO
     ) as logger:
-        dt, = sys.argv[1:]
+        (dt,) = sys.argv[1:]
         dt = float(dt) * asec
 
         pw = 100 * asec

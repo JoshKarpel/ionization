@@ -4,6 +4,8 @@ import os
 import simulacra as si
 import simulacra.units as u
 
+import ionization as ion
+
 FILE_NAME = os.path.splitext(os.path.basename(__file__))[0]
 OUT_DIR = os.path.join(os.getcwd(), "out", FILE_NAME)
 
@@ -58,13 +60,13 @@ if __name__ == "__main__":
         #     z_width = .2 * u.nm,
         # )
 
-        spec = mesh.RectangleSpecification(
+        spec = ion.mesh.RectangleSpecification(
             "pinball",
             z_bound=20 * u.nm,
             x_bound=20 * u.nm,
             z_points=1000,
             x_points=1000,
-            initial_state=states.TwoDGaussianWavepacket(
+            initial_state=ion.states.TwoDGaussianWavepacket(
                 center_x=-5 * u.nm,
                 center_z=-5 * u.nm,
                 k_x=2 * u.twopi / u.nm,
@@ -75,9 +77,9 @@ if __name__ == "__main__":
             time_step=u.fsec / 10,
             internal_potential=scatterer,
             animators=[
-                mesh.anim.SquareAnimator(
+                ion.mesh.anim.SquareAnimator(
                     postfix="_g",
-                    axman_wavefunction=mesh.anim.RectangleMeshAxis(
+                    axman_wavefunction=ion.mesh.anim.RectangleMeshAxis(
                         which="g",
                         colormap=si.vis.RichardsonColormap(),
                         norm=si.vis.RichardsonNormalization(),
@@ -85,13 +87,13 @@ if __name__ == "__main__":
                     ),
                     **ANIM_KWARGS,
                 ),
-                mesh.anim.SquareAnimator(
-                    postfix="_g2",
-                    axman_wavefunction=mesh.anim.RectangleMeshAxis(
-                        which="g2", distance_unit="nm"
-                    ),
-                    **ANIM_KWARGS,
-                ),
+                # ion.mesh.anim.SquareAnimator(
+                #     postfix = "_g2",
+                #     axman_wavefunction = ion.mesh.anim.RectangleMeshAxis(
+                #         which = "g2", distance_unit = "nm"
+                #     ),
+                #     **ANIM_KWARGS,
+                # ),
             ],
         )
         # print(spec.info())

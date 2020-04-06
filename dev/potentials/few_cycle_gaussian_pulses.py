@@ -47,7 +47,7 @@ def power_exclusion():
         *[pulse.get_electric_field_amplitude(times) for pulse in pulses_by_exclusion],
         # ti_sapph.get_electric_field_amplitude(times),
         line_labels=[
-            rf'$N_{{\sigma}} = {exclusion}$' for exclusion in exclusions
+            rf"$N_{{\sigma}} = {exclusion}$" for exclusion in exclusions
         ],  # + ['tisapph'],
         x_unit="asec",
         x_label=r"Time $ t $",
@@ -68,7 +68,7 @@ def power_exclusion():
         ],
         # ti_sapph.get_electric_field_amplitude(times),
         line_labels=[
-            rf'$N_{{\sigma}} = {exclusion}$' for exclusion in exclusions
+            rf"$N_{{\sigma}} = {exclusion}$" for exclusion in exclusions
         ],  # + ['tisapph'],
         x_unit="asec",
         x_label=r"Time $ t $",
@@ -197,7 +197,7 @@ def number_of_cycles_fluence_and_vp():
             for pulse in pulses_by_num_cycles
         ],
         x_label=r"Number of Cycles $N_c$",
-        y_label=rf'$ q \, {ion.LATEX_AFIELD}(t_{{\mathrm{{final}}}}) $',
+        y_label=rf"$ q \, {ion.LATEX_AFIELD}(t_{{\mathrm{{final}}}}) $",
         y_unit="atomic_momentum",
         title="Vector Potential Error",
         **PLOT_KWARGS,
@@ -225,7 +225,7 @@ def number_of_cycles_fluence_and_vp():
             for pulse in pulses_by_num_cycles
         ],
         x_label=r"Number of Cycles $N_c$",
-        y_label=rf'$ \left| q \, {ion.LATEX_AFIELD}(t_{{\mathrm{{final}}}}) \right| $',
+        y_label=rf"$ \left| q \, {ion.LATEX_AFIELD}(t_{{\mathrm{{final}}}}) \right| $",
         y_unit="atomic_momentum",
         title="Vector Potential Error",
         y_log_axis=True,

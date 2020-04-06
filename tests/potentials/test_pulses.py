@@ -160,7 +160,7 @@ def test_can_construct_gaussian_and_sech_pulses_with_non_negative_omega_carrier(
     "pulse_type", [ion.potentials.GaussianPulse, ion.potentials.SechPulse]
 )
 def test_cannot_construct_gaussian_and_sech_pulses_with_negative_omega_carrier(
-    pulse_type
+    pulse_type,
 ):
     with pytest.raises(ion.exceptions.InvalidPotentialParameter):
         pulse_type(omega_carrier=-1 * u.atomic_angular_frequency)

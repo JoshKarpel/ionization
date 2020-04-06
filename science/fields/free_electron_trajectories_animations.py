@@ -87,7 +87,7 @@ def make_anim(args):
         ax_efield.plot(
             times, efield, color=efield_color, label=fr"$ {ion.vis.LATEX_EFIELD}(t) $"
         )
-        vect_line, = ax_efield.plot(
+        (vect_line,) = ax_efield.plot(
             [],
             [],
             color=afield_color,
@@ -113,7 +113,7 @@ def make_anim(args):
         # TRAJECTORIES
         ax_trajectory = ax_efield.twinx()
 
-        traj_line, = ax_trajectory.plot([], [], color=trajectory_color, animated=True)
+        (traj_line,) = ax_trajectory.plot([], [], color=trajectory_color, animated=True)
         vert_line = ax_trajectory.axvline(
             np.NaN, color=trajectory_color, alpha=0.5, animated=True
         )

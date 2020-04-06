@@ -23,7 +23,7 @@ def run_hyd_ide_sim(pulse, tb):
         "idesim",
         electric_potential=pulse,
         kernel=ide.hydrogen_kernel_LEN,
-        integral_prefactor=-(electron_charge / hbar) ** 2,
+        integral_prefactor=-((electron_charge / hbar) ** 2),
         time_initial=-pulse.pulse_width * tb,
         time_final=pulse.pulse_width * tb,
         time_step=1 * asec,
@@ -39,7 +39,7 @@ def run_dk_sim(pulse, tb):
         "dksim",
         electric_potential=pulse,
         kernel=ide.hydrogen_kernel_LEN,
-        integral_prefactor=-(electron_charge / hbar) ** 2,
+        integral_prefactor=-((electron_charge / hbar) ** 2),
         time_initial=-pulse.pulse_width * tb,
         time_final=pulse.pulse_width * tb,
     ).to_sim()
@@ -61,7 +61,7 @@ def solve_ide_implicit_from_kicks(kicks):
     A = np.zeros((len(kicks), len(kicks)), dtype=np.complex128)
 
     omega = ion.HydrogenBoundState(1, 0).energy / hbar
-    prefactor = -(electron_charge / hbar) ** 2
+    prefactor = -((electron_charge / hbar) ** 2)
     kernel = lambda td: ide.hydrogen_kernel_LEN(
         td, omega_b=ion.HydrogenBoundState(1, 0).energy / hbar
     )
